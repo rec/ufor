@@ -1,0 +1,6 @@
+// Synthetic metadata is supplied separately; this case needs no audio file.
+<control> default_path=audio/
+<global> ampeg_release=0.4 loop_mode=no_loop
+<region> sample=glass.wav key=69 offset=10 end=999
+ampeg_delay=0.05 ampeg_attack=0.01 ampeg_hold=0.1 ampeg_decay=0.2 ampeg_sustain=60
+volume=-3 pan=-25 amp_veltrack=50 amp_velcurve_0=0.2 amp_velcurve_64=0.6

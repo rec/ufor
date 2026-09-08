@@ -1,0 +1,764 @@
+{
+  "format": "recs",
+  "version": 1,
+  "id": "glass",
+  "name": "Glass",
+  "kind": "instrument",
+  "description": null,
+  "tags": [],
+  "timebases": [
+    {
+      "id": "output",
+      "kind": "physical",
+      "rate": {
+        "numerator": 48000,
+        "denominator": 1
+      }
+    },
+    {
+      "id": "native-44100",
+      "kind": "physical",
+      "rate": {
+        "numerator": 44100,
+        "denominator": 1
+      }
+    }
+  ],
+  "assets": [
+    {
+      "id": "asset-1",
+      "path": "audio/glass.wav",
+      "encoding": "WAV/PCM_16",
+      "byte_length": 88244,
+      "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "audio": {
+        "timebase": "native-44100",
+        "channels": [
+          "mono"
+        ],
+        "frames": 44100
+      }
+    }
+  ],
+  "performance_port": "performance",
+  "audio_port": "audio",
+  "output": {
+    "family": "sampled",
+    "quantity": "audio_amplitude",
+    "unit": "full_scale",
+    "timebase": "output",
+    "channels": [
+      "left",
+      "right"
+    ]
+  },
+  "body": {
+    "kind": "sample_instrument",
+    "slices": [
+      {
+        "id": "slice-1",
+        "asset": "asset-1",
+        "start_frame": 10,
+        "end_frame": 1000,
+        "loop": null
+      }
+    ],
+    "instrument": {
+      "processing": {
+        "volume_db": 0.0,
+        "tuning_cents": 0.0,
+        "pan": 0.0,
+        "stereo_balance": 0.0,
+        "equalizer": []
+      },
+      "envelope": {
+        "clock": "seconds",
+        "scope": "voice",
+        "polarity": "unipolar",
+        "initial": 0.0,
+        "segments": [
+          {
+            "duration": "0",
+            "target": 1.0,
+            "curve": 0.0
+          }
+        ],
+        "release": [
+          {
+            "duration": "0",
+            "target": 0.0,
+            "curve": 0.0
+          }
+        ],
+        "hold": true,
+        "retrigger": "current"
+      },
+      "envelopes": {},
+      "lfos": {},
+      "modulation": {
+        "parameters": [],
+        "sources": [],
+        "routes": []
+      },
+      "bindings": [],
+      "playback": {
+        "direction": "forward",
+        "mode": "while_held"
+      },
+      "selections": [],
+      "sustain": {
+        "control": "sustain",
+        "threshold": 0.5
+      },
+      "articulations": null,
+      "controls": {
+        "sustain": {
+          "polarity": "unipolar",
+          "default": 0.0
+        }
+      }
+    },
+    "slots": [
+      {
+        "processing": {
+          "volume_db": -3.0,
+          "tuning_cents": 0.0,
+          "pan": -0.25,
+          "stereo_balance": 0.0,
+          "equalizer": []
+        },
+        "envelope": {
+          "clock": "seconds",
+          "scope": "voice",
+          "polarity": "unipolar",
+          "initial": 0.0,
+          "segments": [
+            {
+              "duration": "1/20",
+              "target": 0.0,
+              "curve": 0.0
+            },
+            {
+              "duration": "1/100",
+              "target": 1.0,
+              "curve": 0.0
+            },
+            {
+              "duration": "1/10",
+              "target": 1.0,
+              "curve": 0.0
+            },
+            {
+              "duration": "1/5",
+              "target": 0.6,
+              "curve": -5.0
+            }
+          ],
+          "release": [
+            {
+              "duration": "2/5",
+              "target": 0.0,
+              "curve": -5.0
+            }
+          ],
+          "hold": true,
+          "retrigger": "current"
+        },
+        "envelopes": {},
+        "lfos": {},
+        "modulation": {
+          "parameters": [
+            {
+              "target": {
+                "node": "processing",
+                "parameter": "amplitude"
+              },
+              "unit": "ratio",
+              "scope": "voice",
+              "minimum": 0.0,
+              "maximum": 1.0,
+              "default": 1.0
+            }
+          ],
+          "sources": [
+            {
+              "id": "velocity",
+              "scope": "voice",
+              "minimum": 0.0,
+              "maximum": 1.0
+            }
+          ],
+          "routes": [
+            {
+              "id": "velocity-amplitude",
+              "source": "velocity",
+              "target": {
+                "node": "processing",
+                "parameter": "amplitude"
+              },
+              "operation": "multiply",
+              "unit": "ratio",
+              "points": [
+                {
+                  "input": 0.0,
+                  "amount": 0.6
+                },
+                {
+                  "input": 0.007874015748031496,
+                  "amount": 0.603125
+                },
+                {
+                  "input": 0.015748031496062992,
+                  "amount": 0.60625
+                },
+                {
+                  "input": 0.023622047244094488,
+                  "amount": 0.609375
+                },
+                {
+                  "input": 0.031496062992125984,
+                  "amount": 0.6125
+                },
+                {
+                  "input": 0.03937007874015748,
+                  "amount": 0.615625
+                },
+                {
+                  "input": 0.047244094488188976,
+                  "amount": 0.61875
+                },
+                {
+                  "input": 0.05511811023622047,
+                  "amount": 0.621875
+                },
+                {
+                  "input": 0.06299212598425197,
+                  "amount": 0.625
+                },
+                {
+                  "input": 0.07086614173228346,
+                  "amount": 0.628125
+                },
+                {
+                  "input": 0.07874015748031496,
+                  "amount": 0.63125
+                },
+                {
+                  "input": 0.08661417322834646,
+                  "amount": 0.634375
+                },
+                {
+                  "input": 0.09448818897637795,
+                  "amount": 0.6375
+                },
+                {
+                  "input": 0.10236220472440945,
+                  "amount": 0.640625
+                },
+                {
+                  "input": 0.11023622047244094,
+                  "amount": 0.64375
+                },
+                {
+                  "input": 0.11811023622047244,
+                  "amount": 0.646875
+                },
+                {
+                  "input": 0.12598425196850394,
+                  "amount": 0.65
+                },
+                {
+                  "input": 0.13385826771653545,
+                  "amount": 0.653125
+                },
+                {
+                  "input": 0.14173228346456693,
+                  "amount": 0.65625
+                },
+                {
+                  "input": 0.14960629921259844,
+                  "amount": 0.659375
+                },
+                {
+                  "input": 0.15748031496062992,
+                  "amount": 0.6625
+                },
+                {
+                  "input": 0.16535433070866143,
+                  "amount": 0.665625
+                },
+                {
+                  "input": 0.1732283464566929,
+                  "amount": 0.66875
+                },
+                {
+                  "input": 0.18110236220472442,
+                  "amount": 0.671875
+                },
+                {
+                  "input": 0.1889763779527559,
+                  "amount": 0.675
+                },
+                {
+                  "input": 0.1968503937007874,
+                  "amount": 0.678125
+                },
+                {
+                  "input": 0.2047244094488189,
+                  "amount": 0.68125
+                },
+                {
+                  "input": 0.2125984251968504,
+                  "amount": 0.684375
+                },
+                {
+                  "input": 0.2204724409448819,
+                  "amount": 0.6875
+                },
+                {
+                  "input": 0.2283464566929134,
+                  "amount": 0.690625
+                },
+                {
+                  "input": 0.23622047244094488,
+                  "amount": 0.69375
+                },
+                {
+                  "input": 0.2440944881889764,
+                  "amount": 0.696875
+                },
+                {
+                  "input": 0.25196850393700787,
+                  "amount": 0.7
+                },
+                {
+                  "input": 0.25984251968503935,
+                  "amount": 0.703125
+                },
+                {
+                  "input": 0.2677165354330709,
+                  "amount": 0.70625
+                },
+                {
+                  "input": 0.2755905511811024,
+                  "amount": 0.709375
+                },
+                {
+                  "input": 0.28346456692913385,
+                  "amount": 0.7125
+                },
+                {
+                  "input": 0.29133858267716534,
+                  "amount": 0.715625
+                },
+                {
+                  "input": 0.2992125984251969,
+                  "amount": 0.71875
+                },
+                {
+                  "input": 0.30708661417322836,
+                  "amount": 0.721875
+                },
+                {
+                  "input": 0.31496062992125984,
+                  "amount": 0.725
+                },
+                {
+                  "input": 0.3228346456692913,
+                  "amount": 0.728125
+                },
+                {
+                  "input": 0.33070866141732286,
+                  "amount": 0.73125
+                },
+                {
+                  "input": 0.33858267716535434,
+                  "amount": 0.734375
+                },
+                {
+                  "input": 0.3464566929133858,
+                  "amount": 0.7375
+                },
+                {
+                  "input": 0.3543307086614173,
+                  "amount": 0.740625
+                },
+                {
+                  "input": 0.36220472440944884,
+                  "amount": 0.74375
+                },
+                {
+                  "input": 0.3700787401574803,
+                  "amount": 0.746875
+                },
+                {
+                  "input": 0.3779527559055118,
+                  "amount": 0.75
+                },
+                {
+                  "input": 0.3858267716535433,
+                  "amount": 0.753125
+                },
+                {
+                  "input": 0.3937007874015748,
+                  "amount": 0.75625
+                },
+                {
+                  "input": 0.4015748031496063,
+                  "amount": 0.759375
+                },
+                {
+                  "input": 0.4094488188976378,
+                  "amount": 0.7625
+                },
+                {
+                  "input": 0.41732283464566927,
+                  "amount": 0.765625
+                },
+                {
+                  "input": 0.4251968503937008,
+                  "amount": 0.76875
+                },
+                {
+                  "input": 0.4330708661417323,
+                  "amount": 0.771875
+                },
+                {
+                  "input": 0.4409448818897638,
+                  "amount": 0.775
+                },
+                {
+                  "input": 0.44881889763779526,
+                  "amount": 0.778125
+                },
+                {
+                  "input": 0.4566929133858268,
+                  "amount": 0.78125
+                },
+                {
+                  "input": 0.4645669291338583,
+                  "amount": 0.784375
+                },
+                {
+                  "input": 0.47244094488188976,
+                  "amount": 0.7875
+                },
+                {
+                  "input": 0.48031496062992124,
+                  "amount": 0.790625
+                },
+                {
+                  "input": 0.4881889763779528,
+                  "amount": 0.79375
+                },
+                {
+                  "input": 0.49606299212598426,
+                  "amount": 0.796875
+                },
+                {
+                  "input": 0.5039370078740157,
+                  "amount": 0.8
+                },
+                {
+                  "input": 0.5118110236220472,
+                  "amount": 0.8031746031746032
+                },
+                {
+                  "input": 0.5196850393700787,
+                  "amount": 0.8063492063492064
+                },
+                {
+                  "input": 0.5275590551181102,
+                  "amount": 0.8095238095238095
+                },
+                {
+                  "input": 0.5354330708661418,
+                  "amount": 0.8126984126984127
+                },
+                {
+                  "input": 0.5433070866141733,
+                  "amount": 0.8158730158730159
+                },
+                {
+                  "input": 0.5511811023622047,
+                  "amount": 0.819047619047619
+                },
+                {
+                  "input": 0.5590551181102362,
+                  "amount": 0.8222222222222222
+                },
+                {
+                  "input": 0.5669291338582677,
+                  "amount": 0.8253968253968254
+                },
+                {
+                  "input": 0.5748031496062992,
+                  "amount": 0.8285714285714285
+                },
+                {
+                  "input": 0.5826771653543307,
+                  "amount": 0.8317460317460317
+                },
+                {
+                  "input": 0.5905511811023622,
+                  "amount": 0.8349206349206348
+                },
+                {
+                  "input": 0.5984251968503937,
+                  "amount": 0.8380952380952381
+                },
+                {
+                  "input": 0.6062992125984252,
+                  "amount": 0.8412698412698413
+                },
+                {
+                  "input": 0.6141732283464567,
+                  "amount": 0.8444444444444444
+                },
+                {
+                  "input": 0.6220472440944882,
+                  "amount": 0.8476190476190476
+                },
+                {
+                  "input": 0.6299212598425197,
+                  "amount": 0.8507936507936508
+                },
+                {
+                  "input": 0.6377952755905512,
+                  "amount": 0.8539682539682539
+                },
+                {
+                  "input": 0.6456692913385826,
+                  "amount": 0.8571428571428572
+                },
+                {
+                  "input": 0.6535433070866141,
+                  "amount": 0.8603174603174604
+                },
+                {
+                  "input": 0.6614173228346457,
+                  "amount": 0.8634920634920635
+                },
+                {
+                  "input": 0.6692913385826772,
+                  "amount": 0.8666666666666667
+                },
+                {
+                  "input": 0.6771653543307087,
+                  "amount": 0.8698412698412699
+                },
+                {
+                  "input": 0.6850393700787402,
+                  "amount": 0.873015873015873
+                },
+                {
+                  "input": 0.6929133858267716,
+                  "amount": 0.8761904761904762
+                },
+                {
+                  "input": 0.7007874015748031,
+                  "amount": 0.8793650793650793
+                },
+                {
+                  "input": 0.7086614173228346,
+                  "amount": 0.8825396825396825
+                },
+                {
+                  "input": 0.7165354330708661,
+                  "amount": 0.8857142857142857
+                },
+                {
+                  "input": 0.7244094488188977,
+                  "amount": 0.8888888888888888
+                },
+                {
+                  "input": 0.7322834645669292,
+                  "amount": 0.892063492063492
+                },
+                {
+                  "input": 0.7401574803149606,
+                  "amount": 0.8952380952380952
+                },
+                {
+                  "input": 0.7480314960629921,
+                  "amount": 0.8984126984126983
+                },
+                {
+                  "input": 0.7559055118110236,
+                  "amount": 0.9015873015873016
+                },
+                {
+                  "input": 0.7637795275590551,
+                  "amount": 0.9047619047619048
+                },
+                {
+                  "input": 0.7716535433070866,
+                  "amount": 0.9079365079365079
+                },
+                {
+                  "input": 0.7795275590551181,
+                  "amount": 0.9111111111111111
+                },
+                {
+                  "input": 0.7874015748031497,
+                  "amount": 0.9142857142857143
+                },
+                {
+                  "input": 0.7952755905511811,
+                  "amount": 0.9174603174603175
+                },
+                {
+                  "input": 0.8031496062992126,
+                  "amount": 0.9206349206349207
+                },
+                {
+                  "input": 0.8110236220472441,
+                  "amount": 0.9238095238095239
+                },
+                {
+                  "input": 0.8188976377952756,
+                  "amount": 0.926984126984127
+                },
+                {
+                  "input": 0.8267716535433071,
+                  "amount": 0.9301587301587302
+                },
+                {
+                  "input": 0.8346456692913385,
+                  "amount": 0.9333333333333333
+                },
+                {
+                  "input": 0.84251968503937,
+                  "amount": 0.9365079365079365
+                },
+                {
+                  "input": 0.8503937007874016,
+                  "amount": 0.9396825396825397
+                },
+                {
+                  "input": 0.8582677165354331,
+                  "amount": 0.9428571428571428
+                },
+                {
+                  "input": 0.8661417322834646,
+                  "amount": 0.946031746031746
+                },
+                {
+                  "input": 0.8740157480314961,
+                  "amount": 0.9492063492063492
+                },
+                {
+                  "input": 0.8818897637795275,
+                  "amount": 0.9523809523809523
+                },
+                {
+                  "input": 0.889763779527559,
+                  "amount": 0.9555555555555555
+                },
+                {
+                  "input": 0.8976377952755905,
+                  "amount": 0.9587301587301587
+                },
+                {
+                  "input": 0.905511811023622,
+                  "amount": 0.9619047619047619
+                },
+                {
+                  "input": 0.9133858267716536,
+                  "amount": 0.9650793650793651
+                },
+                {
+                  "input": 0.9212598425196851,
+                  "amount": 0.9682539682539683
+                },
+                {
+                  "input": 0.9291338582677166,
+                  "amount": 0.9714285714285714
+                },
+                {
+                  "input": 0.937007874015748,
+                  "amount": 0.9746031746031746
+                },
+                {
+                  "input": 0.9448818897637795,
+                  "amount": 0.9777777777777777
+                },
+                {
+                  "input": 0.952755905511811,
+                  "amount": 0.980952380952381
+                },
+                {
+                  "input": 0.9606299212598425,
+                  "amount": 0.9841269841269842
+                },
+                {
+                  "input": 0.968503937007874,
+                  "amount": 0.9873015873015873
+                },
+                {
+                  "input": 0.9763779527559056,
+                  "amount": 0.9904761904761905
+                },
+                {
+                  "input": 0.984251968503937,
+                  "amount": 0.9936507936507937
+                },
+                {
+                  "input": 0.9921259842519685,
+                  "amount": 0.9968253968253968
+                },
+                {
+                  "input": 1.0,
+                  "amount": 1.0
+                }
+              ],
+              "interpolation": "linear"
+            }
+          ]
+        },
+        "bindings": [
+          {
+            "id": "velocity",
+            "kind": "velocity"
+          }
+        ],
+        "id": "region-1",
+        "slice": "slice-1",
+        "mapping": {
+          "lowest_key": 69,
+          "highest_key": 69,
+          "reference_pitch_hz": 440.0,
+          "event_key": null,
+          "minimum_velocity": 0.0,
+          "maximum_velocity": 1.0,
+          "pitch_tracking": true
+        },
+        "channels": [
+          {
+            "input": "mono",
+            "output": "left",
+            "gain": 0.7071067811865476
+          },
+          {
+            "input": "mono",
+            "output": "right",
+            "gain": 0.7071067811865476
+          }
+        ],
+        "name": null,
+        "description": null,
+        "tags": [],
+        "playback": {
+          "direction": null,
+          "mode": null
+        },
+        "selection": null,
+        "choke_group": null,
+        "chokes": [],
+        "crossfades": [],
+        "trigger": "start",
+        "articulations": []
+      }
+    ]
+  }
+}

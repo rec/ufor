@@ -10,6 +10,7 @@ from .envelope import EnvelopeDocument
 from .lfo import LFODocument
 from .musical import OscillatorDocument, ScaleDocument, TuningDocument
 from .recording import RecordingDocument
+from .samples.instrument import InstrumentDocument
 from .sequence import SequenceDocument
 
 
@@ -23,6 +24,7 @@ def parse_document(
     | ScaleDocument
     | OscillatorDocument
     | EnvelopeDocument
+    | InstrumentDocument
     | LFODocument
 ):
     return TypeAdapter(DocumentValue).validate_python(tomlkit.parse(text))
@@ -36,6 +38,7 @@ def document_toml(
     | ScaleDocument
     | OscillatorDocument
     | EnvelopeDocument
+    | InstrumentDocument
     | LFODocument,
 ) -> str:
     return tomlkit.dumps(value.model_dump(mode='json', exclude_none=True))
@@ -53,6 +56,7 @@ DocumentValue = Annotated[
     | ScaleDocument
     | OscillatorDocument
     | EnvelopeDocument
+    | InstrumentDocument
     | LFODocument,
     Field(discriminator='kind'),
 ]

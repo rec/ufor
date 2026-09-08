@@ -1,16 +1,14 @@
-# Instrument contract and the next cutover
+# Sample instrument format
 
-This document fixes the boundary for the small sample-instrument profile.
-The shared performance events and [modulation routes](#modulation-routes) below
-are implemented. The native instrument document, prepared voice settings,
-selection/gate state machine, and SFZ cutover are the next coordinated change.
-Their field inventory below is a specification for that change, not a claim
-that `parse_document` already accepts `kind = "instrument"`.
+The native `instrument` document, sample models, source bindings, and pure SFZ
+conversion are implemented in Ufor. `ufor.codec` reads and writes this profile
+alongside recordings, sequences, arrangements, tunings, scales, oscillators,
+envelopes, and LFOs. The defining modules are `ufor.samples.*` and `ufor.sfz`.
+Recs owns file access and asset inspection; it no longer owns parallel models.
 
-There is no sampler, waveform renderer, voice scheduler, or plugin host in
-this milestone. Existing Recsam instrument files still use their existing
-native root. Their event classes are replaced with the shared Ufor classes;
-no compatibility event module or frame-to-tick fallback is retained.
+This is a format and scalar-control implementation. Prepared voice settings,
+selection/gate/retirement state machines, and audio generation remain future
+work. There is no sampler, waveform renderer, scheduler, or plugin host.
 
 ## Performance input
 
@@ -65,8 +63,7 @@ An audio or envelope adapter converts a native tick exactly as
 logical gate events at that rational coordinate while retaining ordering.
 Physical release is not automatically logical gate release when sustain is
 active. These Ufor event classes replace Recsam's former nonnegative `frame`
-field and its implicit list-order tie breaking. Other Recsam declarations are
-not cut over merely because their event types have moved.
+field and its implicit list-order tie breaking. The remaining Recsam declarations now use the native document below.
 
 ## Modulation routes
 
@@ -86,7 +83,7 @@ not another native document root. Its schema is
 | `ParameterValue` | One addressed parameter and its scalar value |
 
 Supported parameter units are `ratio`, `db`, `cents`, `hz`, `normalized`,
-`volts`, and `seconds`. Hertz domains are strictly positive; duration domains
+`volts`, `seconds`, and `beats`. Hertz domains are strictly positive; duration domains
 are nonnegative; normalized domains are within [-1,1]. Other numeric bounds
 are explicit declarations. Addition must use the target's unit. Multiplication
 must use `ratio`; a cents or dB conversion must already have been made by an
@@ -130,60 +127,269 @@ host, but cannot substitute silent clipping for a failed runtime domain check.
 Envelope and LFO definitions remain the only definitions of their generated
 control behavior. Source observations consume their scalar values; an LFO's
 activation weight is forwarded separately. No oscillator or envelope engine
-is duplicated in a route. The eventual instrument validator must verify that
-source scope and domain match the bound generator/control declaration.
+is duplicated in a route. The instrument validator verifies that source scope and domain match the bound
+generator/control declaration. The sample profile also preserves conservative
+combined pan/balance bounds; the generic evaluator still checks actual results.
 
-## Native instrument structure to implement next
+## Native instrument document
 
-Use the common root `kind = "instrument"` with a body identifying the
-`sample_instrument` profile. The root owns document identity/name, native
-timebases, sealed assets, dependencies, and exported performance/audio ports.
-The body owns instrument settings, named slices, slots, source bindings,
-modulation, selection sets, and voice limits. These are one native root;
-Recsam's old `format_version` root is removed at the cutover.
+`InstrumentDocument` uses the common header and `kind = "instrument"`.
+`body.kind = "sample_instrument"` identifies the specialized musical body.
+There is one native format; the old `format_version` document is removed.
 
-| Structure | Contract |
+| Owner | Fields |
 | --- | --- |
-| Sample asset | Common `Asset` identity/path/hash/size plus `AudioDescription` with native timebase, frames, and channel names |
-| Slice | Stable ID, asset ID, and one half-open native-frame range contained in that asset |
-| Slot | Stable ID, slice ID, selection/mapping declarations, explicit named output, effective playback and sound settings |
-| Loop | Existing traversal mode and crossfade semantics; absolute native asset-frame coordinates contained in the slice |
-| Performance input | Named port accepting the event family above; input timebase is resolved explicitly at preparation |
-| Audio output | Named port with explicit channel layout and execution timebase; no private bus or filename inference |
-| Modulation | The typed collection above, with each source bound to a declared control, key/velocity input, envelope, or LFO |
-| Voice limits | Separate positive trigger and voice capacities, plus an explicit retirement fade duration |
+| Root | `id`, `name`, optional `description`, `tags`, native `timebases`, sealed `assets`, `performance_port`, `audio_port`, typed `output`, `body` |
+| Body | `instrument` defaults, named `slices`, nonempty `slots` |
+| Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
+| Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
+| Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, sound settings, selection/choke/articulation/crossfade declarations, trigger kind, metadata |
 
-The asset and output timebases are separate. A 44.1 kHz sample remains in its
-native frame coordinates in a 48 kHz instrument execution context. Pitch and
-resampling affect traversal, not the meaning of its slice or loop bounds.
-Unpitched slots require no invented reference frequency. Pitched slots retain
-an independent reference pitch and require a resolved performance pitch.
-Channel selection and output mapping must be explicit before execution;
-multichannel samples are not silently interpreted as stereo.
+All references are checked without opening files. Slices must be nonempty and
+contained in the asset; loops remain in absolute native asset-frame coordinates
+within the slice. Asset paths cannot be absolute, URLs, or contain `..`.
+The application checks symlinks, hashes, actual decoding, and file availability.
 
-## Preparation and inheritance
+This complete example uses synthetic asset metadata for illustration. Its zero
+hash is not a claim about an existing file. Real documents require measured
+asset facts, as supplied by Recs' importer.
 
-Preparation produces complete immutable voice settings from authoring
-declarations. Preserve the existing additive dB/cents processing and local
-control/reference rules. Omitted slot playback settings inherit; explicitly
-supplied defaults override. Resolve the old per-field DAHDSR inheritance before
-expanding an envelope to Ufor segments. The new native format stores a complete
-envelope override, not a partially merged segment list. Named source IDs are
-local to the declaring voice/instrument context and must not accidentally
-resolve into another slot.
+```toml
+format = "recs"
+version = 1
+kind = "instrument"
+id = "glass"
+name = "Glass"
 
-Keep selection, sustain, choke groups, articulations, crossfades, and EQ as
-typed musical concepts. Use the existing validators where their semantics
-still apply. Move pure types to Ufor and import them directly from there.
-Filesystem resolution, symlink containment, decoding, hashing, units authoring,
-and SFZ file access remain in Recs. An unresolved asset must not receive a
-fabricated length, checksum, sample rate, or channel layout.
+[[timebases]]
+id = "native"
+rate = { numerator = 44100 }
+
+[[timebases]]
+id = "output"
+rate = { numerator = 48000 }
+
+[[assets]]
+id = "glass"
+path = "audio/glass.wav"
+encoding = "WAV/PCM_16"
+byte_length = 88244
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+audio = { timebase = "native", channels = ["mono"], frames = 44100 }
+
+[output]
+timebase = "output"
+channels = ["left", "right"]
+
+[body]
+kind = "sample_instrument"
+
+[body.instrument]
+
+[[body.slices]]
+id = "whole"
+asset = "glass"
+end_frame = 44100
+
+[[body.slots]]
+id = "middle"
+slice = "whole"
+channels = [
+    { input = "mono", output = "left", gain = 0.7071067811865476 },
+    { input = "mono", output = "right", gain = 0.7071067811865476 },
+]
+mapping = { lowest_key = 48, highest_key = 84, reference_pitch_hz = 440.0 }
+```
+
+The [SFZ input](../conformance/instrument.sfz) and
+[complete native result](../conformance/instrument.json) form a portable
+conversion case with explicit synthetic metadata. They cover 44.1/48 kHz
+separation, exact envelope times, slice endpoints, and velocity mapping without
+loading or generating audio. JSON Schema lives in
+[documents.json](../schema/documents.json).
+
+## Musical settings and inheritance
+
+`ufor.samples.playback` owns mappings, traversal, slices, and loops.
+`controls`, `selection`, `crossfade`, and `processing` own the other specialized
+musical declarations. These use Ufor's common frozen model and identifier rule.
+There are no Reccy or application units in the format. Hz and other scalar
+magnitudes are numeric; envelope/LFO time and phase use exact rational strings.
+Frequency/ratio expression authoring remains in the musical definitions.
+
+`SlotPlayback.direction` and `.mode` are nullable overrides. Null/omitted values
+inherit; an explicit default overrides, even after full JSON/TOML serialization.
+A slot's amplitude `envelope` is either absent or one complete shared
+`ufor.envelope.Envelope`; it never merges individual stages. The instrument
+supplies a default instantaneous gate. Amplitude envelopes are unipolar and
+voice-scoped. Named `envelopes` and `lfos` are dictionaries keyed by local IDs,
+using the same definitions as standalone envelope and LFO documents.
+
+Key and velocity ranges are inclusive. Keys are unrestricted integers, independent
+of pitch. Pitch tracking requires `reference_pitch_hz`; the eventual player also
+requires a resolved trigger pitch. Unpitched mappings need no invented pitch.
+The pitch ratio is target/reference times `2 ** (combined_cents / 1200)`;
+resampling additionally uses native/output rate. It changes traversal speed,
+not the asset's native frame coordinates, and is not time stretching.
+
+Forward traversal reads first to last; backward reads last to first; mirror
+reads first to last and back once without doubling the turning endpoint.
+For A B C D this is A B C D C B A. Loops require at least two frames and
+`while_held` playback. Loop crossfade is either zero or at least two frames
+and shorter than half the loop. Mirror loops cannot crossfade. `until_release`
+leaves the loop when the logical gate opens; `through_release` continues it
+through the amplitude release. Detailed audio traversal conformance belongs to
+the deferred execution work, not to the scalar envelope evaluator.
+
+Selection sets retain cycle/random/shuffle declarations; slots reference them.
+Matching ordinary layers coexist with selected alternatives. Random/shuffle
+execution needs a named algorithm and seed before portable playback can be
+claimed. Choke groups retain immediate/fade/release modes; fade alone requires
+a positive fade time. Choking is distinct from physical or logical release.
+Release and sustain-transition slots require one-shot playback. Sustain slots
+require the declared unipolar sustain control, an untracked mapping containing
+`event_key`, and consistent event keys across alternate takes.
+
+Articulation IDs and references are unique and checked. Keyswitches are latched
+or momentary and may consume their trigger. Control selectors use disjoint
+inclusive ranges inside the declared control domain. The intended player keeps
+selection per part, captures articulation for each onset, and matches momentary
+release by trigger identity. These are declarations and future state-machine
+requirements, not an implemented voice engine.
+
+Layer crossfades remain separate from modulation routes. Key/velocity transitions
+must fit inside the slot's eligibility range; control fades use declared control
+domains. Clamp normalized transition position to [0,1]. Linear fade-in/out uses
+`t` / `1-t`; equal-power uses `sin(pi*t/2)` / `cos(pi*t/2)`. Multiply weights
+within a slot without normalizing across layers. Zero weight does not suppress
+selection or voice ownership. Static fades are latched at onset; live fades
+smooth position before applying the gain law so complementary pairs remain
+complementary. Execution and smoothing traces remain deferred.
+
+## Source bindings and parameter addresses
+
+Each entry of `modulation.sources` has exactly one `bindings` entry with the
+same ID. Bindings have tagged forms:
+
+| Kind | Binding fields | Source contract |
+| --- | --- | --- |
+| `key` | `id`, `kind` | Voice scope; integer bounds covering selected keys and integer mapping knots |
+| `velocity` | `id`, `kind` | Voice scope and [0,1] domain |
+| `control` | `id`, `kind`, `control`, exact seconds `smoothing` (default `1/200`) | Declared polarity domain; instrument/part/trigger scope |
+| `envelope` / `lfo` | `id`, `kind`, `reference` | Existing local named generator; exact scope and polarity domain match |
+
+A source ID never resolves into another slot. Instrument-scoped generators may
+be shared by voices through explicit bindings; slot generators are voice-only.
+LFO activation weight remains separate from its scalar signal. There is no
+second sample-specific envelope, LFO, waveform, or route implementation.
+
+Structured target nodes and parameters are:
+
+| Node | Parameter | Unit |
+| --- | --- | --- |
+| `processing` | `amplitude` | ratio, base 1 |
+| `processing` | `volume_db`, `tuning_cents`, `pan`, `stereo_balance` | db, cents, normalized, normalized |
+| `eq-ID` | `frequency_hz`, `gain_db`, `resonance` | hz, db, ratio |
+| `envelope` or `env-ID` | `on-N-duration`, `release-N-duration` | seconds or beats from the envelope clock |
+
+N is a zero-based segment index. The declaration's unit and default must match
+the actual bound setting. Envelope parameter scope matches its generator;
+duration inputs are latched from key or velocity. Arbitrary recursive generator
+modulation is not introduced. Generic routes retain explicit finite domains,
+add/multiply operations, mapping knots, and runtime result checks.
+
+## Processing and channels
+
+Instrument and slot processing both run per voice, before mixing. Instrument
+settings affect every voice; they are not a single post-mix effect. Their
+volume and tuning add in dB/cents. Slot EQ bands precede instrument EQ bands,
+with IDs local to each scope. EQ means bell-shaped peaking biquads with positive
+Hz/Q, not arbitrary filters. The eventual prepared player must check effective
+frequency against output Nyquist and retain independent filter state per voice.
+A shared post-mix effect belongs to a separate processor graph.
+
+Channel routes explicitly name input/output channels and linear gains. There is
+no implicit stereo interpretation or downmix. Standard mono-to-stereo mapping
+has `sqrt(1/2)` gain to each side; stereo identity has unity corresponding gains.
+Custom matrices are allowed when spatial controls are unused.
+
+`pan` requires mono input and stereo output; `stereo_balance` requires stereo
+input/output. Both require their canonical channel map. Instrument and slot
+values, including routes, combine into one spatial operation. Pan varies the
+canonical map to `cos(pi*(p+1)/4)` / `sin(pi*(p+1)/4)`; it does not apply a second
+center attenuation. Balance attenuates the opposite channel by
+`cos(pi*abs(b)/2)` and leaves the other channel unchanged. It never folds channels
+together. Combined ranges must stay within [-1,1], including neutral amounts
+during delayed/fading LFO activation. No clipping or automatic normalization is
+part of the instrument format.
+
+## SFZ and application ownership
+
+`ufor.sfz.parse(text)` produces parsed regions and diagnostics.
+`sample_paths(source)` lists safe relative sample references.
+`compile(source, id=..., name=..., assets=..., output_timebase=...,
+output_channels=...)` accepts `ufor.samples.metadata.AudioMetadata` facts
+supplied by the caller and produces an `InstrumentDocument` where possible.
+All of these operations are pure. Unsupported opcodes retain source locations;
+missing or malformed required data fails explicitly.
+
+SFZ's fixed DAHDSR becomes four on-segments and a release segment. Delay/attack/
+hold curves are 0; decay/release are -5. SFZ decimal durations become exact
+fractions. Export accepts that representable shape and reports general envelopes
+as unsupported. Velocity response becomes the shared typed multiplier route.
+SFZ inclusive endpoints become exclusive native slice/loop ends and reverse on
+export. Imported channel maps are identity or the standard mono-to-stereo law.
+
+`ufor.sfz.write(document)` returns text and diagnostics without opening files.
+Unsafe sample syntax, custom channel maps, named controls/generators, selections,
+nonrepresentable routes/envelopes and other losses are reported. Diagnostics
+use native `body.slots[...]` / `body.instrument...` paths. A partial export must
+not be treated as complete. Recs' metadata comment namespace remains understood.
+
+`recs.recsam.sfz.read(path)` is the application adapter. It checks resolved path
+containment, reads/decodes metadata, inspects embedded WAV loops, hashes the
+existing file, and passes those facts to Ufor. Its explicit application default
+is 48 kHz stereo output; callers may select another supported output layout/rate.
+It does not generate audio. `recs/recsam/` now contains only this adapter and
+asset I/O, plus an empty package marker.
+
+## Updating old declarations
+
+There is no compatibility reader. Replace `format_version` with the common
+header and put the musical settings under `body`. Move name/description/tags
+to the root. Seal sample paths as assets, move trim/loop data to named slices,
+point slots at those IDs, and declare channel maps/output clocks explicitly.
+
+Resolve old partial DAHDSR overrides once and expand complete envelopes into
+segments. For old exponential attack use +5; exponential decay/release use -5.
+Replace LFO Hz/delay/phase fields with rate/delay/phase in the shared clock model.
+Phase now advances during delay; an intentional preservation of old activation
+phase uses `(old_phase - rate * delay) mod 1`.
+
+Replace old Key/Control/GeneratedModulation objects with the one shared source,
+binding, parameter, and route collection. Replace dotted target strings with the
+addresses above. Translate authoring unit strings to canonical numeric magnitudes
+or exact rational time strings before constructing models. Preserve selection,
+choke, articulation, crossfade and mapping concepts using their Ufor classes.
+Import directly from defining modules; old Recsam modules have been removed.
+
+The detailed [performance requirements](sample-performance.md) retain the
+selection-state partitioning, choke ordering, articulation ownership, and loop
+overlap/release rules from Recsam for the future player.
+
+## Preparation boundary
+
+Preparing efficient lookups, resolving effective voice settings, defining voice
+limits, enforcing trigger lifetimes, and producing event-to-action traces remain
+future work. Dependencies on other instrument documents, multiple audio output
+ports, linked microphones, and generic graphs need their own settled models.
+This extraction does not add speculative fields for those unimplemented features.
 
 ## Performance and voice state decisions
 
 These state-machine rules retain the useful existing instrument semantics.
-The implementation and portable action traces are part of the upcoming
-cutover, not part of the scalar route evaluator:
+Their implementation and portable action traces remain a later preparation
+milestone, separate from this completed format extraction:
 
 | Input/cause | Required behavior |
 | --- | --- |
@@ -215,26 +421,6 @@ random/shuffle declarations need a named algorithm, seed, and portable cases
 before they can be prepared; they must not be silently converted to cycle.
 Linked microphone take groups remain a later extension requiring one shared
 take-selection identity, rather than independent random selection per mic.
-
-## Coordinated cutover checklist
-
-1. Implement the native root, asset slices, source bindings, resolved settings,
-   and validators together with portable event-to-action traces.
-2. Replace the old Recsam model definitions and every direct consumer; keep
-   file I/O and SFZ parsing/writing in Recs. Do not create forwarding modules.
-3. Make SFZ import construct real common asset metadata and slices; make export
-   resolve slice paths/bounds and report every unsupported envelope, route,
-   scope, selection, or lifecycle feature. Never report a lossy export complete.
-4. Replace native examples and tests, including inheritance and SFZ regression
-   fixtures. Keep historical production recordings and audio payloads untouched.
-5. Update Recs's public Ufor archive pin in its own dependency commit before
-   consumer code begins importing the new native instrument types.
-
-No backwards-compatibility reader is required. The current milestone already
-updates the Recs dependency for shared events; the later root cutover will pin
-the revision that actually contains those new types. New audio generation,
-sampler implementation, compiled-language selection, and VST realization remain
-behind the separate execution decision.
 
 ## Additional work beyond the prompt
 

@@ -185,7 +185,8 @@
         "hz",
         "normalized",
         "volts",
-        "seconds"
+        "seconds",
+        "beats"
       ],
       "title": "Unit",
       "type": "string"

@@ -27,8 +27,10 @@ Musical definitions and their language-neutral semantics are specified in
 LFO phase, event ordering, and neutral activation weights. Its
 [portable cases](conformance/modulation.json) exercise scalar control behavior
 without audio rendering. The [instrument contract](doc/instrument-format.md)
-now specifies shared performance events and typed scalar modulation routes;
-the native instrument document and SFZ cutover remain the next step.
+specifies the implemented native sample-instrument document, sealed asset slices,
+source bindings and typed routes. Pure SFZ parsing/conversion lives in `ufor.sfz`;
+all portable sample declarations live in `ufor.samples`. Prepared voice state and
+audio execution remain deferred.
 
 Recs and Tuney use this checkout as an editable sibling during development.
 Their install metadata pins a public Ufor source archive, so release builds
