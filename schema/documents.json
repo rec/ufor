@@ -1,0 +1,2142 @@
+{
+  "$defs": {
+    "Accidentals": {
+      "enum": [
+        "none",
+        "whole",
+        "half"
+      ],
+      "title": "Accidentals",
+      "type": "string"
+    },
+    "Arrangement": {
+      "additionalProperties": false,
+      "properties": {
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "media_types": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Media Types",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/SourceSpec"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "tracks": {
+          "items": {
+            "$ref": "#/$defs/TrackSpec"
+          },
+          "title": "Tracks",
+          "type": "array"
+        },
+        "buses": {
+          "items": {
+            "$ref": "#/$defs/BusSpec"
+          },
+          "title": "Buses",
+          "type": "array"
+        },
+        "clips": {
+          "items": {
+            "$ref": "#/$defs/ClipSpec"
+          },
+          "title": "Clips",
+          "type": "array"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/RouteSpec"
+          },
+          "title": "Routes",
+          "type": "array"
+        },
+        "automation": {
+          "items": {
+            "$ref": "#/$defs/AutomationSpec"
+          },
+          "title": "Automation",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/OutputSpec"
+          },
+          "title": "Outputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "timebase"
+      ],
+      "title": "Arrangement",
+      "type": "object"
+    },
+    "ArrangementDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "arrangement",
+          "default": "arrangement",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Timebases",
+          "type": "array"
+        },
+        "body": {
+          "$ref": "#/$defs/Arrangement"
+        },
+        "destinations": {
+          "items": {
+            "$ref": "#/$defs/FileDestination"
+          },
+          "title": "Destinations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "timebases",
+        "body"
+      ],
+      "title": "ArrangementDocument",
+      "type": "object"
+    },
+    "Asset": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "encoding": {
+          "minLength": 1,
+          "title": "Encoding",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "encoding",
+        "byte_length",
+        "sha256"
+      ],
+      "title": "Asset",
+      "type": "object"
+    },
+    "AudioFragment": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_start": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Asset Start",
+          "type": "integer"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "asset": {
+          "title": "Asset",
+          "type": "string"
+        },
+        "variant_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant Group"
+        }
+      },
+      "required": [
+        "start",
+        "count",
+        "asset"
+      ],
+      "title": "AudioFragment",
+      "type": "object"
+    },
+    "AudioStream": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "audio",
+          "default": "audio",
+          "title": "Kind",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "source_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Name"
+        },
+        "track_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Track Name"
+        },
+        "stream": {
+          "$ref": "#/$defs/AudioType"
+        },
+        "end": {
+          "minimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "fragments": {
+          "items": {
+            "$ref": "#/$defs/AudioFragment"
+          },
+          "title": "Fragments",
+          "type": "array"
+        },
+        "unmapped_fragments": {
+          "items": {
+            "$ref": "#/$defs/UnmappedAudioFragment"
+          },
+          "title": "Unmapped Fragments",
+          "type": "array"
+        },
+        "gaps": {
+          "items": {
+            "$ref": "#/$defs/Gap"
+          },
+          "title": "Gaps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "source_id",
+        "stream",
+        "end"
+      ],
+      "title": "AudioStream",
+      "type": "object"
+    },
+    "AudioType": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "const": "sampled",
+          "default": "sampled",
+          "title": "Family",
+          "type": "string"
+        },
+        "quantity": {
+          "const": "audio_amplitude",
+          "default": "audio_amplitude",
+          "title": "Quantity",
+          "type": "string"
+        },
+        "unit": {
+          "const": "full_scale",
+          "default": "full_scale",
+          "title": "Unit",
+          "type": "string"
+        },
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "timebase",
+        "channels"
+      ],
+      "title": "AudioType",
+      "type": "object"
+    },
+    "AutomationPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "frame": {
+          "minimum": 0,
+          "title": "Frame",
+          "type": "integer"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "frame",
+        "value"
+      ],
+      "title": "AutomationPoint",
+      "type": "object"
+    },
+    "AutomationSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/ParameterTarget"
+        },
+        "interpolation": {
+          "$ref": "#/$defs/Interpolation",
+          "default": "linear"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/AutomationPoint"
+          },
+          "minItems": 1,
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target",
+        "points"
+      ],
+      "title": "AutomationSpec",
+      "type": "object"
+    },
+    "BusSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "stream": {
+          "$ref": "#/$defs/AudioType"
+        },
+        "gain": {
+          "default": 1.0,
+          "title": "Gain",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "stream"
+      ],
+      "title": "BusSpec",
+      "type": "object"
+    },
+    "ClipSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "track": {
+          "title": "Track",
+          "type": "string"
+        },
+        "source_start": {
+          "minimum": 0,
+          "title": "Source Start",
+          "type": "integer"
+        },
+        "source_end": {
+          "exclusiveMinimum": 0,
+          "title": "Source End",
+          "type": "integer"
+        },
+        "timeline_start": {
+          "minimum": 0,
+          "title": "Timeline Start",
+          "type": "integer"
+        },
+        "gain": {
+          "default": 1.0,
+          "title": "Gain",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "track",
+        "source_start",
+        "source_end",
+        "timeline_start"
+      ],
+      "title": "ClipSpec",
+      "type": "object"
+    },
+    "ClockObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/Position"
+        },
+        "session": {
+          "$ref": "#/$defs/Position"
+        },
+        "uncertainty_ticks": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Uncertainty Ticks"
+        },
+        "timing_source": {
+          "minLength": 1,
+          "title": "Timing Source",
+          "type": "string"
+        },
+        "segment": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Segment",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "source",
+        "session",
+        "timing_source"
+      ],
+      "title": "ClockObservation",
+      "type": "object"
+    },
+    "Computed": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "computed",
+          "default": "computed",
+          "title": "Kind",
+          "type": "string"
+        },
+        "limit": {
+          "default": 0,
+          "description": "Maximum rational denominator; 0 disables approximation",
+          "minimum": 0,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "notes_per_octave": {
+          "default": 12,
+          "exclusiveMinimum": 0,
+          "title": "Notes Per Octave",
+          "type": "integer"
+        },
+        "octave_ratio": {
+          "default": "2",
+          "title": "Octave Ratio",
+          "type": "string"
+        }
+      },
+      "title": "Computed",
+      "type": "object"
+    },
+    "Endpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "host": {
+          "title": "Host",
+          "type": "string"
+        },
+        "port": {
+          "maximum": 65535,
+          "minimum": 0,
+          "title": "Port",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "host",
+        "port"
+      ],
+      "title": "Endpoint",
+      "type": "object"
+    },
+    "EventFragment": {
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "title": "Asset",
+          "type": "string"
+        },
+        "event_count": {
+          "minimum": 0,
+          "title": "Event Count",
+          "type": "integer"
+        },
+        "timing": {
+          "enum": [
+            "smf",
+            "osc_jsonl",
+            "recs_events"
+          ],
+          "title": "Timing",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "observed_opened_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Opened At"
+        },
+        "timing_source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timing Source"
+        }
+      },
+      "required": [
+        "asset",
+        "event_count",
+        "timing"
+      ],
+      "title": "EventFragment",
+      "type": "object"
+    },
+    "EventStream": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "events",
+          "default": "events",
+          "title": "Kind",
+          "type": "string"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source_id": {
+          "minLength": 1,
+          "title": "Source Id",
+          "type": "string"
+        },
+        "event_schema": {
+          "enum": [
+            "midi",
+            "osc",
+            "recs_events"
+          ],
+          "title": "Event Schema",
+          "type": "string"
+        },
+        "event_kind": {
+          "anyOf": [
+            {
+              "enum": [
+                "midi",
+                "osc",
+                "key"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Kind"
+        },
+        "timebase": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Timebase"
+        },
+        "fragments": {
+          "items": {
+            "$ref": "#/$defs/EventFragment"
+          },
+          "title": "Fragments",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "source_id",
+        "event_schema"
+      ],
+      "title": "EventStream",
+      "type": "object"
+    },
+    "FileDestination": {
+      "additionalProperties": false,
+      "properties": {
+        "port": {
+          "title": "Port",
+          "type": "string"
+        },
+        "path": {
+          "format": "path",
+          "title": "Path",
+          "type": "string"
+        },
+        "format": {
+          "$ref": "#/$defs/Format"
+        },
+        "subtype": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Subtype"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "port",
+        "path",
+        "format"
+      ],
+      "title": "FileDestination",
+      "type": "object"
+    },
+    "Format": {
+      "enum": [
+        "flac",
+        "mp3",
+        "ogg",
+        "raw",
+        "rf64",
+        "wav",
+        "flac"
+      ],
+      "title": "Format",
+      "type": "string"
+    },
+    "FrequencyTable": {
+      "additionalProperties": false,
+      "description": "Absolute hertz values over a finite contiguous note range. Never wraps.",
+      "properties": {
+        "kind": {
+          "const": "frequencies",
+          "default": "frequencies",
+          "title": "Kind",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        },
+        "first_note": {
+          "default": 0,
+          "title": "First Note",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "title": "FrequencyTable",
+      "type": "object"
+    },
+    "Gap": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        },
+        "reason": {
+          "$ref": "#/$defs/GapReason"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "reason"
+      ],
+      "title": "Gap",
+      "type": "object"
+    },
+    "GapReason": {
+      "enum": [
+        "unknown",
+        "silence_suppressed",
+        "input_overflow",
+        "disconnected",
+        "short_capture"
+      ],
+      "title": "GapReason",
+      "type": "string"
+    },
+    "Interpolation": {
+      "enum": [
+        "hold",
+        "linear",
+        "equal_power"
+      ],
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "IntervalPattern": {
+      "additionalProperties": false,
+      "description": "Adjacent frequency ratios; degree zero is unison.",
+      "properties": {
+        "kind": {
+          "const": "intervals",
+          "default": "intervals",
+          "title": "Kind",
+          "type": "string"
+        },
+        "intervals": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Intervals",
+          "type": "array"
+        },
+        "repeat": {
+          "default": true,
+          "title": "Repeat",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "intervals"
+      ],
+      "title": "IntervalPattern",
+      "type": "object"
+    },
+    "KeyEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "key",
+          "default": "key",
+          "title": "Kind",
+          "type": "string"
+        },
+        "key": {
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "press",
+            "release"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "text": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text"
+        },
+        "modifiers": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Modifiers",
+          "type": "array"
+        },
+        "repeat": {
+          "default": false,
+          "title": "Repeat",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "key",
+        "action"
+      ],
+      "title": "KeyEvent",
+      "type": "object"
+    },
+    "MidiEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "midi",
+          "default": "midi",
+          "title": "Kind",
+          "type": "string"
+        },
+        "data": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Data",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "data"
+      ],
+      "title": "MidiEvent",
+      "type": "object"
+    },
+    "NormalizeMode": {
+      "enum": [
+        "none",
+        "limit",
+        "normalize"
+      ],
+      "title": "NormalizeMode",
+      "type": "string"
+    },
+    "OscDecodeError": {
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "title": "Error",
+          "type": "string"
+        }
+      },
+      "required": [
+        "error"
+      ],
+      "title": "OscDecodeError",
+      "type": "object"
+    },
+    "OscEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "osc",
+          "default": "osc",
+          "title": "Kind",
+          "type": "string"
+        },
+        "data_b64": {
+          "title": "Data B64",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "in",
+            "out"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "source_time": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Time"
+        },
+        "endpoint": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Endpoint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "decoded": {
+          "items": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/OscMessage"
+              },
+              {
+                "$ref": "#/$defs/OscDecodeError"
+              }
+            ]
+          },
+          "title": "Decoded",
+          "type": "array"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "data_b64",
+        "direction"
+      ],
+      "title": "OscEvent",
+      "type": "object"
+    },
+    "OscMessage": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        },
+        "types": {
+          "title": "Types",
+          "type": "string"
+        },
+        "args": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "title": "Args",
+          "type": "array"
+        }
+      },
+      "required": [
+        "path",
+        "types",
+        "args"
+      ],
+      "title": "OscMessage",
+      "type": "object"
+    },
+    "Oscillator": {
+      "additionalProperties": false,
+      "properties": {
+        "waveform": {
+          "$ref": "#/$defs/Waveform",
+          "default": "triangle"
+        },
+        "duty_cycle": {
+          "default": 0.5,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Duty Cycle",
+          "type": "number"
+        },
+        "key_scale_note": {
+          "default": 64,
+          "title": "Key Scale Note",
+          "type": "integer"
+        },
+        "key_scale": {
+          "default": 0,
+          "title": "Key Scale",
+          "type": "number"
+        }
+      },
+      "title": "Oscillator",
+      "type": "object"
+    },
+    "OscillatorDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "oscillator",
+          "default": "oscillator",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Oscillator"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "body"
+      ],
+      "title": "OscillatorDocument",
+      "type": "object"
+    },
+    "OutputSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "normalize": {
+          "$ref": "#/$defs/NormalizeMode",
+          "default": "none"
+        },
+        "gain": {
+          "default": 1.0,
+          "title": "Gain",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "source"
+      ],
+      "title": "OutputSpec",
+      "type": "object"
+    },
+    "ParameterTarget": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "clip",
+            "bus",
+            "route"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "node": {
+          "title": "Node",
+          "type": "string"
+        },
+        "parameter": {
+          "const": "gain",
+          "default": "gain",
+          "title": "Parameter",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "kind",
+        "node"
+      ],
+      "title": "ParameterTarget",
+      "type": "object"
+    },
+    "Position": {
+      "additionalProperties": false,
+      "properties": {
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "timebase",
+        "tick"
+      ],
+      "title": "Position",
+      "type": "object"
+    },
+    "Rate": {
+      "additionalProperties": false,
+      "properties": {
+        "numerator": {
+          "exclusiveMinimum": 0,
+          "title": "Numerator",
+          "type": "integer"
+        },
+        "denominator": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Denominator",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "numerator"
+      ],
+      "title": "Rate",
+      "type": "object"
+    },
+    "RatioTable": {
+      "additionalProperties": false,
+      "description": "Reference-relative ratios; optional repetition multiplies each cycle.",
+      "properties": {
+        "kind": {
+          "const": "ratios",
+          "default": "ratios",
+          "title": "Kind",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        },
+        "repeat_ratio": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat Ratio"
+        },
+        "name": {
+          "default": "",
+          "title": "Name",
+          "type": "string"
+        },
+        "desc": {
+          "default": "",
+          "title": "Desc",
+          "type": "string"
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "title": "RatioTable",
+      "type": "object"
+    },
+    "RecordSelector": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "minLength": 1,
+          "title": "Source",
+          "type": "string"
+        },
+        "track": {
+          "minLength": 1,
+          "title": "Track",
+          "type": "string"
+        },
+        "channel": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channel"
+        }
+      },
+      "required": [
+        "source",
+        "track"
+      ],
+      "title": "RecordSelector",
+      "type": "object"
+    },
+    "Recording": {
+      "additionalProperties": false,
+      "properties": {
+        "state": {
+          "enum": [
+            "sealed",
+            "open"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "started_at": {
+          "title": "Started At",
+          "type": "string"
+        },
+        "ended_at": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Ended At"
+        },
+        "observed_duration_seconds": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Observed Duration Seconds"
+        },
+        "journal": {
+          "title": "Journal",
+          "type": "string"
+        },
+        "streams": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "audio": "#/$defs/AudioStream",
+                "events": "#/$defs/EventStream"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/AudioStream"
+              },
+              {
+                "$ref": "#/$defs/EventStream"
+              }
+            ]
+          },
+          "title": "Streams",
+          "type": "array"
+        },
+        "clock_observations": {
+          "items": {
+            "$ref": "#/$defs/ClockObservation"
+          },
+          "title": "Clock Observations",
+          "type": "array"
+        },
+        "unfinished_files": {
+          "items": {
+            "$ref": "#/$defs/UnfinishedFile"
+          },
+          "title": "Unfinished Files",
+          "type": "array"
+        },
+        "continued_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Continued From"
+        },
+        "continued_at": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Continued At",
+          "type": "array"
+        }
+      },
+      "required": [
+        "state",
+        "started_at",
+        "journal",
+        "streams"
+      ],
+      "title": "Recording",
+      "type": "object"
+    },
+    "RecordingDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "recording",
+          "default": "recording",
+          "title": "Kind",
+          "type": "string"
+        },
+        "assets": {
+          "items": {
+            "$ref": "#/$defs/Asset"
+          },
+          "title": "Assets",
+          "type": "array"
+        },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "title": "Timebases",
+          "type": "array"
+        },
+        "body": {
+          "$ref": "#/$defs/Recording"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "assets",
+        "body"
+      ],
+      "title": "RecordingDocument",
+      "type": "object"
+    },
+    "RouteSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "gain": {
+          "default": 1.0,
+          "title": "Gain",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "title": "RouteSpec",
+      "type": "object"
+    },
+    "Scale": {
+      "description": "A generalized musical Scale, where the default is \"regular tuning\".\n\nThe common Western scale has\n* 12 equal-tempered semitones per octave\n* Note names CDEFGAB, with intervals of 2212221 semitones between them\n* FLAT to lower pitch by a semitone, SHARP to raise it\n\nScale generalizes this to allow more or less than 12 notes per octave, N-just limit,\ncustom tunings, different note names and intervals.",
+      "properties": {
+        "note_names": {
+          "default": "ABCDEFGHIJKLMNOPQRSTUVWXYZ",
+          "title": "Note Names",
+          "type": "string"
+        },
+        "root": {
+          "default": "C",
+          "title": "Root",
+          "type": "string"
+        },
+        "begin": {
+          "default": "A",
+          "title": "Begin",
+          "type": "string"
+        },
+        "end": {
+          "default": "G",
+          "title": "End",
+          "type": "string"
+        },
+        "notes": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Notes"
+        },
+        "intervals": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Intervals",
+          "type": "array"
+        },
+        "accidentals": {
+          "$ref": "#/$defs/Accidentals",
+          "default": "whole"
+        },
+        "offset": {
+          "default": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "title": "Scale",
+      "type": "object"
+    },
+    "ScaleDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "scale",
+          "default": "scale",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Scale"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "body"
+      ],
+      "title": "ScaleDocument",
+      "type": "object"
+    },
+    "Sequence": {
+      "additionalProperties": false,
+      "properties": {
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        },
+        "events": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "key": "#/$defs/KeyEvent",
+                "midi": "#/$defs/MidiEvent",
+                "osc": "#/$defs/OscEvent"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/MidiEvent"
+              },
+              {
+                "$ref": "#/$defs/OscEvent"
+              },
+              {
+                "$ref": "#/$defs/KeyEvent"
+              }
+            ]
+          },
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "required": [
+        "timebase",
+        "end"
+      ],
+      "title": "Sequence",
+      "type": "object"
+    },
+    "SequenceDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "sequence",
+          "default": "sequence",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "minItems": 1,
+          "title": "Timebases",
+          "type": "array"
+        },
+        "body": {
+          "$ref": "#/$defs/Sequence"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "timebases",
+        "body"
+      ],
+      "title": "SequenceDocument",
+      "type": "object"
+    },
+    "SourceSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "record": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record"
+        },
+        "selector": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RecordSelector"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "file": {
+          "anyOf": [
+            {
+              "format": "path",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File"
+        },
+        "memory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Memory"
+        },
+        "channels": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "input_format": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Format"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "SourceSpec",
+      "type": "object"
+    },
+    "Subtype": {
+      "enum": [
+        "alac_16",
+        "alac_20",
+        "alac_24",
+        "alac_32",
+        "double",
+        "float",
+        "mpeg_layer_i",
+        "mpeg_layer_ii",
+        "mpeg_layer_iii",
+        "opus",
+        "pcm_16",
+        "pcm_24",
+        "pcm_32",
+        "pcm_s8",
+        "pcm_u8",
+        "vorbis"
+      ],
+      "title": "Subtype",
+      "type": "string"
+    },
+    "TickRange": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "title": "End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start",
+        "end"
+      ],
+      "title": "TickRange",
+      "type": "object"
+    },
+    "Timebase": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "physical",
+          "default": "physical",
+          "title": "Kind",
+          "type": "string"
+        },
+        "rate": {
+          "$ref": "#/$defs/Rate"
+        }
+      },
+      "required": [
+        "id",
+        "rate"
+      ],
+      "title": "Timebase",
+      "type": "object"
+    },
+    "TrackSpec": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "stream": {
+          "$ref": "#/$defs/AudioType"
+        }
+      },
+      "required": [
+        "id",
+        "stream"
+      ],
+      "title": "TrackSpec",
+      "type": "object"
+    },
+    "Tuning": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "discriminator": {
+            "mapping": {
+              "computed": "#/$defs/Computed",
+              "frequencies": "#/$defs/FrequencyTable",
+              "intervals": "#/$defs/IntervalPattern",
+              "ratios": "#/$defs/RatioTable"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Computed"
+            },
+            {
+              "$ref": "#/$defs/RatioTable"
+            },
+            {
+              "$ref": "#/$defs/IntervalPattern"
+            },
+            {
+              "$ref": "#/$defs/FrequencyTable"
+            }
+          ],
+          "title": "Source"
+        },
+        "root_note": {
+          "default": 69,
+          "title": "Root Note",
+          "type": "integer"
+        },
+        "root_frequency": {
+          "default": "440",
+          "title": "Root Frequency",
+          "type": "string"
+        },
+        "detune": {
+          "default": 0,
+          "title": "Detune",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Tuning",
+      "type": "object"
+    },
+    "TuningDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "tuning",
+          "default": "tuning",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Tuning"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "body"
+      ],
+      "title": "TuningDocument",
+      "type": "object"
+    },
+    "UnfinishedFile": {
+      "additionalProperties": false,
+      "properties": {
+        "source_id": {
+          "title": "Source Id",
+          "type": "string"
+        },
+        "journal_path": {
+          "title": "Journal Path",
+          "type": "string"
+        },
+        "observed_opened_at": {
+          "title": "Observed Opened At",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source_id",
+        "journal_path",
+        "observed_opened_at"
+      ],
+      "title": "UnfinishedFile",
+      "type": "object"
+    },
+    "UnmappedAudioFragment": {
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "title": "Asset",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        },
+        "journal_range": {
+          "$ref": "#/$defs/TickRange"
+        },
+        "reason": {
+          "const": "frame_count_mismatch",
+          "default": "frame_count_mismatch",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "required": [
+        "asset",
+        "count",
+        "journal_range"
+      ],
+      "title": "UnmappedAudioFragment",
+      "type": "object"
+    },
+    "Waveform": {
+      "enum": [
+        "sine",
+        "square",
+        "triangle"
+      ],
+      "title": "Waveform",
+      "type": "string"
+    }
+  },
+  "discriminator": {
+    "mapping": {
+      "arrangement": "#/$defs/ArrangementDocument",
+      "oscillator": "#/$defs/OscillatorDocument",
+      "recording": "#/$defs/RecordingDocument",
+      "scale": "#/$defs/ScaleDocument",
+      "sequence": "#/$defs/SequenceDocument",
+      "tuning": "#/$defs/TuningDocument"
+    },
+    "propertyName": "kind"
+  },
+  "oneOf": [
+    {
+      "$ref": "#/$defs/ArrangementDocument"
+    },
+    {
+      "$ref": "#/$defs/RecordingDocument"
+    },
+    {
+      "$ref": "#/$defs/SequenceDocument"
+    },
+    {
+      "$ref": "#/$defs/TuningDocument"
+    },
+    {
+      "$ref": "#/$defs/ScaleDocument"
+    },
+    {
+      "$ref": "#/$defs/OscillatorDocument"
+    }
+  ]
+}

@@ -17,3 +17,12 @@ Schema. No Recs, Tuney, Reccy, NumPy, audio, or GUI dependency is required.
 Run `uv sync`, `uv run pytest`, `uv run ruff check --select B,E,F,I ufor test`, and
 `uv run ty check ufor` for development. Source code is MIT licensed;
 definitions were extracted from Tom Ritchford's Recs and Tuney repositories.
+
+Musical definitions and their language-neutral semantics are specified in
+[Musical format](doc/musical-format.md). Machine-readable definitions are in
+[schema/documents.json](schema/documents.json), with pitch conformance cases in
+[conformance/pitch.json](conformance/pitch.json).
+
+Recs and Tuney use this checkout as an editable sibling during development.
+Their install metadata pins a public Ufor source archive, so release builds
+can install it without GitHub SSH credentials.
