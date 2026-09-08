@@ -48,6 +48,11 @@ The eventual performance state machine, rather than a generic sequence
 parser, enforces that lifetime rule and requires pitch when a selected slot
 tracks pitch.
 
+Part, trigger, and control IDs use Ufor's common identifier rule: a lowercase
+letter followed by lowercase letters, digits, hyphens, or underscores.
+Instrument control declarations must use that same domain so every declared
+control can be addressed by an event.
+
 Control scope is `instrument`, `part`, or `trigger`. Instrument controls have
 neither part nor trigger ID. Part controls require only part; trigger controls
 require both. A trigger's initial control map initializes only its trigger
