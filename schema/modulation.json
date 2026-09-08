@@ -1,0 +1,220 @@
+{
+  "$defs": {
+    "Interpolation": {
+      "enum": [
+        "linear",
+        "step"
+      ],
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "Operation": {
+      "enum": [
+        "add",
+        "multiply"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "default": {
+          "type": "number",
+          "title": "Default"
+        }
+      },
+      "required": [
+        "target",
+        "unit",
+        "scope",
+        "minimum",
+        "maximum",
+        "default"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "Point": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "title": "Input",
+          "type": "number"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "amount"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Route": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "operation": {
+          "$ref": "#/$defs/Operation"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "minItems": 1,
+          "title": "Points",
+          "type": "array"
+        },
+        "interpolation": {
+          "$ref": "#/$defs/Interpolation",
+          "default": "linear"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "target",
+        "operation",
+        "unit",
+        "points"
+      ],
+      "title": "Route",
+      "type": "object"
+    },
+    "Scope": {
+      "enum": [
+        "voice",
+        "instrument"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "instrument",
+            "part",
+            "trigger",
+            "voice"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "minimum",
+        "maximum"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
+    "Target": {
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "title": "Node",
+          "type": "string"
+        },
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "parameter"
+      ],
+      "title": "Target",
+      "type": "object"
+    },
+    "Unit": {
+      "enum": [
+        "ratio",
+        "db",
+        "cents",
+        "hz",
+        "normalized",
+        "volts",
+        "seconds"
+      ],
+      "title": "Unit",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "parameters": {
+      "items": {
+        "$ref": "#/$defs/Parameter"
+      },
+      "title": "Parameters",
+      "type": "array"
+    },
+    "sources": {
+      "items": {
+        "$ref": "#/$defs/Source"
+      },
+      "title": "Sources",
+      "type": "array"
+    },
+    "routes": {
+      "items": {
+        "$ref": "#/$defs/Route"
+      },
+      "title": "Routes",
+      "type": "array"
+    }
+  },
+  "title": "Modulation",
+  "type": "object"
+}

@@ -138,7 +138,9 @@ class EventStream(Model):
     id: Identifier
     source_id: str = Field(min_length=1)
     event_schema: Literal['midi', 'osc', 'recs_events']
-    event_kind: Literal['midi', 'osc', 'key'] | None = None
+    event_kind: (
+        Literal['midi', 'osc', 'key', 'trigger', 'release', 'control_change'] | None
+    ) = None
     timebase: Identifier | None = None
     fragments: list[EventFragment] = Field(default_factory=list)
 

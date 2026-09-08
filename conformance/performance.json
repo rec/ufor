@@ -1,0 +1,56 @@
+{
+  "format": "recs",
+  "version": 1,
+  "kind": "sequence",
+  "id": "performance",
+  "name": "Layered pad",
+  "timebases": [
+    {
+      "id": "native",
+      "rate": {
+        "numerator": 48000
+      }
+    }
+  ],
+  "body": {
+    "timebase": "native",
+    "start": -1,
+    "end": 48001,
+    "events": [
+      {
+        "kind": "control_change",
+        "tick": -1,
+        "ordinal": 0,
+        "control": "pressure",
+        "value": 0.25,
+        "scope": "part",
+        "part": "pads"
+      },
+      {
+        "kind": "trigger",
+        "tick": 0,
+        "ordinal": 1,
+        "part": "pads",
+        "trigger_id": "first",
+        "key": 42,
+        "pitch_hz": 220
+      },
+      {
+        "kind": "trigger",
+        "tick": 0,
+        "ordinal": 2,
+        "part": "pads",
+        "trigger_id": "second",
+        "key": 42,
+        "pitch_hz": 330
+      },
+      {
+        "kind": "release",
+        "tick": 48000,
+        "ordinal": 3,
+        "part": "pads",
+        "trigger_id": "first"
+      }
+    ]
+  }
+}

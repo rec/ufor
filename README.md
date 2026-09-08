@@ -26,7 +26,9 @@ Musical definitions and their language-neutral semantics are specified in
 [Modulation](doc/modulation-format.md) specifies segmented envelopes, exact
 LFO phase, event ordering, and neutral activation weights. Its
 [portable cases](conformance/modulation.json) exercise scalar control behavior
-without audio rendering. The small instrument contract remains the next step.
+without audio rendering. The [instrument contract](doc/instrument-format.md)
+now specifies shared performance events and typed scalar modulation routes;
+the native instrument document and SFZ cutover remain the next step.
 
 Recs and Tuney use this checkout as an editable sibling during development.
 Their install metadata pins a public Ufor source archive, so release builds

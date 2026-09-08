@@ -1,0 +1,43 @@
+{
+  "profile": "ufor.modulation-routes.v1",
+  "absolute_tolerance": 1e-12,
+  "definitions": {
+    "amplitude": {
+      "parameters": [{"target": {"node": "voice", "parameter": "amplitude"}, "unit": "ratio", "scope": "voice", "minimum": 0, "maximum": 2, "default": 1}],
+      "sources": [{"id": "envelope", "scope": "voice", "minimum": 0, "maximum": 1}, {"id": "tremolo", "scope": "instrument", "minimum": -1, "maximum": 1}],
+      "routes": [
+        {"id": "envelope-gain", "source": "envelope", "target": {"node": "voice", "parameter": "amplitude"}, "operation": "multiply", "unit": "ratio", "points": [{"input": 0, "amount": 0}, {"input": 1, "amount": 1}]},
+        {"id": "tremolo-gain", "source": "tremolo", "target": {"node": "voice", "parameter": "amplitude"}, "operation": "multiply", "unit": "ratio", "points": [{"input": -1, "amount": 0.2}, {"input": 0, "amount": 0.7}, {"input": 1, "amount": 1}]}
+      ]
+    },
+    "frequency-and-pan": {
+      "parameters": [
+        {"target": {"node": "voice", "parameter": "frequency"}, "unit": "hz", "scope": "voice", "minimum": 20, "maximum": 20000, "default": 440},
+        {"target": {"node": "voice", "parameter": "pan"}, "unit": "normalized", "scope": "voice", "minimum": -1, "maximum": 1, "default": 0}
+      ],
+      "sources": [{"id": "offset", "scope": "part", "minimum": -1, "maximum": 1}, {"id": "factor", "scope": "trigger", "minimum": 0, "maximum": 1}],
+      "routes": [
+        {"id": "pitch-factor", "source": "factor", "target": {"node": "voice", "parameter": "frequency"}, "operation": "multiply", "unit": "ratio", "points": [{"input": 0, "amount": 0.5}, {"input": 0.5, "amount": 1}, {"input": 1, "amount": 2}]},
+        {"id": "pitch-offset", "source": "offset", "target": {"node": "voice", "parameter": "frequency"}, "operation": "add", "unit": "hz", "points": [{"input": -1, "amount": -20}, {"input": 1, "amount": 20}]},
+        {"id": "pan-offset", "source": "offset", "target": {"node": "voice", "parameter": "pan"}, "operation": "add", "unit": "normalized", "points": [{"input": -1, "amount": -0.1}, {"input": 1, "amount": 0.1}]}
+      ]
+    },
+    "step": {
+      "parameters": [{"target": {"node": "lamp", "parameter": "level"}, "unit": "normalized", "scope": "instrument", "minimum": 0, "maximum": 1, "default": 0}],
+      "sources": [{"id": "switch", "scope": "instrument", "minimum": 0, "maximum": 1}],
+      "routes": [{"id": "switch-level", "source": "switch", "target": {"node": "lamp", "parameter": "level"}, "operation": "add", "unit": "normalized", "interpolation": "step", "points": [{"input": 0.25, "amount": 0}, {"input": 0.5, "amount": 1}]}]
+    }
+  },
+  "cases": [
+    {"name": "delayed LFO is neutral after mapping", "definition": "amplitude", "values": {"envelope": {"value": 0.5}, "tremolo": {"value": -1, "weight": 0}}, "expected": [{"target": {"node": "voice", "parameter": "amplitude"}, "value": 0.5}]},
+    {"name": "fade scales the mapped multiplier toward one", "definition": "amplitude", "values": {"envelope": {"value": 0.5}, "tremolo": {"value": -1, "weight": 0.5}}, "expected": [{"target": {"node": "voice", "parameter": "amplitude"}, "value": 0.3}]},
+    {"name": "linear interpolation between mapping knots", "definition": "amplitude", "values": {"envelope": {"value": 0.5}, "tremolo": {"value": -0.5}}, "expected": [{"target": {"node": "voice", "parameter": "amplitude"}, "value": 0.225}]},
+    {"name": "replacement base precedes modulation", "definition": "amplitude", "values": {"envelope": {"value": 0.5}, "tremolo": {"value": 1}}, "base_values": [{"target": {"node": "voice", "parameter": "amplitude"}, "value": 0.8}], "expected": [{"target": {"node": "voice", "parameter": "amplitude"}, "value": 0.4}]},
+    {"name": "add offsets before multiplying factors", "definition": "frequency-and-pan", "values": {"offset": {"value": 1}, "factor": {"value": 1}}, "expected": [{"target": {"node": "voice", "parameter": "frequency"}, "value": 920}, {"target": {"node": "voice", "parameter": "pan"}, "value": 0.1}]},
+    {"name": "additive weight applies after mapping", "definition": "frequency-and-pan", "values": {"offset": {"value": 1, "weight": 0.5}, "factor": {"value": 1}}, "expected": [{"target": {"node": "voice", "parameter": "frequency"}, "value": 900}, {"target": {"node": "voice", "parameter": "pan"}, "value": 0.05}]},
+    {"name": "map clamps before first knot", "definition": "step", "values": {"switch": {"value": 0}}, "expected": [{"target": {"node": "lamp", "parameter": "level"}, "value": 0}]},
+    {"name": "step holds below transition", "definition": "step", "values": {"switch": {"value": 0.499}}, "expected": [{"target": {"node": "lamp", "parameter": "level"}, "value": 0}]},
+    {"name": "step changes exactly at transition", "definition": "step", "values": {"switch": {"value": 0.5}}, "expected": [{"target": {"node": "lamp", "parameter": "level"}, "value": 1}]},
+    {"name": "map clamps after final knot", "definition": "step", "values": {"switch": {"value": 1}}, "expected": [{"target": {"node": "lamp", "parameter": "level"}, "value": 1}]}
+  ]
+}
