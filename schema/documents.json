@@ -459,6 +459,14 @@
       "title": "ClipSpec",
       "type": "object"
     },
+    "Clock": {
+      "enum": [
+        "seconds",
+        "beats"
+      ],
+      "title": "Clock",
+      "type": "string"
+    },
     "ClockObservation": {
       "additionalProperties": false,
       "properties": {
@@ -551,6 +559,104 @@
         "port"
       ],
       "title": "Endpoint",
+      "type": "object"
+    },
+    "Envelope": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "unipolar"
+        },
+        "initial": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Initial",
+          "type": "number"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "release": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Release",
+          "type": "array"
+        },
+        "hold": {
+          "default": true,
+          "title": "Hold",
+          "type": "boolean"
+        },
+        "retrigger": {
+          "$ref": "#/$defs/Retrigger",
+          "default": "current"
+        }
+      },
+      "required": [
+        "segments",
+        "release"
+      ],
+      "title": "Envelope",
+      "type": "object"
+    },
+    "EnvelopeDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "envelope",
+          "default": "envelope",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Envelope"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "body"
+      ],
+      "title": "EnvelopeDocument",
       "type": "object"
     },
     "EventFragment": {
@@ -919,6 +1025,111 @@
       "title": "KeyEvent",
       "type": "object"
     },
+    "LFO": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "rate": {
+          "format": "fraction",
+          "ge": 0,
+          "title": "Rate",
+          "type": "string"
+        },
+        "phase": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "lt": 1,
+          "title": "Phase",
+          "type": "string"
+        },
+        "reset": {
+          "$ref": "#/$defs/Reset",
+          "default": "trigger"
+        },
+        "waveform": {
+          "$ref": "#/$defs/Waveform",
+          "default": "sine"
+        },
+        "duty_cycle": {
+          "default": "1/2",
+          "format": "fraction",
+          "ge": 0,
+          "le": 1,
+          "title": "Duty Cycle",
+          "type": "string"
+        },
+        "delay": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Delay",
+          "type": "string"
+        },
+        "fade_in": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Fade In",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rate"
+      ],
+      "title": "LFO",
+      "type": "object"
+    },
+    "LFODocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "lfo",
+          "default": "lfo",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/LFO"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "body"
+      ],
+      "title": "LFODocument",
+      "type": "object"
+    },
     "MidiEvent": {
       "additionalProperties": false,
       "properties": {
@@ -1276,6 +1487,14 @@
       "title": "ParameterTarget",
       "type": "object"
     },
+    "Polarity": {
+      "enum": [
+        "unipolar",
+        "bipolar"
+      ],
+      "title": "Polarity",
+      "type": "string"
+    },
     "Position": {
       "additionalProperties": false,
       "properties": {
@@ -1563,6 +1782,24 @@
       "title": "RecordingDocument",
       "type": "object"
     },
+    "Reset": {
+      "enum": [
+        "free",
+        "trigger",
+        "transport"
+      ],
+      "title": "Reset",
+      "type": "string"
+    },
+    "Retrigger": {
+      "enum": [
+        "reset",
+        "current",
+        "ignore"
+      ],
+      "title": "Retrigger",
+      "type": "string"
+    },
     "RouteSpec": {
       "additionalProperties": false,
       "properties": {
@@ -1683,6 +1920,42 @@
         "body"
       ],
       "title": "ScaleDocument",
+      "type": "object"
+    },
+    "Scope": {
+      "enum": [
+        "voice",
+        "instrument"
+      ],
+      "title": "Scope",
+      "type": "string"
+    },
+    "Segment": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "format": "fraction",
+          "ge": 0,
+          "title": "Duration",
+          "type": "string"
+        },
+        "target": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Target",
+          "type": "number"
+        },
+        "curve": {
+          "default": 0,
+          "title": "Curve",
+          "type": "number"
+        }
+      },
+      "required": [
+        "duration",
+        "target"
+      ],
+      "title": "Segment",
       "type": "object"
     },
     "Sequence": {
@@ -2111,6 +2384,8 @@
   "discriminator": {
     "mapping": {
       "arrangement": "#/$defs/ArrangementDocument",
+      "envelope": "#/$defs/EnvelopeDocument",
+      "lfo": "#/$defs/LFODocument",
       "oscillator": "#/$defs/OscillatorDocument",
       "recording": "#/$defs/RecordingDocument",
       "scale": "#/$defs/ScaleDocument",
@@ -2137,6 +2412,12 @@
     },
     {
       "$ref": "#/$defs/OscillatorDocument"
+    },
+    {
+      "$ref": "#/$defs/EnvelopeDocument"
+    },
+    {
+      "$ref": "#/$defs/LFODocument"
     }
   ]
 }

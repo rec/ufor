@@ -23,6 +23,11 @@ Musical definitions and their language-neutral semantics are specified in
 [schema/documents.json](schema/documents.json), with pitch conformance cases in
 [conformance/pitch.json](conformance/pitch.json).
 
+[Modulation](doc/modulation-format.md) specifies segmented envelopes, exact
+LFO phase, event ordering, and neutral activation weights. Its
+[portable cases](conformance/modulation.json) exercise scalar control behavior
+without audio rendering. The small instrument contract remains the next step.
+
 Recs and Tuney use this checkout as an editable sibling during development.
 Their install metadata pins a public Ufor source archive, so release builds
 can install it without GitHub SSH credentials.

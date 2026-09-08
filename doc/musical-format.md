@@ -101,15 +101,17 @@ For phase p in [0,1), the existing Tuney realization uses:
 Tuney samples positions start through start+length, excluding the endpoint,
 with phase position/period. Its implementation is not band-limited. These are
 recorded existing equations, not a mandate to freeze this implementation for
-future engines. Ufor contains no waveform buffer generation, phase accumulator,
-sampler engine, or new audio renderer. Tuney's existing implementation remains
-in Tuney. Envelopes, LFOs, phase/retrigger state, and the final instrument contract
-remain the next model-design gate before further audio generation.
+future engines. Ufor contains no waveform buffer generation, sampler engine,
+or new audio renderer. Tuney's existing implementation remains in Tuney.
+The [modulation profile](modulation-format.md) now defines exact control-phase
+accumulation, reset/rate events, and scalar shape observations using these
+equations. Audio oscillator lifecycle integration and the final instrument
+contract remain model work before further audio generation.
 
 ## Portable documents and conformance
 
-The common codec accepts `tuning`, `scale`, and `oscillator` document kinds in
-addition to recording, sequence, and arrangement. Each has a `body` containing
+The common codec accepts `tuning`, `scale`, `oscillator`, `envelope`, and `lfo`
+document kinds in addition to recording, sequence, and arrangement. Each has a `body` containing
 its definition. The initial extraction deliberately retains `format = "recs"`
 and `version = 1`; renaming the wire marker is a later explicit migration.
 

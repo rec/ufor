@@ -6,6 +6,8 @@ import tomlkit
 from pydantic import Field, TypeAdapter
 
 from .arrangement import ArrangementDocument
+from .envelope import EnvelopeDocument
+from .lfo import LFODocument
 from .musical import OscillatorDocument, ScaleDocument, TuningDocument
 from .recording import RecordingDocument
 from .sequence import SequenceDocument
@@ -20,6 +22,8 @@ def parse_document(
     | TuningDocument
     | ScaleDocument
     | OscillatorDocument
+    | EnvelopeDocument
+    | LFODocument
 ):
     return TypeAdapter(DocumentValue).validate_python(tomlkit.parse(text))
 
@@ -30,7 +34,9 @@ def document_toml(
     | SequenceDocument
     | TuningDocument
     | ScaleDocument
-    | OscillatorDocument,
+    | OscillatorDocument
+    | EnvelopeDocument
+    | LFODocument,
 ) -> str:
     return tomlkit.dumps(value.model_dump(mode='json', exclude_none=True))
 
@@ -45,6 +51,8 @@ DocumentValue = Annotated[
     | SequenceDocument
     | TuningDocument
     | ScaleDocument
-    | OscillatorDocument,
+    | OscillatorDocument
+    | EnvelopeDocument
+    | LFODocument,
     Field(discriminator='kind'),
 ]
