@@ -260,7 +260,7 @@ unsupported loops/random sources.
 | `linear` / `exponential` decay or release | Curve 0 / -5, reproducing the old reversed curve |
 | Per-stage `ceil(seconds * sample_rate)` | Exact cumulative times, observed on the host's grid |
 | Release from current level; repeated release ignored | Preserved |
-| Per-field slot envelope inheritance | Resolve in the instrument authoring adapter before constructing this complete definition |
+| Per-field slot envelope inheritance | Removed; native slots store a complete override or inherit the instrument envelope |
 | Fixed voice retrigger | Explicit current/reset/ignore policy |
 | Hz-only LFO, fixed rate | Seconds or beats; exact phase-preserving rate events; zero rate may freeze |
 | Phase frozen during LFO delay | Phase advances; to preserve the old phase at activation, use reset phase `(old_phase-rate*delay) mod 1` |
@@ -275,10 +275,10 @@ sample-and-hold sources, audio-rate realization, band-limiting, continuous rate
 automation, generic graph execution, and a sampler remain deferred.
 
 Shared performance events and typed modulation routes are now implemented.
-The next stage is the coherent native instrument and SFZ cutover described in
-[the instrument contract](instrument-format.md). The old Recsam models still
-own existing instrument files until that cutover. No compatibility layer or
-new renderer is introduced here.
+The native instrument and SFZ cutover is implemented in
+[the instrument format](instrument-format.md). Sample settings use these exact
+envelope/LFO definitions and the shared route evaluator; the old Recsam models
+are removed. Prepared voice state and audio generation remain deferred.
 
 ## Additional work beyond the prompt
 

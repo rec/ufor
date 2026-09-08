@@ -19,6 +19,7 @@ class Unit(StrEnum):
     normalized = auto()
     volts = auto()
     seconds = auto()
+    beats = auto()
 
 
 class Operation(StrEnum):
@@ -50,7 +51,7 @@ class Parameter(Model):
             raise ValueError('parameter default must be inside its ordered domain')
         if self.unit == Unit.hz and self.minimum <= 0:
             raise ValueError('Hz parameters require a positive domain')
-        if self.unit == Unit.seconds and self.minimum < 0:
+        if self.unit in (Unit.seconds, Unit.beats) and self.minimum < 0:
             raise ValueError('duration parameters require a nonnegative domain')
         if self.unit == Unit.normalized and not -1 <= self.minimum <= self.maximum <= 1:
             raise ValueError('normalized parameters must remain within [-1, 1]')

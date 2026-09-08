@@ -139,6 +139,43 @@
       "title": "ArrangementDocument",
       "type": "object"
     },
+    "Articulations": {
+      "additionalProperties": false,
+      "properties": {
+        "ids": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Ids",
+          "type": "array"
+        },
+        "default": {
+          "type": "string",
+          "title": "Default"
+        },
+        "keys": {
+          "items": {
+            "$ref": "#/$defs/KeySwitch"
+          },
+          "title": "Keys",
+          "type": "array"
+        },
+        "controls": {
+          "items": {
+            "$ref": "#/$defs/ControlSwitch"
+          },
+          "title": "Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "ids",
+        "default"
+      ],
+      "title": "Articulations",
+      "type": "object"
+    },
     "Asset": {
       "additionalProperties": false,
       "properties": {
@@ -175,6 +212,77 @@
         "sha256"
       ],
       "title": "Asset",
+      "type": "object"
+    },
+    "AudioAsset": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "encoding": {
+          "minLength": 1,
+          "title": "Encoding",
+          "type": "string"
+        },
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "audio": {
+          "$ref": "#/$defs/AudioDescription"
+        }
+      },
+      "required": [
+        "id",
+        "path",
+        "encoding",
+        "byte_length",
+        "sha256",
+        "audio"
+      ],
+      "title": "AudioAsset",
+      "type": "object"
+    },
+    "AudioDescription": {
+      "additionalProperties": false,
+      "properties": {
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "channels": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "frames": {
+          "minimum": 0,
+          "title": "Frames",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "timebase",
+        "channels",
+        "frames"
+      ],
+      "title": "AudioDescription",
       "type": "object"
     },
     "AudioFragment": {
@@ -370,7 +478,7 @@
           "$ref": "#/$defs/ParameterTarget"
         },
         "interpolation": {
-          "$ref": "#/$defs/Interpolation",
+          "$ref": "#/$defs/ufor__arrangement__Interpolation",
           "default": "linear"
         },
         "points": {
@@ -411,6 +519,72 @@
       ],
       "title": "BusSpec",
       "type": "object"
+    },
+    "ChannelRoute": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "minLength": 1,
+          "title": "Input",
+          "type": "string"
+        },
+        "output": {
+          "minLength": 1,
+          "title": "Output",
+          "type": "string"
+        },
+        "gain": {
+          "title": "Gain",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "output",
+        "gain"
+      ],
+      "title": "ChannelRoute",
+      "type": "object"
+    },
+    "Choke": {
+      "additionalProperties": false,
+      "properties": {
+        "group": {
+          "title": "Group",
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/ChokeMode"
+        },
+        "fade_seconds": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fade Seconds"
+        }
+      },
+      "required": [
+        "group",
+        "mode"
+      ],
+      "title": "Choke",
+      "type": "object"
+    },
+    "ChokeMode": {
+      "enum": [
+        "immediate",
+        "fade",
+        "release"
+      ],
+      "title": "ChokeMode",
+      "type": "string"
     },
     "ClipSpec": {
       "additionalProperties": false,
@@ -540,6 +714,56 @@
       "title": "Computed",
       "type": "object"
     },
+    "Control": {
+      "additionalProperties": false,
+      "properties": {
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "unipolar"
+        },
+        "default": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": -1,
+          "default": 0.0,
+          "title": "Default"
+        }
+      },
+      "title": "Control",
+      "type": "object"
+    },
+    "ControlBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "const": "control",
+          "default": "control",
+          "title": "Kind",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "smoothing": {
+          "default": "1/200",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Smoothing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "control"
+      ],
+      "title": "ControlBinding",
+      "type": "object"
+    },
     "ControlChange": {
       "additionalProperties": false,
       "properties": {
@@ -611,6 +835,116 @@
       ],
       "title": "ControlChange",
       "type": "object"
+    },
+    "ControlCrossfade": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "const": "control",
+          "title": "Input",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/FadeDirection"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "End"
+        },
+        "curve": {
+          "$ref": "#/$defs/FadeCurve",
+          "default": "linear"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "scope": {
+          "default": "part",
+          "enum": [
+            "part",
+            "instrument",
+            "trigger"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "smoothing_seconds": {
+          "default": 0.005,
+          "minimum": 0,
+          "title": "Smoothing Seconds",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "direction",
+        "start",
+        "end",
+        "control"
+      ],
+      "title": "ControlCrossfade",
+      "type": "object"
+    },
+    "ControlSwitch": {
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "minimum_value": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum Value",
+          "type": "number"
+        },
+        "maximum_value": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum Value",
+          "type": "number"
+        },
+        "articulation": {
+          "title": "Articulation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "control",
+        "minimum_value",
+        "maximum_value",
+        "articulation"
+      ],
+      "title": "ControlSwitch",
+      "type": "object"
+    },
+    "Direction": {
+      "enum": [
+        "forward",
+        "backward",
+        "mirror"
+      ],
+      "title": "Direction",
+      "type": "string"
     },
     "Endpoint": {
       "additionalProperties": false,
@@ -729,6 +1063,60 @@
         "body"
       ],
       "title": "EnvelopeDocument",
+      "type": "object"
+    },
+    "EqualizerBand": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "frequency_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Frequency Hz",
+          "type": "number"
+        },
+        "gain_db": {
+          "title": "Gain Db",
+          "type": "number"
+        },
+        "resonance": {
+          "exclusiveMinimum": 0,
+          "title": "Resonance",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "frequency_hz",
+        "gain_db",
+        "resonance"
+      ],
+      "title": "EqualizerBand",
+      "type": "object"
+    },
+    "EventBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "key",
+            "velocity"
+          ],
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind"
+      ],
+      "title": "EventBinding",
       "type": "object"
     },
     "EventFragment": {
@@ -884,6 +1272,22 @@
       "title": "EventStream",
       "type": "object"
     },
+    "FadeCurve": {
+      "enum": [
+        "linear",
+        "equal_power"
+      ],
+      "title": "FadeCurve",
+      "type": "string"
+    },
+    "FadeDirection": {
+      "enum": [
+        "in",
+        "out"
+      ],
+      "title": "FadeDirection",
+      "type": "string"
+    },
     "FileDestination": {
       "additionalProperties": false,
       "properties": {
@@ -996,14 +1400,262 @@
       "title": "GapReason",
       "type": "string"
     },
-    "Interpolation": {
-      "enum": [
-        "hold",
-        "linear",
-        "equal_power"
+    "GeneratorBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "envelope",
+            "lfo"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "reference"
       ],
-      "title": "Interpolation",
-      "type": "string"
+      "title": "GeneratorBinding",
+      "type": "object"
+    },
+    "Instrument": {
+      "additionalProperties": false,
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": []
+          }
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "clock": "seconds",
+            "scope": "voice",
+            "polarity": "unipolar",
+            "initial": 0.0,
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 0.0
+              }
+            ],
+            "hold": true,
+            "retrigger": "current"
+          }
+        },
+        "envelopes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Envelope"
+          },
+          "title": "Envelopes",
+          "type": "object"
+        },
+        "lfos": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LFO"
+          },
+          "title": "Lfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ControlBinding",
+                "envelope": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "lfo": "#/$defs/GeneratorBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "playback": {
+          "$ref": "#/$defs/Playback",
+          "default": {
+            "direction": "forward",
+            "mode": "while_held"
+          }
+        },
+        "selections": {
+          "items": {
+            "$ref": "#/$defs/Selection"
+          },
+          "title": "Selections",
+          "type": "array"
+        },
+        "sustain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sustain"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "articulations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Articulations"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "controls": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Control"
+          },
+          "title": "Controls",
+          "type": "object"
+        }
+      },
+      "title": "Instrument",
+      "type": "object"
+    },
+    "InstrumentDocument": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 1,
+          "default": 1,
+          "title": "Version",
+          "type": "integer"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "instrument",
+          "default": "instrument",
+          "title": "Kind",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "tags": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "minItems": 1,
+          "title": "Timebases",
+          "type": "array"
+        },
+        "assets": {
+          "items": {
+            "$ref": "#/$defs/AudioAsset"
+          },
+          "minItems": 1,
+          "title": "Assets",
+          "type": "array"
+        },
+        "performance_port": {
+          "default": "performance",
+          "title": "Performance Port",
+          "type": "string"
+        },
+        "audio_port": {
+          "default": "audio",
+          "title": "Audio Port",
+          "type": "string"
+        },
+        "output": {
+          "$ref": "#/$defs/AudioType"
+        },
+        "body": {
+          "$ref": "#/$defs/SampleInstrument"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "timebases",
+        "assets",
+        "output",
+        "body"
+      ],
+      "title": "InstrumentDocument",
+      "type": "object"
     },
     "IntervalPattern": {
       "additionalProperties": false,
@@ -1033,6 +1685,64 @@
         "intervals"
       ],
       "title": "IntervalPattern",
+      "type": "object"
+    },
+    "KeyBehavior": {
+      "enum": [
+        "latched",
+        "momentary"
+      ],
+      "title": "KeyBehavior",
+      "type": "string"
+    },
+    "KeyCrossfade": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "enum": [
+            "key",
+            "velocity"
+          ],
+          "title": "Input",
+          "type": "string"
+        },
+        "direction": {
+          "$ref": "#/$defs/FadeDirection"
+        },
+        "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "Start"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            }
+          ],
+          "title": "End"
+        },
+        "curve": {
+          "$ref": "#/$defs/FadeCurve",
+          "default": "linear"
+        }
+      },
+      "required": [
+        "input",
+        "direction",
+        "start",
+        "end"
+      ],
+      "title": "KeyCrossfade",
       "type": "object"
     },
     "KeyEvent": {
@@ -1098,6 +1808,34 @@
         "action"
       ],
       "title": "KeyEvent",
+      "type": "object"
+    },
+    "KeySwitch": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "integer"
+        },
+        "articulation": {
+          "title": "Articulation",
+          "type": "string"
+        },
+        "behavior": {
+          "$ref": "#/$defs/KeyBehavior",
+          "default": "latched"
+        },
+        "consume": {
+          "default": true,
+          "title": "Consume",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "articulation"
+      ],
+      "title": "KeySwitch",
       "type": "object"
     },
     "LFO": {
@@ -1205,6 +1943,108 @@
       "title": "LFODocument",
       "type": "object"
     },
+    "Loop": {
+      "additionalProperties": false,
+      "properties": {
+        "start_frame": {
+          "minimum": 0,
+          "title": "Start Frame",
+          "type": "integer"
+        },
+        "end_frame": {
+          "minimum": 0,
+          "title": "End Frame",
+          "type": "integer"
+        },
+        "mode": {
+          "$ref": "#/$defs/LoopMode",
+          "default": "until_release"
+        },
+        "crossfade_frames": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Crossfade Frames",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_frame",
+        "end_frame"
+      ],
+      "title": "Loop",
+      "type": "object"
+    },
+    "LoopMode": {
+      "enum": [
+        "until_release",
+        "through_release"
+      ],
+      "title": "LoopMode",
+      "type": "string"
+    },
+    "Mapping": {
+      "additionalProperties": false,
+      "properties": {
+        "lowest_key": {
+          "title": "Lowest Key",
+          "type": "integer"
+        },
+        "highest_key": {
+          "title": "Highest Key",
+          "type": "integer"
+        },
+        "reference_pitch_hz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reference Pitch Hz"
+        },
+        "event_key": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Event Key"
+        },
+        "minimum_velocity": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum Velocity",
+          "type": "number"
+        },
+        "maximum_velocity": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum Velocity",
+          "type": "number"
+        },
+        "pitch_tracking": {
+          "default": true,
+          "title": "Pitch Tracking",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "lowest_key",
+        "highest_key"
+      ],
+      "title": "Mapping",
+      "type": "object"
+    },
     "MidiEvent": {
       "additionalProperties": false,
       "properties": {
@@ -1240,6 +2080,34 @@
       "title": "MidiEvent",
       "type": "object"
     },
+    "Modulation": {
+      "additionalProperties": false,
+      "properties": {
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/Parameter"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Source"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "routes": {
+          "items": {
+            "$ref": "#/$defs/Route"
+          },
+          "title": "Routes",
+          "type": "array"
+        }
+      },
+      "title": "Modulation",
+      "type": "object"
+    },
     "NormalizeMode": {
       "enum": [
         "none",
@@ -1247,6 +2115,14 @@
         "normalize"
       ],
       "title": "NormalizeMode",
+      "type": "string"
+    },
+    "Operation": {
+      "enum": [
+        "add",
+        "multiply"
+      ],
+      "title": "Operation",
       "type": "string"
     },
     "OscDecodeError": {
@@ -1520,6 +2396,42 @@
       "title": "OutputSpec",
       "type": "object"
     },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "default": {
+          "type": "number",
+          "title": "Default"
+        }
+      },
+      "required": [
+        "target",
+        "unit",
+        "scope",
+        "minimum",
+        "maximum",
+        "default"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
     "ParameterTarget": {
       "additionalProperties": false,
       "properties": {
@@ -1562,6 +2474,48 @@
       "title": "ParameterTarget",
       "type": "object"
     },
+    "Playback": {
+      "additionalProperties": false,
+      "properties": {
+        "direction": {
+          "$ref": "#/$defs/Direction",
+          "default": "forward"
+        },
+        "mode": {
+          "$ref": "#/$defs/PlaybackMode",
+          "default": "while_held"
+        }
+      },
+      "title": "Playback",
+      "type": "object"
+    },
+    "PlaybackMode": {
+      "enum": [
+        "while_held",
+        "one_shot"
+      ],
+      "title": "PlaybackMode",
+      "type": "string"
+    },
+    "Point": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "title": "Input",
+          "type": "number"
+        },
+        "amount": {
+          "title": "Amount",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "amount"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
     "Polarity": {
       "enum": [
         "unipolar",
@@ -1587,6 +2541,40 @@
         "tick"
       ],
       "title": "Position",
+      "type": "object"
+    },
+    "Processing": {
+      "additionalProperties": false,
+      "properties": {
+        "volume_db": {
+          "default": 0.0,
+          "title": "Volume Db",
+          "type": "number"
+        },
+        "tuning_cents": {
+          "default": 0.0,
+          "title": "Tuning Cents",
+          "type": "number"
+        },
+        "pan": {
+          "default": 0.0,
+          "title": "Pan",
+          "type": "number"
+        },
+        "stereo_balance": {
+          "default": 0.0,
+          "title": "Stereo Balance",
+          "type": "number"
+        },
+        "equalizer": {
+          "items": {
+            "$ref": "#/$defs/EqualizerBand"
+          },
+          "title": "Equalizer",
+          "type": "array"
+        }
+      },
+      "title": "Processing",
       "type": "object"
     },
     "Rate": {
@@ -1911,6 +2899,50 @@
       "title": "Retrigger",
       "type": "string"
     },
+    "Route": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "operation": {
+          "$ref": "#/$defs/Operation"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "minItems": 1,
+          "title": "Points",
+          "type": "array"
+        },
+        "interpolation": {
+          "$ref": "#/$defs/ufor__modulation__Interpolation",
+          "default": "linear"
+        }
+      },
+      "required": [
+        "id",
+        "source",
+        "target",
+        "operation",
+        "unit",
+        "points"
+      ],
+      "title": "Route",
+      "type": "object"
+    },
     "RouteSpec": {
       "additionalProperties": false,
       "properties": {
@@ -1933,6 +2965,250 @@
         "destination"
       ],
       "title": "RouteSpec",
+      "type": "object"
+    },
+    "SampleInstrument": {
+      "additionalProperties": false,
+      "description": "Instrument body. Slice frames belong to each referenced native asset.",
+      "properties": {
+        "kind": {
+          "const": "sample_instrument",
+          "default": "sample_instrument",
+          "title": "Kind",
+          "type": "string"
+        },
+        "slices": {
+          "items": {
+            "$ref": "#/$defs/Slice"
+          },
+          "minItems": 1,
+          "title": "Slices",
+          "type": "array"
+        },
+        "instrument": {
+          "$ref": "#/$defs/Instrument"
+        },
+        "slots": {
+          "items": {
+            "$ref": "#/$defs/SampleSlot"
+          },
+          "minItems": 1,
+          "title": "Slots",
+          "type": "array"
+        }
+      },
+      "required": [
+        "slices",
+        "instrument",
+        "slots"
+      ],
+      "title": "SampleInstrument",
+      "type": "object"
+    },
+    "SampleSlot": {
+      "additionalProperties": false,
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": []
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "envelopes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Envelope"
+          },
+          "title": "Envelopes",
+          "type": "object"
+        },
+        "lfos": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LFO"
+          },
+          "title": "Lfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ControlBinding",
+                "envelope": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "lfo": "#/$defs/GeneratorBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "slice": {
+          "title": "Slice",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/Mapping"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelRoute"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "tags": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "playback": {
+          "$ref": "#/$defs/SlotPlayback",
+          "default": {
+            "direction": null,
+            "mode": null
+          }
+        },
+        "selection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selection"
+        },
+        "choke_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choke Group"
+        },
+        "chokes": {
+          "items": {
+            "$ref": "#/$defs/Choke"
+          },
+          "title": "Chokes",
+          "type": "array"
+        },
+        "crossfades": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ControlCrossfade",
+                "key": "#/$defs/KeyCrossfade",
+                "velocity": "#/$defs/KeyCrossfade"
+              },
+              "propertyName": "input"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/KeyCrossfade"
+              },
+              {
+                "$ref": "#/$defs/ControlCrossfade"
+              }
+            ]
+          },
+          "title": "Crossfades",
+          "type": "array"
+        },
+        "trigger": {
+          "$ref": "#/$defs/TriggerKind",
+          "default": "start"
+        },
+        "articulations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Articulations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "slice",
+        "mapping",
+        "channels"
+      ],
+      "title": "SampleSlot",
       "type": "object"
     },
     "Scale": {
@@ -2069,6 +3345,33 @@
       "title": "Segment",
       "type": "object"
     },
+    "Selection": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "mode": {
+          "$ref": "#/$defs/SelectionMode"
+        }
+      },
+      "required": [
+        "id",
+        "mode"
+      ],
+      "title": "Selection",
+      "type": "object"
+    },
+    "SelectionMode": {
+      "enum": [
+        "cycle",
+        "random",
+        "shuffle"
+      ],
+      "title": "SelectionMode",
+      "type": "string"
+    },
     "Sequence": {
       "additionalProperties": false,
       "properties": {
@@ -2182,6 +3485,113 @@
       "title": "SequenceDocument",
       "type": "object"
     },
+    "Slice": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "asset": {
+          "title": "Asset",
+          "type": "string"
+        },
+        "start_frame": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Start Frame",
+          "type": "integer"
+        },
+        "end_frame": {
+          "minimum": 0,
+          "title": "End Frame",
+          "type": "integer"
+        },
+        "loop": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Loop"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "id",
+        "asset",
+        "end_frame"
+      ],
+      "title": "Slice",
+      "type": "object"
+    },
+    "SlotPlayback": {
+      "additionalProperties": false,
+      "description": "None inherits the instrument traversal setting, including after serialization.",
+      "properties": {
+        "direction": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Direction"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "mode": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PlaybackMode"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "SlotPlayback",
+      "type": "object"
+    },
+    "Source": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "instrument",
+            "part",
+            "trigger",
+            "voice"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "id",
+        "scope",
+        "minimum",
+        "maximum"
+      ],
+      "title": "Source",
+      "type": "object"
+    },
     "SourceSpec": {
       "additionalProperties": false,
       "properties": {
@@ -2284,6 +3694,47 @@
       ],
       "title": "Subtype",
       "type": "string"
+    },
+    "Sustain": {
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "threshold": {
+          "default": 0.5,
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Threshold",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control"
+      ],
+      "title": "Sustain",
+      "type": "object"
+    },
+    "Target": {
+      "additionalProperties": false,
+      "properties": {
+        "node": {
+          "title": "Node",
+          "type": "string"
+        },
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        }
+      },
+      "required": [
+        "node",
+        "parameter"
+      ],
+      "title": "Target",
+      "type": "object"
     },
     "TickRange": {
       "additionalProperties": false,
@@ -2416,6 +3867,17 @@
       "title": "Trigger",
       "type": "object"
     },
+    "TriggerKind": {
+      "enum": [
+        "start",
+        "release",
+        "logical_release",
+        "sustain_press",
+        "sustain_release"
+      ],
+      "title": "TriggerKind",
+      "type": "string"
+    },
     "Tuning": {
       "additionalProperties": false,
       "properties": {
@@ -2534,6 +3996,20 @@
       "title": "UnfinishedFile",
       "type": "object"
     },
+    "Unit": {
+      "enum": [
+        "ratio",
+        "db",
+        "cents",
+        "hz",
+        "normalized",
+        "volts",
+        "seconds",
+        "beats"
+      ],
+      "title": "Unit",
+      "type": "string"
+    },
     "UnmappedAudioFragment": {
       "additionalProperties": false,
       "properties": {
@@ -2572,12 +4048,30 @@
       ],
       "title": "Waveform",
       "type": "string"
+    },
+    "ufor__arrangement__Interpolation": {
+      "enum": [
+        "hold",
+        "linear",
+        "equal_power"
+      ],
+      "title": "Interpolation",
+      "type": "string"
+    },
+    "ufor__modulation__Interpolation": {
+      "enum": [
+        "linear",
+        "step"
+      ],
+      "title": "Interpolation",
+      "type": "string"
     }
   },
   "discriminator": {
     "mapping": {
       "arrangement": "#/$defs/ArrangementDocument",
       "envelope": "#/$defs/EnvelopeDocument",
+      "instrument": "#/$defs/InstrumentDocument",
       "lfo": "#/$defs/LFODocument",
       "oscillator": "#/$defs/OscillatorDocument",
       "recording": "#/$defs/RecordingDocument",
@@ -2608,6 +4102,9 @@
     },
     {
       "$ref": "#/$defs/EnvelopeDocument"
+    },
+    {
+      "$ref": "#/$defs/InstrumentDocument"
     },
     {
       "$ref": "#/$defs/LFODocument"
