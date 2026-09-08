@@ -209,9 +209,10 @@ does not add a second LFO stop/tail state machine.
 
 The generators output dimensionless values. Instrument/processor routes must
 name their source instance, structured target `{node, parameter}`, mapping,
-operation, and target domain. The general route document is implemented with
-the later instrument/processor models, not by overloading the existing
-arrangement-only `ParameterTarget`. The composition contract to use is:
+operation, and target domain. The embedded `ufor.modulation.Modulation`
+collection now implements [typed routes](instrument-format.md#modulation-routes)
+for the later instrument/processor bodies. It does not overload the existing
+arrangement-only `ParameterTarget`. The composition contract is:
 
 1. Resolve one base value, including authored replacement automation.
 2. Map each source value to an additive amount in the target's units or a
@@ -273,8 +274,9 @@ cycle rules. It is intentionally rejected in this first profile. Random and
 sample-and-hold sources, audio-rate realization, band-limiting, continuous rate
 automation, generic graph execution, and a sampler remain deferred.
 
-The next stage is the small instrument/performance contract and coherent
-replacement of Recsam's authoring types/adapters. The old Recsam models still
+Shared performance events and typed modulation routes are now implemented.
+The next stage is the coherent native instrument and SFZ cutover described in
+[the instrument contract](instrument-format.md). The old Recsam models still
 own existing instrument files until that cutover. No compatibility layer or
 new renderer is introduced here.
 

@@ -540,6 +540,78 @@
       "title": "Computed",
       "type": "object"
     },
+    "ControlChange": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "control_change",
+          "default": "control_change",
+          "title": "Kind",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "value": {
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Value",
+          "type": "number"
+        },
+        "scope": {
+          "enum": [
+            "instrument",
+            "part",
+            "trigger"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "part": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Part"
+        },
+        "trigger_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Trigger Id"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "control",
+        "value",
+        "scope"
+      ],
+      "title": "ControlChange",
+      "type": "object"
+    },
     "Endpoint": {
       "additionalProperties": false,
       "properties": {
@@ -770,7 +842,10 @@
               "enum": [
                 "midi",
                 "osc",
-                "key"
+                "key",
+                "trigger",
+                "release",
+                "control_change"
               ],
               "type": "string"
             },
@@ -1782,6 +1857,42 @@
       "title": "RecordingDocument",
       "type": "object"
     },
+    "Release": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "release",
+          "default": "release",
+          "title": "Kind",
+          "type": "string"
+        },
+        "part": {
+          "title": "Part",
+          "type": "string"
+        },
+        "trigger_id": {
+          "title": "Trigger Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "part",
+        "trigger_id"
+      ],
+      "title": "Release",
+      "type": "object"
+    },
     "Reset": {
       "enum": [
         "free",
@@ -1978,9 +2089,12 @@
           "items": {
             "discriminator": {
               "mapping": {
+                "control_change": "#/$defs/ControlChange",
                 "key": "#/$defs/KeyEvent",
                 "midi": "#/$defs/MidiEvent",
-                "osc": "#/$defs/OscEvent"
+                "osc": "#/$defs/OscEvent",
+                "release": "#/$defs/Release",
+                "trigger": "#/$defs/Trigger"
               },
               "propertyName": "kind"
             },
@@ -1993,6 +2107,15 @@
               },
               {
                 "$ref": "#/$defs/KeyEvent"
+              },
+              {
+                "$ref": "#/$defs/Trigger"
+              },
+              {
+                "$ref": "#/$defs/Release"
+              },
+              {
+                "$ref": "#/$defs/ControlChange"
               }
             ]
           },
@@ -2221,6 +2344,76 @@
         "stream"
       ],
       "title": "TrackSpec",
+      "type": "object"
+    },
+    "Trigger": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "trigger",
+          "default": "trigger",
+          "title": "Kind",
+          "type": "string"
+        },
+        "part": {
+          "title": "Part",
+          "type": "string"
+        },
+        "trigger_id": {
+          "title": "Trigger Id",
+          "type": "string"
+        },
+        "key": {
+          "title": "Key",
+          "type": "integer"
+        },
+        "velocity": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Velocity",
+          "type": "number"
+        },
+        "pitch_hz": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pitch Hz"
+        },
+        "controls": {
+          "additionalProperties": {
+            "maximum": 1,
+            "minimum": -1,
+            "type": "number"
+          },
+          "title": "Controls",
+          "type": "object"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "part",
+        "trigger_id",
+        "key"
+      ],
+      "title": "Trigger",
       "type": "object"
     },
     "Tuning": {
