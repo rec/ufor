@@ -1,0 +1,25 @@
+[project]
+name = "ufor"
+version = "0.1.0"
+description = "Universal Format: portable definitions for time-based data"
+readme = "README.md"
+license = "MIT"
+authors = [{name = "Tom Ritchford", email = "tom@swirly.com"}]
+requires-python = ">=3.13"
+dependencies = ["pydantic>=2.13.4", "tomlkit>=0.15.1"]
+
+[dependency-groups]
+dev = ["pytest", "ruff", "ty", "pyupgrade"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 88
+
+[tool.ruff.format]
+quote-style = "single"
+
+[tool.pytest.ini_options]
+testpaths = ["test"]
