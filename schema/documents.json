@@ -1841,6 +1841,18 @@
     "LFO": {
       "additionalProperties": false,
       "properties": {
+        "waveform": {
+          "$ref": "#/$defs/Waveform",
+          "default": "sine"
+        },
+        "duty_cycle": {
+          "default": "1/2",
+          "format": "fraction",
+          "ge": 0,
+          "le": 1,
+          "title": "Duty Cycle",
+          "type": "string"
+        },
         "clock": {
           "$ref": "#/$defs/Clock",
           "default": "seconds"
@@ -1866,18 +1878,6 @@
         "reset": {
           "$ref": "#/$defs/Reset",
           "default": "trigger"
-        },
-        "waveform": {
-          "$ref": "#/$defs/Waveform",
-          "default": "sine"
-        },
-        "duty_cycle": {
-          "default": "1/2",
-          "format": "fraction",
-          "ge": 0,
-          "le": 1,
-          "title": "Duty Cycle",
-          "type": "string"
         },
         "delay": {
           "default": "0",
@@ -2279,11 +2279,12 @@
           "default": "triangle"
         },
         "duty_cycle": {
-          "default": 0.5,
-          "maximum": 1,
-          "minimum": 0,
+          "default": "1/2",
+          "format": "fraction",
+          "ge": 0,
+          "le": 1,
           "title": "Duty Cycle",
-          "type": "number"
+          "type": "string"
         },
         "key_scale_note": {
           "default": 64,
@@ -2435,15 +2436,6 @@
     "ParameterTarget": {
       "additionalProperties": false,
       "properties": {
-        "kind": {
-          "enum": [
-            "clip",
-            "bus",
-            "route"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
         "node": {
           "title": "Node",
           "type": "string"
@@ -2452,6 +2444,15 @@
           "const": "gain",
           "default": "gain",
           "title": "Parameter",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "clip",
+            "bus",
+            "route"
+          ],
+          "title": "Kind",
           "type": "string"
         },
         "destination": {
@@ -2468,8 +2469,8 @@
         }
       },
       "required": [
-        "kind",
-        "node"
+        "node",
+        "kind"
       ],
       "title": "ParameterTarget",
       "type": "object"
@@ -3212,6 +3213,7 @@
       "type": "object"
     },
     "Scale": {
+      "additionalProperties": false,
       "description": "A generalized musical Scale, where the default is \"regular tuning\".\n\nThe common Western scale has\n* 12 equal-tempered semitones per octave\n* Note names CDEFGAB, with intervals of 2212221 semitones between them\n* FLAT to lower pitch by a semitone, SHARP to raise it\n\nScale generalizes this to allow more or less than 12 notes per octave, N-just limit,\ncustom tunings, different note names and intervals.",
       "properties": {
         "note_names": {

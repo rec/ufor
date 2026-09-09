@@ -5,6 +5,7 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from .base import Identifier, Model
+from .modulation import Target
 
 
 class RecordSelector(Model):
@@ -13,9 +14,8 @@ class RecordSelector(Model):
     channel: int | None = Field(default=None, ge=0, strict=True)
 
 
-class ParameterTarget(Model):
+class ParameterTarget(Target):
     kind: Literal['clip', 'bus', 'route']
-    node: Identifier
     parameter: Literal['gain'] = 'gain'
     destination: Identifier | None = None
 

@@ -1,15 +1,11 @@
 from enum import StrEnum, auto
+from graphlib import CycleError, TopologicalSorter
 from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import (
-    BaseModel,
-    ConfigDict,
-    Field,
-    model_validator,
-)
+from pydantic import Field, model_validator
 
-from .base import Identifier
+from .base import Identifier, Model, unique
 from .document import Document
 from .encoding import Format
 from .references import ParameterTarget, RecordSelector
@@ -29,7 +25,7 @@ class NormalizeMode(StrEnum):
     normalize = auto()
 
 
-class SourceSpec(BaseModel, frozen=True):
+class SourceSpec(Model):
     id: Identifier
     record: Path | None = None
     selector: RecordSelector | None = None
@@ -71,31 +67,25 @@ class SourceSpec(BaseModel, frozen=True):
                 )
         return self
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class TrackSpec(BaseModel, frozen=True):
+class TrackSpec(Model):
     id: Identifier
     stream: AudioType
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class BusSpec(BaseModel, frozen=True):
+class BusSpec(Model):
     id: Identifier
     stream: AudioType
     gain: float = 1.0
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class ClipSpec(BaseModel, frozen=True):
+class ClipSpec(Model):
     id: Identifier
     source: Identifier
     track: Identifier
-    source_start: int = Field(ge=0)
-    source_end: int = Field(gt=0)
-    timeline_start: int = Field(ge=0)
+    source_start: int = Field(ge=0, strict=True)
+    source_end: int = Field(gt=0, strict=True)
+    timeline_start: int = Field(ge=0, strict=True)
     gain: float = 1.0
 
     @model_validator(mode='after')
@@ -104,25 +94,19 @@ class ClipSpec(BaseModel, frozen=True):
             raise ValueError('source_end must be greater than source_start')
         return self
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class RouteSpec(BaseModel, frozen=True):
+class RouteSpec(Model):
     source: Identifier
     destination: Identifier
     gain: float = 1.0
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class AutomationPoint(BaseModel, frozen=True):
-    frame: int = Field(ge=0)
+class AutomationPoint(Model):
+    frame: int = Field(ge=0, strict=True)
     value: float
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class AutomationSpec(BaseModel, frozen=True):
+class AutomationSpec(Model):
     target: ParameterTarget
     interpolation: Interpolation = Interpolation.linear
     points: list[AutomationPoint] = Field(min_length=1)
@@ -138,14 +122,12 @@ class AutomationSpec(BaseModel, frozen=True):
             raise ValueError('equal-power automation values cannot be negative')
         return self
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class OutputSpec(BaseModel, frozen=True):
+class OutputSpec(Model):
     id: Identifier
     source: Identifier
-    start: int | None = Field(default=None, ge=0)
-    end: int | None = Field(default=None, gt=0)
+    start: int | None = Field(default=None, ge=0, strict=True)
+    end: int | None = Field(default=None, gt=0, strict=True)
     normalize: NormalizeMode = NormalizeMode.none
     gain: float = 1.0
 
@@ -155,10 +137,8 @@ class OutputSpec(BaseModel, frozen=True):
             raise ValueError('output end must be greater than start')
         return self
 
-    model_config = ConfigDict(extra='forbid')
 
-
-class Arrangement(BaseModel, frozen=True):
+class Arrangement(Model):
     timebase: Identifier
     media_types: list[str] = Field(default_factory=lambda: ['audio'])
     sources: list[SourceSpec] = Field(default_factory=list)
@@ -169,7 +149,72 @@ class Arrangement(BaseModel, frozen=True):
     automation: list[AutomationSpec] = Field(default_factory=list)
     outputs: list[OutputSpec] = Field(default_factory=list)
 
-    model_config = ConfigDict(extra='forbid')
+    @model_validator(mode='after')
+    def graph_references(self) -> Self:
+        for kind, items in (
+            ('source', self.sources),
+            ('track', self.tracks),
+            ('bus', self.buses),
+            ('clip', self.clips),
+            ('output', self.outputs),
+        ):
+            unique((i.id for i in items), f'{kind} ID')
+        unique((a.target for a in self.automation), 'automation target')
+        unique(((r.source, r.destination) for r in self.routes), 'route')
+        tracks = {t.id: t.stream for t in self.tracks}
+        buses = {b.id: b.stream for b in self.buses}
+        if overlap := tracks.keys() & buses.keys():
+            raise ValueError(f'Track and bus IDs collide: {sorted(overlap)}')
+        streams = tracks | buses
+        sources = {s.id for s in self.sources}
+        clips = {c.id for c in self.clips}
+        routes = {(r.source, r.destination) for r in self.routes}
+        for clip in self.clips:
+            if clip.source not in sources:
+                raise ValueError(f'Clip {clip.id}: unknown source {clip.source}')
+            if clip.track not in tracks:
+                raise ValueError(f'Clip {clip.id}: unknown track {clip.track}')
+        for route in self.routes:
+            if route.source not in streams:
+                raise ValueError(f'Route has unknown source {route.source}')
+            if route.destination not in buses:
+                raise ValueError(
+                    f'Route has unknown destination bus {route.destination}'
+                )
+            if streams[route.source] != buses[route.destination]:
+                raise ValueError('Route channel layouts and timebases must match')
+        _ = self.bus_order
+        for automation in self.automation:
+            target = automation.target
+            valid = (
+                target.node in clips
+                if target.kind == 'clip'
+                else target.node in buses
+                if target.kind == 'bus'
+                else (target.node, target.destination) in routes
+            )
+            if not valid:
+                raise ValueError(f'Unknown automation target {target!r}')
+        for output in self.outputs:
+            if output.source not in streams:
+                raise ValueError(f'Output {output.id}: unknown source {output.source}')
+        return self
+
+    @property
+    def bus_order(self) -> list[str]:
+        buses = {b.id for b in self.buses}
+        dependencies = {
+            b.id: [
+                r.source
+                for r in self.routes
+                if r.destination == b.id and r.source in buses
+            ]
+            for b in self.buses
+        }
+        try:
+            return list(TopologicalSorter(dependencies).static_order())
+        except CycleError as error:
+            raise ValueError(f'Routing cycle: {error.args[1]}') from error
 
 
 class ArrangementDocument(Document):
@@ -180,6 +225,9 @@ class ArrangementDocument(Document):
 
     @model_validator(mode='after')
     def audio_clock(self) -> Self:
+        ports = {o.id for o in self.body.outputs}
+        if any(d.port not in ports for d in self.destinations):
+            raise ValueError('Destination references an unknown output port')
         clock = self.timebases[0]
         if any(
             n.stream.timebase != clock.id for n in [*self.body.tracks, *self.body.buses]

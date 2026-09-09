@@ -148,6 +148,11 @@ class EventStream(Model):
     def payload_schema(self) -> Self:
         if (self.event_schema == 'recs_events') != (self.timebase is not None):
             raise ValueError('only native event streams declare a document timebase')
+        if self.event_schema != 'recs_events' and self.event_kind not in (
+            None,
+            self.event_schema,
+        ):
+            raise ValueError('event kind disagrees with its stream schema')
         timing = {'midi': 'smf', 'osc': 'osc_jsonl', 'recs_events': 'recs_events'}
         if any(f.timing != timing[self.event_schema] for f in self.fragments):
             raise ValueError('event fragment timing disagrees with its stream schema')

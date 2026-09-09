@@ -119,3 +119,20 @@ and `version = 1`; renaming the wire marker is a later explicit migration.
 `conformance/pitch.json` supplies exact rational and approximate numeric cases
 for implementations in other languages. The Python tests consume those cases.
 Definitions alone do not guarantee audio identity between implementations.
+
+## Editing and validation
+
+Collection fields remain editable lists. Derived tuning ratios, frequencies and
+scale spellings are calculated from the current values rather than cached.
+`document_toml` validates the complete current definition before serialization;
+loading a document also validates it. Direct list edits are not themselves a
+validation boundary.
+
+Scale intervals must be positive integers. The interval pattern cycles over the
+selected note names; the period is the sum of those expanded intervals. Unknown
+fields and unrecognized note text are rejected instead of ignored.
+
+Oscillators and LFOs inherit one `Shape` definition and use `oscillator.shape_value`
+for scalar waveform observations. Duty cycle is stored as an exact fraction,
+including strings such as `"1/3"`; decimal numeric input is interpreted by its
+decimal spelling. Their existing default waveforms remain distinct.
