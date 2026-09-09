@@ -2,7 +2,7 @@
 
 The initial common format supports arrangements, recording descriptions, and
 ordered event sequences. TOML is the document syntax; `format = "recs"`,
-`version = 1`, `kind`, `id`, and `name` form its common envelope. The model's
+`version = 2`, `kind`, `id`, and `name` form its common envelope. The model's
 `document_schema()` function generates JSON Schema for all three kinds.
 The [arrangement format](arrangement-format.md) describes audio editing.
 
@@ -89,7 +89,7 @@ outputs instead contain the actual version 3 journal snapshot and its hash.
 
 ```toml
 format = "recs"
-version = 1
+version = 2
 kind = "recording"
 id = "example-session"
 name = "Empty capture"
@@ -134,14 +134,17 @@ preroll controls and overlapping triggers with distinct identities.
 
 ```toml
 format = "recs"
-version = 1
+version = 2
 kind = "sequence"
 id = "key-example"
 name = "One key gesture"
 
 [[timebases]]
 id = "milliseconds"
-rate = { numerator = 1000, denominator = 1 }
+
+[timebases.rate]
+numerator = 1000
+denominator = 1
 
 [body]
 timebase = "milliseconds"
@@ -239,3 +242,15 @@ verified; torn final lines and unfinished files remain explicitly open. Existing
 outputs are never replaced. A new capture process has a new audio clock identity;
 volume changes within that process retain it. Editing across independent capture
 clocks requires an explicit alignment decision.
+
+## Public exports and imported media
+
+Version 2 exposes streams through root `ports`, with an output direction, matching
+stream contract and `binding = { stream = "stable-stream-id" }`. An audio binding
+may select consecutive zero-based `channels`. Native event exports declare their
+physical clock and event kinds; legacy files without native tick positions are
+not automatically exported as timed composition sources.
+
+A sealed recording describing imported media may omit `journal`, `started_at`
+and `ended_at`. Captured sessions retain their journal and capture timestamps.
+This avoids inventing capture history when wrapping a WAV file for composition.

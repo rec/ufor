@@ -1,0 +1,50 @@
+format = "recs"
+version = 2
+id = "notes"
+name = "Piano notes"
+parameters = []
+kind = "sequence"
+
+[[timebases]]
+id = "audio"
+kind = "physical"
+
+[timebases.rate]
+numerator = 48000
+denominator = 1
+
+[[ports]]
+id = "performance"
+direction = "output"
+
+[ports.stream]
+family = "event"
+timebase = "audio"
+kinds = ["trigger", "release"]
+
+[ports.binding]
+sequence = true
+
+[body]
+timebase = "audio"
+start = 0
+end = 480000
+
+[[body.events]]
+tick = 0
+ordinal = 0
+kind = "trigger"
+part = "piano"
+trigger_id = "first"
+key = 69
+velocity = 0.8
+pitch_hz = 440.0
+
+[body.events.controls]
+
+[[body.events]]
+tick = 432000
+ordinal = 1
+kind = "release"
+part = "piano"
+trigger_id = "first"

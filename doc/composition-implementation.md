@@ -1,8 +1,10 @@
 # Document composition implementation plan
 
-Status: proposed. Implements the [simplified design](composition-design.md), with
-its [worked example](composition-example.md). No model or renderer changes have
-been made by writing these documents. Naming remains a separate review.
+Status: implemented for document version 2. The [simplified design](composition-design.md)
+and [worked example](composition-example.md) are accepted by the codec. Ufor owns
+pure resolution and performance-delivery traces; Recs owns nested audio rendering.
+Traces establish delivery and instance isolation, not sample selection or voice
+execution. Naming remains a separate review.
 
 ## First supported profile
 
@@ -92,7 +94,9 @@ root document digest identifies the snapshot. Verify hashes against actual bytes
 Edits invalidate pins; resealing updates affected references recursively. Moving
 a package preserves contents and relative relationships, or requires new digests
 if an exporter rewrites paths. There is no separate composition dependency lock
-structure in this proposal.
+structure. Sealing/export tooling is not provided by this implementation; the
+resolver checks pins supplied by callers. The conformance package contains
+synthetic asset metadata and is not a sealed, renderable media package.
 
 ## Validation ownership
 
@@ -117,7 +121,7 @@ a twelve-second piano clip can coexist with ten-second recording clips without
 requesting nonexistent recorded frames. Never fabricate release events at the
 end of a sequence.
 
-## Migration from the implemented models
+## Migration from version 1
 
 | Current structure | Replacement |
 | --- | --- |
@@ -141,8 +145,8 @@ recipes still produce arrangements; `CompositionEdit` is not an execution graph.
 
 1. Implement document-reference values, instance records, public declarations
    with bindings, and audio/native-event contracts. Establish the document-version
-   policy before changing accepted wire data. Illustrative `version = 1` in the
-   example does not decide that policy. Add schemas and portable examples.
+   policy before changing accepted wire data. The implementation uses version 2,
+   rejects version 1 and includes a schema and portable composition fixture.
 2. Add pure recursive validation over host-supplied definitions. Cover missing
    and private ports, invalid bindings/defaults, duplicate IDs, aliases and cycles,
    incompatible layouts, input fan-in, and exact/inexact event-clock conversions.
@@ -162,6 +166,20 @@ recipes still produce arrangements; `CompositionEdit` is not an execution graph.
 The format milestone is loading, resolving and checking the worked example
 without an audio engine. The host milestone is equivalent output for equivalent
 flat and nested recording arrangements. These are separate acceptance gates.
+
+The implementation entry points are `ufor.interface`, `ufor.composition.Composition`
+and `recs.edit.nested`. Tests cover the worked example, independent instances,
+fan-out, inherited parameters, exact clock conversion, crop pre-roll, tails and
+flat/nested audio equivalence under separate window requests. The Recs renderer
+currently materializes child outputs in memory; it is not a streaming engine.
+
+Recs authoring wraps selected files or recording streams in recording definitions.
+Dry runs supply these definitions in memory and write nothing. Existing editing
+recipes reconstruct prepared stage definitions and audio through a host provider;
+the recipe remains the replayable artifact. An individual extracted stage is not
+a standalone media package. Saved native arrangement paths are rebased relative
+to their containing document. Imported media definitions may be sealed without
+capture timestamps or journals; captured sessions retain those diagnostics.
 
 Later capabilities include musical time, live radio sections, lighting/spatial
 contracts, processor and plugin bindings, dynamic public automation and event

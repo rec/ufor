@@ -8,9 +8,15 @@ from pydantic import Field, model_validator
 from .. import base, control
 from ..assets import Asset, AudioDescription
 from ..base import Identifier, Model, Text, unique
-from ..document import Document
 from ..envelope import Envelope, Segment
 from ..events import ControlChange, PerformanceEvent, Trigger
+from ..interface import (
+    AudioBinding,
+    Direction,
+    EventType,
+    InterfaceDocument,
+    PerformanceBinding,
+)
 from ..streams import AudioType
 from ..time import Timebase
 from . import enums
@@ -258,15 +264,12 @@ class AudioAsset(Asset):
     audio: AudioDescription
 
 
-class InstrumentDocument(Document):
+class InstrumentDocument(InterfaceDocument):
     kind: Literal['instrument'] = 'instrument'
     description: str | None = None
     tags: list[Text] = Field(default_factory=list)
     timebases: list[Timebase] = Field(min_length=1)
     assets: list[AudioAsset] = Field(min_length=1)
-    performance_port: Identifier = 'performance'
-    audio_port: Identifier = 'audio'
-    output: AudioType
     body: SampleInstrument
 
     @model_validator(mode='after')
@@ -276,9 +279,25 @@ class InstrumentDocument(Document):
         unique((a.id for a in self.assets), 'asset ID')
         clocks = {t.id for t in self.timebases}
         assets = {a.id: a for a in self.assets}
-        if self.performance_port == self.audio_port:
-            raise ValueError('Performance and audio ports must have different names')
-        if self.output.timebase not in clocks or any(
+        audio = [p for p in self.ports if isinstance(p.binding, AudioBinding)]
+        performance = [
+            p for p in self.ports if isinstance(p.binding, PerformanceBinding)
+        ]
+        if len(audio) != 1 or len(performance) != 1 or len(self.ports) != 2:
+            raise ValueError(
+                'sample instrument requires one audio and one performance port'
+            )
+        output = audio[0].stream
+        if audio[0].direction != Direction.output or not isinstance(output, AudioType):
+            raise ValueError('instrument audio must be an audio output')
+        events = performance[0].stream
+        if (
+            performance[0].direction != Direction.input
+            or not isinstance(events, EventType)
+            or set(events.kinds) != {'trigger', 'release', 'control_change'}
+        ):
+            raise ValueError('instrument input must accept native performance events')
+        if output.timebase not in clocks or any(
             a.audio.timebase not in clocks for a in self.assets
         ):
             raise ValueError('Unknown audio timebase')
@@ -291,7 +310,7 @@ class InstrumentDocument(Document):
         for slot in self.body.slots:
             source = assets[slices[slot.slice].asset].audio
             if any(
-                c.input not in source.channels or c.output not in self.output.channels
+                c.input not in source.channels or c.output not in output.channels
                 for c in slot.channels
             ):
                 raise ValueError('Unknown channel in slot channel map')
@@ -308,7 +327,7 @@ class InstrumentDocument(Document):
                     for s in (self.body.instrument, slot)
                 )
                 if active:
-                    if source.channels != layout or self.output.channels != [
+                    if source.channels != layout or output.channels != [
                         'left',
                         'right',
                     ]:
@@ -318,7 +337,7 @@ class InstrumentDocument(Document):
                     expected = (
                         [
                             ChannelRoute(input='mono', output=c, gain=sqrt(0.5))
-                            for c in self.output.channels
+                            for c in output.channels
                         ]
                         if target == 'pan'
                         else [ChannelRoute(input=c, output=c, gain=1) for c in layout]

@@ -12,6 +12,7 @@ from pydantic import Field, ValidationError
 from . import base, envelope, modulation
 from .assets import Asset, AudioDescription
 from .control import Clock, Scope
+from .interface import AudioBinding, Direction, EventType, PerformanceBinding, Port
 from .samples import controls, crossfade, enums, playback, processing, selection
 from .samples.instrument import (
     AudioAsset,
@@ -199,7 +200,25 @@ def compile(
                 name=name,
                 timebases=list(clocks.values()),
                 assets=native_assets,
-                output=AudioType(timebase=output_timebase.id, channels=output_channels),
+                ports=[
+                    Port(
+                        id='audio',
+                        direction=Direction.output,
+                        stream=AudioType(
+                            timebase=output_timebase.id, channels=output_channels
+                        ),
+                        binding=AudioBinding(),
+                    ),
+                    Port(
+                        id='performance',
+                        direction=Direction.input,
+                        stream=EventType(
+                            timebase=output_timebase.id,
+                            kinds=['trigger', 'release', 'control_change'],
+                        ),
+                        binding=PerformanceBinding(),
+                    ),
+                ],
                 body=SampleInstrument(
                     instrument=Instrument(
                         controls={'sustain': controls.Control()},
@@ -389,7 +408,12 @@ def _region(
     sample = asset.path
     try:
         expected_channels = _channel_routes(
-            len(asset.audio.channels), document.output.channels
+            len(asset.audio.channels),
+            next(
+                p.stream.channels
+                for p in document.ports
+                if isinstance(p.stream, AudioType)
+            ),
         )
     except ValueError:
         expected_channels = []

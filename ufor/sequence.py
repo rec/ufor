@@ -5,8 +5,8 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from .base import Identifier, Model, unique
-from .document import Document
 from .events import StoredEvent
+from .interface import Direction, EventType, InterfaceDocument, SequenceBinding
 from .time import Timebase
 
 
@@ -29,7 +29,7 @@ class Sequence(Model):
         return self
 
 
-class SequenceDocument(Document):
+class SequenceDocument(InterfaceDocument):
     kind: Literal['sequence'] = 'sequence'
     timebases: list[Timebase] = Field(min_length=1)
     body: Sequence
@@ -39,4 +39,15 @@ class SequenceDocument(Document):
         unique([t.id for t in self.timebases], 'timebase IDs')
         if self.body.timebase not in {t.id for t in self.timebases}:
             raise ValueError('sequence references an unknown timebase')
+        if self.parameters:
+            raise ValueError('sequences have no configurable parameters')
+        for port in self.ports:
+            if (
+                port.direction != Direction.output
+                or not isinstance(port.binding, SequenceBinding)
+                or not isinstance(port.stream, EventType)
+                or port.stream.timebase != self.body.timebase
+                or any(e.kind not in port.stream.kinds for e in self.body.events)
+            ):
+                raise ValueError('sequence export must match its native event body')
         return self

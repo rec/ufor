@@ -1,6 +1,6 @@
 {
   "format": "recs",
-  "version": 1,
+  "version": 2,
   "kind": "sequence",
   "id": "performance",
   "name": "Layered pad",
@@ -52,5 +52,23 @@
         "trigger_id": "first"
       }
     ]
-  }
+  },
+  "ports": [
+    {
+      "id": "performance",
+      "direction": "output",
+      "stream": {
+        "family": "event",
+        "timebase": "native",
+        "kinds": [
+          "control_change",
+          "release",
+          "trigger"
+        ]
+      },
+      "binding": {
+        "sequence": true
+      }
+    }
+  ]
 }

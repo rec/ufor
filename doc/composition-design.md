@@ -1,7 +1,9 @@
 # Document composition design
 
-Status: proposed, not implemented. Field names remain provisional. This revision
-simplifies the earlier dependency-table and separate-export-binding proposal.
+Status: implemented for the initial offline profile in document version 2.
+Names remain subject to the separate naming review. Ufor resolves interfaces and
+event histories; Recs renders nested recording arrangements. Sampler execution
+remains deferred.
 
 A document can use a recording, another mix or an instrument through its public
 interface. Four questions describe the composition.
