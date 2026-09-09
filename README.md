@@ -23,7 +23,7 @@ language implementations.
 
 Start with the [musical definitions](doc/musical-format.md),
 [instruments](doc/instrument-format.md) or [modulation](doc/modulation-format.md).
-The proposed [document composition design](doc/composition-design.md) describes
+The implemented [document composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
 Explore the [schema](schema/documents.json) and [conformance cases](conformance/).
 

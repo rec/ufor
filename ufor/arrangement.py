@@ -1,14 +1,19 @@
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from pathlib import Path
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
 from .base import Identifier, Model, unique
-from .document import Document
-from .encoding import Format
-from .references import ParameterTarget, RecordSelector
+from .interface import (
+    Address,
+    Connection,
+    Direction,
+    InterfaceDocument,
+    MixBinding,
+    Node,
+)
+from .references import ParameterTarget
 from .streams import AudioType, FileDestination
 from .time import Timebase
 
@@ -17,55 +22,6 @@ class Interpolation(StrEnum):
     hold = auto()
     linear = auto()
     equal_power = auto()
-
-
-class NormalizeMode(StrEnum):
-    none = auto()
-    limit = auto()
-    normalize = auto()
-
-
-class SourceSpec(Model):
-    id: Identifier
-    record: Path | None = None
-    selector: RecordSelector | None = None
-    file: Path | None = None
-    memory: str | None = None
-    channels: list[int] = Field(default_factory=list)
-    input_format: Format | None = None
-
-    @model_validator(mode='after')
-    def validate_location(self) -> Self:
-        locations = [
-            self.record is not None,
-            self.file is not None,
-            self.memory is not None,
-        ]
-        if sum(locations) != 1:
-            raise ValueError('source requires exactly one of record, file, or memory')
-        if self.record is not None:
-            if self.selector is None:
-                raise ValueError('record source requires selector')
-            if self.channels:
-                raise ValueError(
-                    'channels are only allowed for file and memory sources'
-                )
-        else:
-            if self.selector is not None:
-                raise ValueError('selector is only allowed for record sources')
-            if self.input_format is not None:
-                raise ValueError('input_format is only allowed for record sources')
-            if not self.channels:
-                raise ValueError('file and memory sources require channels')
-            if (
-                self.channels
-                != list(range(self.channels[0], self.channels[0] + len(self.channels)))
-                or self.channels[0] < 0
-            ):
-                raise ValueError(
-                    'file source channels must be consecutive and nonnegative'
-                )
-        return self
 
 
 class TrackSpec(Model):
@@ -81,7 +37,7 @@ class BusSpec(Model):
 
 class ClipSpec(Model):
     id: Identifier
-    source: Identifier
+    source: Address
     track: Identifier
     source_start: int = Field(ge=0, strict=True)
     source_end: int = Field(gt=0, strict=True)
@@ -123,40 +79,24 @@ class AutomationSpec(Model):
         return self
 
 
-class OutputSpec(Model):
-    id: Identifier
-    source: Identifier
-    start: int | None = Field(default=None, ge=0, strict=True)
-    end: int | None = Field(default=None, gt=0, strict=True)
-    normalize: NormalizeMode = NormalizeMode.none
-    gain: float = 1.0
-
-    @model_validator(mode='after')
-    def validate_interval(self) -> Self:
-        if self.start is not None and self.end is not None and self.end <= self.start:
-            raise ValueError('output end must be greater than start')
-        return self
-
-
 class Arrangement(Model):
     timebase: Identifier
     media_types: list[str] = Field(default_factory=lambda: ['audio'])
-    sources: list[SourceSpec] = Field(default_factory=list)
+    nodes: list[Node] = Field(default_factory=list)
+    connections: list[Connection] = Field(default_factory=list)
     tracks: list[TrackSpec] = Field(default_factory=list)
     buses: list[BusSpec] = Field(default_factory=list)
     clips: list[ClipSpec] = Field(default_factory=list)
     routes: list[RouteSpec] = Field(default_factory=list)
     automation: list[AutomationSpec] = Field(default_factory=list)
-    outputs: list[OutputSpec] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def graph_references(self) -> Self:
         for kind, items in (
-            ('source', self.sources),
+            ('node', self.nodes),
             ('track', self.tracks),
             ('bus', self.buses),
             ('clip', self.clips),
-            ('output', self.outputs),
         ):
             unique((i.id for i in items), f'{kind} ID')
         unique((a.target for a in self.automation), 'automation target')
@@ -166,11 +106,11 @@ class Arrangement(Model):
         if overlap := tracks.keys() & buses.keys():
             raise ValueError(f'Track and bus IDs collide: {sorted(overlap)}')
         streams = tracks | buses
-        sources = {s.id for s in self.sources}
+        sources = {n.id for n in self.nodes}
         clips = {c.id for c in self.clips}
         routes = {(r.source, r.destination) for r in self.routes}
         for clip in self.clips:
-            if clip.source not in sources:
+            if clip.source.node not in sources:
                 raise ValueError(f'Clip {clip.id}: unknown source {clip.source}')
             if clip.track not in tracks:
                 raise ValueError(f'Clip {clip.id}: unknown track {clip.track}')
@@ -195,9 +135,28 @@ class Arrangement(Model):
             )
             if not valid:
                 raise ValueError(f'Unknown automation target {target!r}')
-        for output in self.outputs:
-            if output.source not in streams:
-                raise ValueError(f'Output {output.id}: unknown source {output.source}')
+        unique((c.destination for c in self.connections), 'input connection')
+        for connection in self.connections:
+            if (
+                connection.source.node not in sources
+                or connection.destination.node not in sources
+            ):
+                raise ValueError('connection references an unknown node')
+        try:
+            list(
+                TopologicalSorter(
+                    {
+                        n.id: [
+                            c.source.node
+                            for c in self.connections
+                            if c.destination.node == n.id
+                        ]
+                        for n in self.nodes
+                    }
+                ).static_order()
+            )
+        except CycleError as error:
+            raise ValueError('Connection cycle') from error
         return self
 
     @property
@@ -217,7 +176,7 @@ class Arrangement(Model):
             raise ValueError(f'Routing cycle: {error.args[1]}') from error
 
 
-class ArrangementDocument(Document):
+class ArrangementDocument(InterfaceDocument):
     kind: Literal['arrangement'] = 'arrangement'
     timebases: list[Timebase] = Field(min_length=1, max_length=1)
     body: Arrangement
@@ -225,9 +184,39 @@ class ArrangementDocument(Document):
 
     @model_validator(mode='after')
     def audio_clock(self) -> Self:
-        ports = {o.id for o in self.body.outputs}
+        ports = {p.id for p in self.ports if p.direction == Direction.output}
         if any(d.port not in ports for d in self.destinations):
             raise ValueError('Destination references an unknown output port')
+        nodes = {n.id for n in self.body.nodes}
+        tracks = {t.id: t.stream for t in self.body.tracks}
+        buses = {b.id: b.stream for b in self.body.buses}
+        forwarded = []
+        for port in self.ports:
+            binding = port.binding
+            if isinstance(binding, MixBinding):
+                stream = (
+                    tracks.get(binding.track)
+                    if binding.track is not None
+                    else buses.get(binding.bus)
+                )
+                if port.direction != Direction.output or stream != port.stream:
+                    raise ValueError(
+                        'mix export requires a matching output contract '
+                        'and existing track/bus'
+                    )
+            elif isinstance(binding, Address):
+                if binding.node not in nodes:
+                    raise ValueError('port binding references an unknown node')
+                if port.direction == Direction.input:
+                    forwarded.append(binding)
+            else:
+                raise ValueError('arrangement port requires a mix or child binding')
+        unique(
+            [*forwarded, *(c.destination for c in self.body.connections)],
+            'input binding',
+        )
+        if any(p.binding.node not in nodes for p in self.parameters):
+            raise ValueError('parameter binding references an unknown node')
         clock = self.timebases[0]
         if any(
             n.stream.timebase != clock.id for n in [*self.body.tracks, *self.body.buses]

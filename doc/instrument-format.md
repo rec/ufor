@@ -139,7 +139,7 @@ There is one native format; the old `format_version` document is removed.
 
 | Owner | Fields |
 | --- | --- |
-| Root | `id`, `name`, optional `description`, `tags`, native `timebases`, sealed `assets`, `performance_port`, `audio_port`, typed `output`, `body` |
+| Root | `id`, `name`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `ports` and `parameters`, `body` |
 | Body | `instrument` defaults, named `slices`, nonempty `slots` |
 | Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
@@ -156,18 +156,23 @@ asset facts, as supplied by Recs' importer.
 
 ```toml
 format = "recs"
-version = 1
+version = 2
 kind = "instrument"
 id = "glass"
 name = "Glass"
+parameters = []
 
 [[timebases]]
 id = "native"
-rate = { numerator = 44100 }
+
+[timebases.rate]
+numerator = 44100
 
 [[timebases]]
 id = "output"
-rate = { numerator = 48000 }
+
+[timebases.rate]
+numerator = 48000
 
 [[assets]]
 id = "glass"
@@ -175,11 +180,11 @@ path = "audio/glass.wav"
 encoding = "WAV/PCM_16"
 byte_length = 88244
 sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
-audio = { timebase = "native", channels = ["mono"], frames = 44100 }
 
-[output]
-timebase = "output"
-channels = ["left", "right"]
+[assets.audio]
+timebase = "native"
+channels = ["mono"]
+frames = 44100
 
 [body]
 kind = "sample_instrument"
@@ -194,11 +199,44 @@ end_frame = 44100
 [[body.slots]]
 id = "middle"
 slice = "whole"
-channels = [
-    { input = "mono", output = "left", gain = 0.7071067811865476 },
-    { input = "mono", output = "right", gain = 0.7071067811865476 },
-]
-mapping = { lowest_key = 48, highest_key = 84, reference_pitch_hz = 440.0 }
+
+[[body.slots.channels]]
+input = "mono"
+output = "left"
+gain = 0.7071067811865476
+
+[[body.slots.channels]]
+input = "mono"
+output = "right"
+gain = 0.7071067811865476
+
+[body.slots.mapping]
+lowest_key = 48
+highest_key = 84
+reference_pitch_hz = 440.0
+
+[[ports]]
+id = "audio"
+direction = "output"
+
+[ports.stream]
+timebase = "output"
+channels = ["left", "right"]
+
+[ports.binding]
+audio = true
+
+[[ports]]
+id = "performance"
+direction = "input"
+
+[ports.stream]
+family = "event"
+timebase = "output"
+kinds = ["trigger", "release", "control_change"]
+
+[ports.binding]
+performance = true
 ```
 
 The [SFZ input](../conformance/instrument.sfz) and

@@ -1,0 +1,62 @@
+format = "recs"
+version = 2
+id = "rehearsal"
+name = "Rehearsal"
+parameters = []
+kind = "recording"
+
+[[timebases]]
+id = "audio"
+kind = "physical"
+
+[timebases.rate]
+numerator = 48000
+denominator = 1
+
+[[ports]]
+id = "desk"
+direction = "output"
+
+[ports.stream]
+family = "sampled"
+quantity = "audio_amplitude"
+unit = "full_scale"
+timebase = "audio"
+channels = ["left", "right"]
+
+[ports.binding]
+stream = "desk"
+
+[[assets]]
+id = "take"
+path = "take.wav"
+encoding = "WAV/FLOAT"
+byte_length = 3840044
+sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+
+[body]
+state = "sealed"
+clock_observations = []
+unfinished_files = []
+continued_at = []
+
+[[body.streams]]
+kind = "audio"
+id = "desk"
+source_id = "desk"
+end = 480000
+unmapped_fragments = []
+gaps = []
+
+[[body.streams.fragments]]
+asset_start = 0
+start = 0
+count = 480000
+asset = "take"
+
+[body.streams.stream]
+family = "sampled"
+quantity = "audio_amplitude"
+unit = "full_scale"
+timebase = "audio"
+channels = ["left", "right"]

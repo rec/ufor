@@ -14,8 +14,8 @@ def test_documented_arrangement_separates_ports_from_destinations() -> None:
     text = re.search(r'```toml\n(.*?)```', path.read_text(), re.DOTALL)
     assert text is not None
     document = parse_document(text[1])
-    assert document.body.outputs[0].id == document.destinations[0].port
-    assert 'path' not in document.body.outputs[0].model_dump()
+    assert document.ports[0].id == document.destinations[0].port
+    assert 'path' not in document.ports[0].model_dump()
     assert parse_document(document_toml(document)) == document
     assert ArrangementDocument.model_json_schema()['properties']['body']
 
@@ -34,9 +34,17 @@ def arrangement_data() -> dict[str, object]:
         'id': 'test',
         'name': 'Test',
         'timebases': [{'id': 'audio', 'rate': {'numerator': 48000}}],
+        'ports': [
+            {
+                'id': 'out',
+                'direction': 'output',
+                'stream': {'timebase': 'audio', 'channels': ['mono']},
+                'binding': {'bus': 'bus'},
+            }
+        ],
         'body': {
             'timebase': 'audio',
-            'sources': [{'id': 'source', 'file': 'audio.wav', 'channels': [0]}],
+            'nodes': [{'id': 'source', 'definition': {'path': 'audio.toml'}}],
             'tracks': [
                 {'id': 'track', 'stream': {'timebase': 'audio', 'channels': ['mono']}}
             ],
@@ -46,7 +54,7 @@ def arrangement_data() -> dict[str, object]:
             'clips': [
                 {
                     'id': 'clip',
-                    'source': 'source',
+                    'source': {'node': 'source', 'port': 'audio'},
                     'track': 'track',
                     'source_start': 0,
                     'source_end': 48000,
@@ -54,7 +62,6 @@ def arrangement_data() -> dict[str, object]:
                 }
             ],
             'routes': [{'source': 'track', 'destination': 'bus'}],
-            'outputs': [{'id': 'out', 'source': 'bus'}],
         },
     }
 
@@ -62,12 +69,11 @@ def arrangement_data() -> dict[str, object]:
 @pytest.mark.parametrize(
     'area, field, value',
     [
-        ('clips', 'source', 'missing'),
+        ('clips', 'source', {'node': 'missing', 'port': 'audio'}),
         ('clips', 'track', 'missing'),
         ('routes', 'source', 'missing'),
         ('routes', 'destination', 'missing'),
         ('routes', 'source', 'bus'),
-        ('outputs', 'source', 'missing'),
         ('buses', 'id', 'track'),
         ('clips', 'source_start', False),
         ('clips', 'timeline_start', 1.0),
@@ -83,9 +89,7 @@ def test_arrangement_rejects_invalid_graphs_and_numeric_values(
         ArrangementDocument.model_validate(data)
 
 
-@pytest.mark.parametrize(
-    'area', ['sources', 'tracks', 'buses', 'clips', 'routes', 'outputs']
-)
+@pytest.mark.parametrize('area', ['nodes', 'tracks', 'buses', 'clips', 'routes'])
 def test_arrangement_rejects_duplicate_identities(area: str) -> None:
     data = arrangement_data()
     data['body'][area].append(data['body'][area][0])

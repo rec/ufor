@@ -1,6 +1,6 @@
 {
   "format": "recs",
-  "version": 1,
+  "version": 2,
   "id": "glass",
   "name": "Glass",
   "kind": "instrument",
@@ -40,18 +40,6 @@
       }
     }
   ],
-  "performance_port": "performance",
-  "audio_port": "audio",
-  "output": {
-    "family": "sampled",
-    "quantity": "audio_amplitude",
-    "unit": "full_scale",
-    "timebase": "output",
-    "channels": [
-      "left",
-      "right"
-    ]
-  },
   "body": {
     "kind": "sample_instrument",
     "slices": [
@@ -760,5 +748,41 @@
         "articulations": []
       }
     ]
-  }
+  },
+  "ports": [
+    {
+      "id": "audio",
+      "direction": "output",
+      "stream": {
+        "family": "sampled",
+        "quantity": "audio_amplitude",
+        "unit": "full_scale",
+        "timebase": "output",
+        "channels": [
+          "left",
+          "right"
+        ]
+      },
+      "binding": {
+        "audio": true
+      }
+    },
+    {
+      "id": "performance",
+      "direction": "input",
+      "stream": {
+        "family": "event",
+        "timebase": "output",
+        "kinds": [
+          "trigger",
+          "release",
+          "control_change"
+        ]
+      },
+      "binding": {
+        "performance": true
+      }
+    }
+  ],
+  "parameters": []
 }
