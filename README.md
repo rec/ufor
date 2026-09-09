@@ -1,37 +1,35 @@
 # Ufor: Universal Format
 
-Portable definitions for quantities and events in time, and the musical objects
-that produce or transform them. The Python library contains models, validation,
-TOML serialization, and pure mathematics. Applications own devices, UI, file
-loading policy, capture, and audio generation.
+**A common language for things that happen in time.**
 
-The first document profiles come from Recs. Their existing `format = "recs"`
-marker and version are preserved during extraction; the package name does not
-silently rewrite existing recordings. A future format-identity cutover is a
-separate explicit change.
+Recordings, sequences, mixes and instruments share portable, human-readable
+definitions. Exact timing, explicit units and named connections keep their
+meaning intact across applications.
 
-Import public symbols from their defining modules, such as `ufor.time` and
-`ufor.recording`. `ufor.codec` parses documents, writes TOML, and emits JSON
-Schema. No Recs, Tuney, Reccy, NumPy, audio, or GUI dependency is required.
+Today, Ufor covers:
 
-Run `uv sync`, `uv run pytest`, `uv run ruff check --select B,E,F,I ufor test`, and
-`uv run ty check ufor` for development. Source code is MIT licensed;
-definitions were extracted from Tom Ritchford's Recs and Tuney repositories.
+- Audio recordings and arrangements; MIDI, OSC, keystrokes and performance events.
+- Tunings, scales and oscillator definitions, with fractional ratios and Scala import.
+- Sample instruments, asset slices and SFZ conversion.
+- Segment envelopes, LFOs and typed modulation routes.
 
-Musical definitions and their language-neutral semantics are specified in
-[Musical format](doc/musical-format.md). Machine-readable definitions are in
-[schema/documents.json](schema/documents.json), with pitch conformance cases in
-[conformance/pitch.json](conformance/pitch.json).
+The larger ambition includes lighting, LEDs, control voltages and other timed
+data. Video is outside the scope.
 
-[Modulation](doc/modulation-format.md) specifies segmented envelopes, exact
-LFO phase, event ordering, and neutral activation weights. Its
-[portable cases](conformance/modulation.json) exercise scalar control behavior
-without audio rendering. The [instrument contract](doc/instrument-format.md)
-specifies the implemented native sample-instrument document, sealed asset slices,
-source bindings and typed routes. Pure SFZ parsing/conversion lives in `ufor.sfz`;
-all portable sample declarations live in `ufor.samples`. Prepared voice state and
-audio execution remain deferred.
+The Python library provides frozen Pydantic models, validation, TOML interchange,
+JSON Schema and reference calculations. Applications supply file access, devices
+and audio rendering. Portable conformance cases lay the groundwork for other
+language implementations.
 
-Recs and Tuney use this checkout as an editable sibling during development.
-Their install metadata pins a public Ufor source archive, so release builds
-can install it without GitHub SSH credentials.
+Start with the [musical definitions](doc/musical-format.md),
+[instruments](doc/instrument-format.md) or [modulation](doc/modulation-format.md).
+Explore the [schema](schema/documents.json) and [conformance cases](conformance/).
+
+For development, use Python 3.13+:
+
+```sh
+uv sync
+uv run pytest
+```
+
+Extracted from Recs and Tuney. MIT licensed.
