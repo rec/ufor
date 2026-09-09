@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 
 from .assets import Asset
 from .base import Identifier, Model, unique
-from .document import Document
+from .interface import Direction, EventType, InterfaceDocument, Port, StreamBinding
 from .streams import AudioType
 from .time import ClockObservation, TickRange, Timebase
 
@@ -167,10 +167,10 @@ class UnfinishedFile(Model):
 
 class Recording(Model):
     state: Literal['sealed', 'open']
-    started_at: str
+    started_at: str | None = None
     ended_at: str | None = None
     observed_duration_seconds: float | None = Field(default=None, ge=0)
-    journal: Identifier
+    journal: Identifier | None = None
     streams: list[Annotated[AudioStream | EventStream, Field(discriminator='kind')]]
     clock_observations: list[ClockObservation] = Field(default_factory=list)
     unfinished_files: list[UnfinishedFile] = Field(default_factory=list)
@@ -179,7 +179,13 @@ class Recording(Model):
 
     @model_validator(mode='after')
     def session_state(self) -> Self:
-        if (self.state == 'sealed') != (self.ended_at is not None):
+        if self.journal is None and self.state != 'sealed':
+            raise ValueError('a recording without a capture journal must be sealed')
+        if self.journal is not None and self.started_at is None:
+            raise ValueError('a captured recording requires a start timestamp')
+        if self.journal is not None and (self.state == 'sealed') != (
+            self.ended_at is not None
+        ):
             raise ValueError('only a sealed recording has an end timestamp')
         if self.state == 'sealed' and self.unfinished_files:
             raise ValueError('a recording with unfinished files must remain open')
@@ -187,7 +193,7 @@ class Recording(Model):
         return self
 
 
-class RecordingDocument(Document):
+class RecordingDocument(InterfaceDocument):
     kind: Literal['recording'] = 'recording'
     assets: list[Asset]
     timebases: list[Timebase] = Field(default_factory=list)
@@ -199,7 +205,7 @@ class RecordingDocument(Document):
         unique([t.id for t in self.timebases], 'timebase IDs')
         assets = {a.id for a in self.assets}
         clocks = {t.id for t in self.timebases}
-        if self.body.journal not in assets:
+        if self.body.journal is not None and self.body.journal not in assets:
             raise ValueError('recording journal references an unknown asset')
         for stream in self.body.streams:
             if isinstance(stream, AudioStream) and stream.stream.timebase not in clocks:
@@ -216,6 +222,41 @@ class RecordingDocument(Document):
                 f.asset not in assets for f in stream.unmapped_fragments
             ):
                 raise ValueError(f'stream {stream.id} references an unknown asset')
+        streams = {s.id: s for s in self.body.streams}
+        if self.parameters:
+            raise ValueError('recordings have no configurable parameters')
+        for port in self.ports:
+            if port.direction != Direction.output or not isinstance(
+                port.binding, StreamBinding
+            ):
+                raise ValueError('recording ports must export streams')
+            if port.binding.stream not in streams:
+                raise ValueError('unknown exported recording stream')
+            stream = streams[port.binding.stream]
+            if isinstance(stream, AudioStream):
+                channels = stream.stream.channels
+                if port.binding.channels is not None:
+                    if port.binding.channels[-1] >= len(channels):
+                        raise ValueError('exported channel exceeds stream width')
+                    channels = [channels[c] for c in port.binding.channels]
+                if port.stream != stream.stream.model_copy(
+                    update={'channels': channels}
+                ):
+                    raise ValueError(
+                        'recording audio export contract disagrees with stream'
+                    )
+            else:
+                if (
+                    stream.event_schema != 'recs_events'
+                    or port.binding.channels is not None
+                    or not isinstance(port.stream, EventType)
+                    or port.stream.timebase != stream.timebase
+                    or stream.event_kind is None
+                    or port.stream.kinds != [stream.event_kind]
+                ):
+                    raise ValueError(
+                        'event exports require a matching native stream contract'
+                    )
         for observation in self.body.clock_observations:
             if (
                 observation.source.timebase not in clocks
@@ -223,3 +264,28 @@ class RecordingDocument(Document):
             ):
                 raise ValueError('clock observation references an unknown timebase')
         return self
+
+
+def stream_ports(streams: list[AudioStream | EventStream]) -> list[Port]:
+    """Declare public outputs when authoring a recording, preserving stream IDs."""
+    ports = []
+    for stream in streams:
+        if isinstance(stream, AudioStream):
+            contract = stream.stream
+        elif (
+            stream.event_schema == 'recs_events'
+            and stream.event_kind is not None
+            and stream.timebase is not None
+        ):
+            contract = EventType(timebase=stream.timebase, kinds=[stream.event_kind])
+        else:
+            continue
+        ports.append(
+            Port(
+                id=stream.id,
+                direction=Direction.output,
+                stream=contract,
+                binding=StreamBinding(stream=stream.id),
+            )
+        )
+    return ports

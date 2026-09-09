@@ -1,0 +1,71 @@
+format = "recs"
+version = 2
+id = "drums"
+name = "Drums"
+parameters = []
+kind = "arrangement"
+destinations = []
+
+[[timebases]]
+id = "audio"
+kind = "physical"
+
+[timebases.rate]
+numerator = 48000
+denominator = 1
+
+[[ports]]
+id = "main"
+direction = "output"
+
+[ports.stream]
+family = "sampled"
+quantity = "audio_amplitude"
+unit = "full_scale"
+timebase = "audio"
+channels = ["left", "right"]
+
+[ports.binding]
+track = "mix"
+start = 0
+end = 480000
+gain = 1.0
+normalize = "none"
+
+[body]
+timebase = "audio"
+media_types = ["audio"]
+connections = []
+buses = []
+routes = []
+automation = []
+
+[[body.nodes]]
+id = "take"
+
+[body.nodes.definition]
+path = "../recordings/rehearsal.toml"
+
+[body.nodes.parameters]
+
+[[body.tracks]]
+id = "mix"
+
+[body.tracks.stream]
+family = "sampled"
+quantity = "audio_amplitude"
+unit = "full_scale"
+timebase = "audio"
+channels = ["left", "right"]
+
+[[body.clips]]
+id = "rehearsal"
+track = "mix"
+source_start = 0
+source_end = 480000
+timeline_start = 0
+gain = 1.0
+
+[body.clips.source]
+node = "take"
+port = "desk"

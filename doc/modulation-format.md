@@ -7,7 +7,7 @@ MIDI pedals, allocate voices, or implement a sampler. Existing Recsam and Tuney
 engines are not changed by adding this profile.
 
 `envelope` and `lfo` are common document kinds, using the existing `format =
-"recs"`, `version = 1`, `id`, `name`, and `body` fields. Both round-trip through
+"recs"`, `version = 2`, `id`, `name`, and `body` fields. Both round-trip through
 the common TOML codec. The generated schema and
 [conformance/modulation.json](../conformance/modulation.json) accompany the
 Python reference in `ufor.envelope` and `ufor.lfo`.
@@ -71,7 +71,7 @@ hold 1/10 second, decay 1/4 second to 0.6, then sustain and release:
 
 ```toml
 format = "recs"
-version = 1
+version = 2
 id = "soft-amplitude"
 name = "Soft amplitude"
 kind = "envelope"
@@ -82,13 +82,29 @@ scope = "voice"
 initial = 0.0
 hold = true
 retrigger = "current"
-segments = [
-  { duration = "1/10", target = 0.0 },
-  { duration = "1/2", target = 1.0, curve = 5.0 },
-  { duration = "1/10", target = 1.0 },
-  { duration = "1/4", target = 0.6, curve = -5.0 },
-]
-release = [{ duration = "1/2", target = 0.0, curve = -5.0 }]
+
+[[body.segments]]
+duration = "1/10"
+target = 0.0
+
+[[body.segments]]
+duration = "1/2"
+target = 1.0
+curve = 5.0
+
+[[body.segments]]
+duration = "1/10"
+target = 1.0
+
+[[body.segments]]
+duration = "1/4"
+target = 0.6
+curve = -5.0
+
+[[body.release]]
+duration = "1/2"
+target = 0.0
+curve = -5.0
 ```
 
 For entry value a, target b, duration d > 0, and elapsed time t in [0,d],

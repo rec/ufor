@@ -1,9 +1,10 @@
 # Composition example: rehearsal, drums and piano
 
-Proposed syntax, not accepted by the current codec. See the
-[design](composition-design.md) and [implementation plan](composition-implementation.md).
-The referenced documents and interfaces below are prerequisites, not implemented
-fixtures bundled with this example.
+This version-2 example is accepted by the codec and resolved in the test suite.
+Its complete [definition package](../conformance/composition/concert.toml) includes
+all five documents. Asset metadata is synthetic; media and a sampler are not
+included. See the [design](composition-design.md) and
+[implementation plan](composition-implementation.md).
 
 | Definition | Public interface |
 | --- | --- |
@@ -23,7 +24,7 @@ and range. The drums arrangement's internal structure remains private.
 
 ```toml
 format = "recs"
-version = 1
+version = 2
 kind = "arrangement"
 id = "concert"
 name = "Rehearsal with drums and piano"
@@ -107,5 +108,4 @@ separate dependency-ID namespace.
 
 The model can be validated before an instrument engine exists. A host lacking a
 piano implementation must report it as unsupported rather than omit its audio.
-Nested recording-only arrangements can use Recs' existing renderer in the later
-host implementation stage.
+Nested recording-only arrangements use Recs' existing renderer.

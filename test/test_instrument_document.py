@@ -51,7 +51,7 @@ def test_native_instrument_round_trips_through_the_common_codec() -> None:
     assert json.loads(Path('schema/documents.json').read_text()) == document_schema()
     assert document.body.slots[0].envelope.segments[1].duration == Fraction(1, 100)
     assert document.assets[0].audio.timebase == 'native-44100'
-    assert document.output.timebase == 'output'
+    assert document.ports[0].stream.timebase == 'output'
     assert document.body.slices[0].end_frame == 1000
 
 
@@ -67,7 +67,7 @@ def test_documented_native_example_is_complete() -> None:
     assert parse_document(document_toml(document)) == document
 
 
-@pytest.mark.parametrize('version', [True, 1.0, '1', 2])
+@pytest.mark.parametrize('version', [True, 2.0, '2', 1])
 def test_instrument_version_requires_integer_one(version: object) -> None:
     with pytest.raises(ValidationError):
         InstrumentDocument.model_validate(fixture() | {'version': version})
@@ -164,16 +164,16 @@ def test_native_identifiers_are_unique(section: str) -> None:
 
 def test_channels_and_ports_are_not_implicit() -> None:
     raw = fixture()
-    raw['audio_port'] = raw['performance_port']
-    with pytest.raises(ValidationError, match='different names'):
+    raw['ports'][0]['id'] = raw['ports'][1]['id']
+    with pytest.raises(ValidationError, match='duplicate'):
         InstrumentDocument.model_validate(raw)
     raw = fixture()
     raw['assets'][0]['audio']['timebase'] = 'missing'
-    with pytest.raises(ValidationError, match='Unknown audio timebase'):
+    with pytest.raises(ValidationError, match='[Uu]nknown.*timebase'):
         InstrumentDocument.model_validate(raw)
     raw = fixture()
-    raw['output']['timebase'] = 'missing'
-    with pytest.raises(ValidationError, match='Unknown audio timebase'):
+    raw['ports'][0]['stream']['timebase'] = 'missing'
+    with pytest.raises(ValidationError, match='[Uu]nknown.*timebase'):
         InstrumentDocument.model_validate(raw)
     raw = fixture()
     raw['body']['slots'][0]['channels'].append(raw['body']['slots'][0]['channels'][0])
@@ -293,7 +293,7 @@ def test_spatial_controls_reject_inapplicable_channel_layouts(
     raw['body']['slots'][0]['processing']['pan'] = 0
     raw['body']['slots'][0]['processing'][field] = value
     if field == 'pan':
-        raw['output']['channels'] = ['mono']
+        raw['ports'][0]['stream']['channels'] = ['mono']
         raw['body']['slots'][0]['channels'] = [
             {'input': 'mono', 'output': 'mono', 'gain': 1}
         ]

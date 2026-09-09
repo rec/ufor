@@ -9,7 +9,7 @@ from .base import Model
 
 class Document(Model):
     format: Literal['recs'] = 'recs'
-    version: Literal[1] = 1
+    version: Literal[2] = 2
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
 
@@ -17,5 +17,5 @@ class Document(Model):
     @classmethod
     def integer_version(cls, value: object) -> object:
         if not isinstance(value, int) or isinstance(value, bool):
-            raise ValueError('version must be integer 1')
+            raise ValueError('version must be integer 2')
         return value
