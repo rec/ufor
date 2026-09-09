@@ -41,7 +41,8 @@ def document_toml(
     | InstrumentDocument
     | LFODocument,
 ) -> str:
-    return tomlkit.dumps(value.model_dump(mode='json', exclude_none=True))
+    validated = TypeAdapter(DocumentValue).validate_python(value.model_dump())
+    return tomlkit.dumps(validated.model_dump(mode='json', exclude_none=True))
 
 
 def document_schema() -> dict[str, object]:

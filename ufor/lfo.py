@@ -2,7 +2,6 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from math import pi, sin
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
@@ -10,7 +9,7 @@ from pydantic import Field, model_validator
 from . import control
 from .base import Model
 from .document import Document
-from .oscillator import Waveform
+from .oscillator import Shape, Waveform, shape_value
 
 
 class Reset(StrEnum):
@@ -19,14 +18,13 @@ class Reset(StrEnum):
     transport = auto()
 
 
-class LFO(Model):
+class LFO(Shape):
     clock: control.Clock = control.Clock.seconds
     scope: control.Scope = control.Scope.voice
     rate: control.Rational = Field(ge=0)
     phase: control.Rational = Field(default=Fraction(0), ge=0, lt=1)
     reset: Reset = Reset.trigger
     waveform: Waveform = Waveform.sine
-    duty_cycle: control.Rational = Field(default=Fraction(1, 2), ge=0, le=1)
     delay: control.Rational = Field(default=Fraction(0), ge=0)
     fade_in: control.Rational = Field(default=Fraction(0), ge=0)
 
@@ -95,16 +93,3 @@ def lfo_event(lfo: LFO, state: LFOState, event: LFOEvent) -> LFOState:
     return LFOState(
         at=event.at, ordinal=event.ordinal, started_at=start, phase=phase, rate=rate
     )
-
-
-def shape_value(waveform: Waveform, phase: Fraction, duty_cycle: Fraction) -> float:
-    """Single control observation using Tuney's documented shape equations."""
-    if not 0 <= phase < 1 or not 0 <= duty_cycle <= 1:
-        raise ValueError('shape requires phase in [0, 1) and duty in [0, 1]')
-    if waveform == Waveform.sine:
-        return sin(2 * pi * float(phase))
-    if waveform == Waveform.square:
-        return 1.0 if phase < duty_cycle else -1.0
-    if phase < duty_cycle:
-        return float(2 * phase / duty_cycle - 1)
-    return float((1 + duty_cycle - 2 * phase) / (1 - duty_cycle))

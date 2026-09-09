@@ -158,3 +158,76 @@ def test_scale_names_and_pitch_mapping_include_negative_notes() -> None:
     )
     assert half.to_name(1) == 'C^0'
     assert half.to_number('D♭0') == 3
+
+
+@pytest.mark.parametrize(
+    'table, field, note, replacement, expected',
+    [
+        (RatioTable(values=['1', '5/4']), 'values', 1, '3/2', Fraction(3, 2)),
+        (FrequencyTable(values=['440', '550']), 'values', 1, '660', 660),
+        (IntervalPattern(intervals=['5/4']), 'intervals', 1, '3/2', Fraction(3, 2)),
+    ],
+)
+def test_table_edits_are_reflected_in_evaluation(
+    table: RatioTable | FrequencyTable | IntervalPattern,
+    field: str,
+    note: int,
+    replacement: str,
+    expected: Fraction | int,
+) -> None:
+    table(note)
+    getattr(table, field)[-1] = replacement
+    assert table(note) == expected
+    document = TuningDocument(id='edited', name='Edited', body=Tuning(source=table))
+    assert parse_document(document_toml(document)).body.source(note) == expected
+
+
+@pytest.mark.parametrize(
+    'settings',
+    [
+        {'intervals': [0]},
+        {'intervals': [1.9]},
+        {'intervals': [True]},
+        {'intervlas': [1]},
+        {'notes': 'nonsense'},
+        {'notes': 'C nonsense'},
+    ],
+)
+def test_scale_rejects_invalid_definitions(settings: dict[str, object]) -> None:
+    with pytest.raises(ValueError):
+        Scale.model_validate(settings)
+
+
+def test_scale_repeated_intervals_and_edits_keep_pitch_mapping_consistent() -> None:
+    scale = Scale(intervals=[2])
+    assert scale.octave_length == 14
+    assert scale.to_number(scale.to_name(14)) == 14
+    scale.intervals[0] = 1
+    assert scale.octave_length == 7
+    assert scale.to_name(7) == 'C1'
+
+
+def test_serializing_an_edited_definition_revalidates_it() -> None:
+    document = TuningDocument(
+        id='edited', name='Edited', body=Tuning(source=RatioTable(values=['1']))
+    )
+    document.body.source.values[0] = '-1'
+    with pytest.raises(ValueError):
+        document_toml(document)
+
+
+def test_oscillator_and_lfo_share_exact_duty_cycle() -> None:
+    from ufor.lfo import LFO
+
+    for value in ('1/3', 0.1, 0, 1):
+        oscillator = Oscillator(duty_cycle=value)
+        assert oscillator.duty_cycle == LFO(rate=1, duty_cycle=value).duty_cycle
+    assert Oscillator(duty_cycle='1/3').duty_cycle == Fraction(1, 3)
+
+
+@pytest.mark.parametrize('version', [True, 1.0])
+def test_document_version_requires_an_integer(version: bool | float) -> None:
+    with pytest.raises(ValueError, match='version must be integer'):
+        TuningDocument(
+            id='tuning', name='Tuning', version=version, body=Tuning(source=Computed())
+        )

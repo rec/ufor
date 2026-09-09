@@ -2,7 +2,7 @@
 
 from typing import Literal
 
-from pydantic import Field
+from pydantic import Field, field_validator
 
 from .base import Model
 
@@ -12,3 +12,10 @@ class Document(Model):
     version: Literal[1] = 1
     id: str = Field(min_length=1)
     name: str = Field(min_length=1)
+
+    @field_validator('version', mode='before')
+    @classmethod
+    def integer_version(cls, value: object) -> object:
+        if not isinstance(value, int) or isinstance(value, bool):
+            raise ValueError('version must be integer 1')
+        return value

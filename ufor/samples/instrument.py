@@ -3,7 +3,7 @@
 from math import sqrt
 from typing import Literal, Self
 
-from pydantic import Field, field_validator, model_validator
+from pydantic import Field, model_validator
 
 from .. import base, control
 from ..assets import Asset, AudioDescription
@@ -268,13 +268,6 @@ class InstrumentDocument(Document):
     audio_port: Identifier = 'audio'
     output: AudioType
     body: SampleInstrument
-
-    @field_validator('version', mode='before')
-    @classmethod
-    def integer_version(cls, value: object) -> object:
-        if not isinstance(value, int) or isinstance(value, bool):
-            raise ValueError('version must be integer 1')
-        return value
 
     @model_validator(mode='after')
     def asset_references(self) -> Self:

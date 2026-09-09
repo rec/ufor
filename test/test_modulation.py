@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from ufor import envelope, lfo
 from ufor.base import Model
 from ufor.codec import document_toml, parse_document
-from ufor.oscillator import Waveform
+from ufor.oscillator import Waveform, shape_value
 
 
 class EnvelopeObservation(envelope.EnvelopeValue):
@@ -242,7 +242,7 @@ def test_curve_conformance(case: dict[str, float]) -> None:
 
 @pytest.mark.parametrize('case', CASES['shapes'])
 def test_shape_conformance(case: dict[str, str | float]) -> None:
-    assert lfo.shape_value(
+    assert shape_value(
         Waveform(case['waveform']),
         Fraction(str(case['phase'])),
         Fraction(str(case['duty_cycle'])),

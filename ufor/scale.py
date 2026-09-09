@@ -4,13 +4,13 @@ import re
 import string
 from collections.abc import Callable, Iterable, Iterator
 from contextlib import suppress
-from functools import cached_property
 from itertools import batched, chain
 from typing import Annotated, Self
 
-from pydantic import BaseModel, BeforeValidator, Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from .accidentals import AccidentalNames, Accidentals
+from .base import Model
 from .number import NoteNumber, Number
 
 INTERVALS = [int(i) for i in '2212221']
@@ -22,13 +22,16 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     for c in it:
         if isinstance(c, str) and c.isspace():
             continue
+        if isinstance(c, bool) or not isinstance(c, (int, str)):
+            errors.append(f'{c=} must be an integer')
+            continue
         try:
             i = int(c)
         except ValueError:
             errors.append(f'{c=} is not a number')
         else:
-            if i < 0:
-                errors.append(f'{c=} is less than 0')
+            if i <= 0:
+                errors.append(f'{c=} must be positive')
             else:
                 intervals.append(i)
     if not intervals:
@@ -38,7 +41,7 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     return intervals
 
 
-class Scale(BaseModel, frozen=True):
+class Scale(Model):
     """A generalized musical Scale, where the default is "regular tuning".
 
     The common Western scale has
@@ -69,6 +72,16 @@ class Scale(BaseModel, frozen=True):
         b, r, e = (self.note_names.index(i) for i in (self.begin, self.root, self.end))
         if not b <= r <= e:
             raise ValueError('begin, root, and end must be ordered in note_names')
+        if len(set(self.note_names)) != len(self.note_names):
+            raise ValueError('note_names must be unique')
+        if any(len(getattr(self, f)) != 1 for f in fields):
+            raise ValueError('begin, root, and end must each be one character')
+        if self.notes is not None:
+            _, errors = self._to_notes(self.notes)
+            if errors:
+                raise ValueError(f'Unknown notes: {errors}')
+            if not self.note_numbers:
+                raise ValueError('notes must select at least one note')
         return self
 
     # Implements Scale.to_name
@@ -93,17 +106,17 @@ class Scale(BaseModel, frozen=True):
     ) -> float:
         return float(tuning(self.tuning_number(note_number)))
 
-    @cached_property
+    @property
     def names(self) -> str:
         a = self.note_names
         begin, root, end = a.index(self.begin), a.index(self.root), a.index(self.end)
         return ''.join(a[i] for i in chain(range(root, end + 1), range(begin, root)))
 
-    @cached_property
+    @property
     def octave_length(self) -> int:
-        return sum(self.intervals)
+        return sum(i for _, i, _ in self._note_interval_number())
 
-    @cached_property
+    @property
     def note_count(self) -> int:
         return len(self.flats_sharps[0])
 
@@ -119,7 +132,7 @@ class Scale(BaseModel, frozen=True):
             yield note, interval, semitone
             semitone += interval
 
-    @cached_property
+    @property
     def _note_re(self) -> re.Pattern:
         pat = rf'[{self.names}]'
         if self.accidental_names.symbols:
@@ -131,9 +144,9 @@ class Scale(BaseModel, frozen=True):
         errors, values = zip(*batched(split, 2, strict=False), strict=True)
         if not (notes := [v for v in values[:-1] if v]):
             notes = list(self.names)
-        return notes, [v for e in errors[:-1] if (v := e.strip())]
+        return notes, [v for e in errors if (v := e.strip())]
 
-    @cached_property
+    @property
     def flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
         return (
             tuple(
@@ -148,7 +161,7 @@ class Scale(BaseModel, frozen=True):
             ),
         )
 
-    @cached_property
+    @property
     def _note_to_semitones(self) -> dict[str, NoteNumber]:
         result = {}
         for n, notes in enumerate(zip(*self.all_flats_sharps, strict=True)):
@@ -156,7 +169,7 @@ class Scale(BaseModel, frozen=True):
                 result.setdefault(note, n)
         return result
 
-    @cached_property
+    @property
     def note_numbers(self) -> tuple[NoteNumber, ...]:
         if self.notes is None:
             return tuple(range(self.octave_length))
@@ -164,7 +177,7 @@ class Scale(BaseModel, frozen=True):
         it = enumerate(zip(*self.all_flats_sharps, strict=True))
         return tuple(i for i, notes in it if set(notes).intersection(allowed_notes))
 
-    @cached_property
+    @property
     def all_flats_sharps(self) -> tuple[tuple[str, ...], tuple[str, ...]]:
         flats, sharps = [], []
         for i, (note, interval, _) in enumerate(self._note_interval_number()):
@@ -181,7 +194,7 @@ class Scale(BaseModel, frozen=True):
 
         return tuple(flats), tuple(sharps)
 
-    @cached_property
+    @property
     def accidental_names(self) -> AccidentalNames:
         return AccidentalNames(self.accidentals)
 

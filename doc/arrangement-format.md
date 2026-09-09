@@ -75,3 +75,15 @@ The Pydantic definition is `ufor.arrangement.ArrangementDocument`; its
 writer are in `recs/edit/schema.py`. Authoring recipes still describe operations
 and defaults; generated arrangements use the new native document. Resolved
 composition stages retain their recipe provenance and store the new documents.
+
+## Validation ownership
+
+Ufor validates identifier uniqueness, clip and routing references, matching route
+channel layouts and timebases, acyclic bus routing, automation targets, output
+references, and destination ports. Frame positions require integers and gains
+must be finite. `Arrangement.bus_order` supplies dependency order to consumers.
+
+Applications still inspect media to check source channel counts and available
+frames, determine rendered extents, and validate output encodings. Arrangement
+`ParameterTarget` specializes the shared modulation `Target` address while
+retaining its existing clip, bus and route selectors and gain-only profile.

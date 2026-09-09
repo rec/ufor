@@ -86,3 +86,15 @@ def test_documented_recording_and_sequence_examples_round_trip() -> None:
     for example in examples:
         value = parse_document(example)
         assert parse_document(document_toml(value)) == value
+
+
+@pytest.mark.parametrize('schema, kind', [('midi', 'trigger'), ('osc', 'midi')])
+def test_event_stream_rejects_contradictory_payload_kind(
+    schema: str, kind: str
+) -> None:
+    from ufor.recording import EventStream
+
+    with pytest.raises(ValueError, match='event kind'):
+        EventStream(
+            id='events', source_id='input', event_schema=schema, event_kind=kind
+        )

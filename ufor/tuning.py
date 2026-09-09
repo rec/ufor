@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from fractions import Fraction
-from functools import cached_property
 from math import prod
 from typing import Annotated, Literal
 
@@ -42,7 +41,7 @@ class RatioTable(Model):
     name: str = ''
     desc: str = ''
 
-    @cached_property
+    @property
     def ratios(self) -> list[Number]:
         return [evaluate(i) for i in self.values]
 
@@ -62,7 +61,7 @@ class IntervalPattern(Model):
     intervals: list[Annotated[str, AfterValidator(positive)]] = Field(min_length=1)
     repeat: bool = True
 
-    @cached_property
+    @property
     def ratios(self) -> list[Number]:
         return [evaluate(i) for i in self.intervals]
 
@@ -82,7 +81,7 @@ class FrequencyTable(Model):
     values: list[Annotated[str, AfterValidator(positive)]] = Field(min_length=1)
     first_note: int = 0
 
-    @cached_property
+    @property
     def frequencies(self) -> list[Number]:
         return [evaluate(i) for i in self.values]
 
