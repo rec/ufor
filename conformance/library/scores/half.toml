@@ -1,0 +1,12 @@
+format = "recs"
+version = 3
+name = "half frogs"
+title = "Half frogs"
+tags = []
+kind = "preset"
+
+[score]
+selector = "quiet frogs"
+
+[parameters]
+brightness = 0.5
