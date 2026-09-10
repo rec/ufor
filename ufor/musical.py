@@ -2,22 +2,22 @@
 
 from typing import Literal
 
-from .document import Document
 from .oscillator import Oscillator
 from .scale import Scale
+from .score import Score
 from .tuning import Tuning
 
 
-class TuningDocument(Document):
+class TuningScore(Score):
     kind: Literal['tuning'] = 'tuning'
     body: Tuning
 
 
-class ScaleDocument(Document):
+class ScaleScore(Score):
     kind: Literal['scale'] = 'scale'
     body: Scale
 
 
-class OscillatorDocument(Document):
+class OscillatorScore(Score):
     kind: Literal['oscillator'] = 'oscillator'
     body: Oscillator

@@ -21,7 +21,7 @@ def test_sample_routes_use_the_shared_evaluator() -> None:
 @pytest.mark.parametrize('kind', ['key', 'velocity', 'control', 'envelope', 'lfo'])
 def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) -> None:
     raw = lfo_settings()
-    binding: dict[str, object] = {'id': 'motion', 'kind': kind}
+    binding: dict[str, object] = {'name': 'motion', 'kind': kind}
     source = raw['modulation']['sources'][0]
     if kind == 'control':
         binding['control'] = 'bend'
@@ -55,12 +55,12 @@ def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) 
         ('source', {'minimum': -0.5}, 'exceed its source domain'),
         ('binding', {'reference': 'missing'}, 'Unknown local lfo'),
         ('binding', {'kind': 'envelope'}, 'Unknown local envelope'),
-        ('binding', {'id': 'unbound'}, 'exactly one binding'),
+        ('binding', {'name': 'unbound'}, 'exactly one binding'),
         ('parameter', {'unit': 'volts'}, 'requires unit'),
         ('parameter', {'default': 0.1}, 'default must match'),
         (
             'parameter',
-            {'target': {'node': 'processing', 'parameter': 'unknown'}},
+            {'target': {'name': 'processing', 'parameter': 'unknown'}},
             'unknown source or target',
         ),
     ],
@@ -106,7 +106,7 @@ def test_bindings_and_route_ids_are_unique() -> None:
 
 def test_control_bindings_validate_names_domains_and_scopes() -> None:
     raw = lfo_settings()
-    raw['bindings'] = [{'id': 'motion', 'kind': 'control', 'control': 'bend'}]
+    raw['bindings'] = [{'name': 'motion', 'kind': 'control', 'control': 'bend'}]
     raw['modulation']['sources'][0]['scope'] = 'part'
     settings = SoundSettings.model_validate(raw)
     with pytest.raises(ValueError, match='Unknown control'):
@@ -126,7 +126,7 @@ def test_control_bindings_validate_names_domains_and_scopes() -> None:
 
 def test_key_curves_require_integer_knots_without_midi_key_limits() -> None:
     raw = lfo_settings()
-    raw['bindings'] = [{'id': 'motion', 'kind': 'key'}]
+    raw['bindings'] = [{'name': 'motion', 'kind': 'key'}]
     raw['modulation']['sources'][0].update(minimum=-200, maximum=10000)
     SoundSettings.model_validate(raw)
     raw['modulation']['routes'][0]['points'][0]['input'] = 0.5
@@ -144,14 +144,14 @@ def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> N
     )
     raw = {
         'envelope': definition,
-        'bindings': [{'id': 'key', 'kind': 'key'}],
+        'bindings': [{'name': 'key', 'kind': 'key'}],
         'modulation': {
             'sources': [
-                {'id': 'key', 'scope': 'voice', 'minimum': -200, 'maximum': 10000}
+                {'name': 'key', 'scope': 'voice', 'minimum': -200, 'maximum': 10000}
             ],
             'parameters': [
                 {
-                    'target': {'node': 'envelope', 'parameter': 'on-0-duration'},
+                    'target': {'name': 'envelope', 'parameter': 'on-0-duration'},
                     'unit': 'beats',
                     'scope': 'voice',
                     'minimum': 0,
@@ -161,9 +161,9 @@ def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> N
             ],
             'routes': [
                 {
-                    'id': 'time',
+                    'name': 'time',
                     'source': 'key',
-                    'target': {'node': 'envelope', 'parameter': 'on-0-duration'},
+                    'target': {'name': 'envelope', 'parameter': 'on-0-duration'},
                     'operation': 'multiply',
                     'unit': 'ratio',
                     'points': [{'input': 60, 'amount': 2}],
@@ -179,7 +179,7 @@ def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> N
         )[0].value
         == 2 / 3
     )
-    raw['bindings'][0] = {'id': 'key', 'kind': 'control', 'control': 'expression'}
+    raw['bindings'][0] = {'name': 'key', 'kind': 'control', 'control': 'expression'}
     with pytest.raises(ValidationError, match='latched'):
         SoundSettings.model_validate(raw)
 
@@ -221,14 +221,14 @@ def test_slot_generators_require_voice_scope(generator: str) -> None:
 def lfo_settings() -> dict[str, object]:
     return {
         'lfos': {'motion': {'rate': 1}},
-        'bindings': [{'id': 'motion', 'kind': 'lfo', 'reference': 'motion'}],
+        'bindings': [{'name': 'motion', 'kind': 'lfo', 'reference': 'motion'}],
         'modulation': {
             'sources': [
-                {'id': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}
+                {'name': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}
             ],
             'parameters': [
                 {
-                    'target': {'node': 'processing', 'parameter': 'pan'},
+                    'target': {'name': 'processing', 'parameter': 'pan'},
                     'scope': 'voice',
                     'unit': 'normalized',
                     'minimum': -1,
@@ -238,9 +238,9 @@ def lfo_settings() -> dict[str, object]:
             ],
             'routes': [
                 {
-                    'id': 'pan',
+                    'name': 'pan',
                     'source': 'motion',
-                    'target': {'node': 'processing', 'parameter': 'pan'},
+                    'target': {'name': 'processing', 'parameter': 'pan'},
                     'operation': 'add',
                     'unit': 'normalized',
                     'points': [
@@ -256,10 +256,10 @@ def lfo_settings() -> dict[str, object]:
 def body(settings: dict[str, object]) -> dict[str, object]:
     return {
         'instrument': {},
-        'slices': [{'id': 'sample', 'asset': 'audio', 'end_frame': 48000}],
+        'slices': [{'name': 'sample', 'asset': 'audio', 'end_frame': 48000}],
         'slots': [
             {
-                'id': 'voice',
+                'name': 'voice',
                 'slice': 'sample',
                 'mapping': {
                     'lowest_key': 0,

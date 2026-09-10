@@ -6,7 +6,7 @@ from pydantic import Field, model_validator
 
 from .base import Identifier, Model, unique
 from .events import StoredEvent
-from .interface import Direction, EventType, InterfaceDocument, SequenceBinding
+from .interface import EventType, InterfaceScore, SequenceBinding
 from .time import Timebase
 
 
@@ -29,22 +29,23 @@ class Sequence(Model):
         return self
 
 
-class SequenceDocument(InterfaceDocument):
+class SequenceScore(InterfaceScore):
     kind: Literal['sequence'] = 'sequence'
     timebases: list[Timebase] = Field(min_length=1)
     body: Sequence
 
     @model_validator(mode='after')
     def clock_reference(self) -> Self:
-        unique([t.id for t in self.timebases], 'timebase IDs')
-        if self.body.timebase not in {t.id for t in self.timebases}:
+        unique([t.name for t in self.timebases], 'timebase names')
+        if self.body.timebase not in {t.name for t in self.timebases}:
             raise ValueError('sequence references an unknown timebase')
+        if self.inputs:
+            raise ValueError('this score has no inputs')
         if self.parameters:
             raise ValueError('sequences have no configurable parameters')
-        for port in self.ports:
+        for port in self.outputs:
             if (
-                port.direction != Direction.output
-                or not isinstance(port.binding, SequenceBinding)
+                not isinstance(port.binding, SequenceBinding)
                 or not isinstance(port.stream, EventType)
                 or port.stream.timebase != self.body.timebase
                 or any(e.kind not in port.stream.kinds for e in self.body.events)

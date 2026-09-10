@@ -6,12 +6,13 @@ from pydantic import Field, model_validator
 
 from .base import Identifier, Model, unique
 from .interface import (
-    Address,
     Connection,
-    Direction,
-    InterfaceDocument,
+    Input,
+    InputSelection,
+    InterfaceScore,
     MixBinding,
-    Node,
+    OutputSelection,
+    Part,
 )
 from .references import ParameterTarget
 from .streams import AudioType, FileDestination
@@ -25,19 +26,19 @@ class Interpolation(StrEnum):
 
 
 class TrackSpec(Model):
-    id: Identifier
+    name: Identifier
     stream: AudioType
 
 
 class BusSpec(Model):
-    id: Identifier
+    name: Identifier
     stream: AudioType
     gain: float = 1.0
 
 
 class ClipSpec(Model):
-    id: Identifier
-    source: Address
+    name: Identifier
+    source: OutputSelection
     track: Identifier
     source_start: int = Field(ge=0, strict=True)
     source_end: int = Field(gt=0, strict=True)
@@ -82,7 +83,7 @@ class AutomationSpec(Model):
 class Arrangement(Model):
     timebase: Identifier
     media_types: list[str] = Field(default_factory=lambda: ['audio'])
-    nodes: list[Node] = Field(default_factory=list)
+    parts: list[Part] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
     tracks: list[TrackSpec] = Field(default_factory=list)
     buses: list[BusSpec] = Field(default_factory=list)
@@ -93,27 +94,27 @@ class Arrangement(Model):
     @model_validator(mode='after')
     def graph_references(self) -> Self:
         for kind, items in (
-            ('node', self.nodes),
+            ('name', self.parts),
             ('track', self.tracks),
             ('bus', self.buses),
             ('clip', self.clips),
         ):
-            unique((i.id for i in items), f'{kind} ID')
+            unique((i.name for i in items), f'{kind} ID')
         unique((a.target for a in self.automation), 'automation target')
         unique(((r.source, r.destination) for r in self.routes), 'route')
-        tracks = {t.id: t.stream for t in self.tracks}
-        buses = {b.id: b.stream for b in self.buses}
+        tracks = {t.name: t.stream for t in self.tracks}
+        buses = {b.name: b.stream for b in self.buses}
         if overlap := tracks.keys() & buses.keys():
             raise ValueError(f'Track and bus IDs collide: {sorted(overlap)}')
         streams = tracks | buses
-        sources = {n.id for n in self.nodes}
-        clips = {c.id for c in self.clips}
+        sources = {n.name for n in self.parts}
+        clips = {c.name for c in self.clips}
         routes = {(r.source, r.destination) for r in self.routes}
         for clip in self.clips:
-            if clip.source.node not in sources:
-                raise ValueError(f'Clip {clip.id}: unknown source {clip.source}')
+            if clip.source.name not in sources:
+                raise ValueError(f'Clip {clip.name}: unknown source {clip.source}')
             if clip.track not in tracks:
-                raise ValueError(f'Clip {clip.id}: unknown track {clip.track}')
+                raise ValueError(f'Clip {clip.name}: unknown track {clip.track}')
         for route in self.routes:
             if route.source not in streams:
                 raise ValueError(f'Route has unknown source {route.source}')
@@ -127,31 +128,31 @@ class Arrangement(Model):
         for automation in self.automation:
             target = automation.target
             valid = (
-                target.node in clips
+                target.name in clips
                 if target.kind == 'clip'
-                else target.node in buses
+                else target.name in buses
                 if target.kind == 'bus'
-                else (target.node, target.destination) in routes
+                else (target.name, target.destination) in routes
             )
             if not valid:
                 raise ValueError(f'Unknown automation target {target!r}')
         unique((c.destination for c in self.connections), 'input connection')
         for connection in self.connections:
             if (
-                connection.source.node not in sources
-                or connection.destination.node not in sources
+                connection.source.name not in sources
+                or connection.destination.name not in sources
             ):
-                raise ValueError('connection references an unknown node')
+                raise ValueError('connection references an unknown part')
         try:
             list(
                 TopologicalSorter(
                     {
-                        n.id: [
-                            c.source.node
+                        n.name: [
+                            c.source.name
                             for c in self.connections
-                            if c.destination.node == n.id
+                            if c.destination.name == n.name
                         ]
-                        for n in self.nodes
+                        for n in self.parts
                     }
                 ).static_order()
             )
@@ -161,12 +162,12 @@ class Arrangement(Model):
 
     @property
     def bus_order(self) -> list[str]:
-        buses = {b.id for b in self.buses}
+        buses = {b.name for b in self.buses}
         dependencies = {
-            b.id: [
+            b.name: [
                 r.source
                 for r in self.routes
-                if r.destination == b.id and r.source in buses
+                if r.destination == b.name and r.source in buses
             ]
             for b in self.buses
         }
@@ -176,7 +177,7 @@ class Arrangement(Model):
             raise ValueError(f'Routing cycle: {error.args[1]}') from error
 
 
-class ArrangementDocument(InterfaceDocument):
+class ArrangementScore(InterfaceScore):
     kind: Literal['arrangement'] = 'arrangement'
     timebases: list[Timebase] = Field(min_length=1, max_length=1)
     body: Arrangement
@@ -184,45 +185,48 @@ class ArrangementDocument(InterfaceDocument):
 
     @model_validator(mode='after')
     def audio_clock(self) -> Self:
-        ports = {p.id for p in self.ports if p.direction == Direction.output}
-        if any(d.port not in ports for d in self.destinations):
-            raise ValueError('Destination references an unknown output port')
-        nodes = {n.id for n in self.body.nodes}
-        tracks = {t.id: t.stream for t in self.body.tracks}
-        buses = {b.id: b.stream for b in self.body.buses}
+        outputs = {p.name for p in self.outputs}
+        if any(d.output not in outputs for d in self.destinations):
+            raise ValueError('Destination references an unknown output')
+        parts = {n.name for n in self.body.parts}
+        tracks = {t.name: t.stream for t in self.body.tracks}
+        buses = {b.name: b.stream for b in self.body.buses}
         forwarded = []
-        for port in self.ports:
-            binding = port.binding
+        for point in [*self.inputs, *self.outputs]:
+            binding = point.binding
             if isinstance(binding, MixBinding):
                 stream = (
                     tracks.get(binding.track)
                     if binding.track is not None
                     else buses.get(binding.bus)
                 )
-                if port.direction != Direction.output or stream != port.stream:
+                if stream != point.stream:
                     raise ValueError(
                         'mix export requires a matching output contract '
                         'and existing track/bus'
                     )
-            elif isinstance(binding, Address):
-                if binding.node not in nodes:
-                    raise ValueError('port binding references an unknown node')
-                if port.direction == Direction.input:
+            elif isinstance(binding, (InputSelection, OutputSelection)):
+                if binding.name not in parts:
+                    raise ValueError('binding references an unknown part')
+                if isinstance(point, Input):
                     forwarded.append(binding)
             else:
-                raise ValueError('arrangement port requires a mix or child binding')
+                raise ValueError(
+                    'arrangement input/output requires a mix or part binding'
+                )
         unique(
             [*forwarded, *(c.destination for c in self.body.connections)],
             'input binding',
         )
-        if any(p.binding.node not in nodes for p in self.parameters):
-            raise ValueError('parameter binding references an unknown node')
+        if any(p.binding.name not in parts for p in self.parameters):
+            raise ValueError('parameter binding references an unknown part')
         clock = self.timebases[0]
         if any(
-            n.stream.timebase != clock.id for n in [*self.body.tracks, *self.body.buses]
+            n.stream.timebase != clock.name
+            for n in [*self.body.tracks, *self.body.buses]
         ):
             raise ValueError('audio port references an unknown timebase')
-        if self.body.timebase != clock.id:
+        if self.body.timebase != clock.name:
             raise ValueError('arrangement references an unknown timebase')
         if clock.rate.denominator != 1:
             raise ValueError(

@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from ufor import envelope, lfo
 from ufor.base import Model
-from ufor.codec import document_toml, parse_document
+from ufor.codec import parse_score, score_toml
 from ufor.oscillator import Waveform, shape_value
 
 
@@ -203,8 +203,8 @@ def test_documented_modulation_examples_are_complete_documents() -> None:
     examples = re.findall(r'```toml\n(.*?)```', text, re.DOTALL)
     assert examples
     for example in examples:
-        document = parse_document(example)
-        assert parse_document(document_toml(document)) == document
+        document = parse_score(example)
+        assert parse_score(score_toml(document)) == document
 
 
 CASES = json.loads(
@@ -219,18 +219,18 @@ LFOS = [LFOCase.model_validate(c) for c in CASES['lfos']]
 @pytest.mark.parametrize('extra_observations', [False, True])
 def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> None:
     check_envelope(case, extra_observations)
-    document = envelope.EnvelopeDocument(
-        id='envelope', name=case.name, body=case.definition
+    document = envelope.EnvelopeScore(
+        name='envelope', title=case.name, body=case.definition
     )
-    assert parse_document(document_toml(document)) == document
+    assert parse_score(score_toml(document)) == document
 
 
 @pytest.mark.parametrize('case', LFOS, ids=[c.name for c in LFOS])
 @pytest.mark.parametrize('extra_observations', [False, True])
 def test_lfo_conformance(case: LFOCase, extra_observations: bool) -> None:
     check_lfo(case, extra_observations)
-    document = lfo.LFODocument(id='lfo', name=case.name, body=case.definition)
-    assert parse_document(document_toml(document)) == document
+    document = lfo.LFOScore(name='lfo', title=case.name, body=case.definition)
+    assert parse_score(score_toml(document)) == document
 
 
 @pytest.mark.parametrize('case', CASES['curves'])
@@ -252,4 +252,4 @@ def test_shape_conformance(case: dict[str, str | float]) -> None:
 @pytest.mark.parametrize('case', CASES['invalid_documents'])
 def test_invalid_modulation_documents(case: dict[str, object]) -> None:
     with pytest.raises(ValidationError):
-        parse_document(tomlkit.dumps({'id': 'invalid', 'name': 'Invalid', **case}))
+        parse_score(tomlkit.dumps({'name': 'invalid', 'title': 'Invalid', **case}))

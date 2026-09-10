@@ -179,7 +179,7 @@ def test_sustain_event_keys_are_contained_untracked_and_not_ordinary_keys(
 def test_cross_references_and_sustain_alternative_keys() -> None:
     raw = document(
         instrument={
-            'selections': [{'id': 'takes', 'mode': 'cycle'}],
+            'selections': [{'name': 'takes', 'mode': 'cycle'}],
             'playback': {'mode': 'one_shot'},
             'controls': {'sustain': {}},
             'sustain': {'control': 'sustain'},
@@ -199,7 +199,7 @@ def test_cross_references_and_sustain_alternative_keys() -> None:
     )
     instrument = SampleInstrument.model_validate(raw)
     second = instrument.slots[0].model_dump(exclude_unset=True)
-    second['id'] = 'second'
+    second['name'] = 'second'
     raw['slots'].append(second)
     SampleInstrument.model_validate(raw)
     second['mapping'] = {
@@ -210,7 +210,7 @@ def test_cross_references_and_sustain_alternative_keys() -> None:
     }
     with pytest.raises(ValidationError, match='share event_key'):
         SampleInstrument.model_validate(raw)
-    second['id'] = 'glass'
+    second['name'] = 'glass'
     with pytest.raises(ValidationError, match='duplicate slot ID'):
         SampleInstrument.model_validate(raw)
 
@@ -227,11 +227,11 @@ def document(
 ) -> dict[str, object]:
     return {
         'kind': 'sample_instrument',
-        'slices': [{'id': 'glass', 'asset': 'glass', 'end_frame': 48000}],
+        'slices': [{'name': 'glass', 'asset': 'glass', 'end_frame': 48000}],
         'instrument': instrument or {},
         'slots': [
             {
-                'id': 'glass',
+                'name': 'glass',
                 'slice': 'glass',
                 'channels': [{'input': 'mono', 'output': 'mono', 'gain': 1}],
                 'mapping': {

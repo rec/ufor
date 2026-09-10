@@ -1,12 +1,12 @@
 {
   "format": "recs",
-  "version": 2,
+  "version": 3,
   "kind": "sequence",
-  "id": "performance",
-  "name": "Layered pad",
+  "name": "performance",
+  "title": "Layered pad",
   "timebases": [
     {
-      "id": "native",
+      "name": "native",
       "rate": {
         "numerator": 48000
       }
@@ -53,10 +53,10 @@
       }
     ]
   },
-  "ports": [
+  "inputs": [],
+  "outputs": [
     {
-      "id": "performance",
-      "direction": "output",
+      "name": "performance",
       "stream": {
         "family": "event",
         "timebase": "native",

@@ -5,8 +5,8 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from ufor import events
-from ufor.codec import document_toml, parse_document
-from ufor.sequence import SequenceDocument
+from ufor.codec import parse_score, score_toml
+from ufor.sequence import SequenceScore
 
 
 @pytest.mark.parametrize('key', [-500, 128, 10000])
@@ -143,12 +143,12 @@ def test_invalid_trigger_values_are_rejected(changes: dict[str, object]) -> None
 
 
 def test_performance_sequences_preserve_preroll_and_equal_time_order() -> None:
-    sequence = SequenceDocument.model_validate(
+    sequence = SequenceScore.model_validate(
         json.loads(
             (Path(__file__).parents[1] / 'conformance/performance.json').read_text()
         )
     )
-    assert parse_document(document_toml(sequence)) == sequence
+    assert parse_score(score_toml(sequence)) == sequence
     adapter = TypeAdapter(events.StoredEvent)
     assert [
         adapter.validate_json(e.model_dump_json()) for e in sequence.body.events

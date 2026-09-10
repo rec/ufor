@@ -71,7 +71,7 @@ def test_duplicate_declarations_are_rejected(field: str) -> None:
     'changes',
     [
         {'source': 'missing'},
-        {'target': {'node': 'voice', 'parameter': 'missing'}},
+        {'target': {'name': 'voice', 'parameter': 'missing'}},
         {'unit': 'cents'},
         {'points': [{'input': 0, 'amount': 0}, {'input': 0, 'amount': 1}]},
         {'points': [{'input': 0, 'amount': 0}, {'input': 2, 'amount': 1}]},

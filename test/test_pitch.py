@@ -4,9 +4,9 @@ from pathlib import Path
 
 import pytest
 
-from ufor.codec import document_toml, parse_document
+from ufor.codec import parse_score, score_toml
 from ufor.expression import evaluate
-from ufor.musical import OscillatorDocument, ScaleDocument, TuningDocument
+from ufor.musical import OscillatorScore, ScaleScore, TuningScore
 from ufor.oscillator import Oscillator
 from ufor.scala import parse_scala, scala_text
 from ufor.scale import Scale
@@ -115,21 +115,21 @@ def test_scala_preserves_fractions_and_converts_decimal_cents() -> None:
 @pytest.mark.parametrize(
     'document',
     [
-        TuningDocument(
-            id='tuning',
-            name='Ratios',
+        TuningScore(
+            name='tuning',
+            title='Ratios',
             body=Tuning(source=RatioTable(values=['1', '5/4'], repeat_ratio='2')),
         ),
-        ScaleDocument(id='scale', name='Notes', body=Scale()),
-        OscillatorDocument(
-            id='oscillator', name='Triangle', body=Oscillator(key_scale=6)
+        ScaleScore(name='scale', title='Notes', body=Scale()),
+        OscillatorScore(
+            name='oscillator', title='Triangle', body=Oscillator(key_scale=6)
         ),
     ],
 )
 def test_musical_documents_round_trip_through_common_codec(
-    document: TuningDocument | ScaleDocument | OscillatorDocument,
+    document: TuningScore | ScaleScore | OscillatorScore,
 ) -> None:
-    assert parse_document(document_toml(document)) == document
+    assert parse_score(score_toml(document)) == document
 
 
 def test_oscillator_gain_uses_decibels_per_twelve_note_steps() -> None:
@@ -178,8 +178,8 @@ def test_table_edits_are_reflected_in_evaluation(
     table(note)
     getattr(table, field)[-1] = replacement
     assert table(note) == expected
-    document = TuningDocument(id='edited', name='Edited', body=Tuning(source=table))
-    assert parse_document(document_toml(document)).body.source(note) == expected
+    document = TuningScore(name='edited', title='Edited', body=Tuning(source=table))
+    assert parse_score(score_toml(document)).body.source(note) == expected
 
 
 @pytest.mark.parametrize(
@@ -208,12 +208,12 @@ def test_scale_repeated_intervals_and_edits_keep_pitch_mapping_consistent() -> N
 
 
 def test_serializing_an_edited_definition_revalidates_it() -> None:
-    document = TuningDocument(
-        id='edited', name='Edited', body=Tuning(source=RatioTable(values=['1']))
+    document = TuningScore(
+        name='edited', title='Edited', body=Tuning(source=RatioTable(values=['1']))
     )
     document.body.source.values[0] = '-1'
     with pytest.raises(ValueError):
-        document_toml(document)
+        score_toml(document)
 
 
 def test_oscillator_and_lfo_share_exact_duty_cycle() -> None:
@@ -228,6 +228,9 @@ def test_oscillator_and_lfo_share_exact_duty_cycle() -> None:
 @pytest.mark.parametrize('version', [True, 1.0])
 def test_document_version_requires_an_integer(version: bool | float) -> None:
     with pytest.raises(ValueError, match='version must be integer'):
-        TuningDocument(
-            id='tuning', name='Tuning', version=version, body=Tuning(source=Computed())
+        TuningScore(
+            name='tuning',
+            title='Tuning',
+            version=version,
+            body=Tuning(source=Computed()),
         )

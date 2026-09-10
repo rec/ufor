@@ -17,7 +17,7 @@ from . import enums
 
 
 class Selection(Model):
-    id: Identifier
+    name: Identifier
     mode: enums.SelectionMode
 
 

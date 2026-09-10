@@ -5,59 +5,59 @@ from typing import Annotated
 import tomlkit
 from pydantic import Field, TypeAdapter
 
-from .arrangement import ArrangementDocument
-from .envelope import EnvelopeDocument
-from .lfo import LFODocument
-from .musical import OscillatorDocument, ScaleDocument, TuningDocument
-from .recording import RecordingDocument
-from .samples.instrument import InstrumentDocument
-from .sequence import SequenceDocument
+from .arrangement import ArrangementScore
+from .envelope import EnvelopeScore
+from .lfo import LFOScore
+from .musical import OscillatorScore, ScaleScore, TuningScore
+from .recording import RecordingScore
+from .samples.instrument import InstrumentScore
+from .sequence import SequenceScore
 
 
-def parse_document(
+def parse_score(
     text: str,
 ) -> (
-    ArrangementDocument
-    | RecordingDocument
-    | SequenceDocument
-    | TuningDocument
-    | ScaleDocument
-    | OscillatorDocument
-    | EnvelopeDocument
-    | InstrumentDocument
-    | LFODocument
+    ArrangementScore
+    | RecordingScore
+    | SequenceScore
+    | TuningScore
+    | ScaleScore
+    | OscillatorScore
+    | EnvelopeScore
+    | InstrumentScore
+    | LFOScore
 ):
-    return TypeAdapter(DocumentValue).validate_python(tomlkit.parse(text))
+    return TypeAdapter(ScoreValue).validate_python(tomlkit.parse(text))
 
 
-def document_toml(
-    value: ArrangementDocument
-    | RecordingDocument
-    | SequenceDocument
-    | TuningDocument
-    | ScaleDocument
-    | OscillatorDocument
-    | EnvelopeDocument
-    | InstrumentDocument
-    | LFODocument,
+def score_toml(
+    value: ArrangementScore
+    | RecordingScore
+    | SequenceScore
+    | TuningScore
+    | ScaleScore
+    | OscillatorScore
+    | EnvelopeScore
+    | InstrumentScore
+    | LFOScore,
 ) -> str:
-    validated = TypeAdapter(DocumentValue).validate_python(value.model_dump())
+    validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
     return tomlkit.dumps(validated.model_dump(mode='json', exclude_none=True))
 
 
-def document_schema() -> dict[str, object]:
-    return TypeAdapter(DocumentValue).json_schema()
+def score_schema() -> dict[str, object]:
+    return TypeAdapter(ScoreValue).json_schema()
 
 
-DocumentValue = Annotated[
-    ArrangementDocument
-    | RecordingDocument
-    | SequenceDocument
-    | TuningDocument
-    | ScaleDocument
-    | OscillatorDocument
-    | EnvelopeDocument
-    | InstrumentDocument
-    | LFODocument,
+ScoreValue = Annotated[
+    ArrangementScore
+    | RecordingScore
+    | SequenceScore
+    | TuningScore
+    | ScaleScore
+    | OscillatorScore
+    | EnvelopeScore
+    | InstrumentScore
+    | LFOScore,
     Field(discriminator='kind'),
 ]

@@ -1,12 +1,12 @@
 # Composition example: rehearsal, drums and piano
 
-This version-2 example is accepted by the codec and resolved in the test suite.
-Its complete [definition package](../conformance/composition/concert.toml) includes
-all five documents. Asset metadata is synthetic; media and a sampler are not
+This version-3 example is accepted by the codec and resolved in the test suite.
+Its complete [score package](../conformance/composition/concert.toml) includes
+all five scores. Asset metadata is synthetic; media and a sampler are not
 included. See the [design](composition-design.md) and
 [implementation plan](composition-implementation.md).
 
-| Definition | Public interface |
+| Score | Public interface |
 | --- | --- |
 | Rehearsal recording | `desk`: stereo audio, at least ten seconds |
 | Drums arrangement | `main`: stereo audio, at least ten seconds |
@@ -24,72 +24,71 @@ and range. The drums arrangement's internal structure remains private.
 
 ```toml
 format = "recs"
-version = 2
+version = 3
 kind = "arrangement"
-id = "concert"
-name = "Rehearsal with drums and piano"
-timebases = [{ id = "audio", rate = { numerator = 48000 } }]
+name = "concert"
+title = "Rehearsal with drums and piano"
+timebases = [{ name = "audio", rate = { numerator = 48000 } }]
 
-[[ports]]
-id = "main"
-direction = "output"
+[[outputs]]
+name = "main"
 binding = { track = "mix", start = 0, end = 480000, gain = 1.0 }
 stream = { family = "sampled", quantity = "audio_amplitude", unit = "full_scale", timebase = "audio", channels = ["left", "right"] }
 
 [body]
 timebase = "audio"
 
-[[body.nodes]]
-id = "rehearsal"
-definition = { path = "recordings/rehearsal.toml" }
+[[body.parts]]
+name = "rehearsal"
+score = { path = "recordings/rehearsal.toml" }
 
-[[body.nodes]]
-id = "drums"
-definition = { path = "mixes/drums.toml" }
+[[body.parts]]
+name = "drums"
+score = { path = "mixes/drums.toml" }
 
-[[body.nodes]]
-id = "notes"
-definition = { path = "sequences/piano.toml" }
+[[body.parts]]
+name = "notes"
+score = { path = "sequences/piano.toml" }
 
-[[body.nodes]]
-id = "piano"
-definition = { path = "instruments/piano.toml" }
+[[body.parts]]
+name = "piano"
+score = { path = "instruments/piano.toml" }
 parameters = { level_db = -6.0 }
 
 [[body.connections]]
-source = { node = "notes", port = "performance" }
-destination = { node = "piano", port = "performance" }
+source = { name = "notes", output = "performance" }
+destination = { name = "piano", input = "performance" }
 
 [[body.tracks]]
-id = "mix"
+name = "mix"
 stream = { timebase = "audio", channels = ["left", "right"] }
 
 [[body.clips]]
-id = "rehearsal"
-source = { node = "rehearsal", port = "desk" }
+name = "rehearsal"
+source = { name = "rehearsal", output = "desk" }
 track = "mix"
 source_start = 0
 source_end = 480000
 timeline_start = 0
 
 [[body.clips]]
-id = "drums"
-source = { node = "drums", port = "main" }
+name = "drums"
+source = { name = "drums", output = "main" }
 track = "mix"
 source_start = 0
 source_end = 480000
 timeline_start = 0
 
 [[body.clips]]
-id = "piano"
-source = { node = "piano", port = "audio" }
+name = "piano"
+source = { name = "piano", output = "audio" }
 track = "mix"
 source_start = 0
 source_end = 480000
 timeline_start = 0
 
 [[destinations]]
-port = "main"
+output = "main"
 path = "renders/concert.wav"
 format = "wav"
 ```
@@ -102,7 +101,7 @@ contribute silence, so no extra recorded frames are requested. The note sequence
 need not be extended: its end generates no events and does not stop active voices.
 
 Reading the same piano instance twice reads the same performance history. Adding
-a second node with the same `definition.path` creates an independent performance,
+a second part with the same `definition.path` creates an independent performance,
 with its own inputs, settings and state. File paths may repeat; there is no
 separate dependency-ID namespace.
 

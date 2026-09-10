@@ -1,31 +1,31 @@
 format = "recs"
-version = 2
-id = "drums"
-name = "Drums"
+version = 3
+name = "drums"
+title = "Drums"
 parameters = []
 kind = "arrangement"
 destinations = []
+inputs = []
 
 [[timebases]]
-id = "audio"
+name = "audio"
 kind = "physical"
 
 [timebases.rate]
 numerator = 48000
 denominator = 1
 
-[[ports]]
-id = "main"
-direction = "output"
+[[outputs]]
+name = "main"
 
-[ports.stream]
+[outputs.stream]
 family = "sampled"
 quantity = "audio_amplitude"
 unit = "full_scale"
 timebase = "audio"
 channels = ["left", "right"]
 
-[ports.binding]
+[outputs.binding]
 track = "mix"
 start = 0
 end = 480000
@@ -40,16 +40,16 @@ buses = []
 routes = []
 automation = []
 
-[[body.nodes]]
-id = "take"
+[[body.parts]]
+name = "take"
 
-[body.nodes.definition]
+[body.parts.score]
 path = "../recordings/rehearsal.toml"
 
-[body.nodes.parameters]
+[body.parts.parameters]
 
 [[body.tracks]]
-id = "mix"
+name = "mix"
 
 [body.tracks.stream]
 family = "sampled"
@@ -59,7 +59,7 @@ timebase = "audio"
 channels = ["left", "right"]
 
 [[body.clips]]
-id = "rehearsal"
+name = "rehearsal"
 track = "mix"
 source_start = 0
 source_end = 480000
@@ -67,5 +67,5 @@ timeline_start = 0
 gain = 1.0
 
 [body.clips.source]
-node = "take"
-port = "desk"
+name = "take"
+output = "desk"

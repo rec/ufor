@@ -25,7 +25,7 @@ class AudioType(Model):
 
 
 class FileDestination(Model):
-    port: Identifier
+    output: Identifier
     path: Path
     format: Format
     subtype: Subtype | None = None

@@ -33,7 +33,7 @@ class Interpolation(StrEnum):
 
 
 class Target(Model):
-    node: Identifier
+    name: Identifier
     parameter: Identifier
 
 
@@ -59,7 +59,7 @@ class Parameter(Model):
 
 
 class Source(Model):
-    id: Identifier
+    name: Identifier
     scope: Literal['instrument', 'part', 'trigger', 'voice']
     minimum: float
     maximum: float
@@ -77,7 +77,7 @@ class Point(Model):
 
 
 class Route(Model):
-    id: Identifier
+    name: Identifier
     source: Identifier
     target: Target
     operation: Operation
@@ -99,21 +99,21 @@ class Modulation(Model):
 
     @model_validator(mode='after')
     def references_and_units(self) -> Self:
-        unique([s.id for s in self.sources], 'source IDs')
-        unique([r.id for r in self.routes], 'route IDs')
+        unique([s.name for s in self.sources], 'source IDs')
+        unique([r.name for r in self.routes], 'route IDs')
         parameters = {p.target: p for p in self.parameters}
         if len(parameters) != len(self.parameters):
             raise ValueError('duplicate parameter targets')
-        sources = {s.id: s for s in self.sources}
+        sources = {s.name: s for s in self.sources}
         for route in self.routes:
             if route.source not in sources or route.target not in parameters:
                 raise ValueError(
-                    f'route {route.id} references an unknown source or target'
+                    f'route {route.name} references an unknown source or target'
                 )
             source, parameter = sources[route.source], parameters[route.target]
             unit = parameter.unit if route.operation == Operation.add else Unit.ratio
             if route.unit != unit:
-                raise ValueError(f'route {route.id} requires unit {unit}')
+                raise ValueError(f'route {route.name} requires unit {unit}')
             if parameter.scope == Scope.instrument and source.scope != 'instrument':
                 raise ValueError(
                     'instrument targets require an instrument-scoped source'
@@ -121,7 +121,7 @@ class Modulation(Model):
             if any(
                 not source.minimum <= p.input <= source.maximum for p in route.points
             ):
-                raise ValueError(f'route {route.id} points exceed its source domain')
+                raise ValueError(f'route {route.name} points exceed its source domain')
         return self
 
 
@@ -154,7 +154,7 @@ def evaluate(
     base_values: list[ParameterValue] | None = None,
 ) -> list[ParameterValue]:
     """Evaluate one resolved instance context without loading generators or devices."""
-    sources = {s.id: s for s in modulation.sources}
+    sources = {s.name: s for s in modulation.sources}
     for name, value in values.items():
         if name not in sources:
             raise ValueError(f'unknown modulation source {name}')
@@ -170,7 +170,7 @@ def evaluate(
     contributions: dict[Target, list[tuple[Operation, float]]] = {
         p: [] for p in parameters
     }
-    for route in sorted(modulation.routes, key=lambda r: (r.source, r.id)):
+    for route in sorted(modulation.routes, key=lambda r: (r.source, r.name)):
         if route.source not in values:
             raise ValueError(f'missing modulation source {route.source}')
         source_value = values[route.source]
@@ -183,7 +183,7 @@ def evaluate(
         base = overrides.get(target, parameter.default)
         if not parameter.minimum <= base <= parameter.maximum:
             raise ValueError(
-                f'base value for {target.node}.{target.parameter} is outside its domain'
+                f'base value for {target.name}.{target.parameter} is outside its domain'
             )
         terms = contributions[target]
         value = (base + fsum(v for o, v in terms if o == Operation.add)) * prod(
@@ -191,7 +191,7 @@ def evaluate(
         )
         if not parameter.minimum <= value <= parameter.maximum:
             raise ValueError(
-                f'modulated {target.node}.{target.parameter} is outside its domain'
+                f'modulated {target.name}.{target.parameter} is outside its domain'
             )
         result.append(ParameterValue(target=target, value=value))
     return result
