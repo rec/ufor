@@ -20,8 +20,22 @@ class Retrigger(StrEnum):
 
 class Segment(Model):
     duration: control.Rational = Field(ge=0)
-    target: float = Field(ge=-1, le=1)
+    target: float
     curve: float = 0
+
+
+class Curve(Model):
+    """An autonomous scalar envelope, including unbounded gains and repetition."""
+
+    initial: float = 0
+    segments: list[Segment] = Field(min_length=1)
+    repeat: bool = False
+
+    @model_validator(mode='after')
+    def repeat_period(self) -> Self:
+        if self.repeat and not sum(s.duration for s in self.segments):
+            raise ValueError('repeating curve requires a positive period')
+        return self
 
 
 class Envelope(Model):
@@ -36,6 +50,8 @@ class Envelope(Model):
 
     @model_validator(mode='after')
     def levels_match_polarity(self) -> Self:
+        if any(not -1 <= s.target <= 1 for s in [*self.segments, *self.release]):
+            raise ValueError('triggered envelope levels must be in [-1, 1]')
         if (
             self.polarity == control.Polarity.unipolar
             and min(self.initial, *(s.target for s in [*self.segments, *self.release]))
@@ -66,6 +82,22 @@ class EnvelopeValue(Model):
     value: float
     status: Literal['idle', 'running', 'held', 'complete']
     segment: int | None = None
+
+
+def curve_at(curve: Curve, at: Fraction) -> float:
+    """Seconds from activation; hold the final value or repeat the whole curve."""
+    control.elapsed(at, Fraction(0))
+    if curve.repeat:
+        at %= sum(s.duration for s in curve.segments)
+    value = curve.initial
+    for segment in curve.segments:
+        if at < segment.duration:
+            return value + (segment.target - value) * curve_progress(
+                float(at / segment.duration), segment.curve
+            )
+        at -= segment.duration
+        value = segment.target
+    return value
 
 
 def initial_envelope(envelope: Envelope, at: Fraction) -> EnvelopeState:

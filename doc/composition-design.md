@@ -87,6 +87,10 @@ Event contracts include accepted/emitted kinds and a clock. Output event kinds
 must be a subset of the receiving input's kinds. An empty sequence still declares
 its contract. Clock IDs are local names, so compatibility compares their meanings.
 
+Light contracts include ordered components, their interpretation, a logical
+layout and update rate. The [light profile](light-format.md) adds explicit
+placement and component mapping while reusing these named selections and parts.
+
 Clock conversion preserves the physical time of an event. For example, tick 5
 at 1,000 ticks/second is tick 240 at 48,000 ticks/second. This is distinct from
 resampling audio, converting MIDI into performance events or remapping channels.

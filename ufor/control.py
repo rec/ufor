@@ -17,6 +17,7 @@ class Clock(StrEnum):
 class Scope(StrEnum):
     voice = auto()
     instrument = auto()
+    part = auto()
 
 
 class Polarity(StrEnum):

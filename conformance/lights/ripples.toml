@@ -1,0 +1,79 @@
+format = "recs"
+version = 3
+name = "ripples"
+title = "Ripples"
+inputs = []
+parameters = []
+kind = "animation"
+
+[[timebases]]
+name = "frames"
+kind = "physical"
+
+[timebases.rate]
+numerator = 20
+denominator = 1
+
+[[outputs]]
+name = "light"
+
+[outputs.stream]
+family = "sampled"
+quantity = "light"
+timebase = "frames"
+components = ["red", "green", "blue"]
+interpretation = "drive"
+
+[outputs.stream.layout]
+name = "strip"
+axes = ["x"]
+unit = "unitless"
+
+[[outputs.stream.layout.lights]]
+name = "light_0"
+position = [0.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_1"
+position = [1.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_2"
+position = [2.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_3"
+position = [3.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_4"
+position = [4.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_5"
+position = [5.0]
+
+[outputs.stream.layout.regions]
+
+[outputs.binding]
+light = true
+
+[body]
+parts = []
+controls = []
+
+[body.operation]
+effect = "expanding_ripples"
+palette = [[40, 120, 255], [20, 255, 180], [220, 80, 255]]
+origins = [0.5]
+event_rate = 0.35
+propagation_speed = 12.0
+width = 1.8
+decay = 0.7
+speed = 1.0
+seed = 17
+
+[body.modulation]
+parameters = []
+sources = []
+routes = []

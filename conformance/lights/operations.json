@@ -1,0 +1,47 @@
+{
+  "cases": [
+    {
+      "name": "two_component_fill",
+      "components": ["warm", "cool"],
+      "operation": {"effect": "fill", "values": [0.25, 0.75]},
+      "frames": [],
+      "expected": [[0.25, 0.75], [0.25, 0.75]]
+    },
+    {
+      "name": "mix_clips_without_normalizing_weights",
+      "components": ["white"],
+      "operation": {"effect": "mix", "sources": [{"source": {"name": "child", "output": "light"}, "weight": 2}]},
+      "frames": [{"name": "child", "values": [[0.75], [0.25]]}],
+      "expected": [[1.0], [0.5]]
+    },
+    {
+      "name": "five_component_gain_preserves_range",
+      "components": ["red", "green", "blue", "amber", "white"],
+      "operation": {"effect": "gain", "source": {"name": "child", "output": "light"}, "amount": 2},
+      "frames": [{"name": "child", "values": [[0.5, 0, 0, 0.75, 1], [0, 0, 0, 0, 0]]}],
+      "expected": [[1, 0, 0, 1.5, 2], [0, 0, 0, 0, 0]]
+    },
+    {
+      "name": "reverse_changes_light_order_only",
+      "components": ["red", "green", "blue"],
+      "operation": {"effect": "reverse", "source": {"name": "child", "output": "light"}},
+      "frames": [{"name": "child", "values": [[1, 0, 0], [0, 0, 1]]}],
+      "expected": [[0, 0, 1], [1, 0, 0]]
+    },
+    {
+      "name": "smooth_crossfade_does_not_clip",
+      "components": ["white"],
+      "at": "1/4",
+      "operation": {"effect": "crossfade", "outgoing": {"name": "a", "output": "light"}, "incoming": {"name": "b", "output": "light"}, "fade": {"duration": "1", "easing": "smooth"}},
+      "frames": [{"name": "a", "values": [[2], [2]]}, {"name": "b", "values": [[4], [4]]}],
+      "expected": [[2.3125], [2.3125]]
+    },
+    {
+      "name": "explicit_rgbw_component_mapping",
+      "components": ["red", "green", "blue", "white"],
+      "operation": {"effect": "component_map", "source": {"name": "child", "output": "light"}, "matrix": [[1, 0, 0], [0, 1, 0], [0, 0, 1], [0, 0, 0]]},
+      "frames": [{"name": "child", "values": [[1, 0.5, 0.25], [0, 0, 1]]}],
+      "expected": [[1, 0.5, 0.25, 0], [0, 0, 1, 0]]
+    }
+  ]
+}
