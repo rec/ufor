@@ -9,7 +9,7 @@ from pydantic import Field, model_validator
 
 from . import control
 from .base import Model
-from .document import Document
+from .score import Score
 
 
 class Retrigger(StrEnum):
@@ -45,7 +45,7 @@ class Envelope(Model):
         return self
 
 
-class EnvelopeDocument(Document):
+class EnvelopeScore(Score):
     kind: Literal['envelope'] = 'envelope'
     body: Envelope
 

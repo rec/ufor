@@ -8,13 +8,13 @@ from urllib.parse import urlsplit
 from pydantic import Field, StrictInt, field_validator, model_validator
 
 from .base import Identifier, Model, unique
-from .document import Document
 from .modulation import Target
+from .score import Score
 from .streams import AudioType
 from .time import Timebase
 
 
-class Definition(Model):
+class ScoreVersion(Model):
     path: str = Field(min_length=1)
     sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
 
@@ -28,24 +28,29 @@ class Definition(Model):
             or '\\' in value
             or str(PurePosixPath(value)) == '.'
         ):
-            raise ValueError('definition path must be a relative POSIX document path')
+            raise ValueError('score path must be a relative POSIX score path')
         return value
 
 
-class Address(Model):
-    node: Identifier
-    port: Identifier
+class OutputSelection(Model):
+    name: Identifier
+    output: Identifier
 
 
-class Node(Model):
-    id: Identifier
-    definition: Definition
+class InputSelection(Model):
+    name: Identifier
+    input: Identifier
+
+
+class Part(Model):
+    name: Identifier
+    score: ScoreVersion
     parameters: dict[Identifier, float] = Field(default_factory=dict)
 
 
 class Connection(Model):
-    source: Address
-    destination: Address
+    source: OutputSelection
+    destination: InputSelection
 
 
 class EventType(Model):
@@ -59,11 +64,6 @@ class EventType(Model):
     def distinct_kinds(self) -> Self:
         unique(self.kinds, 'event kind')
         return self
-
-
-class Direction(StrEnum):
-    input = auto()
-    output = auto()
 
 
 class NormalizeMode(StrEnum):
@@ -118,22 +118,22 @@ class MixBinding(Model):
         return self
 
 
-class Port(Model):
-    id: Identifier
-    direction: Direction
+class Input(Model):
+    name: Identifier
+    stream: AudioType | EventType
+    binding: PerformanceBinding | InputSelection
+
+
+class Output(Model):
+    name: Identifier
     stream: AudioType | EventType
     binding: (
-        StreamBinding
-        | SequenceBinding
-        | PerformanceBinding
-        | AudioBinding
-        | MixBinding
-        | Address
+        StreamBinding | SequenceBinding | AudioBinding | MixBinding | OutputSelection
     )
 
 
-class Parameter(Model):
-    id: Identifier
+class ParameterExport(Model):
+    name: Identifier
     binding: Target
     minimum: float | None = None
     maximum: float | None = None
@@ -150,18 +150,20 @@ class Parameter(Model):
         return self
 
 
-class InterfaceDocument(Document):
+class InterfaceScore(Score):
     timebases: list[Timebase] = Field(default_factory=list)
-    ports: list[Port] = Field(default_factory=list)
-    parameters: list[Parameter] = Field(default_factory=list)
+    inputs: list[Input] = Field(default_factory=list)
+    outputs: list[Output] = Field(default_factory=list)
+    parameters: list[ParameterExport] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def public_interface(self) -> Self:
-        unique((t.id for t in self.timebases), 'timebase ID')
-        unique((p.id for p in self.ports), 'port ID')
-        unique((p.id for p in self.parameters), 'parameter ID')
+        unique((t.name for t in self.timebases), 'timebase name')
+        unique((p.name for p in self.inputs), 'input name')
+        unique((p.name for p in self.outputs), 'output name')
+        unique((p.name for p in self.parameters), 'parameter name')
         unique((p.binding for p in self.parameters), 'parameter binding')
-        clocks = {t.id for t in self.timebases}
-        if any(p.stream.timebase not in clocks for p in self.ports):
-            raise ValueError('public port references an unknown timebase')
+        clocks = {t.name for t in self.timebases}
+        if any(p.stream.timebase not in clocks for p in [*self.inputs, *self.outputs]):
+            raise ValueError('public input/output references an unknown timebase')
         return self

@@ -1,66 +1,65 @@
-# Document composition design
+# Score composition design
 
-Status: implemented for the initial offline profile in document version 2.
-Names remain subject to the separate naming review. Ufor resolves interfaces and
+Status: implemented for the initial offline profile in score version 3.
+Ufor resolves interfaces and
 event histories; Recs renders nested recording arrangements. Sampler execution
 remains deferred.
 
-A document can use a recording, another mix or an instrument through its public
+A score can use a recording, another mix or an instrument through its public
 interface. Four questions describe the composition.
 
-## 1. What definition does this instance use?
+## 1. Which score does this part use?
 
-A node identifies an instance and directly references its definition:
+A part names one use of another score and supplies its parameter settings:
 
 ```toml
-[[body.nodes]]
-id = "piano"
-definition = { path = "instruments/piano.toml" }
+[[body.parts]]
+name = "piano"
+score = { path = "instruments/piano.toml" }
 parameters = { level_db = -6.0 }
 ```
 
-A document reference contains a relative `path` and, when pinned, a `sha256` of
+A `ScoreVersion` contains a relative `path` and, when pinned, a `sha256` of
 its bytes. Static references such as tunings use the same reference structure
-without creating a running node. The dependency graph is derived from these
+without creating a running part. The dependency graph is derived from these
 references; there is no separate dependency table or source-alias collection.
 
-Two nodes may reference the same file. They share a definition and immutable
+Two parts may reference the same file. They share a definition and immutable
 media, but each has independent state. A nested instance is identified by its
-full node path, such as `concert/drums/room-mic`. Node IDs are local to their
-container and independent of display names or document IDs.
+full part path, such as `concert/drums/room-mic`. Part names are local to their
+container and independent of display titles or score names.
 
 ## 2. What does it expose?
 
-A document exposes named input ports, output ports and configuration parameters.
+A score exposes named inputs, outputs and configuration parameters.
 Its private buses, streams and processing details cannot be addressed externally.
 
 Each public declaration contains its binding in the same record. For example,
 an arrangement can export its internal track directly:
 
 ```toml
-[[ports]]
-id = "main"
-direction = "output"
+[[outputs]]
+name = "main"
 stream = { timebase = "audio", channels = ["left", "right"] }
 binding = { track = "mix", start = 0, end = 480000, gain = 1.0 }
 ```
 
 This fragment uses the existing `AudioType` defaults for family, quantity and
-unit. The containing document declares the referenced track and timebase.
+unit. The containing score declares the referenced track and timebase.
 Bindings select a recording stream, a sequence body, an instrument input/output,
-a track/bus, or a child's public port as appropriate to the document kind.
+a track/bus, or a child's public input or output as appropriate to the score kind.
 There is no second output declaration in the body. Forwarded inputs likewise
 carry their internal destination in the public declaration. A file destination
 names the public output; referencing a child never runs that child's destinations.
 
-A public parameter binds to one internal `{ node, parameter }` address. Its unit,
+A public parameter binds to one internal `{ name, parameter }` address. Its unit,
 range and default are inherited from that target. An export may narrow the range
 or change the default, but cannot change the unit or widen the permitted range.
 The effective default must remain within the effective range. A resolved
 interface exposes the resulting contract without requiring copies in the file.
 Multiple exports cannot address the same internal parameter.
 
-Construct an instance from its definition plus its supplied public parameter
+Configure a part from its score plus its supplied public parameter
 values. At each nesting boundary, the bound target's configured value is the
 inherited default, an explicit export default replaces it, and a supplied value
 replaces that default. Unknown parameters and out-of-range values are errors.
@@ -70,14 +69,16 @@ separate instrument/voice scope system. Internal modulation keeps its own rules.
 
 ## 3. What connects to what?
 
-A port address is `{ node, port }`. Connections join output ports to input ports;
-clips read windows from output ports and place them on tracks. These operations
+An output selection is `{ name, output }`; an input selection is `{ name, input }`.
+The name selects a part; the other field selects one of that part's named outputs
+or inputs. Connections join outputs to inputs;
+clips read windows from outputs and place them on tracks. These operations
 share addresses but have different timing behavior.
 
 ```toml
 [[body.connections]]
-source = { node = "notes", port = "performance" }
-destination = { node = "piano", port = "performance" }
+source = { name = "notes", output = "performance" }
+destination = { name = "piano", input = "performance" }
 ```
 
 Connections must match the producer's and consumer's resolved contracts. Audio
@@ -97,7 +98,7 @@ audio tracks and buses retain their existing summing and gain semantics. Require
 inputs must be connected or exposed for the caller to supply.
 
 The [full example](composition-example.md) mixes a rehearsal recording, a nested
-drums arrangement and a piano driven by a sequence. It uses four nodes, one event
+drums arrangement and a piano driven by a sequence. It uses four parts, one event
 connection, three audio clips and one public output. No intermediate rendered
 files are required by the composition itself.
 

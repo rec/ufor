@@ -26,7 +26,7 @@ def test_events_use_the_instruments_declared_control_domains(
 ) -> None:
     instrument = SampleInstrument.model_validate(
         {
-            'slices': [{'id': 'pad', 'asset': 'pad', 'end_frame': 48000}],
+            'slices': [{'name': 'pad', 'asset': 'pad', 'end_frame': 48000}],
             'instrument': {
                 'controls': {
                     'pressure': {},
@@ -35,7 +35,7 @@ def test_events_use_the_instruments_declared_control_domains(
             },
             'slots': [
                 {
-                    'id': 'pad',
+                    'name': 'pad',
                     'slice': 'pad',
                     'channels': [{'input': 'mono', 'output': 'mono', 'gain': 1}],
                     'mapping': {

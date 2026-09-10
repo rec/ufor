@@ -3,19 +3,19 @@ from pathlib import Path
 
 import pytest
 
-from ufor.arrangement import ArrangementDocument
-from ufor.codec import document_toml, parse_document
-from ufor.composition import Composition, DefinitionRecord
-from ufor.samples.instrument import InstrumentDocument
-from ufor.sequence import SequenceDocument
+from ufor.arrangement import ArrangementScore
+from ufor.codec import parse_score, score_toml
+from ufor.composition import Composition, ScoreRecord
+from ufor.samples.instrument import InstrumentScore
+from ufor.sequence import SequenceScore
 
 
-def definitions() -> dict[str, DefinitionRecord]:
+def scores() -> dict[str, ScoreRecord]:
     piano = json.loads(Path('conformance/instrument.json').read_text())
-    output = next(p for p in piano['ports'] if p['direction'] == 'output')['stream']
+    output = next(p for p in piano['outputs'])['stream']
     piano['body']['instrument']['modulation']['parameters'] = [
         {
-            'target': {'node': 'processing', 'parameter': 'volume_db'},
+            'target': {'name': 'processing', 'parameter': 'volume_db'},
             'unit': 'db',
             'scope': 'voice',
             'minimum': -60,
@@ -24,17 +24,16 @@ def definitions() -> dict[str, DefinitionRecord]:
         }
     ]
     piano['parameters'] = [
-        {'id': 'level', 'binding': {'node': 'processing', 'parameter': 'volume_db'}}
+        {'name': 'level', 'binding': {'name': 'processing', 'parameter': 'volume_db'}}
     ]
-    notes = SequenceDocument.model_validate(
+    notes = SequenceScore.model_validate(
         {
-            'id': 'notes',
-            'name': 'Notes',
-            'timebases': [{'id': 'ticks', 'rate': {'numerator': 1000}}],
-            'ports': [
+            'name': 'notes',
+            'title': 'Notes',
+            'timebases': [{'name': 'ticks', 'rate': {'numerator': 1000}}],
+            'outputs': [
                 {
-                    'id': 'notes',
-                    'direction': 'output',
+                    'name': 'notes',
                     'stream': {
                         'family': 'event',
                         'timebase': 'ticks',
@@ -69,40 +68,39 @@ def definitions() -> dict[str, DefinitionRecord]:
             },
         }
     )
-    mix = ArrangementDocument.model_validate(
+    mix = ArrangementScore.model_validate(
         {
-            'id': 'mix',
-            'name': 'Mix',
-            'timebases': [{'id': 'output', 'rate': {'numerator': 48000}}],
-            'ports': [
+            'name': 'mix',
+            'title': 'Mix',
+            'timebases': [{'name': 'output', 'rate': {'numerator': 48000}}],
+            'outputs': [
                 {
-                    'id': 'main',
-                    'direction': 'output',
+                    'name': 'main',
                     'stream': output,
                     'binding': {'track': 'mix', 'end': 96000},
                 }
             ],
             'body': {
                 'timebase': 'output',
-                'nodes': [
-                    {'id': 'notes', 'definition': {'path': 'notes.toml'}},
+                'parts': [
+                    {'name': 'notes', 'score': {'path': 'notes.toml'}},
                     {
-                        'id': 'piano',
-                        'definition': {'path': 'piano.toml'},
+                        'name': 'piano',
+                        'score': {'path': 'piano.toml'},
                         'parameters': {'level': -6},
                     },
                 ],
                 'connections': [
                     {
-                        'source': {'node': 'notes', 'port': 'notes'},
-                        'destination': {'node': 'piano', 'port': 'performance'},
+                        'source': {'name': 'notes', 'output': 'notes'},
+                        'destination': {'name': 'piano', 'input': 'performance'},
                     }
                 ],
-                'tracks': [{'id': 'mix', 'stream': output}],
+                'tracks': [{'name': 'mix', 'stream': output}],
                 'clips': [
                     {
-                        'id': 'piano',
-                        'source': {'node': 'piano', 'port': 'audio'},
+                        'name': 'piano',
+                        'source': {'name': 'piano', 'output': 'audio'},
                         'track': 'mix',
                         'source_start': 0,
                         'source_end': 96000,
@@ -113,41 +111,39 @@ def definitions() -> dict[str, DefinitionRecord]:
         }
     )
     return {
-        'mix': DefinitionRecord(
-            document=mix, references={'notes.toml': 'notes', 'piano.toml': 'piano'}
+        'mix': ScoreRecord(
+            score=mix, paths={'notes.toml': 'notes', 'piano.toml': 'piano'}
         ),
-        'notes': DefinitionRecord(document=notes),
-        'piano': DefinitionRecord(document=InstrumentDocument.model_validate(piano)),
+        'notes': ScoreRecord(score=notes),
+        'piano': ScoreRecord(score=InstrumentScore.model_validate(piano)),
     }
 
 
 def test_sequence_drives_an_independently_configured_instrument() -> None:
-    values = definitions()
+    values = scores()
     composition = Composition('mix', values)
-    assert composition.instances['root/piano'].parameters == {'level': -6}
+    assert composition.parts['root/piano'].parameters == {'level': -6}
     trace = composition.performance_trace(96000)
-    assert [(e.instance, e.event.kind, e.event.tick) for e in trace] == [
+    assert [(e.part, e.event.kind, e.event.tick) for e in trace] == [
         ('root/piano', 'trigger', 480),
         ('root/piano', 'release', 43200),
     ]
     assert composition.performance_trace(96000, start=48000) == trace
-    assert (
-        parse_document(document_toml(values['mix'].document)) == values['mix'].document
-    )
+    assert parse_score(score_toml(values['mix'].score)) == values['mix'].score
 
 
 def test_cropped_nested_instances_replay_their_own_histories() -> None:
-    values = definitions()
-    mix = values['mix'].document
+    values = scores()
+    mix = values['mix'].score
     raw = mix.model_dump()
-    raw['body']['nodes'] = [
-        {'id': n, 'definition': {'path': 'mix.toml'}} for n in ('first', 'second')
+    raw['body']['parts'] = [
+        {'name': n, 'score': {'path': 'mix.toml'}} for n in ('first', 'second')
     ]
     raw['body']['connections'] = []
     raw['body']['clips'] = [
         {
-            'id': n,
-            'source': {'node': n, 'port': 'main'},
+            'name': n,
+            'source': {'name': n, 'output': 'main'},
             'track': 'mix',
             'source_start': 48000,
             'source_end': 96000,
@@ -155,9 +151,9 @@ def test_cropped_nested_instances_replay_their_own_histories() -> None:
         }
         for n in ('first', 'second')
     ]
-    raw['ports'][0]['binding']['end'] = 48000
-    values['outer'] = DefinitionRecord(
-        document=ArrangementDocument.model_validate(raw), references={'mix.toml': 'mix'}
+    raw['outputs'][0]['binding']['end'] = 48000
+    values['outer'] = ScoreRecord(
+        score=ArrangementScore.model_validate(raw), paths={'mix.toml': 'mix'}
     )
     composition = Composition('outer', values)
     assert composition.evaluation_windows(0, 48000)[('root/first/piano', 'audio')] == (
@@ -166,7 +162,7 @@ def test_cropped_nested_instances_replay_their_own_histories() -> None:
     )
     trace = composition.performance_trace(48000)
     assert len(trace) == 4
-    assert {e.instance for e in trace} == {'root/first/piano', 'root/second/piano'}
+    assert {e.part for e in trace} == {'root/first/piano', 'root/second/piano'}
     assert composition.performance_trace(48000) == trace
 
 
@@ -174,7 +170,7 @@ def test_cropped_nested_instances_replay_their_own_histories() -> None:
     'change, message',
     [
         ('missing', 'Missing|missing'),
-        ('private', 'unknown public port'),
+        ('private', 'unknown public output'),
         ('parameter', 'unknown public parameters'),
         ('range', 'outside public range'),
         ('cycle', 'cycle'),
@@ -184,25 +180,25 @@ def test_cropped_nested_instances_replay_their_own_histories() -> None:
 def test_resolution_rejects_invalid_references_and_configuration(
     change: str, message: str
 ) -> None:
-    values = definitions()
-    raw = values['mix'].document.model_dump()
+    values = scores()
+    raw = values['mix'].score.model_dump()
     if change == 'missing':
         del values['piano']
     elif change == 'private':
-        raw['body']['clips'][0]['source']['port'] = 'private'
+        raw['body']['clips'][0]['source']['output'] = 'private'
     elif change == 'parameter':
-        raw['body']['nodes'][1]['parameters'] = {'private': 0}
+        raw['body']['parts'][1]['parameters'] = {'private': 0}
     elif change == 'range':
-        raw['body']['nodes'][1]['parameters'] = {'level': 20}
+        raw['body']['parts'][1]['parameters'] = {'level': 20}
     elif change == 'cycle':
         values['mix'] = values['mix'].model_copy(
-            update={'references': {'notes.toml': 'mix', 'piano.toml': 'piano'}}
+            update={'paths': {'notes.toml': 'mix', 'piano.toml': 'piano'}}
         )
     elif change == 'pin':
-        raw['body']['nodes'][1]['definition']['sha256'] = 'f' * 64
+        raw['body']['parts'][1]['score']['sha256'] = 'f' * 64
     if change != 'cycle':
         values['mix'] = values['mix'].model_copy(
-            update={'document': ArrangementDocument.model_validate(raw)}
+            update={'score': ArrangementScore.model_validate(raw)}
         )
     with pytest.raises(ValueError, match=message):
         Composition('mix', values)
@@ -210,39 +206,37 @@ def test_resolution_rejects_invalid_references_and_configuration(
 
 def test_unrepresentable_event_ticks_and_missing_pitch_are_rejected() -> None:
     for bad_clock in (True, False):
-        values = definitions()
-        raw = values['notes'].document.model_dump()
+        values = scores()
+        raw = values['notes'].score.model_dump()
         if bad_clock:
             raw['timebases'][0]['rate']['numerator'] = 1001
         else:
             raw['body']['events'][0]['pitch_hz'] = None
-        values['notes'] = DefinitionRecord(
-            document=SequenceDocument.model_validate(raw)
-        )
+        values['notes'] = ScoreRecord(score=SequenceScore.model_validate(raw))
         with pytest.raises(ValueError, match='integer tick|pitch_hz'):
             Composition('mix', values)
 
 
 def test_parent_parameter_inherits_child_configuration_and_can_narrow_it() -> None:
-    values = definitions()
-    raw = values['mix'].document.model_dump()
+    values = scores()
+    raw = values['mix'].score.model_dump()
     raw['parameters'] = [
         {
-            'id': 'volume',
-            'binding': {'node': 'piano', 'parameter': 'level'},
+            'name': 'volume',
+            'binding': {'name': 'piano', 'parameter': 'level'},
             'minimum': -30,
             'maximum': 0,
         }
     ]
     values['mix'] = values['mix'].model_copy(
-        update={'document': ArrangementDocument.model_validate(raw)}
+        update={'score': ArrangementScore.model_validate(raw)}
     )
     composition = Composition('mix', values, {'volume': -12})
     assert composition.parameter_contract('mix', 'volume').default == -6
-    assert composition.instances['root/piano'].parameters['level'] == -12
+    assert composition.parts['root/piano'].parameters['level'] == -12
     raw['parameters'][0]['minimum'] = -100
     values['mix'] = values['mix'].model_copy(
-        update={'document': ArrangementDocument.model_validate(raw)}
+        update={'score': ArrangementScore.model_validate(raw)}
     )
     with pytest.raises(ValueError, match='widen'):
         Composition('mix', values)
@@ -252,27 +246,27 @@ def test_worked_example_and_longer_tail_do_not_extend_recordings() -> None:
     root = Path('conformance/composition').resolve()
     values = {}
     for path in root.rglob('*.toml'):
-        document = parse_document(path.read_text())
-        references = (
+        score = parse_score(path.read_text())
+        paths = (
             {
-                n.definition.path: str((path.parent / n.definition.path).resolve())
-                for n in document.body.nodes
+                n.score.path: str((path.parent / n.score.path).resolve())
+                for n in score.body.parts
             }
-            if isinstance(document, ArrangementDocument)
+            if isinstance(score, ArrangementScore)
             else {}
         )
-        values[str(path)] = DefinitionRecord(document=document, references=references)
+        values[str(path)] = ScoreRecord(score=score, paths=paths)
     identity = str(root / 'concert.toml')
     composition = Composition(identity, values)
     assert [e.event.kind for e in composition.performance_trace(480000)] == [
         'trigger',
         'release',
     ]
-    raw = values[identity].document.model_dump()
-    raw['ports'][0]['binding']['end'] = 576000
+    raw = values[identity].score.model_dump()
+    raw['outputs'][0]['binding']['end'] = 576000
     raw['body']['clips'][2]['source_end'] = 576000
     values[identity] = values[identity].model_copy(
-        update={'document': ArrangementDocument.model_validate(raw)}
+        update={'score': ArrangementScore.model_validate(raw)}
     )
     longer = Composition(identity, values)
     assert longer.performance_trace(576000) == composition.performance_trace(480000)
@@ -283,36 +277,95 @@ def test_worked_example_and_longer_tail_do_not_extend_recordings() -> None:
 
 
 def test_event_fanout_keeps_receivers_independent() -> None:
-    values = definitions()
-    raw = values['mix'].document.model_dump()
-    raw['body']['nodes'].append(
+    values = scores()
+    raw = values['mix'].score.model_dump()
+    raw['body']['parts'].append(
         {
-            'id': 'second',
-            'definition': {'path': 'piano.toml'},
+            'name': 'second',
+            'score': {'path': 'piano.toml'},
             'parameters': {'level': -12},
         }
     )
     raw['body']['connections'].append(
         {
-            'source': {'node': 'notes', 'port': 'notes'},
-            'destination': {'node': 'second', 'port': 'performance'},
+            'source': {'name': 'notes', 'output': 'notes'},
+            'destination': {'name': 'second', 'input': 'performance'},
         }
     )
     raw['body']['clips'].append(
         dict(
             raw['body']['clips'][0],
-            id='second',
-            source={'node': 'second', 'port': 'audio'},
+            name='second',
+            source={'name': 'second', 'output': 'audio'},
         )
     )
     values['mix'] = values['mix'].model_copy(
-        update={'document': ArrangementDocument.model_validate(raw)}
+        update={'score': ArrangementScore.model_validate(raw)}
     )
     composition = Composition('mix', values)
     trace = composition.performance_trace(96000)
     assert len(trace) == 4
-    assert [e.event for e in trace if e.instance == 'root/piano'] == [
-        e.event for e in trace if e.instance == 'root/second'
+    assert [e.event for e in trace if e.part == 'root/piano'] == [
+        e.event for e in trace if e.part == 'root/second'
     ]
-    assert composition.instances['root/second'].parameters == {'level': -12}
-    assert composition.instances['root/piano'].parameters == {'level': -6}
+    assert composition.parts['root/second'].parameters == {'level': -12}
+    assert composition.parts['root/piano'].parameters == {'level': -6}
+
+
+def test_forwarded_input_and_output_can_share_a_name() -> None:
+    values = scores()
+    piano = values['piano'].score
+    raw = piano.model_dump()
+    raw['inputs'][0]['name'] = 'audio'
+    values['piano'] = ScoreRecord(score=InstrumentScore.model_validate(raw))
+    wrapper = ArrangementScore.model_validate(
+        {
+            'name': 'wrapper',
+            'title': 'Wrapped piano',
+            'timebases': [
+                t for t in piano.timebases if t.name == piano.outputs[0].stream.timebase
+            ],
+            'inputs': [
+                {
+                    'name': 'audio',
+                    'stream': piano.inputs[0].stream,
+                    'binding': {'name': 'inside', 'input': 'audio'},
+                }
+            ],
+            'outputs': [
+                {
+                    'name': 'audio',
+                    'stream': piano.outputs[0].stream,
+                    'binding': {'name': 'inside', 'output': 'audio'},
+                }
+            ],
+            'body': {
+                'timebase': piano.outputs[0].stream.timebase,
+                'parts': [{'name': 'inside', 'score': {'path': 'piano.toml'}}],
+            },
+        }
+    )
+    values['wrapper'] = ScoreRecord(score=wrapper, paths={'piano.toml': 'piano'})
+    raw = values['mix'].score.model_dump()
+    raw['body']['parts'][1]['parameters'] = {}
+    raw['body']['connections'][0]['destination']['input'] = 'audio'
+    values['mix'] = ScoreRecord(
+        score=ArrangementScore.model_validate(raw),
+        paths={'notes.toml': 'notes', 'piano.toml': 'wrapper'},
+    )
+    composition = Composition('mix', values)
+    deliveries = composition.performance_trace(96000)
+    assert [d.part for d in deliveries] == ['root/piano/inside', 'root/piano/inside']
+    assert [d.input for d in deliveries] == ['audio', 'audio']
+    assert [d.event.tick for d in deliveries] == [480, 43200]
+
+
+def test_score_version_accepts_an_optional_hash_but_not_old_selections() -> None:
+    from ufor.interface import InputSelection, OutputSelection, ScoreVersion
+
+    assert ScoreVersion(path='piano.toml').sha256 is None
+    assert ScoreVersion(path='piano.toml', sha256='a' * 64).sha256 == 'a' * 64
+    with pytest.raises(ValueError):
+        InputSelection.model_validate({'name': 'piano', 'output': 'audio'})
+    with pytest.raises(ValueError):
+        OutputSelection.model_validate({'node': 'piano', 'port': 'audio'})

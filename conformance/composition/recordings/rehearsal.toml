@@ -1,34 +1,34 @@
 format = "recs"
-version = 2
-id = "rehearsal"
-name = "Rehearsal"
+version = 3
+name = "rehearsal"
+title = "Rehearsal"
 parameters = []
 kind = "recording"
+inputs = []
 
 [[timebases]]
-id = "audio"
+name = "audio"
 kind = "physical"
 
 [timebases.rate]
 numerator = 48000
 denominator = 1
 
-[[ports]]
-id = "desk"
-direction = "output"
+[[outputs]]
+name = "desk"
 
-[ports.stream]
+[outputs.stream]
 family = "sampled"
 quantity = "audio_amplitude"
 unit = "full_scale"
 timebase = "audio"
 channels = ["left", "right"]
 
-[ports.binding]
+[outputs.binding]
 stream = "desk"
 
 [[assets]]
-id = "take"
+name = "take"
 path = "take.wav"
 encoding = "WAV/FLOAT"
 byte_length = 3840044
@@ -42,7 +42,7 @@ continued_at = []
 
 [[body.streams]]
 kind = "audio"
-id = "desk"
+name = "desk"
 source_id = "desk"
 end = 480000
 unmapped_fragments = []

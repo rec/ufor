@@ -1,14 +1,14 @@
 {
   "format": "recs",
-  "version": 2,
-  "id": "glass",
-  "name": "Glass",
+  "version": 3,
+  "name": "glass",
+  "title": "Glass",
   "kind": "instrument",
   "description": null,
   "tags": [],
   "timebases": [
     {
-      "id": "output",
+      "name": "output",
       "kind": "physical",
       "rate": {
         "numerator": 48000,
@@ -16,7 +16,7 @@
       }
     },
     {
-      "id": "native-44100",
+      "name": "native-44100",
       "kind": "physical",
       "rate": {
         "numerator": 44100,
@@ -26,7 +26,7 @@
   ],
   "assets": [
     {
-      "id": "asset-1",
+      "name": "asset-1",
       "path": "audio/glass.wav",
       "encoding": "WAV/PCM_16",
       "byte_length": 88244,
@@ -44,7 +44,7 @@
     "kind": "sample_instrument",
     "slices": [
       {
-        "id": "slice-1",
+        "name": "slice-1",
         "asset": "asset-1",
         "start_frame": 10,
         "end_frame": 1000,
@@ -158,7 +158,7 @@
           "parameters": [
             {
               "target": {
-                "node": "processing",
+                "name": "processing",
                 "parameter": "amplitude"
               },
               "unit": "ratio",
@@ -170,7 +170,7 @@
           ],
           "sources": [
             {
-              "id": "velocity",
+              "name": "velocity",
               "scope": "voice",
               "minimum": 0.0,
               "maximum": 1.0
@@ -178,10 +178,10 @@
           ],
           "routes": [
             {
-              "id": "velocity-amplitude",
+              "name": "velocity-amplitude",
               "source": "velocity",
               "target": {
-                "node": "processing",
+                "name": "processing",
                 "parameter": "amplitude"
               },
               "operation": "multiply",
@@ -706,11 +706,11 @@
         },
         "bindings": [
           {
-            "id": "velocity",
+            "name": "velocity",
             "kind": "velocity"
           }
         ],
-        "id": "region-1",
+        "name": "region-1",
         "slice": "slice-1",
         "mapping": {
           "lowest_key": 69,
@@ -733,7 +733,7 @@
             "gain": 0.7071067811865476
           }
         ],
-        "name": null,
+        "title": null,
         "description": null,
         "tags": [],
         "playback": {
@@ -749,10 +749,26 @@
       }
     ]
   },
-  "ports": [
+  "inputs": [
     {
-      "id": "audio",
-      "direction": "output",
+      "name": "performance",
+      "stream": {
+        "family": "event",
+        "timebase": "output",
+        "kinds": [
+          "trigger",
+          "release",
+          "control_change"
+        ]
+      },
+      "binding": {
+        "performance": true
+      }
+    }
+  ],
+  "outputs": [
+    {
+      "name": "audio",
       "stream": {
         "family": "sampled",
         "quantity": "audio_amplitude",
@@ -765,22 +781,6 @@
       },
       "binding": {
         "audio": true
-      }
-    },
-    {
-      "id": "performance",
-      "direction": "input",
-      "stream": {
-        "family": "event",
-        "timebase": "output",
-        "kinds": [
-          "trigger",
-          "release",
-          "control_change"
-        ]
-      },
-      "binding": {
-        "performance": true
       }
     }
   ],

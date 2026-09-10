@@ -5,27 +5,29 @@ import pytest
 from pydantic import ValidationError
 
 from ufor.assets import Asset
-from ufor.codec import document_toml, parse_document
+from ufor.codec import parse_score, score_toml
 from ufor.recording import (
     AudioFragment,
     AudioStream,
     Gap,
     Recording,
-    RecordingDocument,
+    RecordingScore,
 )
 from ufor.streams import AudioType
 from ufor.time import Rate, Timebase
 
 
-def recording() -> RecordingDocument:
-    return RecordingDocument(
-        id='session',
-        name='Session',
+def recording() -> RecordingScore:
+    return RecordingScore(
+        name='session',
+        title='Session',
         assets=[
-            Asset(id=i, path=f'{i}.wav', encoding='wav', byte_length=1, sha256='0' * 64)
+            Asset(
+                name=i, path=f'{i}.wav', encoding='wav', byte_length=1, sha256='0' * 64
+            )
             for i in ('journal', 'take')
         ],
-        timebases=[Timebase(id='audio', rate=Rate(numerator=48000))],
+        timebases=[Timebase(name='audio', rate=Rate(numerator=48000))],
         body=Recording(
             state='sealed',
             started_at='2026-09-04T12:00:00Z',
@@ -33,7 +35,7 @@ def recording() -> RecordingDocument:
             journal='journal',
             streams=[
                 AudioStream(
-                    id='desk',
+                    name='desk',
                     source_id='audio:desk',
                     end=144000,
                     stream=AudioType(timebase='audio', channels=['left']),
@@ -50,7 +52,7 @@ def recording() -> RecordingDocument:
 
 def test_recording_round_trip_preserves_gaps_and_native_counts() -> None:
     value = recording()
-    assert parse_document(document_toml(value)) == value
+    assert parse_score(score_toml(value)) == value
     stream = value.body.streams[0]
     assert isinstance(stream, AudioStream)
     assert stream.end == 144000
@@ -61,7 +63,7 @@ def test_recording_rejects_unknown_assets() -> None:
     data = recording().model_dump()
     data['assets'] = data['assets'][:1]
     with pytest.raises(ValidationError, match='unknown asset'):
-        RecordingDocument.model_validate(data)
+        RecordingScore.model_validate(data)
 
 
 def test_gap_cannot_cover_recorded_audio() -> None:
@@ -84,8 +86,8 @@ def test_documented_recording_and_sequence_examples_round_trip() -> None:
     examples = re.findall(r'```toml\n(.*?)```', path.read_text(), re.DOTALL)
     assert len(examples) == 2
     for example in examples:
-        value = parse_document(example)
-        assert parse_document(document_toml(value)) == value
+        value = parse_score(example)
+        assert parse_score(score_toml(value)) == value
 
 
 @pytest.mark.parametrize('schema, kind', [('midi', 'trigger'), ('osc', 'midi')])
@@ -96,5 +98,5 @@ def test_event_stream_rejects_contradictory_payload_kind(
 
     with pytest.raises(ValueError, match='event kind'):
         EventStream(
-            id='events', source_id='input', event_schema=schema, event_kind=kind
+            name='events', source_id='input', event_schema=schema, event_kind=kind
         )

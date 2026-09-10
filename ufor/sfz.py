@@ -12,12 +12,12 @@ from pydantic import Field, ValidationError
 from . import base, envelope, modulation
 from .assets import Asset, AudioDescription
 from .control import Clock, Scope
-from .interface import AudioBinding, Direction, EventType, PerformanceBinding, Port
+from .interface import AudioBinding, EventType, Input, Output, PerformanceBinding
 from .samples import controls, crossfade, enums, playback, processing, selection
 from .samples.instrument import (
     AudioAsset,
     Instrument,
-    InstrumentDocument,
+    InstrumentScore,
     SampleInstrument,
     SampleSlot,
 )
@@ -46,7 +46,7 @@ class UnimplementedFeature(base.Model):
 
 
 class SfzReadResult(base.Model):
-    instrument: InstrumentDocument | None
+    instrument: InstrumentScore | None
     unimplemented: list[UnimplementedFeature] = Field(default_factory=list)
 
     @property
@@ -83,15 +83,15 @@ class Opcode(base.Model):
 
 
 class InstrumentMetadata(base.Model):
-    version: Literal[1]
-    name: str
+    version: Literal[2]
+    title: str
     description: str | None
     tags: list[str]
 
 
 class SlotMetadata(base.Model):
-    id: str
-    name: str | None
+    name: str
+    title: str | None
     description: str | None
     tags: list[str]
 
@@ -139,8 +139,8 @@ def sample_paths(source: SfzSource) -> list[str]:
 def compile(
     source: SfzSource,
     *,
-    id: str,
     name: str,
+    title: str,
     assets: dict[str, AudioMetadata],
     output_timebase: Timebase,
     output_channels: list[str],
@@ -149,16 +149,16 @@ def compile(
     paths = sample_paths(source)
     asset_ids = {p: f'asset-{i}' for i, p in enumerate(paths, 1)}
     native_assets: list[AudioAsset] = []
-    clocks = {output_timebase.id: output_timebase}
+    clocks = {output_timebase.name: output_timebase}
     for path in paths:
         metadata = assets[path]
         clock = Timebase(
-            id=f'native-{metadata.sample_rate}',
+            name=f'native-{metadata.sample_rate}',
             rate=Rate(numerator=metadata.sample_rate),
         )
-        if clock.id in clocks and clocks[clock.id] != clock:
+        if clock.name in clocks and clocks[clock.name] != clock:
             raise ValueError('Output timebase conflicts with a native asset clock')
-        clocks[clock.id] = clock
+        clocks[clock.name] = clock
         channels = (
             ['mono']
             if metadata.channels == 1
@@ -168,13 +168,13 @@ def compile(
         )
         native_assets.append(
             AudioAsset(
-                id=asset_ids[path],
+                name=asset_ids[path],
                 path=path,
                 encoding=metadata.encoding,
                 byte_length=metadata.byte_length,
                 sha256=metadata.sha256,
                 audio=AudioDescription(
-                    timebase=clock.id, channels=channels, frames=metadata.frames
+                    timebase=clock.name, channels=channels, frames=metadata.frames
                 ),
             )
         )
@@ -194,30 +194,30 @@ def compile(
             slices.append(sample_slice)
     document = None
     if slots:
-        document = InstrumentDocument.model_validate(
+        document = InstrumentScore.model_validate(
             dict(
-                id=id,
                 name=name,
+                title=title,
                 timebases=list(clocks.values()),
                 assets=native_assets,
-                ports=[
-                    Port(
-                        id='audio',
-                        direction=Direction.output,
-                        stream=AudioType(
-                            timebase=output_timebase.id, channels=output_channels
-                        ),
-                        binding=AudioBinding(),
-                    ),
-                    Port(
-                        id='performance',
-                        direction=Direction.input,
+                inputs=[
+                    Input(
+                        name='performance',
                         stream=EventType(
-                            timebase=output_timebase.id,
+                            timebase=output_timebase.name,
                             kinds=['trigger', 'release', 'control_change'],
                         ),
                         binding=PerformanceBinding(),
-                    ),
+                    )
+                ],
+                outputs=[
+                    Output(
+                        name='audio',
+                        stream=AudioType(
+                            timebase=output_timebase.name, channels=output_channels
+                        ),
+                        binding=AudioBinding(),
+                    )
                 ],
                 body=SampleInstrument(
                     instrument=Instrument(
@@ -234,7 +234,7 @@ def compile(
     return SfzReadResult(instrument=document, unimplemented=unimplemented)
 
 
-def write(instrument: InstrumentDocument) -> SfzWriteResult:
+def write(instrument: InstrumentScore) -> SfzWriteResult:
     """Serialize a native instrument without reading or writing sample assets."""
     issues: list[UnimplementedFeature] = []
     _instrument_issues(instrument, issues)
@@ -246,8 +246,8 @@ def write(instrument: InstrumentDocument) -> SfzWriteResult:
             continue
         metadata = '// recs:slot ' + _json(
             {
-                'id': slot.id,
                 'name': slot.name,
+                'title': slot.title,
                 'description': slot.description,
                 'tags': slot.tags,
             }
@@ -268,8 +268,8 @@ def write(instrument: InstrumentDocument) -> SfzWriteResult:
         '// recs:instrument '
         + _json(
             {
-                'version': 1,
-                'name': instrument.name,
+                'version': 2,
+                'title': instrument.title,
                 'description': instrument.description,
                 'tags': instrument.tags,
             }
@@ -323,7 +323,7 @@ def _channel_routes(channels: int, outputs: list[str]) -> list[processing.Channe
 
 
 def _instrument_issues(
-    document: InstrumentDocument, issues: list[UnimplementedFeature]
+    document: InstrumentScore, issues: list[UnimplementedFeature]
 ) -> None:
     instrument = document.body.instrument
     if instrument.selections:
@@ -396,22 +396,22 @@ def _sound_issues(
 
 
 def _region(
-    document: InstrumentDocument,
+    document: InstrumentScore,
     slot: SampleSlot,
     index: int,
     groups: dict[str, int],
     issues: list[UnimplementedFeature],
 ) -> list[Opcode] | None:
     path = f'body.slots[{index}]'
-    sample_slice = next(s for s in document.body.slices if s.id == slot.slice)
-    asset = next(a for a in document.assets if a.id == sample_slice.asset)
+    sample_slice = next(s for s in document.body.slices if s.name == slot.slice)
+    asset = next(a for a in document.assets if a.name == sample_slice.asset)
     sample = asset.path
     try:
         expected_channels = _channel_routes(
             len(asset.audio.channels),
             next(
                 p.stream.channels
-                for p in document.ports
+                for p in document.outputs
                 if isinstance(p.stream, AudioType)
             ),
         )
@@ -438,8 +438,8 @@ def _region(
         return None
 
     opcodes = [Opcode(name='sample', value=sample)]
-    if slot.name is not None and _safe_value(slot.name):
-        opcodes.insert(0, Opcode(name='region_label', value=slot.name))
+    if slot.title is not None and _safe_value(slot.title):
+        opcodes.insert(0, Opcode(name='region_label', value=slot.title))
     opcodes.extend(_mapping(slot.mapping))
     opcodes.extend(_trigger_opcodes(slot, path, issues))
     opcodes.extend(_choking(slot, path, groups, issues))
@@ -453,7 +453,7 @@ def _region(
 
 
 def _diagnose_omitted_slot(
-    document: InstrumentDocument,
+    document: InstrumentScore,
     slot: SampleSlot,
     path: str,
     groups: dict[str, int],
@@ -570,7 +570,7 @@ def _trigger_opcodes(
     return []
 
 
-def _choke_groups(document: InstrumentDocument) -> dict[str, int]:
+def _choke_groups(document: InstrumentScore) -> dict[str, int]:
     groups: dict[str, int] = {}
     for slot in document.body.slots:
         if slot.choke_group is not None and slot.choke_group not in groups:
@@ -619,14 +619,14 @@ def _choking(
 
 
 def _playback_opcodes(
-    document: InstrumentDocument,
+    document: InstrumentScore,
     slot: SampleSlot,
     path: str,
     issues: list[UnimplementedFeature],
 ) -> list[Opcode]:
     instrument = document.body.instrument.playback
     value = slot.playback
-    sample_slice = next(s for s in document.body.slices if s.id == slot.slice)
+    sample_slice = next(s for s in document.body.slices if s.name == slot.slice)
     direction = value.direction if value.direction is not None else instrument.direction
     direction_path = (
         f'{path}.playback.direction'
@@ -684,7 +684,7 @@ def _playback_opcodes(
 
 
 def _processing_opcodes(
-    document: InstrumentDocument,
+    document: InstrumentScore,
     slot: SampleSlot,
     path: str,
     issues: list[UnimplementedFeature],
@@ -745,7 +745,7 @@ def _processing_opcodes(
 
 
 def _envelope_opcodes(
-    document: InstrumentDocument,
+    document: InstrumentScore,
     slot: SampleSlot,
     path: str,
     issues: list[UnimplementedFeature],
@@ -798,9 +798,9 @@ def _modulation_opcodes(
     supported: list[modulation.Route] = []
     for i, curve in enumerate(slot.modulation.routes):
         if (
-            curve.target == modulation.Target(node='processing', parameter='amplitude')
+            curve.target == modulation.Target(name='processing', parameter='amplitude')
             and any(
-                b.id == curve.source and b.kind == 'velocity' for b in slot.bindings
+                b.name == curve.source and b.kind == 'velocity' for b in slot.bindings
             )
             and curve.operation == modulation.Operation.multiply
             and curve.interpolation == modulation.Interpolation.linear
@@ -1021,7 +1021,7 @@ def _metadata(
             if kind == 'instrument':
                 if not isinstance(data, dict):
                     raise ValueError('Recs instrument metadata must be a JSON object')
-                if data.get('version') != 1:
+                if data.get('version') != 2:
                     issues.append(
                         UnimplementedFeature(
                             location=SfzLocation(
@@ -1306,17 +1306,17 @@ def _slot(
     ) / sample.replace('\\', '/')
     metadata = asset_metadata[str(sample_path)]
     kwargs: dict[str, object] = {
-        'id': f'region-{index}',
+        'name': f'region-{index}',
         'slice': f'slice-{index}',
         'mapping': mapping,
         'channels': _channel_routes(metadata.channels, output_channels),
     }
     if name := values.get('region_label'):
-        kwargs['name'] = name
+        kwargs['title'] = name
     result = _playback(index, values, declarations, metadata, unimplemented)
     sample_slice = playback.Slice.model_validate(
         dict(
-            id=f'slice-{index}',
+            name=f'slice-{index}',
             asset=asset_ids[str(sample_path)],
             start_frame=result.pop('start_frame', 0),
             end_frame=result.pop('end_frame', metadata.frames),
@@ -1330,7 +1330,7 @@ def _slot(
     if result := _velocity_modulation(values):
         kwargs['modulation'] = modulation.Modulation(
             sources=[
-                modulation.Source(id='velocity', scope='voice', minimum=0, maximum=1)
+                modulation.Source(name='velocity', scope='voice', minimum=0, maximum=1)
             ],
             parameters=[
                 modulation.Parameter(
@@ -1344,7 +1344,7 @@ def _slot(
             ],
             routes=[result],
         )
-        kwargs['bindings'] = [processing.EventBinding(id='velocity', kind='velocity')]
+        kwargs['bindings'] = [processing.EventBinding(name='velocity', kind='velocity')]
     if result := _crossfades(values):
         kwargs['crossfades'] = result
     if result := _trigger(values, declarations, unimplemented):
@@ -1554,10 +1554,10 @@ def _velocity_modulation(values: dict[str, str]) -> modulation.Route | None:
         else [proportion * (1 - a) for a in curve]
     )
     return modulation.Route(
-        id='velocity-amplitude',
+        name='velocity-amplitude',
         source='velocity',
         unit=modulation.Unit.ratio,
-        target=modulation.Target(node='processing', parameter='amplitude'),
+        target=modulation.Target(name='processing', parameter='amplitude'),
         operation=modulation.Operation.multiply,
         points=[modulation.Point(input=v / 127, amount=a) for v, a in enumerate(gains)],
     )

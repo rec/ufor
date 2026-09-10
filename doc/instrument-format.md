@@ -1,6 +1,6 @@
 # Sample instrument format
 
-The native `instrument` document, sample models, source bindings, and pure SFZ
+The native `instrument` score, sample models, source bindings, and pure SFZ
 conversion are implemented in Ufor. `ufor.codec` reads and writes this profile
 alongside recordings, sequences, arrangements, tunings, scales, oscillators,
 envelopes, and LFOs. The defining modules are `ufor.samples.*` and `ufor.sfz`.
@@ -14,7 +14,7 @@ work. There is no sampler, waveform renderer, scheduler, or plugin host.
 
 The defining module is `ufor.events`. `Trigger`, `Release`, and `ControlChange`
 extend the same native `Event` envelope as captured MIDI, OSC, and keys. They
-belong to both `PerformanceEvent` and `StoredEvent`. Common sequence documents
+belong to both `PerformanceEvent` and `StoredEvent`. Common sequence scores
 and native JSONL parsing can therefore carry semantic performance events.
 Recording event-kind filters also recognize their three kind names. Existing
 capture adapters do not infer musical triggers from incoming raw MIDI.
@@ -63,19 +63,19 @@ An audio or envelope adapter converts a native tick exactly as
 logical gate events at that rational coordinate while retaining ordering.
 Physical release is not automatically logical gate release when sustain is
 active. These Ufor event classes replace Recsam's former nonnegative `frame`
-field and its implicit list-order tie breaking. The remaining Recsam declarations now use the native document below.
+field and its implicit list-order tie breaking. The remaining Recsam declarations now use the native score below.
 
 ## Modulation routes
 
 `ufor.modulation.Modulation` is an embedded collection of typed `parameters`,
 `sources`, and `routes`. It is a fragment for instrument/processor bodies,
-not another native document root. Its schema is
+not another native score root. Its schema is
 [schema/modulation.json](../schema/modulation.json); its numerical cases are
 [conformance/routes.json](../conformance/routes.json).
 
 | Model | Fields and ownership |
 | --- | --- |
-| `Target` | Structured `{node, parameter}` identity; neither field is a dotted path |
+| `Target` | Structured `{part, parameter}` identity; neither field is a dotted path |
 | `Parameter` | Target, unit, voice/instrument scope, finite minimum/maximum, and in-domain default |
 | `Source` | Local source ID, instrument/part/trigger/voice scope, and finite input domain |
 | `Route` | Stable ID, source ID, target, add/multiply operation, output unit, ordered mapping points, interpolation |
@@ -131,15 +131,15 @@ is duplicated in a route. The instrument validator verifies that source scope an
 generator/control declaration. The sample profile also preserves conservative
 combined pan/balance bounds; the generic evaluator still checks actual results.
 
-## Native instrument document
+## Native instrument score
 
-`InstrumentDocument` uses the common header and `kind = "instrument"`.
+`InstrumentScore` uses the common header and `kind = "instrument"`.
 `body.kind = "sample_instrument"` identifies the specialized musical body.
-There is one native format; the old `format_version` document is removed.
+There is one native format; the old `format_version` score is removed.
 
 | Owner | Fields |
 | --- | --- |
-| Root | `id`, `name`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `ports` and `parameters`, `body` |
+| Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |
 | Body | `instrument` defaults, named `slices`, nonempty `slots` |
 | Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
@@ -151,31 +151,31 @@ within the slice. Asset paths cannot be absolute, URLs, or contain `..`.
 The application checks symlinks, hashes, actual decoding, and file availability.
 
 This complete example uses synthetic asset metadata for illustration. Its zero
-hash is not a claim about an existing file. Real documents require measured
+hash is not a claim about an existing file. Real scores require measured
 asset facts, as supplied by Recs' importer.
 
 ```toml
 format = "recs"
-version = 2
+version = 3
 kind = "instrument"
-id = "glass"
-name = "Glass"
+name = "glass"
+title = "Glass"
 parameters = []
 
 [[timebases]]
-id = "native"
+name = "native"
 
 [timebases.rate]
 numerator = 44100
 
 [[timebases]]
-id = "output"
+name = "output"
 
 [timebases.rate]
 numerator = 48000
 
 [[assets]]
-id = "glass"
+name = "glass"
 path = "audio/glass.wav"
 encoding = "WAV/PCM_16"
 byte_length = 88244
@@ -192,12 +192,12 @@ kind = "sample_instrument"
 [body.instrument]
 
 [[body.slices]]
-id = "whole"
+name = "whole"
 asset = "glass"
 end_frame = 44100
 
 [[body.slots]]
-id = "middle"
+name = "middle"
 slice = "whole"
 
 [[body.slots.channels]]
@@ -215,28 +215,26 @@ lowest_key = 48
 highest_key = 84
 reference_pitch_hz = 440.0
 
-[[ports]]
-id = "audio"
-direction = "output"
+[[inputs]]
+name = "performance"
 
-[ports.stream]
-timebase = "output"
-channels = ["left", "right"]
-
-[ports.binding]
-audio = true
-
-[[ports]]
-id = "performance"
-direction = "input"
-
-[ports.stream]
+[inputs.stream]
 family = "event"
 timebase = "output"
 kinds = ["trigger", "release", "control_change"]
 
-[ports.binding]
+[inputs.binding]
 performance = true
+
+[[outputs]]
+name = "audio"
+
+[outputs.stream]
+timebase = "output"
+channels = ["left", "right"]
+
+[outputs.binding]
+audio = true
 ```
 
 The [SFZ input](../conformance/instrument.sfz) and
@@ -244,7 +242,7 @@ The [SFZ input](../conformance/instrument.sfz) and
 conversion case with explicit synthetic metadata. They cover 44.1/48 kHz
 separation, exact envelope times, slice endpoints, and velocity mapping without
 loading or generating audio. JSON Schema lives in
-[documents.json](../schema/documents.json).
+[scores.json](../schema/scores.json).
 
 ## Musical settings and inheritance
 
@@ -261,7 +259,7 @@ A slot's amplitude `envelope` is either absent or one complete shared
 `ufor.envelope.Envelope`; it never merges individual stages. The instrument
 supplies a default instantaneous gate. Amplitude envelopes are unipolar and
 voice-scoped. Named `envelopes` and `lfos` are dictionaries keyed by local IDs,
-using the same definitions as standalone envelope and LFO documents.
+using the same definitions as standalone envelope and LFO scores.
 
 Key and velocity ranges are inclusive. Keys are unrestricted integers, independent
 of pitch. Pitch tracking requires `reference_pitch_hz`; the eventual player also
@@ -321,9 +319,9 @@ be shared by voices through explicit bindings; slot generators are voice-only.
 LFO activation weight remains separate from its scalar signal. There is no
 second sample-specific envelope, LFO, waveform, or route implementation.
 
-Structured target nodes and parameters are:
+Structured target parts and parameters are:
 
-| Node | Parameter | Unit |
+| Part | Parameter | Unit |
 | --- | --- | --- |
 | `processing` | `amplitude` | ratio, base 1 |
 | `processing` | `volume_db`, `tuning_cents`, `pan`, `stereo_balance` | db, cents, normalized, normalized |
@@ -367,7 +365,7 @@ part of the instrument format.
 `sample_paths(source)` lists safe relative sample references.
 `compile(source, id=..., name=..., assets=..., output_timebase=...,
 output_channels=...)` accepts `ufor.samples.metadata.AudioMetadata` facts
-supplied by the caller and produces an `InstrumentDocument` where possible.
+supplied by the caller and produces an `InstrumentScore` where possible.
 All of these operations are pure. Unsupported opcodes retain source locations;
 missing or malformed required data fails explicitly.
 
@@ -378,7 +376,7 @@ as unsupported. Velocity response becomes the shared typed multiplier route.
 SFZ inclusive endpoints become exclusive native slice/loop ends and reverse on
 export. Imported channel maps are identity or the standard mono-to-stereo law.
 
-`ufor.sfz.write(document)` returns text and diagnostics without opening files.
+`ufor.sfz.write(score)` returns text and diagnostics without opening files.
 Unsafe sample syntax, custom channel maps, named controls/generators, selections,
 nonrepresentable routes/envelopes and other losses are reported. Diagnostics
 use native `body.slots[...]` / `body.instrument...` paths. A partial export must
@@ -419,7 +417,7 @@ overlap/release rules from Recsam for the future player.
 
 Preparing efficient lookups, resolving effective voice settings, defining voice
 limits, enforcing trigger lifetimes, and producing event-to-action traces remain
-future work. Dependencies on other instrument documents, multiple audio output
+future work. Dependencies on other instrument scores, multiple audio output
 ports, linked microphones, and generic graphs need their own settled models.
 This extraction does not add speculative fields for those unimplemented features.
 

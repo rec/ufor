@@ -1,10 +1,10 @@
-# Document composition implementation plan
+# Score composition implementation plan
 
-Status: implemented for document version 2. The [simplified design](composition-design.md)
+Status: implemented for score version 3. The [simplified design](composition-design.md)
 and [worked example](composition-example.md) are accepted by the codec. Ufor owns
 pure resolution and performance-delivery traces; Recs owns nested audio rendering.
 Traces establish delivery and instance isolation, not sample selection or voice
-execution. Naming remains a separate review.
+execution. The terminology below is the implemented naming scheme.
 
 ## First supported profile
 
@@ -36,7 +36,7 @@ meaning of composition:
   cycles across public boundaries. Initially treat a child's outputs as depending
   on all its connected inputs; this conservative implementation may reject some
   valid graphs until per-output dependency analysis is available. Internal DSP
-  feedback does not permit recursive document references.
+  feedback does not permit recursive score references.
 
 A sample instrument performance input accepts `trigger`, `release` and
 `control_change`. Validate supplied controls and require `pitch_hz` for triggered
@@ -51,17 +51,16 @@ Keep each declaration, its contract and its binding in one root record. Define
 one typed binding variant for each actual internal target; do not introduce
 parallel root declarations and body exports.
 
-| Document | Public port binding |
+| Score | Public port binding |
 | --- | --- |
 | Recording | Stable audio/native-event stream ID |
 | Sequence | Its sequence body |
 | Sample instrument | Its performance input or audio mixer output |
-| Arrangement | Track/bus, or child `{ node, port }` |
+| Arrangement | Track/bus, or child `{ part, port }` |
 
 A track/bus output binding retains existing gain and optional frame-range
-settings. Inputs bind to consumers, outputs to producers. Public port IDs are
-unique across both directions. Each declaration binds exactly once and is checked
-against its internal target's contract. Child bindings can address public ports
+settings. Inputs bind to consumers, outputs to producers. Input and output names are each unique within their collection. Each declaration binds exactly once and is checked
+against its internal target's contract. Child bindings can address public inputs and outputs
 only. Native sequence declarations must match their stored event kinds.
 
 Parameter declarations store an ID, one internal parameter address, and only any
@@ -73,24 +72,24 @@ computed for editors and hosts; they are not another serialized copy.
 
 ## Resolution and portability
 
-A document reference is `{ path, sha256? }` wherever a definition is needed.
-Nodes carry it directly; static definition fields use the same structure without
+A score reference is `{ path, sha256? }` wherever a definition is needed.
+Parts carry it directly; static definition fields use the same structure without
 instantiation. Walk these references to derive dependencies, rather than maintaining
-a dependency table. Repeated references can share loaded definitions, never node
+a dependency table. Repeated references can share loaded definitions, never part
 state. Contradictory pins for the same resolved file are errors.
 
-Paths resolve relative to the containing document, not the process working
+Paths resolve relative to the containing score, not the process working
 directory. Use relative POSIX paths. A portable package declares a root;
 `..` may reach siblings inside that root, but absolute paths, URLs and escapes
 through either paths or symlinks are rejected. Existing asset-path rules remain
 unchanged. Ufor performs no I/O, downloads or automatic file searches.
 
-The host supplies resolved documents and identities to pure Ufor validation.
+The host supplies resolved scores and identities to pure Ufor validation.
 Aliases to the same file must be recognized for cycle detection and definition
-sharing. Node identities still use their complete nested instance paths.
+sharing. Part identities still use their complete nested instance paths.
 
-A sealed package pins every document reference and media asset by SHA-256. The
-root document digest identifies the snapshot. Verify hashes against actual bytes.
+A sealed package pins every score reference and media asset by SHA-256. The
+root score digest identifies the snapshot. Verify hashes against actual bytes.
 Edits invalidate pins; resealing updates affected references recursively. Moving
 a package preserves contents and relative relationships, or requires new digests
 if an exporter rewrites paths. There is no separate composition dependency lock
@@ -100,9 +99,9 @@ synthetic asset metadata and is not a sealed, renderable media package.
 
 ## Validation ownership
 
-1. **Local format:** fields, unique IDs, local node references, structured
+1. **Local format:** fields, unique IDs, local part references, structured
    addresses, binding variants and locally checkable contracts.
-2. **Resolved composition:** referenced public ports and parameters, inherited
+2. **Resolved composition:** referenced public inputs and outputs and parameters, inherited
    contracts and configuration, required inputs, cycles, stream compatibility,
    exact event-clock conversion and known source extents.
 3. **Host preparation:** load and verify bytes, select supported implementations,
@@ -125,13 +124,13 @@ end of a sequence.
 
 | Current structure | Replacement |
 | --- | --- |
-| `arrangement.SourceSpec` record/file/memory alternatives | Nodes with direct document references |
-| `ClipSpec.source` ID | `{ node, port }`, retaining frame placement and gains |
-| Parent `RecordSelector` | Select recording streams when authoring exported ports; parent uses the public port |
+| `arrangement.SourceSpec` record/file/memory alternatives | Parts with direct score references |
+| `ClipSpec.source` ID | `{ part, port }`, retaining frame placement and gains |
+| Parent `RecordSelector` | Select recording streams when authoring exported ports; parent uses the public input or output |
 | Raw audio-file source | A recording definition describing its media and channels |
 | Process-local memory source | Host realization of a declared source, not a portable memory key |
 | Separate arrangement outputs and public contracts | One public declaration containing the internal binding, range and gain |
-| Instrument `performance_port`, `audio_port`, `output` | Shared public port declarations with bindings |
+| Instrument version-2 `ports` | Shared public input or output declarations with bindings |
 | Sequence and recording streams | Explicit audio/native-event public exports |
 | Public parameter descriptions | A binding plus optional range/default overrides; inherit the remaining contract |
 | File destinations | Continue selecting public outputs; child destinations are not run implicitly |
@@ -143,10 +142,10 @@ recipes still produce arrangements; `CompositionEdit` is not an execution graph.
 
 ## Stages and acceptance criteria
 
-1. Implement document-reference values, instance records, public declarations
-   with bindings, and audio/native-event contracts. Establish the document-version
-   policy before changing accepted wire data. The implementation uses version 2,
-   rejects version 1 and includes a schema and portable composition fixture.
+1. Implement score-reference values, instance records, public declarations
+   with bindings, and audio/native-event contracts. Establish the score-version
+   policy before changing accepted wire data. The implementation uses version 3,
+   rejects earlier versions and includes a schema and portable composition fixture.
 2. Add pure recursive validation over host-supplied definitions. Cover missing
    and private ports, invalid bindings/defaults, duplicate IDs, aliases and cycles,
    incompatible layouts, input fan-in, and exact/inexact event-clock conversions.
@@ -178,7 +177,7 @@ Dry runs supply these definitions in memory and write nothing. Existing editing
 recipes reconstruct prepared stage definitions and audio through a host provider;
 the recipe remains the replayable artifact. An individual extracted stage is not
 a standalone media package. Saved native arrangement paths are rebased relative
-to their containing document. Imported media definitions may be sealed without
+to their containing score. Imported media definitions may be sealed without
 capture timestamps or journals; captured sessions retain those diagnostics.
 
 Later capabilities include musical time, live radio sections, lighting/spatial
@@ -188,3 +187,28 @@ merging. Do not add placeholder fields for them during this implementation.
 ## Additional work beyond the prompt
 
 None.
+
+## Version 3 names and migration
+
+`Score` replaces `Document`. A score has a machine `name` and a display `title`;
+all formerly `id`-named fields in Ufor now use `name`. Existing descriptive names
+on sample slots become titles too. Capture identifiers such as `source_id` and
+`trigger_id` retain their distinct operational meanings.
+
+An arrangement contains `parts`. A `Part` has a `name`, a `score` (`ScoreVersion`,
+with a relative path and optional SHA-256), and parameter settings. Public
+configuration declarations use `ParameterExport`; internal modulation declarations
+remain `Parameter`.
+
+Replace `ports` with separate `inputs` and `outputs`, removing `direction`.
+`InputSelection` is `{ name, input }`; `OutputSelection` is `{ name, output }`.
+These names select a part and one of its declared inputs or outputs. Inputs and
+outputs may use the same name because their selections are distinct. File
+render destinations select an `output`. Parameter targets use `{ name, parameter }`.
+
+The codec entry points are `parse_score`, `score_toml`, and `score_schema`.
+Version 2 is rejected; migrate metadata explicitly and retain the previous file
+when it is production material. Media payloads are unchanged. Recs' two production
+recordings retain their version-2 metadata under `migration/recording-v2.toml`.
+Network ports and ordinary filesystem names are unaffected. Recs SFZ metadata
+comments use version 2 for the renamed name/title fields.
