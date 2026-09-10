@@ -1,8 +1,8 @@
 # User score libraries
 
-Status: proposed implementation plan. This document changes no library reader,
-score schema or host application. Existing animation files need no compatibility
-reader. Lyte integration remains separate; see [port-lyte.md](../doc/port-lyte.md).
+Status: implemented in Ufor. See [library.md](../doc/library.md) for the API and
+[the example library](../conformance/library/). Lyte integration remains separate;
+see [port-lyte.md](../doc/port-lyte.md).
 
 ## 1. Storage and configuration
 
@@ -125,17 +125,16 @@ inside a score. There is no implicit preference for the referring library or
 for the first configured library. This keeps selectors consistent between
 browsing and saved references. Qualify a reference when names are ambiguous.
 
-**Initial matching choice:** names, library names and tags are literal and
+**Matching:** names, library names and tags are literal and
 case-sensitive. Addresses are exact; an address with neither supported suffix
 matches that stem followed by `.toml` or `.py`. Thus the user's extensionless
 example selects `/bali/frog-pix.toml` or `/bali/frog-pix.py`, but is ambiguous if
 both exist. This does not mean prefix matching: `/bali/frog` does not select
 `/bali/frog-pix.toml`. Canonical addresses always retain their suffix.
 
-Pattern matching has not been specified. Reserve `.*` rather than inventing
-regular-expression or glob semantics. Before implementing the matcher, confirm
-whether selectors should support `.*` patterns; this plan currently assumes
-literal matching and the extensionless-address rule above.
+Matching is literal with the extensionless-address rule above. The `.*`
+substring remains forbidden in score names; no regular-expression or glob
+semantics are implemented.
 
 ### Reserved delimiters
 
@@ -324,8 +323,7 @@ read libraries and how to display their diagnostics.
 1. Specify and test selector parsing, formatting and matching. Include the two
    equivalent user examples, meaningful internal spaces, omitted parts, repeated
    tags, forbidden delimiters in metadata and paths, exact addresses and
-   extensionless ambiguity. Verify that quotes and escapes cannot hide delimiters. Resolve
-   the pattern-matching question before this step is implemented.
+   extensionless ambiguity. Verify that quotes and escapes cannot hide delimiters.
 2. Add configuration and metadata models, tags, selector-bearing `ScoreVersion`
    and preset declarations. Update schema, TOML round trips and documentation.
 3. Build deterministic discovery and indexing with temporary-directory tests.

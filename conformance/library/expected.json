@@ -1,0 +1,44 @@
+[
+  {
+    "name": "half frogs",
+    "address": "/half.toml",
+    "tags": []
+  },
+  {
+    "name": "pond",
+    "address": "/pond.toml",
+    "tags": []
+  },
+  {
+    "name": "pretty score",
+    "address": "/pretty.toml",
+    "tags": [
+      "#frogs",
+      "#lake"
+    ]
+  },
+  {
+    "name": "quiet frogs",
+    "address": "/quiet.toml",
+    "tags": [
+      "#quiet"
+    ]
+  },
+  {
+    "name": "triangle tone",
+    "address": "/tone.py",
+    "tags": [
+      "#tone"
+    ]
+  },
+  {
+    "name": "western",
+    "address": "/tuning.toml",
+    "tags": []
+  },
+  {
+    "name": "white",
+    "address": "/white.toml",
+    "tags": []
+  }
+]
