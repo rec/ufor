@@ -1,0 +1,57 @@
+format = "recs"
+version = 3
+name = "white"
+title = "Two white lights"
+tags = []
+inputs = []
+parameters = []
+kind = "animation"
+
+[[timebases]]
+name = "frames"
+kind = "physical"
+
+[timebases.rate]
+numerator = 20
+denominator = 1
+
+[[outputs]]
+name = "light"
+
+[outputs.stream]
+family = "sampled"
+quantity = "light"
+timebase = "frames"
+components = ["white"]
+interpretation = "drive"
+
+[outputs.stream.layout]
+name = "strip"
+axes = ["x"]
+unit = "unitless"
+
+[[outputs.stream.layout.lights]]
+name = "light_0"
+position = [0.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_1"
+position = [1.0]
+
+[outputs.stream.layout.regions]
+
+[outputs.binding]
+light = true
+
+[body]
+parts = []
+controls = []
+
+[body.operation]
+effect = "fill"
+values = [1.0]
+
+[body.modulation]
+parameters = []
+sources = []
+routes = []

@@ -5,13 +5,15 @@ from typing import Literal
 from pydantic import Field, field_validator
 
 from .base import Model
+from .selector import ScoreName, Tags
 
 
 class Score(Model):
     format: Literal['recs'] = 'recs'
     version: Literal[3] = 3
-    name: str = Field(min_length=1)
+    name: ScoreName
     title: str = Field(min_length=1)
+    tags: Tags = Field(default_factory=list)
 
     @field_validator('version', mode='before')
     @classmethod

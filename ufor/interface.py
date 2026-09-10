@@ -11,17 +11,21 @@ from .base import Identifier, Model, unique
 from .lights import LightType
 from .modulation import Target
 from .score import Score
+from .selector import parse_selector
 from .streams import AudioType
 from .time import Timebase
 
 
 class ScoreVersion(Model):
-    path: str = Field(min_length=1)
+    path: str | None = Field(default=None, min_length=1)
+    selector: str | None = None
     sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
 
     @field_validator('path')
     @classmethod
-    def relative_path(cls, value: str) -> str:
+    def relative_path(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
         if (
             PurePosixPath(value).is_absolute()
             or PureWindowsPath(value).drive
@@ -31,6 +35,21 @@ class ScoreVersion(Model):
         ):
             raise ValueError('score path must be a relative POSIX score path')
         return value
+
+    @field_validator('selector')
+    @classmethod
+    def canonical_selector(cls, value: str | None) -> str | None:
+        return None if value is None else str(parse_selector(value))
+
+    @model_validator(mode='after')
+    def one_selection(self) -> Self:
+        if (self.path is None) == (self.selector is None):
+            raise ValueError('ScoreVersion requires exactly one path or selector')
+        return self
+
+    @property
+    def key(self) -> str:
+        return self.path if self.path is not None else f'selector:{self.selector}'
 
 
 class OutputSelection(Model):
