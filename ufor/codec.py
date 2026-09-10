@@ -8,6 +8,7 @@ from pydantic import Field, TypeAdapter
 from .arrangement import ArrangementScore
 from .envelope import EnvelopeScore
 from .lfo import LFOScore
+from .light_animation import AnimationScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
 from .recording import RecordingScore
 from .samples.instrument import InstrumentScore
@@ -26,6 +27,7 @@ def parse_score(
     | EnvelopeScore
     | InstrumentScore
     | LFOScore
+    | AnimationScore
 ):
     return TypeAdapter(ScoreValue).validate_python(tomlkit.parse(text))
 
@@ -39,7 +41,8 @@ def score_toml(
     | OscillatorScore
     | EnvelopeScore
     | InstrumentScore
-    | LFOScore,
+    | LFOScore
+    | AnimationScore,
 ) -> str:
     validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
     return tomlkit.dumps(validated.model_dump(mode='json', exclude_none=True))
@@ -58,6 +61,7 @@ ScoreValue = Annotated[
     | OscillatorScore
     | EnvelopeScore
     | InstrumentScore
-    | LFOScore,
+    | LFOScore
+    | AnimationScore,
     Field(discriminator='kind'),
 ]

@@ -9,6 +9,367 @@
       "title": "Accidentals",
       "type": "string"
     },
+    "Alternates": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "alternates",
+          "default": "alternates",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color1": {
+          "default": [
+            255,
+            255,
+            255
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color1",
+          "type": "array"
+        },
+        "color2": {
+          "default": [
+            0,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color2",
+          "type": "array"
+        },
+        "max_led": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Led"
+        }
+      },
+      "title": "Alternates",
+      "type": "object"
+    },
+    "Animation": {
+      "additionalProperties": false,
+      "properties": {
+        "operation": {
+          "discriminator": {
+            "mapping": {
+              "alternates": "#/$defs/Alternates",
+              "aurora": "#/$defs/Aurora",
+              "candle_bank": "#/$defs/CandleBank",
+              "cellular_automaton": "#/$defs/CellularAutomaton",
+              "colliding_particles": "#/$defs/CollidingParticles",
+              "color_chase": "#/$defs/ColorChase",
+              "color_fade": "#/$defs/ColorFade",
+              "color_fill": "#/$defs/ColorFill",
+              "color_pattern": "#/$defs/ColorPattern",
+              "color_wipe": "#/$defs/ColorWipe",
+              "component_map": "#/$defs/ComponentMap",
+              "confetti_with_decay": "#/$defs/ConfettiWithDecay",
+              "crossfade": "#/$defs/Crossfade",
+              "cues": "#/$defs/Cues",
+              "expanding_ripples": "#/$defs/ExpandingRipples",
+              "exponential_fade": "#/$defs/ExponentialFade",
+              "fill": "#/$defs/Fill",
+              "fire_and_embers": "#/$defs/FireAndEmbers",
+              "fire_flies": "#/$defs/FireFlies",
+              "gain": "#/$defs/Gain",
+              "grey_code": "#/$defs/GreyCode",
+              "halves_rainbow": "#/$defs/HalvesRainbow",
+              "hamiltonian": "#/$defs/Hamiltonian",
+              "interference": "#/$defs/Interference",
+              "larson_scanner": "#/$defs/LarsonScanner",
+              "lightning_storm": "#/$defs/LightningStorm",
+              "linear_gradient": "#/$defs/LinearGradient",
+              "linear_rainbow": "#/$defs/LinearRainbow",
+              "log_gradient": "#/$defs/LogGradient",
+              "mix": "#/$defs/Mix",
+              "ocean_current": "#/$defs/OceanCurrent",
+              "packet_traffic": "#/$defs/PacketTraffic",
+              "palette_conveyor": "#/$defs/PaletteConveyor",
+              "party_mode": "#/$defs/PartyMode",
+              "pixel_ping_pong": "#/$defs/PixelPingPong",
+              "place": "#/$defs/Place",
+              "pulse": "#/$defs/Pulse",
+              "rain": "#/$defs/Rain",
+              "rainbow": "#/$defs/Rainbow",
+              "rainbow_cycle": "#/$defs/RainbowCycle",
+              "random_walk": "#/$defs/RandomWalk",
+              "randomize": "#/$defs/Randomize",
+              "reaction_diffusion_strip": "#/$defs/ReactionDiffusionStrip",
+              "reverse": "#/$defs/Reverse",
+              "saber_blade": "#/$defs/SaberBlade",
+              "searchlights": "#/$defs/Searchlights",
+              "twinkle": "#/$defs/Twinkle",
+              "wave": "#/$defs/Wave",
+              "white_twinkle": "#/$defs/WhiteTwinkle"
+            },
+            "propertyName": "effect"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/ColorChase"
+            },
+            {
+              "$ref": "#/$defs/ConfettiWithDecay"
+            },
+            {
+              "$ref": "#/$defs/ExpandingRipples"
+            },
+            {
+              "$ref": "#/$defs/FireFlies"
+            },
+            {
+              "$ref": "#/$defs/LarsonScanner"
+            },
+            {
+              "$ref": "#/$defs/LightningStorm"
+            },
+            {
+              "$ref": "#/$defs/PacketTraffic"
+            },
+            {
+              "$ref": "#/$defs/PixelPingPong"
+            },
+            {
+              "$ref": "#/$defs/Pulse"
+            },
+            {
+              "$ref": "#/$defs/Rain"
+            },
+            {
+              "$ref": "#/$defs/Searchlights"
+            },
+            {
+              "$ref": "#/$defs/Twinkle"
+            },
+            {
+              "$ref": "#/$defs/Aurora"
+            },
+            {
+              "$ref": "#/$defs/CandleBank"
+            },
+            {
+              "$ref": "#/$defs/ColorFade"
+            },
+            {
+              "$ref": "#/$defs/ExponentialFade"
+            },
+            {
+              "$ref": "#/$defs/HalvesRainbow"
+            },
+            {
+              "$ref": "#/$defs/Interference"
+            },
+            {
+              "$ref": "#/$defs/LinearGradient"
+            },
+            {
+              "$ref": "#/$defs/LinearRainbow"
+            },
+            {
+              "$ref": "#/$defs/LogGradient"
+            },
+            {
+              "$ref": "#/$defs/OceanCurrent"
+            },
+            {
+              "$ref": "#/$defs/PaletteConveyor"
+            },
+            {
+              "$ref": "#/$defs/Rainbow"
+            },
+            {
+              "$ref": "#/$defs/Wave"
+            },
+            {
+              "$ref": "#/$defs/Alternates"
+            },
+            {
+              "$ref": "#/$defs/ColorFill"
+            },
+            {
+              "$ref": "#/$defs/ColorPattern"
+            },
+            {
+              "$ref": "#/$defs/ColorWipe"
+            },
+            {
+              "$ref": "#/$defs/GreyCode"
+            },
+            {
+              "$ref": "#/$defs/Hamiltonian"
+            },
+            {
+              "$ref": "#/$defs/SaberBlade"
+            },
+            {
+              "$ref": "#/$defs/CellularAutomaton"
+            },
+            {
+              "$ref": "#/$defs/CollidingParticles"
+            },
+            {
+              "$ref": "#/$defs/FireAndEmbers"
+            },
+            {
+              "$ref": "#/$defs/PartyMode"
+            },
+            {
+              "$ref": "#/$defs/RandomWalk"
+            },
+            {
+              "$ref": "#/$defs/Randomize"
+            },
+            {
+              "$ref": "#/$defs/ReactionDiffusionStrip"
+            },
+            {
+              "$ref": "#/$defs/RainbowCycle"
+            },
+            {
+              "$ref": "#/$defs/WhiteTwinkle"
+            },
+            {
+              "$ref": "#/$defs/Fill"
+            },
+            {
+              "$ref": "#/$defs/Mix"
+            },
+            {
+              "$ref": "#/$defs/Place"
+            },
+            {
+              "$ref": "#/$defs/Reverse"
+            },
+            {
+              "$ref": "#/$defs/Crossfade"
+            },
+            {
+              "$ref": "#/$defs/Gain"
+            },
+            {
+              "$ref": "#/$defs/Cues"
+            },
+            {
+              "$ref": "#/$defs/ComponentMap"
+            }
+          ],
+          "title": "Operation"
+        },
+        "parts": {
+          "items": {
+            "$ref": "#/$defs/Part"
+          },
+          "title": "Parts",
+          "type": "array"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation"
+        },
+        "controls": {
+          "items": {
+            "$ref": "#/$defs/ufor__light_animation__Control"
+          },
+          "title": "Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "operation"
+      ],
+      "title": "Animation",
+      "type": "object"
+    },
+    "AnimationScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "title": "Timebases",
+          "type": "array"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Input"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/ParameterExport"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "kind": {
+          "const": "animation",
+          "default": "animation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Animation"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "body"
+      ],
+      "title": "AnimationScore",
+      "type": "object"
+    },
     "Arrangement": {
       "additionalProperties": false,
       "properties": {
@@ -485,6 +846,91 @@
       "title": "AudioType",
       "type": "object"
     },
+    "Aurora": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "aurora",
+          "default": "aurora",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              20,
+              220,
+              120
+            ],
+            [
+              30,
+              100,
+              255
+            ],
+            [
+              180,
+              40,
+              255
+            ],
+            [
+              10,
+              255,
+              210
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "band_count": {
+          "default": 4,
+          "exclusiveMinimum": 0,
+          "title": "Band Count",
+          "type": "integer"
+        },
+        "softness": {
+          "default": 0.16,
+          "exclusiveMinimum": 0,
+          "title": "Softness",
+          "type": "number"
+        },
+        "intensity": {
+          "default": 0.8,
+          "exclusiveMinimum": 0,
+          "title": "Intensity",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "Aurora",
+      "type": "object"
+    },
     "AutomationPoint": {
       "additionalProperties": false,
       "properties": {
@@ -552,6 +998,181 @@
         "stream"
       ],
       "title": "BusSpec",
+      "type": "object"
+    },
+    "CandleBank": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "candle_bank",
+          "default": "candle_bank",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            120,
+            30
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "zone_size": {
+          "default": 8,
+          "exclusiveMinimum": 0,
+          "title": "Zone Size",
+          "type": "integer"
+        },
+        "base_level": {
+          "default": 0.55,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Base Level",
+          "type": "number"
+        },
+        "flicker": {
+          "default": 0.18,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Flicker",
+          "type": "number"
+        },
+        "flare_rate": {
+          "default": 0.3,
+          "minimum": 0,
+          "title": "Flare Rate",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "CandleBank",
+      "type": "object"
+    },
+    "CellularAutomaton": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "cellular_automaton",
+          "default": "cellular_automaton",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              20,
+              40,
+              120
+            ],
+            [
+              40,
+              220,
+              180
+            ],
+            [
+              255,
+              240,
+              120
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "rule": {
+          "default": 110,
+          "maximum": 255,
+          "minimum": 0,
+          "title": "Rule",
+          "type": "integer"
+        },
+        "initial_density": {
+          "default": 0.25,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Initial Density",
+          "type": "number"
+        },
+        "generation_rate": {
+          "default": 10.0,
+          "exclusiveMinimum": 0,
+          "title": "Generation Rate",
+          "type": "number"
+        },
+        "history_decay": {
+          "default": 1.8,
+          "exclusiveMinimum": 0,
+          "title": "History Decay",
+          "type": "number"
+        },
+        "boundary_mode": {
+          "default": "ring",
+          "enum": [
+            "bounded",
+            "ring"
+          ],
+          "title": "Boundary Mode",
+          "type": "string"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "CellularAutomaton",
       "type": "object"
     },
     "ChannelRoute": {
@@ -716,6 +1337,380 @@
       "title": "ClockObservation",
       "type": "object"
     },
+    "CollidingParticles": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "colliding_particles",
+          "default": "colliding_particles",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              255,
+              50,
+              30
+            ],
+            [
+              255,
+              220,
+              40
+            ],
+            [
+              30,
+              220,
+              180
+            ],
+            [
+              80,
+              100,
+              255
+            ],
+            [
+              220,
+              50,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "particle_count": {
+          "default": 5,
+          "exclusiveMinimum": 0,
+          "title": "Particle Count",
+          "type": "integer"
+        },
+        "radius": {
+          "default": 1.5,
+          "exclusiveMinimum": 0,
+          "title": "Radius",
+          "type": "number"
+        },
+        "trail_decay": {
+          "default": 4.0,
+          "exclusiveMinimum": 0,
+          "title": "Trail Decay",
+          "type": "number"
+        },
+        "collision_flash": {
+          "default": 0.7,
+          "minimum": 0,
+          "title": "Collision Flash",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "CollidingParticles",
+      "type": "object"
+    },
+    "ColorChase": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "color_chase",
+          "default": "color_chase",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "width": {
+          "default": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        }
+      },
+      "title": "ColorChase",
+      "type": "object"
+    },
+    "ColorFade": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "color_fade",
+          "default": "color_fade",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "level_step": {
+          "default": 5,
+          "title": "Level Step",
+          "type": "integer"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        }
+      },
+      "title": "ColorFade",
+      "type": "object"
+    },
+    "ColorFill": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "color_fill",
+          "default": "color_fill",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        }
+      },
+      "title": "ColorFill",
+      "type": "object"
+    },
+    "ColorPattern": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "color_pattern",
+          "default": "color_pattern",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ],
+            [
+              0,
+              255,
+              0
+            ],
+            [
+              0,
+              0,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "width": {
+          "default": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "reverse": {
+          "default": false,
+          "title": "Reverse",
+          "type": "boolean"
+        }
+      },
+      "title": "ColorPattern",
+      "type": "object"
+    },
+    "ColorWipe": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "color_wipe",
+          "default": "color_wipe",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        }
+      },
+      "title": "ColorWipe",
+      "type": "object"
+    },
+    "ComponentMap": {
+      "additionalProperties": false,
+      "description": "Explicit output-component rows by input-component columns; no clipping.",
+      "properties": {
+        "effect": {
+          "const": "component_map",
+          "default": "component_map",
+          "title": "Effect",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "matrix": {
+          "items": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "minItems": 1,
+          "title": "Matrix",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source",
+        "matrix"
+      ],
+      "title": "ComponentMap",
+      "type": "object"
+    },
     "Computed": {
       "additionalProperties": false,
       "properties": {
@@ -747,6 +1742,91 @@
       "title": "Computed",
       "type": "object"
     },
+    "ConfettiWithDecay": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "confetti_with_decay",
+          "default": "confetti_with_decay",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              255,
+              40,
+              80
+            ],
+            [
+              255,
+              220,
+              40
+            ],
+            [
+              30,
+              220,
+              180
+            ],
+            [
+              80,
+              100,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "spawn_rate": {
+          "default": 8.0,
+          "minimum": 0,
+          "title": "Spawn Rate",
+          "type": "number"
+        },
+        "decay": {
+          "default": 2.5,
+          "exclusiveMinimum": 0,
+          "title": "Decay",
+          "type": "number"
+        },
+        "width": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "integer"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "ConfettiWithDecay",
+      "type": "object"
+    },
     "Connection": {
       "additionalProperties": false,
       "properties": {
@@ -762,24 +1842,6 @@
         "destination"
       ],
       "title": "Connection",
-      "type": "object"
-    },
-    "Control": {
-      "additionalProperties": false,
-      "properties": {
-        "polarity": {
-          "$ref": "#/$defs/Polarity",
-          "default": "unipolar"
-        },
-        "default": {
-          "type": "number",
-          "maximum": 1,
-          "minimum": -1,
-          "default": 0.0,
-          "title": "Default"
-        }
-      },
-      "title": "Control",
       "type": "object"
     },
     "ControlBinding": {
@@ -985,6 +2047,122 @@
         "articulation"
       ],
       "title": "ControlSwitch",
+      "type": "object"
+    },
+    "Crossfade": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "crossfade",
+          "default": "crossfade",
+          "title": "Effect",
+          "type": "string"
+        },
+        "outgoing": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "incoming": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "fade": {
+          "$ref": "#/$defs/Fade"
+        }
+      },
+      "required": [
+        "outgoing",
+        "incoming",
+        "fade"
+      ],
+      "title": "Crossfade",
+      "type": "object"
+    },
+    "Cue": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "start": {
+          "format": "fraction",
+          "ge": 0,
+          "title": "Start",
+          "type": "string"
+        },
+        "duration": {
+          "format": "fraction",
+          "gt": 0,
+          "title": "Duration",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "start",
+        "duration"
+      ],
+      "title": "Cue",
+      "type": "object"
+    },
+    "Cues": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "cues",
+          "default": "cues",
+          "title": "Effect",
+          "type": "string"
+        },
+        "cues": {
+          "items": {
+            "$ref": "#/$defs/Cue"
+          },
+          "minItems": 1,
+          "title": "Cues",
+          "type": "array"
+        },
+        "easing": {
+          "default": "linear",
+          "enum": [
+            "linear",
+            "smooth"
+          ],
+          "title": "Easing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "cues"
+      ],
+      "title": "Cues",
+      "type": "object"
+    },
+    "Curve": {
+      "additionalProperties": false,
+      "description": "An autonomous scalar envelope, including unbounded gains and repetition.",
+      "properties": {
+        "initial": {
+          "default": 0,
+          "title": "Initial",
+          "type": "number"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "repeat": {
+          "default": false,
+          "title": "Repeat",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "segments"
+      ],
+      "title": "Curve",
       "type": "object"
     },
     "Direction": {
@@ -1359,6 +2537,158 @@
       "title": "EventType",
       "type": "object"
     },
+    "ExpandingRipples": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "expanding_ripples",
+          "default": "expanding_ripples",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              40,
+              120,
+              255
+            ],
+            [
+              20,
+              255,
+              180
+            ],
+            [
+              220,
+              80,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "origins": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Origins",
+          "type": "array"
+        },
+        "event_rate": {
+          "default": 0.35,
+          "minimum": 0,
+          "title": "Event Rate",
+          "type": "number"
+        },
+        "propagation_speed": {
+          "default": 12.0,
+          "exclusiveMinimum": 0,
+          "title": "Propagation Speed",
+          "type": "number"
+        },
+        "width": {
+          "default": 1.8,
+          "exclusiveMinimum": 0,
+          "title": "Width",
+          "type": "number"
+        },
+        "decay": {
+          "default": 0.7,
+          "exclusiveMinimum": 0,
+          "title": "Decay",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "ExpandingRipples",
+      "type": "object"
+    },
+    "ExponentialFade": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "exponential_fade",
+          "default": "exponential_fade",
+          "title": "Effect",
+          "type": "string"
+        },
+        "ratio": {
+          "default": 0.98,
+          "title": "Ratio",
+          "type": "number"
+        },
+        "color": {
+          "default": [
+            255,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        }
+      },
+      "title": "ExponentialFade",
+      "type": "object"
+    },
+    "Fade": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "format": "fraction",
+          "gt": 0,
+          "title": "Duration",
+          "type": "string"
+        },
+        "easing": {
+          "default": "linear",
+          "enum": [
+            "linear",
+            "smooth"
+          ],
+          "title": "Easing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration"
+      ],
+      "title": "Fade",
+      "type": "object"
+    },
     "FadeCurve": {
       "enum": [
         "linear",
@@ -1410,6 +2740,207 @@
       "title": "FileDestination",
       "type": "object"
     },
+    "Fill": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "fill",
+          "default": "fill",
+          "title": "Effect",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "number"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "values"
+      ],
+      "title": "Fill",
+      "type": "object"
+    },
+    "FireAndEmbers": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "fire_and_embers",
+          "default": "fire_and_embers",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              0,
+              0,
+              0
+            ],
+            [
+              120,
+              0,
+              0
+            ],
+            [
+              255,
+              50,
+              0
+            ],
+            [
+              255,
+              190,
+              20
+            ],
+            [
+              255,
+              255,
+              220
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "cooling": {
+          "default": 1.4,
+          "exclusiveMinimum": 0,
+          "title": "Cooling",
+          "type": "number"
+        },
+        "diffusion": {
+          "default": 4.0,
+          "minimum": 0,
+          "title": "Diffusion",
+          "type": "number"
+        },
+        "spark_rate": {
+          "default": 12.0,
+          "minimum": 0,
+          "title": "Spark Rate",
+          "type": "number"
+        },
+        "wind": {
+          "default": 3.0,
+          "title": "Wind",
+          "type": "number"
+        },
+        "origin": {
+          "default": "start",
+          "enum": [
+            "start",
+            "end"
+          ],
+          "title": "Origin",
+          "type": "string"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "FireAndEmbers",
+      "type": "object"
+    },
+    "FireFlies": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "fire_flies",
+          "default": "fire_flies",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "width": {
+          "default": 1,
+          "title": "Width",
+          "type": "integer"
+        },
+        "count": {
+          "default": 1,
+          "title": "Count",
+          "type": "integer"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "FireFlies",
+      "type": "object"
+    },
     "Format": {
       "enum": [
         "flac",
@@ -1451,6 +2982,30 @@
         "values"
       ],
       "title": "FrequencyTable",
+      "type": "object"
+    },
+    "Gain": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "gain",
+          "default": "gain",
+          "title": "Effect",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "amount": {
+          "default": 1,
+          "title": "Amount",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Gain",
       "type": "object"
     },
     "Gap": {
@@ -1515,6 +3070,132 @@
       "title": "GeneratorBinding",
       "type": "object"
     },
+    "GreyCode": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "grey_code",
+          "default": "grey_code",
+          "title": "Effect",
+          "type": "string"
+        },
+        "offsets": {
+          "default": [
+            0,
+            100,
+            200
+          ],
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Offsets",
+          "type": "array"
+        },
+        "speeds": {
+          "default": [
+            -0.01,
+            0.023,
+            0.014
+          ],
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Speeds",
+          "type": "array"
+        }
+      },
+      "title": "GreyCode",
+      "type": "object"
+    },
+    "HalvesRainbow": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "halves_rainbow",
+          "default": "halves_rainbow",
+          "title": "Effect",
+          "type": "string"
+        },
+        "max_led": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Led"
+        },
+        "center_out": {
+          "default": true,
+          "title": "Center Out",
+          "type": "boolean"
+        },
+        "rainbow_inc": {
+          "default": 4,
+          "title": "Rainbow Inc",
+          "type": "integer"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        }
+      },
+      "title": "HalvesRainbow",
+      "type": "object"
+    },
+    "Hamiltonian": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "hamiltonian",
+          "default": "hamiltonian",
+          "title": "Effect",
+          "type": "string"
+        },
+        "speed": {
+          "default": 25,
+          "title": "Speed",
+          "type": "number"
+        },
+        "n": {
+          "default": 8,
+          "title": "N",
+          "type": "integer"
+        },
+        "order": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "integer"
+            }
+          ],
+          "default": "rgb",
+          "title": "Order"
+        },
+        "inverted": {
+          "default": "",
+          "title": "Inverted",
+          "type": "string"
+        },
+        "pre_fill": {
+          "default": false,
+          "title": "Pre Fill",
+          "type": "boolean"
+        }
+      },
+      "title": "Hamiltonian",
+      "type": "object"
+    },
     "Input": {
       "additionalProperties": false,
       "properties": {
@@ -1529,6 +3210,9 @@
             },
             {
               "$ref": "#/$defs/EventType"
+            },
+            {
+              "$ref": "#/$defs/LightType"
             }
           ],
           "title": "Stream"
@@ -1697,7 +3381,7 @@
         },
         "controls": {
           "additionalProperties": {
-            "$ref": "#/$defs/Control"
+            "$ref": "#/$defs/ufor__samples__controls__Control"
           },
           "title": "Controls",
           "type": "object"
@@ -1807,6 +3491,91 @@
       ],
       "title": "InstrumentScore",
       "type": "object"
+    },
+    "Interference": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "interference",
+          "default": "interference",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              5,
+              0,
+              20
+            ],
+            [
+              200,
+              20,
+              120
+            ],
+            [
+              30,
+              220,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "wavelengths": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Wavelengths",
+          "type": "array"
+        },
+        "rates": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Rates",
+          "type": "array"
+        },
+        "phase_offsets": {
+          "items": {
+            "type": "number"
+          },
+          "title": "Phase Offsets",
+          "type": "array"
+        },
+        "contrast": {
+          "default": 1.4,
+          "exclusiveMinimum": 0,
+          "title": "Contrast",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        }
+      },
+      "title": "Interference",
+      "type": "object"
+    },
+    "Interpretation": {
+      "enum": [
+        "drive",
+        "linear_srgb"
+      ],
+      "title": "Interpretation",
+      "type": "string"
     },
     "IntervalPattern": {
       "additionalProperties": false,
@@ -2094,6 +3863,385 @@
       "title": "LFOScore",
       "type": "object"
     },
+    "LarsonScanner": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "larson_scanner",
+          "default": "larson_scanner",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "tail": {
+          "default": 2,
+          "title": "Tail",
+          "type": "integer"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        },
+        "rainbow": {
+          "default": false,
+          "title": "Rainbow",
+          "type": "boolean"
+        }
+      },
+      "title": "LarsonScanner",
+      "type": "object"
+    },
+    "Layout": {
+      "additionalProperties": false,
+      "description": "List order is logical frame order; positions need not form a grid.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "axes": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Axes",
+          "type": "array"
+        },
+        "unit": {
+          "default": "unitless",
+          "enum": [
+            "metres",
+            "unitless"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "lights": {
+          "items": {
+            "$ref": "#/$defs/Light"
+          },
+          "minItems": 1,
+          "title": "Lights",
+          "type": "array"
+        },
+        "regions": {
+          "additionalProperties": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "title": "Regions",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "axes",
+        "lights"
+      ],
+      "title": "Layout",
+      "type": "object"
+    },
+    "Light": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "position": {
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Position",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "position"
+      ],
+      "title": "Light",
+      "type": "object"
+    },
+    "LightBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "light": {
+          "const": true,
+          "default": true,
+          "title": "Light",
+          "type": "boolean"
+        }
+      },
+      "title": "LightBinding",
+      "type": "object"
+    },
+    "LightType": {
+      "additionalProperties": false,
+      "properties": {
+        "family": {
+          "const": "sampled",
+          "default": "sampled",
+          "title": "Family",
+          "type": "string"
+        },
+        "quantity": {
+          "const": "light",
+          "default": "light",
+          "title": "Quantity",
+          "type": "string"
+        },
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "components": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Components",
+          "type": "array"
+        },
+        "interpretation": {
+          "$ref": "#/$defs/Interpretation",
+          "default": "drive"
+        },
+        "layout": {
+          "$ref": "#/$defs/Layout"
+        }
+      },
+      "required": [
+        "timebase",
+        "components",
+        "layout"
+      ],
+      "title": "LightType",
+      "type": "object"
+    },
+    "LightningStorm": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "lightning_storm",
+          "default": "lightning_storm",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            200,
+            220,
+            255
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "flash_rate": {
+          "default": 0.35,
+          "exclusiveMinimum": 0,
+          "title": "Flash Rate",
+          "type": "number"
+        },
+        "maximum_burst": {
+          "default": 4,
+          "exclusiveMinimum": 0,
+          "title": "Maximum Burst",
+          "type": "integer"
+        },
+        "branch_width": {
+          "default": 5.0,
+          "exclusiveMinimum": 0,
+          "title": "Branch Width",
+          "type": "number"
+        },
+        "afterglow": {
+          "default": 8.0,
+          "exclusiveMinimum": 0,
+          "title": "Afterglow",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "LightningStorm",
+      "type": "object"
+    },
+    "LinearGradient": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "linear_gradient",
+          "default": "linear_gradient",
+          "title": "Effect",
+          "type": "string"
+        },
+        "start": {
+          "default": 1,
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "default": 0,
+          "title": "End",
+          "type": "number"
+        },
+        "mask": {
+          "default": [
+            1,
+            1,
+            1
+          ],
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Mask",
+          "type": "array"
+        }
+      },
+      "title": "LinearGradient",
+      "type": "object"
+    },
+    "LinearRainbow": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "linear_rainbow",
+          "default": "linear_rainbow",
+          "title": "Effect",
+          "type": "string"
+        },
+        "max_led": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Led"
+        },
+        "individual_pixel": {
+          "default": false,
+          "title": "Individual Pixel",
+          "type": "boolean"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        }
+      },
+      "title": "LinearRainbow",
+      "type": "object"
+    },
+    "LogGradient": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "log_gradient",
+          "default": "log_gradient",
+          "title": "Effect",
+          "type": "string"
+        },
+        "start": {
+          "default": 1,
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "default": 0,
+          "title": "End",
+          "type": "number"
+        },
+        "base": {
+          "default": 10,
+          "title": "Base",
+          "type": "number"
+        },
+        "mask": {
+          "default": [
+            1,
+            1,
+            1
+          ],
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Mask",
+          "type": "array"
+        }
+      },
+      "title": "LogGradient",
+      "type": "object"
+    },
     "Loop": {
       "additionalProperties": false,
       "properties": {
@@ -2231,6 +4379,30 @@
       "title": "MidiEvent",
       "type": "object"
     },
+    "Mix": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "mix",
+          "default": "mix",
+          "title": "Effect",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/WeightedSource"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "sources"
+      ],
+      "title": "Mix",
+      "type": "object"
+    },
     "MixBinding": {
       "additionalProperties": false,
       "properties": {
@@ -2333,6 +4505,91 @@
       ],
       "title": "NormalizeMode",
       "type": "string"
+    },
+    "OceanCurrent": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "ocean_current",
+          "default": "ocean_current",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              0,
+              5,
+              20
+            ],
+            [
+              0,
+              50,
+              120
+            ],
+            [
+              0,
+              170,
+              210
+            ],
+            [
+              180,
+              255,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "wave_count": {
+          "default": 3,
+          "exclusiveMinimum": 0,
+          "title": "Wave Count",
+          "type": "integer"
+        },
+        "crest_rate": {
+          "default": 0.8,
+          "minimum": 0,
+          "title": "Crest Rate",
+          "type": "number"
+        },
+        "turbulence": {
+          "default": 0.2,
+          "minimum": 0,
+          "title": "Turbulence",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "OceanCurrent",
+      "type": "object"
     },
     "Operation": {
       "enum": [
@@ -2574,6 +4831,9 @@
             },
             {
               "$ref": "#/$defs/EventType"
+            },
+            {
+              "$ref": "#/$defs/LightType"
             }
           ],
           "title": "Stream"
@@ -2588,6 +4848,9 @@
             },
             {
               "$ref": "#/$defs/AudioBinding"
+            },
+            {
+              "$ref": "#/$defs/LightBinding"
             },
             {
               "$ref": "#/$defs/MixBinding"
@@ -2624,6 +4887,178 @@
         "output"
       ],
       "title": "OutputSelection",
+      "type": "object"
+    },
+    "PacketTraffic": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "packet_traffic",
+          "default": "packet_traffic",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              50,
+              220,
+              255
+            ],
+            [
+              255,
+              70,
+              130
+            ],
+            [
+              255,
+              210,
+              50
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "direction": {
+          "default": "both",
+          "enum": [
+            "forward",
+            "reverse",
+            "both"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "packet_rate": {
+          "default": 1.2,
+          "minimum": 0,
+          "title": "Packet Rate",
+          "type": "number"
+        },
+        "minimum_length": {
+          "default": 4,
+          "exclusiveMinimum": 1,
+          "title": "Minimum Length",
+          "type": "integer"
+        },
+        "maximum_length": {
+          "default": 12,
+          "exclusiveMinimum": 1,
+          "title": "Maximum Length",
+          "type": "integer"
+        },
+        "error_rate": {
+          "default": 0.15,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Error Rate",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "PacketTraffic",
+      "type": "object"
+    },
+    "PaletteConveyor": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "palette_conveyor",
+          "default": "palette_conveyor",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              255,
+              0,
+              80
+            ],
+            [
+              255,
+              180,
+              0
+            ],
+            [
+              0,
+              220,
+              140
+            ],
+            [
+              30,
+              80,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "stop_spacing": {
+          "default": 8.0,
+          "exclusiveMinimum": 0,
+          "title": "Stop Spacing",
+          "type": "number"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "reverse": {
+          "default": false,
+          "title": "Reverse",
+          "type": "boolean"
+        },
+        "interpolation": {
+          "default": "smooth",
+          "enum": [
+            "linear",
+            "smooth"
+          ],
+          "title": "Interpolation",
+          "type": "string"
+        }
+      },
+      "title": "PaletteConveyor",
       "type": "object"
     },
     "Parameter": {
@@ -2783,6 +5218,50 @@
       "title": "Part",
       "type": "object"
     },
+    "PartyMode": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "party_mode",
+          "default": "party_mode",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ],
+            [
+              0,
+              255,
+              0
+            ],
+            [
+              0,
+              0,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        }
+      },
+      "title": "PartyMode",
+      "type": "object"
+    },
     "PerformanceBinding": {
       "additionalProperties": false,
       "properties": {
@@ -2794,6 +5273,103 @@
         }
       },
       "title": "PerformanceBinding",
+      "type": "object"
+    },
+    "PixelPingPong": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "pixel_ping_pong",
+          "default": "pixel_ping_pong",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            255,
+            255
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "max_led": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Max Led"
+        },
+        "total_pixels": {
+          "default": 1,
+          "title": "Total Pixels",
+          "type": "integer"
+        },
+        "fade_delay": {
+          "default": 1,
+          "title": "Fade Delay",
+          "type": "integer"
+        }
+      },
+      "title": "PixelPingPong",
+      "type": "object"
+    },
+    "Place": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "place",
+          "default": "place",
+          "title": "Effect",
+          "type": "string"
+        },
+        "placements": {
+          "items": {
+            "$ref": "#/$defs/Placement"
+          },
+          "minItems": 1,
+          "title": "Placements",
+          "type": "array"
+        }
+      },
+      "required": [
+        "placements"
+      ],
+      "title": "Place",
+      "type": "object"
+    },
+    "Placement": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "lights": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Lights",
+          "type": "array"
+        }
+      },
+      "required": [
+        "source",
+        "lights"
+      ],
+      "title": "Placement",
       "type": "object"
     },
     "Playback": {
@@ -2899,6 +5475,308 @@
       "title": "Processing",
       "type": "object"
     },
+    "Pulse": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "pulse",
+          "default": "pulse",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "tail": {
+          "default": 2,
+          "title": "Tail",
+          "type": "integer"
+        },
+        "chance": {
+          "default": 30,
+          "title": "Chance",
+          "type": "integer"
+        },
+        "min_speed": {
+          "default": 1,
+          "title": "Min Speed",
+          "type": "integer"
+        },
+        "max_speed": {
+          "default": 5,
+          "title": "Max Speed",
+          "type": "integer"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "Pulse",
+      "type": "object"
+    },
+    "Rain": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "rain",
+          "default": "rain",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              70,
+              70,
+              70
+            ],
+            [
+              35,
+              35,
+              35
+            ],
+            [
+              80,
+              20,
+              20
+            ],
+            [
+              20,
+              80,
+              20
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "rate": {
+          "default": 10,
+          "title": "Rate",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "Rain",
+      "type": "object"
+    },
+    "Rainbow": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        },
+        "effect": {
+          "const": "rainbow",
+          "default": "rainbow",
+          "title": "Effect",
+          "type": "string"
+        }
+      },
+      "title": "Rainbow",
+      "type": "object"
+    },
+    "RainbowCycle": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "step": {
+          "default": 1,
+          "title": "Step",
+          "type": "integer"
+        },
+        "effect": {
+          "const": "rainbow_cycle",
+          "default": "rainbow_cycle",
+          "title": "Effect",
+          "type": "string"
+        }
+      },
+      "title": "RainbowCycle",
+      "type": "object"
+    },
+    "RandomWalk": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "random_walk",
+          "default": "random_walk",
+          "title": "Effect",
+          "type": "string"
+        },
+        "speed": {
+          "default": 10,
+          "title": "Speed",
+          "type": "number"
+        },
+        "variance": {
+          "default": 1,
+          "title": "Variance",
+          "type": "number"
+        },
+        "bounds": {
+          "default": [
+            0,
+            180
+          ],
+          "items": {
+            "type": "number"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Bounds",
+          "type": "array"
+        },
+        "color": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "number"
+              },
+              "maxItems": 3,
+              "minItems": 3,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Color"
+        },
+        "period": {
+          "default": 0,
+          "title": "Period",
+          "type": "number"
+        },
+        "pre_fill": {
+          "default": false,
+          "title": "Pre Fill",
+          "type": "boolean"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "RandomWalk",
+      "type": "object"
+    },
+    "Randomize": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "randomize",
+          "default": "randomize",
+          "title": "Effect",
+          "type": "string"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "Randomize",
+      "type": "object"
+    },
     "Rate": {
       "additionalProperties": false,
       "properties": {
@@ -2965,6 +5843,112 @@
         "values"
       ],
       "title": "RatioTable",
+      "type": "object"
+    },
+    "ReactionDiffusionStrip": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "reaction_diffusion_strip",
+          "default": "reaction_diffusion_strip",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              5,
+              0,
+              20
+            ],
+            [
+              40,
+              20,
+              130
+            ],
+            [
+              20,
+              190,
+              190
+            ],
+            [
+              240,
+              230,
+              120
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Palette",
+          "type": "array"
+        },
+        "activator_diffusion": {
+          "default": 0.16,
+          "exclusiveMinimum": 0,
+          "title": "Activator Diffusion",
+          "type": "number"
+        },
+        "inhibitor_diffusion": {
+          "default": 0.08,
+          "exclusiveMinimum": 0,
+          "title": "Inhibitor Diffusion",
+          "type": "number"
+        },
+        "feed_rate": {
+          "default": 0.035,
+          "exclusiveMinimum": 0,
+          "title": "Feed Rate",
+          "type": "number"
+        },
+        "kill_rate": {
+          "default": 0.06,
+          "exclusiveMinimum": 0,
+          "title": "Kill Rate",
+          "type": "number"
+        },
+        "steps_per_second": {
+          "default": 80.0,
+          "exclusiveMinimum": 0,
+          "title": "Steps Per Second",
+          "type": "number"
+        },
+        "boundary_mode": {
+          "default": "ring",
+          "enum": [
+            "bounded",
+            "ring"
+          ],
+          "title": "Boundary Mode",
+          "type": "string"
+        },
+        "speed": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Speed",
+          "type": "number"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "ReactionDiffusionStrip",
       "type": "object"
     },
     "Recording": {
@@ -3222,6 +6206,25 @@
       "title": "Retrigger",
       "type": "string"
     },
+    "Reverse": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "reverse",
+          "default": "reverse",
+          "title": "Effect",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "Reverse",
+      "type": "object"
+    },
     "Route": {
       "additionalProperties": false,
       "properties": {
@@ -3288,6 +6291,45 @@
         "destination"
       ],
       "title": "RouteSpec",
+      "type": "object"
+    },
+    "SaberBlade": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "saber_blade",
+          "default": "saber_blade",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "speed": {
+          "default": 1,
+          "title": "Speed",
+          "type": "integer"
+        }
+      },
+      "title": "SaberBlade",
       "type": "object"
     },
     "SampleInstrument": {
@@ -3636,7 +6678,8 @@
     "Scope": {
       "enum": [
         "voice",
-        "instrument"
+        "instrument",
+        "part"
       ],
       "title": "Scope",
       "type": "string"
@@ -3669,6 +6712,84 @@
       "title": "ScoreVersion",
       "type": "object"
     },
+    "Searchlights": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "searchlights",
+          "default": "searchlights",
+          "title": "Effect",
+          "type": "string"
+        },
+        "colors": {
+          "default": [
+            [
+              60,
+              179,
+              113
+            ],
+            [
+              147,
+              112,
+              219
+            ],
+            [
+              199,
+              21,
+              133
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "tail": {
+          "default": 5,
+          "title": "Tail",
+          "type": "integer"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "title": "Searchlights",
+      "type": "object"
+    },
     "Segment": {
       "additionalProperties": false,
       "properties": {
@@ -3679,8 +6800,6 @@
           "type": "string"
         },
         "target": {
-          "maximum": 1,
-          "minimum": -1,
           "title": "Target",
           "type": "number"
         },
@@ -4306,6 +7425,77 @@
       "title": "TuningScore",
       "type": "object"
     },
+    "Twinkle": {
+      "additionalProperties": false,
+      "properties": {
+        "colors": {
+          "default": [
+            [
+              255,
+              0,
+              0
+            ],
+            [
+              0,
+              255,
+              0
+            ],
+            [
+              0,
+              0,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "density": {
+          "default": 20,
+          "title": "Density",
+          "type": "integer"
+        },
+        "speed": {
+          "default": 2,
+          "title": "Speed",
+          "type": "integer"
+        },
+        "max_bright": {
+          "default": 255,
+          "title": "Max Bright",
+          "type": "integer"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "effect": {
+          "const": "twinkle",
+          "default": "twinkle",
+          "title": "Effect",
+          "type": "string"
+        }
+      },
+      "title": "Twinkle",
+      "type": "object"
+    },
     "UnfinishedFile": {
       "additionalProperties": false,
       "properties": {
@@ -4374,6 +7564,62 @@
       "title": "UnmappedAudioFragment",
       "type": "object"
     },
+    "Wave": {
+      "additionalProperties": false,
+      "properties": {
+        "effect": {
+          "const": "wave",
+          "default": "wave",
+          "title": "Effect",
+          "type": "string"
+        },
+        "color": {
+          "default": [
+            255,
+            0,
+            0
+          ],
+          "items": {
+            "maximum": 255,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Color",
+          "type": "array"
+        },
+        "cycles": {
+          "default": 2,
+          "title": "Cycles",
+          "type": "integer"
+        },
+        "start": {
+          "default": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "End"
+        },
+        "moving": {
+          "default": false,
+          "title": "Moving",
+          "type": "boolean"
+        }
+      },
+      "title": "Wave",
+      "type": "object"
+    },
     "Waveform": {
       "enum": [
         "sine",
@@ -4382,6 +7628,86 @@
       ],
       "title": "Waveform",
       "type": "string"
+    },
+    "WeightedSource": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "weight": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Weight",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source"
+      ],
+      "title": "WeightedSource",
+      "type": "object"
+    },
+    "WhiteTwinkle": {
+      "additionalProperties": false,
+      "properties": {
+        "colors": {
+          "default": [
+            [
+              255,
+              255,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "title": "Colors",
+          "type": "array"
+        },
+        "density": {
+          "default": 80,
+          "title": "Density",
+          "type": "integer"
+        },
+        "speed": {
+          "default": 2,
+          "title": "Speed",
+          "type": "integer"
+        },
+        "max_bright": {
+          "default": 255,
+          "title": "Max Bright",
+          "type": "integer"
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        },
+        "effect": {
+          "const": "white_twinkle",
+          "default": "white_twinkle",
+          "title": "Effect",
+          "type": "string"
+        }
+      },
+      "title": "WhiteTwinkle",
+      "type": "object"
     },
     "ufor__arrangement__Interpolation": {
       "enum": [
@@ -4392,6 +7718,33 @@
       "title": "Interpolation",
       "type": "string"
     },
+    "ufor__light_animation__Control": {
+      "additionalProperties": false,
+      "description": "A free-running control in seconds from this score's activation.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "curve": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Curve"
+            },
+            {
+              "$ref": "#/$defs/LFO"
+            }
+          ],
+          "title": "Curve"
+        }
+      },
+      "required": [
+        "name",
+        "curve"
+      ],
+      "title": "Control",
+      "type": "object"
+    },
     "ufor__modulation__Interpolation": {
       "enum": [
         "linear",
@@ -4399,10 +7752,29 @@
       ],
       "title": "Interpolation",
       "type": "string"
+    },
+    "ufor__samples__controls__Control": {
+      "additionalProperties": false,
+      "properties": {
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "unipolar"
+        },
+        "default": {
+          "type": "number",
+          "maximum": 1,
+          "minimum": -1,
+          "default": 0.0,
+          "title": "Default"
+        }
+      },
+      "title": "Control",
+      "type": "object"
     }
   },
   "discriminator": {
     "mapping": {
+      "animation": "#/$defs/AnimationScore",
       "arrangement": "#/$defs/ArrangementScore",
       "envelope": "#/$defs/EnvelopeScore",
       "instrument": "#/$defs/InstrumentScore",
@@ -4442,6 +7814,9 @@
     },
     {
       "$ref": "#/$defs/LFOScore"
+    },
+    {
+      "$ref": "#/$defs/AnimationScore"
     }
   ]
 }

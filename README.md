@@ -16,8 +16,10 @@ Today, Ufor covers:
 - Tunings, scales and oscillator definitions, with fractional ratios and Scala import.
 - Sample instruments, asset slices and SFZ conversion.
 - Segment envelopes, LFOs and typed modulation routes.
+- Light animation descriptions, arbitrary component counts, layouts and wiring,
+  with exact composition and shared parameter controls.
 
-The larger ambition includes lighting, LEDs, control voltages and other timed
+The larger ambition includes fixture control, control voltages and other timed
 data. Video is outside the scope.
 
 The Python library provides frozen Pydantic models, validation, TOML interchange,
@@ -26,7 +28,9 @@ and audio rendering. Portable conformance cases lay the groundwork for other
 language implementations.
 
 Start with the [musical definitions](doc/musical-format.md),
-[instruments](doc/instrument-format.md) or [modulation](doc/modulation-format.md).
+[instruments](doc/instrument-format.md), [modulation](doc/modulation-format.md)
+or [light animations](doc/light-format.md). The [Lyte port instructions](doc/port-lyte.md)
+describe the remaining host work; Lyte has not yet been migrated.
 The implemented [score composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
 Explore the [schema](schema/scores.json) and [conformance cases](conformance/).
@@ -42,4 +46,4 @@ uv sync
 uv run pytest
 ```
 
-Extracted from Recs and Tuney. MIT licensed.
+Extracted from Recs, Tuney and Lyte. MIT licensed.

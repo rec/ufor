@@ -1,0 +1,158 @@
+format = "recs"
+version = 3
+name = "brightness"
+title = "Brightness"
+inputs = []
+kind = "animation"
+
+[[timebases]]
+name = "frames"
+kind = "physical"
+
+[timebases.rate]
+numerator = 20
+denominator = 1
+
+[[outputs]]
+name = "light"
+
+[outputs.stream]
+family = "sampled"
+quantity = "light"
+timebase = "frames"
+components = ["red", "green", "blue"]
+interpretation = "drive"
+
+[outputs.stream.layout]
+name = "strip"
+axes = ["x"]
+unit = "unitless"
+
+[[outputs.stream.layout.lights]]
+name = "light_0"
+position = [0.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_1"
+position = [1.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_2"
+position = [2.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_3"
+position = [3.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_4"
+position = [4.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_5"
+position = [5.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_6"
+position = [6.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_7"
+position = [7.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_8"
+position = [8.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_9"
+position = [9.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_10"
+position = [10.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_11"
+position = [11.0]
+
+[outputs.stream.layout.regions]
+
+[outputs.binding]
+light = true
+
+[[parameters]]
+name = "brightness"
+
+[parameters.binding]
+name = "animation"
+parameter = "amount"
+
+[body.operation]
+effect = "gain"
+amount = 1.0
+
+[body.operation.source]
+name = "main"
+output = "light"
+
+[[body.parts]]
+name = "main"
+
+[body.parts.score]
+path = "main.toml"
+
+[body.parts.parameters]
+
+[[body.modulation.parameters]]
+unit = "ratio"
+scope = "part"
+minimum = 0.0
+maximum = 2.0
+default = 1.0
+
+[body.modulation.parameters.target]
+name = "animation"
+parameter = "amount"
+
+[[body.modulation.sources]]
+name = "pulse"
+scope = "part"
+minimum = 0.0
+maximum = 1.0
+
+[[body.modulation.routes]]
+name = "brightness"
+source = "pulse"
+operation = "multiply"
+unit = "ratio"
+interpolation = "linear"
+
+[[body.modulation.routes.points]]
+input = 0.0
+amount = 0.0
+
+[[body.modulation.routes.points]]
+input = 1.0
+amount = 1.0
+
+[body.modulation.routes.target]
+name = "animation"
+parameter = "amount"
+
+[[body.controls]]
+name = "pulse"
+
+[body.controls.curve]
+initial = 0.0
+repeat = true
+
+[[body.controls.curve.segments]]
+duration = "1"
+target = 1.0
+curve = 0.0
+
+[[body.controls.curve.segments]]
+duration = "1"
+target = 0.0
+curve = 0.0
