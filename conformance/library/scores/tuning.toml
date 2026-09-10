@@ -1,0 +1,17 @@
+format = "recs"
+version = 3
+name = "western"
+title = "Twelve equal divisions"
+tags = []
+kind = "tuning"
+
+[body]
+root_note = 69
+root_frequency = "440"
+detune = 0.0
+
+[body.source]
+kind = "computed"
+limit = 0
+notes_per_octave = 12
+octave_ratio = "2"

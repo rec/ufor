@@ -10,6 +10,7 @@ from .envelope import EnvelopeScore
 from .lfo import LFOScore
 from .light_animation import AnimationScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
+from .preset import PresetScore
 from .recording import RecordingScore
 from .samples.instrument import InstrumentScore
 from .sequence import SequenceScore
@@ -28,6 +29,7 @@ def parse_score(
     | InstrumentScore
     | LFOScore
     | AnimationScore
+    | PresetScore
 ):
     return TypeAdapter(ScoreValue).validate_python(tomlkit.parse(text))
 
@@ -42,7 +44,8 @@ def score_toml(
     | EnvelopeScore
     | InstrumentScore
     | LFOScore
-    | AnimationScore,
+    | AnimationScore
+    | PresetScore,
 ) -> str:
     validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
     return tomlkit.dumps(validated.model_dump(mode='json', exclude_none=True))
@@ -62,6 +65,7 @@ ScoreValue = Annotated[
     | EnvelopeScore
     | InstrumentScore
     | LFOScore
-    | AnimationScore,
+    | AnimationScore
+    | PresetScore,
     Field(discriminator='kind'),
 ]

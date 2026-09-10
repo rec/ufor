@@ -19,8 +19,9 @@ score = { path = "instruments/piano.toml" }
 parameters = { level_db = -6.0 }
 ```
 
-A `ScoreVersion` contains a relative `path` and, when pinned, a `sha256` of
-its bytes. Static references such as tunings use the same reference structure
+A `ScoreVersion` contains exactly one relative `path` or library `selector`
+and, when pinned, a `sha256` of the selected file bytes. See
+[user libraries](library.md) for selector resolution and recoverable loading. Static references such as tunings use the same reference structure
 without creating a running part. The dependency graph is derived from these
 references; there is no separate dependency table or source-alias collection.
 

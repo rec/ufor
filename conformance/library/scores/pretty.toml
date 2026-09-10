@@ -1,0 +1,83 @@
+format = "recs"
+version = 3
+name = "pretty score"
+title = "Two white lights"
+tags = ["#frogs", "#lake"]
+inputs = []
+kind = "animation"
+
+[[timebases]]
+name = "frames"
+kind = "physical"
+
+[timebases.rate]
+numerator = 20
+denominator = 1
+
+[[outputs]]
+name = "light"
+
+[outputs.stream]
+family = "sampled"
+quantity = "light"
+timebase = "frames"
+components = ["white"]
+interpretation = "drive"
+
+[outputs.stream.layout]
+name = "strip"
+axes = ["x"]
+unit = "unitless"
+
+[[outputs.stream.layout.lights]]
+name = "light_0"
+position = [0.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_1"
+position = [1.0]
+
+[outputs.stream.layout.regions]
+
+[outputs.binding]
+light = true
+
+[[parameters]]
+name = "brightness"
+
+[parameters.binding]
+name = "animation"
+parameter = "amount"
+
+[body]
+controls = []
+
+[body.operation]
+effect = "gain"
+amount = 1.0
+
+[body.operation.source]
+name = "source"
+output = "light"
+
+[[body.parts]]
+name = "source"
+
+[body.parts.score]
+selector = "white"
+
+[body.parts.parameters]
+
+[body.modulation]
+sources = []
+routes = []
+[[body.modulation.parameters]]
+unit = "ratio"
+scope = "part"
+minimum = 0.0
+maximum = 2.0
+default = 1.0
+
+[body.modulation.parameters.target]
+name = "animation"
+parameter = "amount"

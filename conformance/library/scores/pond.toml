@@ -1,0 +1,85 @@
+format = "recs"
+version = 3
+name = "pond"
+title = "Two white lights"
+tags = []
+inputs = []
+parameters = []
+kind = "animation"
+
+[[timebases]]
+name = "frames"
+kind = "physical"
+
+[timebases.rate]
+numerator = 20
+denominator = 1
+
+[[outputs]]
+name = "light"
+
+[outputs.stream]
+family = "sampled"
+quantity = "light"
+timebase = "frames"
+components = ["white"]
+interpretation = "drive"
+
+[outputs.stream.layout]
+name = "strip"
+axes = ["x"]
+unit = "unitless"
+
+[[outputs.stream.layout.lights]]
+name = "light_0"
+position = [0.0]
+
+[[outputs.stream.layout.lights]]
+name = "light_1"
+position = [1.0]
+
+[outputs.stream.layout.regions]
+
+[outputs.binding]
+light = true
+
+[body]
+controls = []
+
+[body.operation]
+effect = "mix"
+
+[[body.operation.sources]]
+weight = 1.0
+
+[body.operation.sources.source]
+name = "left"
+output = "light"
+
+[[body.operation.sources]]
+weight = 1.0
+
+[body.operation.sources.source]
+name = "right"
+output = "light"
+
+[[body.parts]]
+name = "left"
+
+[body.parts.score]
+selector = "quiet frogs"
+
+[body.parts.parameters]
+
+[[body.parts]]
+name = "right"
+
+[body.parts.score]
+selector = "half frogs"
+
+[body.parts.parameters]
+
+[body.modulation]
+parameters = []
+sources = []
+routes = []

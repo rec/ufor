@@ -1,0 +1,12 @@
+format = "recs"
+version = 3
+name = "quiet frogs"
+title = "Quiet frogs"
+tags = ["#quiet"]
+kind = "preset"
+
+[score]
+selector = "pretty score"
+
+[parameters]
+brightness = 0.25

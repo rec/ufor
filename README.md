@@ -12,6 +12,7 @@ expose named inputs, outputs and parameters. See the [composition design](doc/co
 
 Today, Ufor covers:
 
+- User score libraries, literal selectors, Python declarations and reusable presets.
 - Audio recordings and arrangements; MIDI, OSC, keystrokes and performance events.
 - Tunings, scales and oscillator definitions, with fractional ratios and Scala import.
 - Sample instruments, asset slices and SFZ conversion.
@@ -23,7 +24,7 @@ The larger ambition includes fixture control, control voltages and other timed
 data. Video is outside the scope.
 
 The Python library provides frozen Pydantic models, validation, TOML interchange,
-JSON Schema and reference calculations. Applications supply file access, devices
+JSON Schema and reference calculations. An explicit library reader loads configured local files; applications supply devices
 and audio rendering. Portable conformance cases lay the groundwork for other
 language implementations.
 
@@ -33,6 +34,7 @@ or [light animations](doc/light-format.md). The [Lyte port instructions](doc/por
 describe the remaining host work; Lyte has not yet been migrated.
 The implemented [score composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
+See [user libraries](doc/library.md) for configuration, selection and host integration.
 Explore the [schema](schema/scores.json) and [conformance cases](conformance/).
 
 The [VL70m SysEx proof of concept](doc/vl70m-sysex-example.md) implements lossless

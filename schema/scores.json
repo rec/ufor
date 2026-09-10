@@ -315,7 +315,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -323,6 +322,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "timebases": {
           "items": {
@@ -456,7 +462,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -464,6 +469,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "timebases": {
           "items": {
@@ -2266,7 +2278,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -2274,6 +2285,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "kind": {
           "const": "envelope",
@@ -3406,7 +3424,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -3414,6 +3431,14 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "timebases": {
           "items": {
@@ -3461,14 +3486,6 @@
           ],
           "default": null,
           "title": "Description"
-        },
-        "tags": {
-          "items": {
-            "minLength": 1,
-            "type": "string"
-          },
-          "title": "Tags",
-          "type": "array"
         },
         "assets": {
           "items": {
@@ -3836,7 +3853,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -3844,6 +3860,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "kind": {
           "const": "lfo",
@@ -4790,7 +4813,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -4798,6 +4820,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "kind": {
           "const": "oscillator",
@@ -5439,6 +5468,62 @@
         "tick"
       ],
       "title": "Position",
+      "type": "object"
+    },
+    "PresetScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "preset",
+          "default": "preset",
+          "title": "Kind",
+          "type": "string"
+        },
+        "score": {
+          "$ref": "#/$defs/ScoreVersion"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "score"
+      ],
+      "title": "PresetScore",
       "type": "object"
     },
     "Processing": {
@@ -6089,7 +6174,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -6097,6 +6181,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "timebases": {
           "items": {
@@ -6648,7 +6739,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -6656,6 +6746,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "kind": {
           "const": "scale",
@@ -6688,9 +6785,29 @@
       "additionalProperties": false,
       "properties": {
         "path": {
-          "minLength": 1,
-          "title": "Path",
-          "type": "string"
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "selector": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selector"
         },
         "sha256": {
           "anyOf": [
@@ -6706,9 +6823,6 @@
           "title": "Sha256"
         }
       },
-      "required": [
-        "path"
-      ],
       "title": "ScoreVersion",
       "type": "object"
     },
@@ -6933,7 +7047,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -6941,6 +7054,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "timebases": {
           "items": {
@@ -7398,7 +7518,6 @@
           "type": "integer"
         },
         "name": {
-          "minLength": 1,
           "title": "Name",
           "type": "string"
         },
@@ -7406,6 +7525,13 @@
           "minLength": 1,
           "title": "Title",
           "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
         },
         "kind": {
           "const": "tuning",
@@ -7780,6 +7906,7 @@
       "instrument": "#/$defs/InstrumentScore",
       "lfo": "#/$defs/LFOScore",
       "oscillator": "#/$defs/OscillatorScore",
+      "preset": "#/$defs/PresetScore",
       "recording": "#/$defs/RecordingScore",
       "scale": "#/$defs/ScaleScore",
       "sequence": "#/$defs/SequenceScore",
@@ -7817,6 +7944,9 @@
     },
     {
       "$ref": "#/$defs/AnimationScore"
+    },
+    {
+      "$ref": "#/$defs/PresetScore"
     }
   ]
 }

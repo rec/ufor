@@ -1,0 +1,83 @@
+{
+  "valid": [
+    {
+      "text": "my library: pretty score #frogs #lake /bali/frog-pix",
+      "canonical": "my library:pretty score#frogs#lake/bali/frog-pix",
+      "library": "my library",
+      "name": "pretty score",
+      "tags": [
+        "#frogs",
+        "#lake"
+      ],
+      "address": "/bali/frog-pix"
+    },
+    {
+      "text": "my library:pretty score#frogs#lake/bali/frog-pix",
+      "canonical": "my library:pretty score#frogs#lake/bali/frog-pix",
+      "library": "my library",
+      "name": "pretty score",
+      "tags": [
+        "#frogs",
+        "#lake"
+      ],
+      "address": "/bali/frog-pix"
+    },
+    {
+      "text": "my library:",
+      "canonical": "my library:",
+      "library": "my library",
+      "name": null,
+      "tags": [],
+      "address": null
+    },
+    {
+      "text": " pretty  score ",
+      "canonical": "pretty  score",
+      "library": null,
+      "name": "pretty  score",
+      "tags": [],
+      "address": null
+    },
+    {
+      "text": "# frogs #lake#frogs",
+      "canonical": "#frogs#lake",
+      "library": null,
+      "name": null,
+      "tags": [
+        "#frogs",
+        "#lake"
+      ],
+      "address": null
+    },
+    {
+      "text": " /bali/frog-pix.toml ",
+      "canonical": "/bali/frog-pix.toml",
+      "library": null,
+      "name": null,
+      "tags": [],
+      "address": "/bali/frog-pix.toml"
+    },
+    {
+      "text": "",
+      "canonical": "",
+      "library": null,
+      "name": null,
+      "tags": [],
+      "address": null
+    }
+  ],
+  "invalid": [
+    ":frog",
+    "a:b:c",
+    "#",
+    "#frog words",
+    "a#frog:name",
+    "/bali#frog",
+    "/bali:name",
+    "/bali/../frog",
+    "/bali//frog",
+    "frog.*",
+    "/",
+    "/bali\\frog"
+  ]
+}

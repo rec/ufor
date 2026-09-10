@@ -90,7 +90,7 @@ class Composition:
             child_part = next(
                 n for n in score.body.parts if n.name == export.binding.name
             )
-            child = self.scores[identity].paths[child_part.score.path]
+            child = self.scores[identity].paths[child_part.score.key]
             inherited = self.parameter_contract(child, export.binding.parameter)
             inherited = inherited.model_copy(
                 update={
@@ -450,10 +450,10 @@ class Composition:
             return
         for child_part in score.body.parts:
             reference = child_part.score
-            child = record.paths.get(reference.path)
+            child = record.paths.get(reference.key)
             if child is None or child not in self.scores:
                 raise ValueError(
-                    f'{identity}/{child_part.name}: missing score {reference.path}'
+                    f'{identity}/{child_part.name}: missing score {reference.key}'
                 )
             if reference.sha256 is not None:
                 if child in pins and pins[child] != reference.sha256:
@@ -483,7 +483,7 @@ class Composition:
                 for export in score.parameters:
                     if export.binding.name == child_part.name:
                         child_values[export.binding.parameter] = configured[export.name]
-                child = self.scores[identity].paths[child_part.score.path]
+                child = self.scores[identity].paths[child_part.score.key]
                 child_path = f'{path}/{child_part.name}'
                 children[child_part.name] = child_path
                 self._instantiate(child, child_path, child_values)
