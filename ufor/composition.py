@@ -5,6 +5,7 @@ from typing import Self
 
 from pydantic import Field, model_validator
 
+from . import light_animation
 from .arrangement import ArrangementScore
 from .base import Model
 from .codec import ScoreValue
@@ -21,6 +22,8 @@ from .interface import (
     SequenceBinding,
     StreamBinding,
 )
+from .light_animation import AnimationScore
+from .lights import LightType
 from .modulation import Unit
 from .recording import AudioStream, RecordingScore
 from .samples.enums import SelectionMode
@@ -81,7 +84,9 @@ class Composition:
         export = next((p for p in score.parameters if p.name == name), None)
         if export is None:
             raise ValueError(f'{identity}: unknown public parameter {name}')
-        if isinstance(score, ArrangementScore):
+        if isinstance(score, (ArrangementScore, AnimationScore)) and (
+            not isinstance(score, AnimationScore) or export.binding.name != 'animation'
+        ):
             child_part = next(
                 n for n in score.body.parts if n.name == export.binding.name
             )
@@ -94,11 +99,15 @@ class Composition:
                     )
                 }
             )
-        elif isinstance(score, InstrumentScore):
+        elif isinstance(score, (InstrumentScore, AnimationScore)):
             internal = next(
                 (
                     p
-                    for p in score.body.instrument.modulation.parameters
+                    for p in (
+                        score.body.instrument.modulation.parameters
+                        if isinstance(score, InstrumentScore)
+                        else score.body.modulation.parameters
+                    )
                     if p.target == export.binding
                 ),
                 None,
@@ -154,6 +163,20 @@ class Composition:
             return exact_tick(start, rate), None if end is None else exact_tick(
                 end, rate
             )
+        if isinstance(score, AnimationScore) and isinstance(
+            score.body.operation, light_animation.Cues
+        ):
+            cue = score.body.operation.cues[-1]
+            return 0, int(
+                (cue.start + cue.duration) * self.rate(part, port.stream.timebase)
+            )
+        if isinstance(score, AnimationScore):
+            extents = [
+                self.extent(self.parts[part].children[s.name], s.output)
+                for s in light_animation.sources(score.body.operation)
+            ]
+            ends = [e for _, e in extents if e is not None]
+            return max((s for s, _ in extents), default=0), min(ends) if ends else None
         if isinstance(score, SequenceScore):
             return score.body.start, score.body.end
         if isinstance(score, RecordingScore) and isinstance(binding, StreamBinding):
@@ -319,6 +342,30 @@ class Composition:
                 exact_tick(end, ratio),
                 requests,
             )
+        elif isinstance(score, AnimationScore):
+            operation = score.body.operation
+            rate = self.rate(path, port.stream.timebase)
+            if isinstance(operation, light_animation.Cues):
+                for cue in operation.cues:
+                    lo = max(start, int(cue.start * rate))
+                    hi = min(end, int((cue.start + cue.duration) * rate))
+                    if lo < hi:
+                        self._request(
+                            self.parts[path].children[cue.source.name],
+                            cue.source.output,
+                            0,
+                            hi - int(cue.start * rate),
+                            requests,
+                        )
+            else:
+                for selection in light_animation.sources(operation):
+                    self._request(
+                        self.parts[path].children[selection.name],
+                        selection.output,
+                        0,
+                        end,
+                        requests,
+                    )
         elif isinstance(score, ArrangementScore) and isinstance(binding, MixBinding):
             relevant = {binding.track or binding.bus}
             for bus in reversed(score.body.bus_order):
@@ -399,7 +446,7 @@ class Composition:
             raise ValueError(f'Missing score: {identity}')
         record = self.scores[identity]
         score = record.score
-        if not isinstance(score, ArrangementScore):
+        if not isinstance(score, (ArrangementScore, AnimationScore)):
             return
         for child_part in score.body.parts:
             reference = child_part.score
@@ -430,7 +477,7 @@ class Composition:
             if not contracts[name].minimum <= value <= contracts[name].maximum:
                 raise ValueError(f'{path}/{name}: parameter outside public range')
         children = {}
-        if isinstance(score, ArrangementScore):
+        if isinstance(score, (ArrangementScore, AnimationScore)):
             for child_part in score.body.parts:
                 child_values = dict(child_part.parameters)
                 for export in score.parameters:
@@ -466,6 +513,10 @@ class Composition:
         ratio = self.rate(target, b.timebase) / self.rate(source, a.timebase)
         if isinstance(a, AudioType) and isinstance(b, AudioType):
             valid = ratio == 1 and a.channels == b.channels
+        elif isinstance(a, LightType) and isinstance(b, LightType):
+            valid = ratio == 1 and a.model_dump(exclude={'timebase'}) == b.model_dump(
+                exclude={'timebase'}
+            )
         elif isinstance(a, EventType) and isinstance(b, EventType):
             valid = set(a.kinds) <= set(b.kinds)
             events = None if forwarded == 'input' else self.events(source, output)
@@ -487,6 +538,30 @@ class Composition:
     def _validate_instances(self) -> None:
         for path, part in self.parts.items():
             score = self.scores[part.score].score
+            if isinstance(score, AnimationScore):
+                selected = {}
+                for selection in light_animation.sources(score.body.operation):
+                    child = part.children[selection.name]
+                    output = self.output(child, selection.output)
+                    if not isinstance(output.stream, LightType):
+                        raise ValueError('light operation requires a light source')
+                    if self.rate(child, output.stream.timebase) != self.rate(
+                        path, score.outputs[0].stream.timebase
+                    ):
+                        raise ValueError(
+                            'light sources must share the logical update rate'
+                        )
+                    selected[selection] = output.stream
+                light_animation.validate_sources(score, selected)
+                if isinstance(score.body.operation, light_animation.Cues):
+                    rate = self.rate(path, score.outputs[0].stream.timebase)
+                    for cue in score.body.operation.cues:
+                        low, high = self.extent(
+                            part.children[cue.source.name], cue.source.output
+                        )
+                        if low > 0 or high is not None and cue.duration * rate > high:
+                            raise ValueError('cue duration exceeds its source extent')
+                continue
             if not isinstance(score, ArrangementScore):
                 continue
             supplied = {c.destination for c in score.body.connections}

@@ -8,6 +8,7 @@ from urllib.parse import urlsplit
 from pydantic import Field, StrictInt, field_validator, model_validator
 
 from .base import Identifier, Model, unique
+from .lights import LightType
 from .modulation import Target
 from .score import Score
 from .streams import AudioType
@@ -101,6 +102,10 @@ class AudioBinding(Model):
     audio: Literal[True] = True
 
 
+class LightBinding(Model):
+    light: Literal[True] = True
+
+
 class MixBinding(Model):
     track: Identifier | None = None
     bus: Identifier | None = None
@@ -120,15 +125,20 @@ class MixBinding(Model):
 
 class Input(Model):
     name: Identifier
-    stream: AudioType | EventType
+    stream: AudioType | EventType | LightType
     binding: PerformanceBinding | InputSelection
 
 
 class Output(Model):
     name: Identifier
-    stream: AudioType | EventType
+    stream: AudioType | EventType | LightType
     binding: (
-        StreamBinding | SequenceBinding | AudioBinding | MixBinding | OutputSelection
+        StreamBinding
+        | SequenceBinding
+        | AudioBinding
+        | LightBinding
+        | MixBinding
+        | OutputSelection
     )
 
 

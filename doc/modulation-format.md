@@ -12,6 +12,12 @@ the common TOML codec. The generated schema and
 [conformance/modulation.json](../conformance/modulation.json) accompany the
 Python reference in `ufor.envelope` and `ufor.lfo`.
 
+Autonomous light controls also use `envelope.Curve`: an initial value and shared
+segments, with final-value holding or whole-curve repetition. Curve values may
+exceed the normalized domain, for example a gain above one. Trigger/release
+`Envelope` retains its normalized bounds. The light profile adds `part` scope
+and uses the same modulation evaluation; see [light-format.md](light-format.md).
+
 ## Clock, scope, and observation
 
 Each definition chooses one clock: `seconds` or `beats`, where one beat is a

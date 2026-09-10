@@ -180,8 +180,13 @@ a standalone media package. Saved native arrangement paths are rebased relative
 to their containing score. Imported media definitions may be sealed without
 capture timestamps or journals; captured sessions retain those diagnostics.
 
-Later capabilities include musical time, live radio sections, lighting/spatial
-contracts, processor and plugin bindings, dynamic public automation and event
+Light animation scores now use the same resolver, named parts and parameter
+exports. Their component contracts, layouts, exact cue clocks and mathematical
+operations are specified in [light-format.md](light-format.md). Lyte integration
+is intentionally deferred to [port-lyte.md](port-lyte.md).
+
+Later capabilities include musical time, live radio sections,
+processor and plugin bindings, dynamic public automation and event
 merging. Do not add placeholder fields for them during this implementation.
 
 ## Additional work beyond the prompt
