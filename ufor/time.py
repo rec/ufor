@@ -14,7 +14,7 @@ class Rate(Model):
 
 
 class Timebase(Model):
-    id: Identifier
+    name: Identifier
     kind: Literal['physical'] = 'physical'
     rate: Rate
 

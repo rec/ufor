@@ -10,7 +10,7 @@ from .base import Identifier, Model
 
 
 class Asset(Model):
-    id: Identifier
+    name: Identifier
     path: str = Field(min_length=1)
     encoding: str = Field(min_length=1)
     byte_length: int = Field(ge=0, strict=True)

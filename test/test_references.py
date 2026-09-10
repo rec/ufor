@@ -12,8 +12,8 @@ def test_structured_selectors_preserve_punctuation() -> None:
 @pytest.mark.parametrize(
     'value',
     [
-        {'kind': 'route', 'node': 'track'},
-        {'kind': 'clip', 'node': 'clip', 'destination': 'master'},
+        {'kind': 'route', 'name': 'track'},
+        {'kind': 'clip', 'name': 'clip', 'destination': 'master'},
     ],
 )
 def test_only_route_targets_require_destinations(value: dict[str, str]) -> None:

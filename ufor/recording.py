@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 
 from .assets import Asset
 from .base import Identifier, Model, unique
-from .interface import Direction, EventType, InterfaceDocument, Port, StreamBinding
+from .interface import EventType, InterfaceScore, Output, StreamBinding
 from .streams import AudioType
 from .time import ClockObservation, TickRange, Timebase
 
@@ -44,7 +44,7 @@ class UnmappedAudioFragment(Model):
 
 class AudioStream(Model):
     kind: Literal['audio'] = 'audio'
-    id: Identifier
+    name: Identifier
     source_id: str = Field(min_length=1)
     source_name: str | None = None
     track_name: str | None = None
@@ -135,7 +135,7 @@ class EventFragment(Model):
 
 class EventStream(Model):
     kind: Literal['events'] = 'events'
-    id: Identifier
+    name: Identifier
     source_id: str = Field(min_length=1)
     event_schema: Literal['midi', 'osc', 'recs_events']
     event_kind: (
@@ -189,11 +189,11 @@ class Recording(Model):
             raise ValueError('only a sealed recording has an end timestamp')
         if self.state == 'sealed' and self.unfinished_files:
             raise ValueError('a recording with unfinished files must remain open')
-        unique([s.id for s in self.streams], 'stream IDs')
+        unique([s.name for s in self.streams], 'stream IDs')
         return self
 
 
-class RecordingDocument(InterfaceDocument):
+class RecordingScore(InterfaceScore):
     kind: Literal['recording'] = 'recording'
     assets: list[Asset]
     timebases: list[Timebase] = Field(default_factory=list)
@@ -201,34 +201,34 @@ class RecordingDocument(InterfaceDocument):
 
     @model_validator(mode='after')
     def references(self) -> Self:
-        unique([a.id for a in self.assets], 'asset IDs')
-        unique([t.id for t in self.timebases], 'timebase IDs')
-        assets = {a.id for a in self.assets}
-        clocks = {t.id for t in self.timebases}
+        unique([a.name for a in self.assets], 'asset IDs')
+        unique([t.name for t in self.timebases], 'timebase names')
+        assets = {a.name for a in self.assets}
+        clocks = {t.name for t in self.timebases}
         if self.body.journal is not None and self.body.journal not in assets:
             raise ValueError('recording journal references an unknown asset')
         for stream in self.body.streams:
             if isinstance(stream, AudioStream) and stream.stream.timebase not in clocks:
-                raise ValueError(f'stream {stream.id} references an unknown timebase')
+                raise ValueError(f'stream {stream.name} references an unknown timebase')
             if (
                 isinstance(stream, EventStream)
                 and stream.timebase is not None
                 and stream.timebase not in clocks
             ):
-                raise ValueError(f'stream {stream.id} references an unknown timebase')
+                raise ValueError(f'stream {stream.name} references an unknown timebase')
             if any(f.asset not in assets for f in stream.fragments):
-                raise ValueError(f'stream {stream.id} references an unknown asset')
+                raise ValueError(f'stream {stream.name} references an unknown asset')
             if isinstance(stream, AudioStream) and any(
                 f.asset not in assets for f in stream.unmapped_fragments
             ):
-                raise ValueError(f'stream {stream.id} references an unknown asset')
-        streams = {s.id: s for s in self.body.streams}
+                raise ValueError(f'stream {stream.name} references an unknown asset')
+        streams = {s.name: s for s in self.body.streams}
+        if self.inputs:
+            raise ValueError('this score has no inputs')
         if self.parameters:
             raise ValueError('recordings have no configurable parameters')
-        for port in self.ports:
-            if port.direction != Direction.output or not isinstance(
-                port.binding, StreamBinding
-            ):
+        for port in self.outputs:
+            if not isinstance(port.binding, StreamBinding):
                 raise ValueError('recording ports must export streams')
             if port.binding.stream not in streams:
                 raise ValueError('unknown exported recording stream')
@@ -266,7 +266,7 @@ class RecordingDocument(InterfaceDocument):
         return self
 
 
-def stream_ports(streams: list[AudioStream | EventStream]) -> list[Port]:
+def stream_outputs(streams: list[AudioStream | EventStream]) -> list[Output]:
     """Declare public outputs when authoring a recording, preserving stream IDs."""
     ports = []
     for stream in streams:
@@ -281,11 +281,10 @@ def stream_ports(streams: list[AudioStream | EventStream]) -> list[Port]:
         else:
             continue
         ports.append(
-            Port(
-                id=stream.id,
-                direction=Direction.output,
+            Output(
+                name=stream.name,
                 stream=contract,
-                binding=StreamBinding(stream=stream.id),
+                binding=StreamBinding(stream=stream.name),
             )
         )
     return ports

@@ -1,12 +1,12 @@
 format = "recs"
-version = 2
-id = "glass"
-name = "Glass"
+version = 3
+name = "glass"
+title = "Glass"
 kind = "instrument"
 tags = []
 
 [[timebases]]
-id = "output"
+name = "output"
 kind = "physical"
 
 [timebases.rate]
@@ -14,48 +14,46 @@ numerator = 48000
 denominator = 1
 
 [[timebases]]
-id = "native-44100"
+name = "native-44100"
 kind = "physical"
 
 [timebases.rate]
 numerator = 44100
 denominator = 1
 
-[[ports]]
-id = "audio"
-direction = "output"
+[[inputs]]
+name = "performance"
 
-[ports.stream]
+[inputs.stream]
+family = "event"
+timebase = "output"
+kinds = ["trigger", "release", "control_change"]
+
+[inputs.binding]
+performance = true
+
+[[outputs]]
+name = "audio"
+
+[outputs.stream]
 family = "sampled"
 quantity = "audio_amplitude"
 unit = "full_scale"
 timebase = "output"
 channels = ["left", "right"]
 
-[ports.binding]
+[outputs.binding]
 audio = true
 
-[[ports]]
-id = "performance"
-direction = "input"
-
-[ports.stream]
-family = "event"
-timebase = "output"
-kinds = ["trigger", "release", "control_change"]
-
-[ports.binding]
-performance = true
-
 [[parameters]]
-id = "level_db"
+name = "level_db"
 
 [parameters.binding]
-node = "processing"
+name = "processing"
 parameter = "volume_db"
 
 [[assets]]
-id = "asset-1"
+name = "asset-1"
 path = "audio/glass.wav"
 encoding = "WAV/PCM_16"
 byte_length = 88244
@@ -70,7 +68,7 @@ frames = 44100
 kind = "sample_instrument"
 
 [[body.slices]]
-id = "slice-1"
+name = "slice-1"
 asset = "asset-1"
 start_frame = 10
 end_frame = 1000
@@ -111,6 +109,7 @@ curve = 0.0
 [body.instrument.modulation]
 sources = []
 routes = []
+
 [[body.instrument.modulation.parameters]]
 unit = "db"
 scope = "voice"
@@ -119,7 +118,7 @@ maximum = 6.0
 default = 0.0
 
 [body.instrument.modulation.parameters.target]
-node = "processing"
+name = "processing"
 parameter = "volume_db"
 
 [body.instrument.playback]
@@ -135,15 +134,16 @@ polarity = "unipolar"
 default = 0.0
 
 [[body.slots]]
-id = "region-1"
+name = "region-1"
 slice = "slice-1"
 tags = []
 chokes = []
 crossfades = []
 trigger = "start"
 articulations = []
+
 [[body.slots.bindings]]
-id = "velocity"
+name = "velocity"
 kind = "velocity"
 
 [[body.slots.channels]]
@@ -208,17 +208,17 @@ maximum = 1.0
 default = 1.0
 
 [body.slots.modulation.parameters.target]
-node = "processing"
+name = "processing"
 parameter = "amplitude"
 
 [[body.slots.modulation.sources]]
-id = "velocity"
+name = "velocity"
 scope = "voice"
 minimum = 0.0
 maximum = 1.0
 
 [[body.slots.modulation.routes]]
-id = "velocity-amplitude"
+name = "velocity-amplitude"
 source = "velocity"
 operation = "multiply"
 unit = "ratio"
@@ -737,7 +737,7 @@ input = 1.0
 amount = 1.0
 
 [body.slots.modulation.routes.target]
-node = "processing"
+name = "processing"
 parameter = "amplitude"
 
 [body.slots.mapping]

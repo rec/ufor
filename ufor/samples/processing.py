@@ -14,7 +14,7 @@ from .controls import Control
 
 
 class EqualizerBand(Model):
-    id: Identifier
+    name: Identifier
     frequency_hz: Frequency
     gain_db: Number
     resonance: Positive
@@ -29,7 +29,7 @@ class Processing(Model):
 
     @model_validator(mode='after')
     def unique_bands(self) -> Self:
-        unique((b.id for b in self.equalizer), 'EQ band ID')
+        unique((b.name for b in self.equalizer), 'EQ band ID')
         return self
 
 
@@ -40,19 +40,19 @@ class ChannelRoute(Model):
 
 
 class EventBinding(Model):
-    id: Identifier
+    name: Identifier
     kind: Literal['key', 'velocity']
 
 
 class ControlBinding(Model):
-    id: Identifier
+    name: Identifier
     kind: Literal['control'] = 'control'
     control: Identifier
     smoothing: control.Rational = Field(default=Fraction(1, 200), ge=0)
 
 
 class GeneratorBinding(Model):
-    id: Identifier
+    name: Identifier
     kind: Literal['envelope', 'lfo']
     reference: Identifier
 
@@ -73,9 +73,9 @@ class SoundSettings(Model):
     @model_validator(mode='after')
     def local_references(self) -> Self:
         unique([*self.envelopes, *self.lfos], 'source ID')
-        unique((b.id for b in self.bindings), 'binding ID')
-        sources = {s.id: s for s in self.modulation.sources}
-        if sources.keys() != {b.id for b in self.bindings}:
+        unique((b.name for b in self.bindings), 'binding ID')
+        sources = {s.name: s for s in self.modulation.sources}
+        if sources.keys() != {b.name for b in self.bindings}:
             raise ValueError('Each modulation source requires exactly one binding')
         if self.envelope is not None and (
             self.envelope.scope != control.Scope.voice
@@ -83,7 +83,7 @@ class SoundSettings(Model):
         ):
             raise ValueError('Amplitude envelope must be unipolar and voice scoped')
         for binding in self.bindings:
-            source = sources[binding.id]
+            source = sources[binding.name]
             if isinstance(binding, EventBinding):
                 if source.scope != 'voice':
                     raise ValueError('Key and velocity bindings require voice scope')
@@ -93,7 +93,7 @@ class SoundSettings(Model):
                     if any(
                         p.input != int(p.input)
                         for r in self.modulation.routes
-                        if r.source == source.id
+                        if r.source == source.name
                         for p in r.points
                     ):
                         raise ValueError('Key mapping inputs must be integers')
@@ -130,11 +130,11 @@ class SoundSettings(Model):
                 raise ValueError('Amplitude requires a nonnegative parameter domain')
             if parameter.target.parameter == 'resonance' and parameter.minimum <= 0:
                 raise ValueError('Resonance requires a positive parameter domain')
-            if parameter.target.node == 'envelope':
+            if parameter.target.name == 'envelope':
                 generator = self.envelope
-            elif parameter.target.node.startswith('env-'):
+            elif parameter.target.name.startswith('env-'):
                 generator = self.envelopes.get(
-                    parameter.target.node.removeprefix('env-')
+                    parameter.target.name.removeprefix('env-')
                 )
             else:
                 generator = None
@@ -145,8 +145,8 @@ class SoundSettings(Model):
                 p.amount < 0 for p in route.points
             ):
                 raise ValueError('Sample processing multipliers must be nonnegative')
-            if route.target.node == 'envelope' or route.target.node.startswith('env-'):
-                binding = next(b for b in self.bindings if b.id == route.source)
+            if route.target.name == 'envelope' or route.target.name.startswith('env-'):
+                binding = next(b for b in self.bindings if b.name == route.source)
                 if not isinstance(binding, EventBinding):
                     raise ValueError(
                         'Envelope durations are latched from key or velocity'
@@ -154,13 +154,13 @@ class SoundSettings(Model):
         return self
 
     def validate_controls(self, controls: dict[str, Control]) -> None:
-        sources = {s.id: s for s in self.modulation.sources}
+        sources = {s.name: s for s in self.modulation.sources}
         for binding in self.bindings:
             if isinstance(binding, ControlBinding):
                 if binding.control not in controls:
                     raise ValueError(f'Unknown control: {binding.control}')
                 declared = controls[binding.control]
-                source = sources[binding.id]
+                source = sources[binding.name]
                 minimum = -1 if declared.polarity == control.Polarity.bipolar else 0
                 if source.scope == 'voice' or (source.minimum, source.maximum) != (
                     minimum,
@@ -176,7 +176,7 @@ def parameter_definition(
     settings: SoundSettings, target: modulation.Target
 ) -> tuple[modulation.Unit, float]:
     """Resolve native parameter addresses without a second route vocabulary."""
-    if target.node == 'processing':
+    if target.name == 'processing':
         if target.parameter == 'amplitude':
             return modulation.Unit.ratio, 1.0
         units = {
@@ -190,7 +190,7 @@ def parameter_definition(
                 settings.processing, target.parameter
             )
     for band in settings.processing.equalizer:
-        if target.node == f'eq-{band.id}':
+        if target.name == f'eq-{band.name}':
             units = {
                 'gain_db': modulation.Unit.db,
                 'frequency_hz': modulation.Unit.hz,
@@ -201,8 +201,8 @@ def parameter_definition(
     generators = {f'env-{k}': v for k, v in settings.envelopes.items()}
     if settings.envelope is not None:
         generators['envelope'] = settings.envelope
-    if target.node in generators:
-        definition = generators[target.node]
+    if target.name in generators:
+        definition = generators[target.name]
         for phase, segments in (
             ('on', definition.segments),
             ('release', definition.release),
@@ -215,7 +215,7 @@ def parameter_definition(
                         else modulation.Unit.beats
                     )
                     return unit, float(segment.duration)
-    raise ValueError(f'Unknown local parameter: {target.node}.{target.parameter}')
+    raise ValueError(f'Unknown local parameter: {target.name}.{target.parameter}')
 
 
 def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
@@ -223,14 +223,14 @@ def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
     low = high = getattr(settings.processing, target)
     multipliers: list[tuple[float, float]] = []
     weighted = {
-        b.id
+        b.name
         for b in settings.bindings
         if isinstance(b, GeneratorBinding)
         and b.kind == 'lfo'
         and (settings.lfos[b.reference].delay or settings.lfos[b.reference].fade_in)
     }
     for route in settings.modulation.routes:
-        if route.target == modulation.Target(node='processing', parameter=target):
+        if route.target == modulation.Target(name='processing', parameter=target):
             amounts = [p.amount for p in route.points]
             if route.source in weighted:
                 amounts.append(0 if route.operation == modulation.Operation.add else 1)

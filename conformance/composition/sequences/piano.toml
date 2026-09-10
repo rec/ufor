@@ -1,28 +1,28 @@
 format = "recs"
-version = 2
-id = "notes"
-name = "Piano notes"
+version = 3
+name = "notes"
+title = "Piano notes"
 parameters = []
 kind = "sequence"
+inputs = []
 
 [[timebases]]
-id = "audio"
+name = "audio"
 kind = "physical"
 
 [timebases.rate]
 numerator = 48000
 denominator = 1
 
-[[ports]]
-id = "performance"
-direction = "output"
+[[outputs]]
+name = "performance"
 
-[ports.stream]
+[outputs.stream]
 family = "event"
 timebase = "audio"
 kinds = ["trigger", "release"]
 
-[ports.binding]
+[outputs.binding]
 sequence = true
 
 [body]

@@ -9,25 +9,6 @@
       "title": "Accidentals",
       "type": "string"
     },
-    "Address": {
-      "additionalProperties": false,
-      "properties": {
-        "node": {
-          "title": "Node",
-          "type": "string"
-        },
-        "port": {
-          "title": "Port",
-          "type": "string"
-        }
-      },
-      "required": [
-        "node",
-        "port"
-      ],
-      "title": "Address",
-      "type": "object"
-    },
     "Arrangement": {
       "additionalProperties": false,
       "properties": {
@@ -42,11 +23,11 @@
           "title": "Media Types",
           "type": "array"
         },
-        "nodes": {
+        "parts": {
           "items": {
-            "$ref": "#/$defs/Node"
+            "$ref": "#/$defs/Part"
           },
-          "title": "Nodes",
+          "title": "Parts",
           "type": "array"
         },
         "connections": {
@@ -98,7 +79,7 @@
       "title": "Arrangement",
       "type": "object"
     },
-    "ArrangementDocument": {
+    "ArrangementScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -108,19 +89,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "timebases": {
@@ -132,16 +113,23 @@
           "title": "Timebases",
           "type": "array"
         },
-        "ports": {
+        "inputs": {
           "items": {
-            "$ref": "#/$defs/Port"
+            "$ref": "#/$defs/Input"
           },
-          "title": "Ports",
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "title": "Outputs",
           "type": "array"
         },
         "parameters": {
           "items": {
-            "$ref": "#/$defs/ufor__interface__Parameter"
+            "$ref": "#/$defs/ParameterExport"
           },
           "title": "Parameters",
           "type": "array"
@@ -164,12 +152,12 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "timebases",
         "body"
       ],
-      "title": "ArrangementDocument",
+      "title": "ArrangementScore",
       "type": "object"
     },
     "Articulations": {
@@ -212,8 +200,8 @@
     "Asset": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "path": {
@@ -238,7 +226,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "path",
         "encoding",
         "byte_length",
@@ -250,8 +238,8 @@
     "AudioAsset": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "path": {
@@ -279,7 +267,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "path",
         "encoding",
         "byte_length",
@@ -384,8 +372,8 @@
           "title": "Kind",
           "type": "string"
         },
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "source_id": {
@@ -448,7 +436,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "source_id",
         "stream",
         "end"
@@ -546,8 +534,8 @@
     "BusSpec": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "stream": {
@@ -560,7 +548,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "stream"
       ],
       "title": "BusSpec",
@@ -635,12 +623,12 @@
     "ClipSpec": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "source": {
-          "$ref": "#/$defs/Address"
+          "$ref": "#/$defs/OutputSelection"
         },
         "track": {
           "title": "Track",
@@ -668,7 +656,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "source",
         "track",
         "source_start",
@@ -763,10 +751,10 @@
       "additionalProperties": false,
       "properties": {
         "source": {
-          "$ref": "#/$defs/Address"
+          "$ref": "#/$defs/OutputSelection"
         },
         "destination": {
-          "$ref": "#/$defs/Address"
+          "$ref": "#/$defs/InputSelection"
         }
       },
       "required": [
@@ -797,8 +785,8 @@
     "ControlBinding": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "kind": {
@@ -820,7 +808,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "control"
       ],
       "title": "ControlBinding",
@@ -999,33 +987,14 @@
       "title": "ControlSwitch",
       "type": "object"
     },
-    "Definition": {
-      "additionalProperties": false,
-      "properties": {
-        "path": {
-          "minLength": 1,
-          "title": "Path",
-          "type": "string"
-        },
-        "sha256": {
-          "anyOf": [
-            {
-              "pattern": "^[0-9a-f]{64}$",
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Sha256"
-        }
-      },
-      "required": [
-        "path"
+    "Direction": {
+      "enum": [
+        "forward",
+        "backward",
+        "mirror"
       ],
-      "title": "Definition",
-      "type": "object"
+      "title": "Direction",
+      "type": "string"
     },
     "Endpoint": {
       "additionalProperties": false,
@@ -1103,7 +1072,7 @@
       "title": "Envelope",
       "type": "object"
     },
-    "EnvelopeDocument": {
+    "EnvelopeScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -1113,19 +1082,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "kind": {
@@ -1139,18 +1108,18 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "body"
       ],
-      "title": "EnvelopeDocument",
+      "title": "EnvelopeScore",
       "type": "object"
     },
     "EqualizerBand": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "frequency_hz": {
@@ -1169,7 +1138,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "frequency_hz",
         "gain_db",
         "resonance"
@@ -1180,8 +1149,8 @@
     "EventBinding": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "kind": {
@@ -1194,7 +1163,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "kind"
       ],
       "title": "EventBinding",
@@ -1287,8 +1256,8 @@
           "title": "Kind",
           "type": "string"
         },
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "source_id": {
@@ -1346,7 +1315,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "source_id",
         "event_schema"
       ],
@@ -1409,8 +1378,8 @@
     "FileDestination": {
       "additionalProperties": false,
       "properties": {
-        "port": {
-          "title": "Port",
+        "output": {
+          "title": "Output",
           "type": "string"
         },
         "path": {
@@ -1434,7 +1403,7 @@
         }
       },
       "required": [
-        "port",
+        "output",
         "path",
         "format"
       ],
@@ -1521,8 +1490,8 @@
     "GeneratorBinding": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "kind": {
@@ -1539,11 +1508,68 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "kind",
         "reference"
       ],
       "title": "GeneratorBinding",
+      "type": "object"
+    },
+    "Input": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "stream": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AudioType"
+            },
+            {
+              "$ref": "#/$defs/EventType"
+            }
+          ],
+          "title": "Stream"
+        },
+        "binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PerformanceBinding"
+            },
+            {
+              "$ref": "#/$defs/InputSelection"
+            }
+          ],
+          "title": "Binding"
+        }
+      },
+      "required": [
+        "name",
+        "stream",
+        "binding"
+      ],
+      "title": "Input",
+      "type": "object"
+    },
+    "InputSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "input"
+      ],
+      "title": "InputSelection",
       "type": "object"
     },
     "Instrument": {
@@ -1680,7 +1706,7 @@
       "title": "Instrument",
       "type": "object"
     },
-    "InstrumentDocument": {
+    "InstrumentScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -1690,19 +1716,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "timebases": {
@@ -1713,16 +1739,23 @@
           "title": "Timebases",
           "type": "array"
         },
-        "ports": {
+        "inputs": {
           "items": {
-            "$ref": "#/$defs/Port"
+            "$ref": "#/$defs/Input"
           },
-          "title": "Ports",
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "title": "Outputs",
           "type": "array"
         },
         "parameters": {
           "items": {
-            "$ref": "#/$defs/ufor__interface__Parameter"
+            "$ref": "#/$defs/ParameterExport"
           },
           "title": "Parameters",
           "type": "array"
@@ -1766,13 +1799,13 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "timebases",
         "assets",
         "body"
       ],
-      "title": "InstrumentDocument",
+      "title": "InstrumentScore",
       "type": "object"
     },
     "IntervalPattern": {
@@ -2018,7 +2051,7 @@
       "title": "LFO",
       "type": "object"
     },
-    "LFODocument": {
+    "LFOScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -2028,19 +2061,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "kind": {
@@ -2054,11 +2087,11 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "body"
       ],
-      "title": "LFODocument",
+      "title": "LFOScore",
       "type": "object"
     },
     "Loop": {
@@ -2269,7 +2302,7 @@
       "properties": {
         "parameters": {
           "items": {
-            "$ref": "#/$defs/ufor__modulation__Parameter"
+            "$ref": "#/$defs/Parameter"
           },
           "title": "Parameters",
           "type": "array"
@@ -2290,31 +2323,6 @@
         }
       },
       "title": "Modulation",
-      "type": "object"
-    },
-    "Node": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "definition": {
-          "$ref": "#/$defs/Definition"
-        },
-        "parameters": {
-          "additionalProperties": {
-            "type": "number"
-          },
-          "title": "Parameters",
-          "type": "object"
-        }
-      },
-      "required": [
-        "id",
-        "definition"
-      ],
-      "title": "Node",
       "type": "object"
     },
     "NormalizeMode": {
@@ -2509,7 +2517,7 @@
       "title": "Oscillator",
       "type": "object"
     },
-    "OscillatorDocument": {
+    "OscillatorScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -2519,19 +2527,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "kind": {
@@ -2545,18 +2553,174 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "body"
       ],
-      "title": "OscillatorDocument",
+      "title": "OscillatorScore",
+      "type": "object"
+    },
+    "Output": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "stream": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AudioType"
+            },
+            {
+              "$ref": "#/$defs/EventType"
+            }
+          ],
+          "title": "Stream"
+        },
+        "binding": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StreamBinding"
+            },
+            {
+              "$ref": "#/$defs/SequenceBinding"
+            },
+            {
+              "$ref": "#/$defs/AudioBinding"
+            },
+            {
+              "$ref": "#/$defs/MixBinding"
+            },
+            {
+              "$ref": "#/$defs/OutputSelection"
+            }
+          ],
+          "title": "Binding"
+        }
+      },
+      "required": [
+        "name",
+        "stream",
+        "binding"
+      ],
+      "title": "Output",
+      "type": "object"
+    },
+    "OutputSelection": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "output": {
+          "title": "Output",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "output"
+      ],
+      "title": "OutputSelection",
+      "type": "object"
+    },
+    "Parameter": {
+      "additionalProperties": false,
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "default": {
+          "type": "number",
+          "title": "Default"
+        }
+      },
+      "required": [
+        "target",
+        "unit",
+        "scope",
+        "minimum",
+        "maximum",
+        "default"
+      ],
+      "title": "Parameter",
+      "type": "object"
+    },
+    "ParameterExport": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "binding": {
+          "$ref": "#/$defs/Target"
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        },
+        "default": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Default"
+        }
+      },
+      "required": [
+        "name",
+        "binding"
+      ],
+      "title": "ParameterExport",
       "type": "object"
     },
     "ParameterTarget": {
       "additionalProperties": false,
       "properties": {
-        "node": {
-          "title": "Node",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "parameter": {
@@ -2588,10 +2752,35 @@
         }
       },
       "required": [
-        "node",
+        "name",
         "kind"
       ],
       "title": "ParameterTarget",
+      "type": "object"
+    },
+    "Part": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "score": {
+          "$ref": "#/$defs/ScoreVersion"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "score"
+      ],
+      "title": "Part",
       "type": "object"
     },
     "PerformanceBinding": {
@@ -2611,7 +2800,7 @@
       "additionalProperties": false,
       "properties": {
         "direction": {
-          "$ref": "#/$defs/ufor__samples__enums__Direction",
+          "$ref": "#/$defs/Direction",
           "default": "forward"
         },
         "mode": {
@@ -2656,60 +2845,6 @@
       ],
       "title": "Polarity",
       "type": "string"
-    },
-    "Port": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "direction": {
-          "$ref": "#/$defs/ufor__interface__Direction"
-        },
-        "stream": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/AudioType"
-            },
-            {
-              "$ref": "#/$defs/EventType"
-            }
-          ],
-          "title": "Stream"
-        },
-        "binding": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/StreamBinding"
-            },
-            {
-              "$ref": "#/$defs/SequenceBinding"
-            },
-            {
-              "$ref": "#/$defs/PerformanceBinding"
-            },
-            {
-              "$ref": "#/$defs/AudioBinding"
-            },
-            {
-              "$ref": "#/$defs/MixBinding"
-            },
-            {
-              "$ref": "#/$defs/Address"
-            }
-          ],
-          "title": "Binding"
-        }
-      },
-      "required": [
-        "id",
-        "direction",
-        "stream",
-        "binding"
-      ],
-      "title": "Port",
-      "type": "object"
     },
     "Position": {
       "additionalProperties": false,
@@ -2954,7 +3089,7 @@
       "title": "Recording",
       "type": "object"
     },
-    "RecordingDocument": {
+    "RecordingScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -2964,19 +3099,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "timebases": {
@@ -2986,16 +3121,23 @@
           "title": "Timebases",
           "type": "array"
         },
-        "ports": {
+        "inputs": {
           "items": {
-            "$ref": "#/$defs/Port"
+            "$ref": "#/$defs/Input"
           },
-          "title": "Ports",
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "title": "Outputs",
           "type": "array"
         },
         "parameters": {
           "items": {
-            "$ref": "#/$defs/ufor__interface__Parameter"
+            "$ref": "#/$defs/ParameterExport"
           },
           "title": "Parameters",
           "type": "array"
@@ -3018,12 +3160,12 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "assets",
         "body"
       ],
-      "title": "RecordingDocument",
+      "title": "RecordingScore",
       "type": "object"
     },
     "Release": {
@@ -3083,8 +3225,8 @@
     "Route": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "source": {
@@ -3114,7 +3256,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "source",
         "target",
         "operation",
@@ -3259,8 +3401,8 @@
           "title": "Bindings",
           "type": "array"
         },
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "slice": {
@@ -3278,7 +3420,7 @@
           "title": "Channels",
           "type": "array"
         },
-        "name": {
+        "title": {
           "anyOf": [
             {
               "minLength": 1,
@@ -3289,7 +3431,7 @@
             }
           ],
           "default": null,
-          "title": "Name"
+          "title": "Title"
         },
         "description": {
           "anyOf": [
@@ -3384,7 +3526,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "slice",
         "mapping",
         "channels"
@@ -3448,7 +3590,7 @@
       "title": "Scale",
       "type": "object"
     },
-    "ScaleDocument": {
+    "ScaleScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -3458,19 +3600,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "kind": {
@@ -3484,11 +3626,11 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "body"
       ],
-      "title": "ScaleDocument",
+      "title": "ScaleScore",
       "type": "object"
     },
     "Scope": {
@@ -3498,6 +3640,34 @@
       ],
       "title": "Scope",
       "type": "string"
+    },
+    "ScoreVersion": {
+      "additionalProperties": false,
+      "properties": {
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "ScoreVersion",
+      "type": "object"
     },
     "Segment": {
       "additionalProperties": false,
@@ -3530,8 +3700,8 @@
     "Selection": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "mode": {
@@ -3539,7 +3709,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "mode"
       ],
       "title": "Selection",
@@ -3628,7 +3798,7 @@
       "title": "SequenceBinding",
       "type": "object"
     },
-    "SequenceDocument": {
+    "SequenceScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -3638,19 +3808,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "timebases": {
@@ -3661,16 +3831,23 @@
           "title": "Timebases",
           "type": "array"
         },
-        "ports": {
+        "inputs": {
           "items": {
-            "$ref": "#/$defs/Port"
+            "$ref": "#/$defs/Input"
           },
-          "title": "Ports",
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "title": "Outputs",
           "type": "array"
         },
         "parameters": {
           "items": {
-            "$ref": "#/$defs/ufor__interface__Parameter"
+            "$ref": "#/$defs/ParameterExport"
           },
           "title": "Parameters",
           "type": "array"
@@ -3686,19 +3863,19 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "timebases",
         "body"
       ],
-      "title": "SequenceDocument",
+      "title": "SequenceScore",
       "type": "object"
     },
     "Slice": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "asset": {
@@ -3729,7 +3906,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "asset",
         "end_frame"
       ],
@@ -3743,7 +3920,7 @@
         "direction": {
           "anyOf": [
             {
-              "$ref": "#/$defs/ufor__samples__enums__Direction"
+              "$ref": "#/$defs/Direction"
             },
             {
               "type": "null"
@@ -3769,8 +3946,8 @@
     "Source": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "scope": {
@@ -3793,7 +3970,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "scope",
         "minimum",
         "maximum"
@@ -3877,8 +4054,8 @@
     "Target": {
       "additionalProperties": false,
       "properties": {
-        "node": {
-          "title": "Node",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "parameter": {
@@ -3887,7 +4064,7 @@
         }
       },
       "required": [
-        "node",
+        "name",
         "parameter"
       ],
       "title": "Target",
@@ -3915,8 +4092,8 @@
     "Timebase": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "kind": {
@@ -3930,7 +4107,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "rate"
       ],
       "title": "Timebase",
@@ -3939,8 +4116,8 @@
     "TrackSpec": {
       "additionalProperties": false,
       "properties": {
-        "id": {
-          "title": "Id",
+        "name": {
+          "title": "Name",
           "type": "string"
         },
         "stream": {
@@ -3948,7 +4125,7 @@
         }
       },
       "required": [
-        "id",
+        "name",
         "stream"
       ],
       "title": "TrackSpec",
@@ -4086,7 +4263,7 @@
       "title": "Tuning",
       "type": "object"
     },
-    "TuningDocument": {
+    "TuningScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -4096,19 +4273,19 @@
           "type": "string"
         },
         "version": {
-          "const": 2,
-          "default": 2,
+          "const": 3,
+          "default": 3,
           "title": "Version",
           "type": "integer"
-        },
-        "id": {
-          "minLength": 1,
-          "title": "Id",
-          "type": "string"
         },
         "name": {
           "minLength": 1,
           "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
           "type": "string"
         },
         "kind": {
@@ -4122,11 +4299,11 @@
         }
       },
       "required": [
-        "id",
         "name",
+        "title",
         "body"
       ],
-      "title": "TuningDocument",
+      "title": "TuningScore",
       "type": "object"
     },
     "UnfinishedFile": {
@@ -4215,68 +4392,6 @@
       "title": "Interpolation",
       "type": "string"
     },
-    "ufor__interface__Direction": {
-      "enum": [
-        "input",
-        "output"
-      ],
-      "title": "Direction",
-      "type": "string"
-    },
-    "ufor__interface__Parameter": {
-      "additionalProperties": false,
-      "properties": {
-        "id": {
-          "title": "Id",
-          "type": "string"
-        },
-        "binding": {
-          "$ref": "#/$defs/Target"
-        },
-        "minimum": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Minimum"
-        },
-        "maximum": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Maximum"
-        },
-        "default": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Default"
-        }
-      },
-      "required": [
-        "id",
-        "binding"
-      ],
-      "title": "Parameter",
-      "type": "object"
-    },
     "ufor__modulation__Interpolation": {
       "enum": [
         "linear",
@@ -4284,94 +4399,49 @@
       ],
       "title": "Interpolation",
       "type": "string"
-    },
-    "ufor__modulation__Parameter": {
-      "additionalProperties": false,
-      "properties": {
-        "target": {
-          "$ref": "#/$defs/Target"
-        },
-        "unit": {
-          "$ref": "#/$defs/Unit"
-        },
-        "scope": {
-          "$ref": "#/$defs/Scope"
-        },
-        "minimum": {
-          "title": "Minimum",
-          "type": "number"
-        },
-        "maximum": {
-          "title": "Maximum",
-          "type": "number"
-        },
-        "default": {
-          "type": "number",
-          "title": "Default"
-        }
-      },
-      "required": [
-        "target",
-        "unit",
-        "scope",
-        "minimum",
-        "maximum",
-        "default"
-      ],
-      "title": "Parameter",
-      "type": "object"
-    },
-    "ufor__samples__enums__Direction": {
-      "enum": [
-        "forward",
-        "backward",
-        "mirror"
-      ],
-      "title": "Direction",
-      "type": "string"
     }
   },
   "discriminator": {
     "mapping": {
-      "arrangement": "#/$defs/ArrangementDocument",
-      "envelope": "#/$defs/EnvelopeDocument",
-      "instrument": "#/$defs/InstrumentDocument",
-      "lfo": "#/$defs/LFODocument",
-      "oscillator": "#/$defs/OscillatorDocument",
-      "recording": "#/$defs/RecordingDocument",
-      "scale": "#/$defs/ScaleDocument",
-      "sequence": "#/$defs/SequenceDocument",
-      "tuning": "#/$defs/TuningDocument"
+      "arrangement": "#/$defs/ArrangementScore",
+      "envelope": "#/$defs/EnvelopeScore",
+      "instrument": "#/$defs/InstrumentScore",
+      "lfo": "#/$defs/LFOScore",
+      "oscillator": "#/$defs/OscillatorScore",
+      "recording": "#/$defs/RecordingScore",
+      "scale": "#/$defs/ScaleScore",
+      "sequence": "#/$defs/SequenceScore",
+      "tuning": "#/$defs/TuningScore"
     },
     "propertyName": "kind"
   },
   "oneOf": [
     {
-      "$ref": "#/$defs/ArrangementDocument"
+      "$ref": "#/$defs/ArrangementScore"
     },
     {
-      "$ref": "#/$defs/RecordingDocument"
+      "$ref": "#/$defs/RecordingScore"
     },
     {
-      "$ref": "#/$defs/SequenceDocument"
+      "$ref": "#/$defs/SequenceScore"
     },
     {
-      "$ref": "#/$defs/TuningDocument"
+      "$ref": "#/$defs/TuningScore"
     },
     {
-      "$ref": "#/$defs/ScaleDocument"
+      "$ref": "#/$defs/ScaleScore"
     },
     {
-      "$ref": "#/$defs/OscillatorDocument"
+      "$ref": "#/$defs/OscillatorScore"
     },
     {
-      "$ref": "#/$defs/EnvelopeDocument"
+      "$ref": "#/$defs/EnvelopeScore"
     },
     {
-      "$ref": "#/$defs/InstrumentDocument"
+      "$ref": "#/$defs/InstrumentScore"
     },
     {
-      "$ref": "#/$defs/LFODocument"
+      "$ref": "#/$defs/LFOScore"
     }
   ]
 }

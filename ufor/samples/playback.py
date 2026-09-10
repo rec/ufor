@@ -62,7 +62,7 @@ class SlotPlayback(base.Model):
 
 
 class Slice(base.Model):
-    id: base.Identifier
+    name: base.Identifier
     asset: base.Identifier
     start_frame: base.Frame = 0
     end_frame: base.Frame

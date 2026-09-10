@@ -6,8 +6,8 @@ reference calculations. It does not render audio, schedule devices, interpret
 MIDI pedals, allocate voices, or implement a sampler. Existing Recsam and Tuney
 engines are not changed by adding this profile.
 
-`envelope` and `lfo` are common document kinds, using the existing `format =
-"recs"`, `version = 2`, `id`, `name`, and `body` fields. Both round-trip through
+`envelope` and `lfo` are common score kinds, using the existing `format =
+"recs"`, `version = 3`, `name`, `title`, and `body` fields. Both round-trip through
 the common TOML codec. The generated schema and
 [conformance/modulation.json](../conformance/modulation.json) accompany the
 Python reference in `ufor.envelope` and `ufor.lfo`.
@@ -42,7 +42,7 @@ Evaluation frequency and host block size cannot move an event or boundary.
 each instance, separately from the immutable definition. A shared instrument
 LFO has one state per instrument instance; all joining voices observe that
 state. A voice source has state per voice, including separately layered voices.
-Two uses of a document never share state merely because their definition IDs
+Two uses of a score never share state merely because their definition IDs
 match. Gate routing to an instrument envelope must be explicit; it is not
 implicitly the OR of every key in the instrument.
 
@@ -71,9 +71,9 @@ hold 1/10 second, decay 1/4 second to 0.6, then sustain and release:
 
 ```toml
 format = "recs"
-version = 2
-id = "soft-amplitude"
-name = "Soft amplitude"
+version = 3
+name = "soft-amplitude"
+title = "Soft amplitude"
 kind = "envelope"
 
 [body]
@@ -224,7 +224,7 @@ does not add a second LFO stop/tail state machine.
 ## Mapping and combination contract
 
 The generators output dimensionless values. Instrument/processor routes must
-name their source instance, structured target `{node, parameter}`, mapping,
+name their source instance, structured target `{part, parameter}`, mapping,
 operation, and target domain. The embedded `ufor.modulation.Modulation`
 collection now implements [typed routes](instrument-format.md#modulation-routes)
 for the later instrument/processor bodies. It does not overload the existing
@@ -264,7 +264,7 @@ post-event observations. Rational positions/phases, segment indices, event
 ordering, and status compare exactly. Floating control values use absolute
 tolerance 1e-12, including transcendental curves and sine. No WAV data or
 48 kHz audio buffers are generated. Valid cases round-trip through TOML; invalid
-documents include negative durations/rates, invalid polarity/phase/duty, and
+scores include negative durations/rates, invalid polarity/phase/duty, and
 unsupported loops/random sources.
 
 ## Changes from Recsam and remaining boundaries

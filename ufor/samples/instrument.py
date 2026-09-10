@@ -12,9 +12,8 @@ from ..envelope import Envelope, Segment
 from ..events import ControlChange, PerformanceEvent, Trigger
 from ..interface import (
     AudioBinding,
-    Direction,
     EventType,
-    InterfaceDocument,
+    InterfaceScore,
     PerformanceBinding,
 )
 from ..streams import AudioType
@@ -40,10 +39,10 @@ class Instrument(SoundSettings):
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:
-        unique((s.id for s in self.selections), 'selection ID')
+        unique((s.name for s in self.selections), 'selection ID')
         for parameter in self.modulation.parameters:
             target = parameter.target
-            if target.node == 'processing' or target.node.startswith('eq-'):
+            if target.name == 'processing' or target.name.startswith('eq-'):
                 if parameter.scope != control.Scope.voice:
                     raise ValueError(
                         'Instrument processing is per voice, before mixing'
@@ -66,11 +65,11 @@ class Instrument(SoundSettings):
 
 
 class SampleSlot(SoundSettings):
-    id: Identifier
+    name: Identifier
     slice: Identifier
     mapping: Mapping
     channels: list[ChannelRoute] = Field(min_length=1)
-    name: Text | None = None
+    title: Text | None = None
     description: str | None = None
     tags: list[Text] = Field(default_factory=list)
     playback: SlotPlayback = SlotPlayback()
@@ -143,10 +142,10 @@ class SampleInstrument(Model):
 
     @model_validator(mode='after')
     def instrument_references(self) -> Self:
-        unique((s.id for s in self.slots), 'slot ID')
-        unique((s.id for s in self.slices), 'slice ID')
-        slices = {s.id: s for s in self.slices}
-        selections = {s.id for s in self.instrument.selections}
+        unique((s.name for s in self.slots), 'slot ID')
+        unique((s.name for s in self.slices), 'slice ID')
+        slices = {s.name: s for s in self.slices}
+        selections = {s.name for s in self.instrument.selections}
         groups = {s.choke_group for s in self.slots if s.choke_group is not None}
         articulations = (
             set(self.instrument.articulations.ids)
@@ -161,10 +160,10 @@ class SampleInstrument(Model):
             sample_slice = slices[slot.slice]
             slot.validate_controls(self.instrument.controls)
             for settings in (self.instrument, slot):
-                sources = {s.id: s for s in settings.modulation.sources}
+                sources = {s.name: s for s in settings.modulation.sources}
                 for binding in settings.bindings:
                     if isinstance(binding, EventBinding) and binding.kind == 'key':
-                        source = sources[binding.id]
+                        source = sources[binding.name]
                         if (
                             not source.minimum
                             <= slot.mapping.lowest_key
@@ -190,19 +189,21 @@ class SampleInstrument(Model):
                 high = instrument_bounds[1] + slot_bounds[1]
                 if low < -1 or high > 1:
                     raise ValueError(
-                        f'Slot {slot.id}: combined {target} range [{low}, {high}] '
+                        f'Slot {slot.name}: combined {target} range [{low}, {high}] '
                         'exceeds [-1, 1]'
                     )
             if slot.selection is not None and slot.selection not in selections:
-                raise ValueError(f'Slot {slot.id}: unknown selection {slot.selection}')
+                raise ValueError(
+                    f'Slot {slot.name}: unknown selection {slot.selection}'
+                )
             if missing := set(slot.articulations) - articulations:
                 raise ValueError(
-                    f'Slot {slot.id}: unknown articulations {sorted(missing)}'
+                    f'Slot {slot.name}: unknown articulations {sorted(missing)}'
                 )
             for choke in slot.chokes:
                 if choke.group not in groups:
                     raise ValueError(
-                        f'Slot {slot.id}: unknown choke group {choke.group}'
+                        f'Slot {slot.name}: unknown choke group {choke.group}'
                     )
             mode = (
                 slot.playback.mode
@@ -219,23 +220,23 @@ class SampleInstrument(Model):
                 and mode != enums.PlaybackMode.one_shot
             ):
                 raise ValueError(
-                    f'Slot {slot.id}: release/sustain triggers require one_shot'
+                    f'Slot {slot.name}: release/sustain triggers require one_shot'
                 )
             if sample_slice.loop is not None:
                 if mode != enums.PlaybackMode.while_held:
-                    raise ValueError(f'Slot {slot.id}: loops require while_held')
+                    raise ValueError(f'Slot {slot.name}: loops require while_held')
                 if (
                     direction == enums.Direction.mirror
                     and sample_slice.loop.crossfade_frames
                 ):
-                    raise ValueError(f'Slot {slot.id}: mirror loops cannot crossfade')
+                    raise ValueError(f'Slot {slot.name}: mirror loops cannot crossfade')
             if slot.trigger in (
                 enums.TriggerKind.sustain_press,
                 enums.TriggerKind.sustain_release,
             ):
                 if self.instrument.sustain is None:
                     raise ValueError(
-                        f'Slot {slot.id}: sustain triggers require a sustain control'
+                        f'Slot {slot.name}: sustain triggers require a sustain control'
                     )
                 if slot.selection is not None:
                     key = slot.selection, slot.trigger
@@ -264,7 +265,7 @@ class AudioAsset(Asset):
     audio: AudioDescription
 
 
-class InstrumentDocument(InterfaceDocument):
+class InstrumentScore(InterfaceScore):
     kind: Literal['instrument'] = 'instrument'
     description: str | None = None
     tags: list[Text] = Field(default_factory=list)
@@ -275,27 +276,32 @@ class InstrumentDocument(InterfaceDocument):
     @model_validator(mode='after')
     def asset_references(self) -> Self:
         unique(self.tags, 'tag')
-        unique((t.id for t in self.timebases), 'timebase ID')
-        unique((a.id for a in self.assets), 'asset ID')
-        clocks = {t.id for t in self.timebases}
-        assets = {a.id: a for a in self.assets}
-        audio = [p for p in self.ports if isinstance(p.binding, AudioBinding)]
+        unique((t.name for t in self.timebases), 'timebase name')
+        unique((a.name for a in self.assets), 'asset ID')
+        clocks = {t.name for t in self.timebases}
+        assets = {a.name: a for a in self.assets}
+        audio = [p for p in self.outputs if isinstance(p.binding, AudioBinding)]
         performance = [
-            p for p in self.ports if isinstance(p.binding, PerformanceBinding)
+            p for p in self.inputs if isinstance(p.binding, PerformanceBinding)
         ]
-        if len(audio) != 1 or len(performance) != 1 or len(self.ports) != 2:
+        if (
+            len(audio) != 1
+            or len(performance) != 1
+            or len(self.outputs) != 1
+            or len(self.inputs) != 1
+        ):
             raise ValueError(
                 'sample instrument requires one audio and one performance port'
             )
         output = audio[0].stream
-        if audio[0].direction != Direction.output or not isinstance(output, AudioType):
+        if not isinstance(output, AudioType):
             raise ValueError('instrument audio must be an audio output')
         events = performance[0].stream
-        if (
-            performance[0].direction != Direction.input
-            or not isinstance(events, EventType)
-            or set(events.kinds) != {'trigger', 'release', 'control_change'}
-        ):
+        if not isinstance(events, EventType) or set(events.kinds) != {
+            'trigger',
+            'release',
+            'control_change',
+        }:
             raise ValueError('instrument input must accept native performance events')
         if output.timebase not in clocks or any(
             a.audio.timebase not in clocks for a in self.assets
@@ -306,7 +312,7 @@ class InstrumentDocument(InterfaceDocument):
                 raise ValueError(f'Unknown slice asset: {sample_slice.asset}')
             if sample_slice.end_frame > assets[sample_slice.asset].audio.frames:
                 raise ValueError('Slice exceeds native asset frames')
-        slices = {s.id: s for s in self.body.slices}
+        slices = {s.name: s for s in self.body.slices}
         for slot in self.body.slots:
             source = assets[slices[slot.slice].asset].audio
             if any(
@@ -321,7 +327,7 @@ class InstrumentDocument(InterfaceDocument):
                 active = any(
                     getattr(s.processing, target) != 0
                     or any(
-                        r.target.node == 'processing' and r.target.parameter == target
+                        r.target.name == 'processing' and r.target.parameter == target
                         for r in s.modulation.routes
                     )
                     for s in (self.body.instrument, slot)
