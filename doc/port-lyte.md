@@ -2,14 +2,15 @@
 
 ## Status and scope
 
-The Ufor side is implemented. **Lyte has deliberately not been changed.** The
-user explicitly deferred that work to another context and discarded backward
-compatibility for existing animation files. Do not add compatibility readers or
-keep Python-path and Ufor authoring formats in parallel.
+Completed on 2026-09-10. Lyte pins Ufor commit
+`0b88a111b9b02dd696716581dfa0cc68e8cf235c` in Lyte commit `5d6ec33`, and the
+renderer, library selection, examples, preview, installation integration and
+tests were ported in Lyte commit `905f894`. The old composition reader and
+Python-path authoring format were removed without a compatibility path.
 
-The extraction was based on Lyte commit
-`e6131dfbaf2fe9e134227793352eaa2fc9cf823f`. Re-read Lyte's current instructions,
-worktree and source before editing; it may have advanced since that revision.
+The completed Lyte checks were 331 passing tests with two opt-in skips, Ruff,
+formatting, Ty, pyupgrade for Python 3.13, and `git diff --check`. Physical
+Twinkly and Art-Net output remain separate deployment validation.
 
 Read [library.md](library.md), [light-format.md](light-format.md), `ufor/lights.py`,
 `ufor/light_animation.py`, `ufor/effects.py` and `ufor/light_math.py` first.
