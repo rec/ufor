@@ -1,8 +1,9 @@
 # VL70m: an incomplete SysEx description that still supports a librarian
 
-Status: design example, not a new accepted score kind or MIDI implementation.
-The first operation is lossless reading and explicit patch relocation. No hardware
-was contacted, and no sampler or general SysEx description language is proposed.
+Status: implemented byte-level proof of concept in [ufor/vl70.py](../ufor/vl70.py).
+It supports lossless reading and explicit patch relocation, without a new accepted
+score kind. No hardware was contacted, and no sampler or general SysEx description
+language is proposed.
 
 ## What this example establishes
 
@@ -199,7 +200,8 @@ Relocate to slot 7 and wire device 1. Only offsets 2, 8 and 172 change, to
 `cdb397f497e731e4f1cceb291a1692e6739a51a3093f02e8753b93c2cc678321`.
 Relocating back reproduces the original bytes and hash.
 
-A later implementation must also pass these cases:
+The automated tests cover these byte-level cases; configuration compatibility
+remains an application concern:
 
 | Case | Required result |
 | --- | --- |
@@ -213,12 +215,48 @@ A later implementation must also pass these cases:
 | Two equal titles or two equal source slots | Both occurrences remain independently selectable |
 | Stock versus modified target with unverified compatibility | Keep the uncertainty visible; no promise of equivalent sound |
 
-## What remains before execution
+## Using the proof of concept
 
-First implement a pure decoder and copy-on-edit relocation operation against
-these vectors, using Sysexy for file acquisition if appropriate. Next compare
-candidate outputs with local captured bytes. Hardware transfer, request/reply
-handling, pacing, acknowledgements and actual restoration require separate work.
+The host supplies immutable `bytes` to `parse_vl70`. It returns ordered
+`VL70Entry` values with original byte offsets and raw data. Each entry has either
+a validated `patch` or a `diagnostic` explaining why it cannot be edited. A new
+`F0` resynchronizes after an unterminated message, allowing later valid messages
+to be inspected. Opaque spans remain in the same order. Empty input yields no entries.
+
+```python
+from ufor.vl70 import parse_vl70
+
+entries = parse_vl70(original_bytes)  # Supplied by the host application.
+assert b''.join(i.data for i in entries) == original_bytes
+
+entry = entries[0]
+if entry.patch is not None:
+    relocated = entry.patch.relocate(slot=7, device_number=1)
+    output_bytes = relocated.data
+else:
+    print(entry.diagnostic)
+```
+
+`VL70Patch(data=...)` also validates a single message directly, raising a
+validation error for unsupported or damaged data. Its `title`, `slot` and
+`device_number` are decoded views. `relocate` returns a validated new patch;
+omitting `device_number` retains the original. Titles retain all eight characters,
+including spaces and any ASCII control characters; hosts decide how to display them.
+The models are byte-level working values, not additions to the TOML score codec.
+
+The portable synthetic vector is in [conformance/vl70.json](../conformance/vl70.json),
+with automated coverage in [test/test_vl70.py](../test/test_vl70.py). The implementation
+also passed read-only checks against all 17 local files: exact reconstruction of
+all files, successful validation of 1,344 patches, and relocation followed by
+restoration of their original slot and device number. Only destination bytes and
+checksums changed during those operations. Captured patches are not repository fixtures.
+
+## What remains
+
+File access belongs to the host. Destination bank export and its mapping policy,
+saved patch scores, and local instrument provenance are not implemented by this
+module. Hardware transfer, request/reply handling, pacing, acknowledgements and
+actual restoration require separate work.
 Recorded examples and successful checksum checks do not prove device behavior.
 
 Full parameter tables, title editing, additional address families, program
