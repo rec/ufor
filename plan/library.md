@@ -65,12 +65,17 @@ is `(library, address)`. Names and tags need not be globally unique.
 
 Apply the user's naming conventions:
 
-- A score name is nonempty, starts with neither `:`, `#` nor `/`, and contains
+- A score name is nonempty, contains none of `:`, `#` or `/`, and contains
   no literal `.*` substring.
-- A tag begins with `#`, has a nonempty remainder, and contains no whitespace.
-- A library selector prefix contains exactly one colon, at its end. Consequently
-  a registered library name is nonempty and contains no colon.
+- A tag begins with `#`; its nonempty remainder contains no whitespace or any
+  of `:`, `#` or `/`.
+- A registered library name is nonempty and contains none of `:`, `#` or `/`.
+  Its selector prefix adds exactly one colon, at the end.
 - An address begins with `/` and uses `/` between filesystem path components.
+  Path components contain neither `:` nor `#`; slashes are always separators.
+
+Report and skip entries whose metadata or filesystem address violates these
+rules. Do not rename files or encode forbidden delimiters to make them selectable.
 
 Do not case-fold, collapse internal spaces or derive names from filenames.
 Store canonical names without surrounding whitespace. Treat duplicate tags as
@@ -132,31 +137,19 @@ regular-expression or glob semantics. Before implementing the matcher, confirm
 whether selectors should support `.*` patterns; this plan currently assumes
 literal matching and the extensionless-address rule above.
 
-### Delimiters inside values
+### Reserved delimiters
 
-The naming rules allow delimiters *inside* a name, for example `lake: morning`
-or `frogs#2`. Rejecting those names would impose a new restriction. Use quoted
-selector components when a literal delimiter would otherwise be structural:
+Delimiters are always structural: `:` terminates the optional library prefix,
+`#` starts a tag, and `/` starts an address or separates its path components.
+They cannot appear literally inside component values. There is no selector
+quoting or escaping syntax. Ordinary TOML string quoting still applies when
+storing a selector in a TOML file.
 
-```text
-my library:"lake: morning"#frogs/bali/morning.toml
-my library:"frogs#2"#lake/bali/frogs.toml
-```
-
-Use JSON-style double-quoted strings and escapes for component payloads. Quotes
-are selector syntax, not part of the stored value. A tag payload containing a
-delimiter can likewise be written `#"stage/left"`, selecting the stored tag
-`#stage/left`. A quoted address payload follows its leading `/`. Library names
-can be quoted before their terminating colon, but still cannot contain a colon.
-Quoting does not relax the restrictions on name prefixes, `.*` or tag whitespace.
-
-Outside quotes, `:` terminates an optional library prefix, `#` starts a tag,
-and the first address `/` begins the final address payload. Subsequent slashes
-are path separators. Reject malformed quotes, empty tags and parts in the wrong
-order. Do not tokenize on spaces or require spaces between parts. Do not percent
-decode addresses, interpret `..`, or let an address escape a registered root.
-The parser returns structured values; the formatter emits an unambiguous
-canonical selector, adding quotes only when necessary.
+Reject empty tags and parts in the wrong order. Preserve spaces inside names;
+do not tokenize on spaces or require spaces between parts. Do not percent-decode
+addresses, interpret `..`, or let an address escape a registered root. The parser
+returns structured values; the formatter emits a canonical selector using the
+same delimiters, without adding quotes or escapes.
 
 ### Browsing versus a dependency
 
@@ -330,7 +323,8 @@ read libraries and how to display their diagnostics.
 
 1. Specify and test selector parsing, formatting and matching. Include the two
    equivalent user examples, meaningful internal spaces, omitted parts, repeated
-   tags, quoted delimiters, exact addresses and extensionless ambiguity. Resolve
+   tags, forbidden delimiters in metadata and paths, exact addresses and
+   extensionless ambiguity. Verify that quotes and escapes cannot hide delimiters. Resolve
    the pattern-matching question before this step is implemented.
 2. Add configuration and metadata models, tags, selector-bearing `ScoreVersion`
    and preset declarations. Update schema, TOML round trips and documentation.
