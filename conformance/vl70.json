@@ -1,0 +1,15 @@
+{
+  "description": "Synthetic byte-format vector; not a playable patch or captured commercial data.",
+  "prefix_hex": "f04300570123400000",
+  "title_ascii": "UFORTST ",
+  "zero_payload_bytes": 155,
+  "suffix_hex": "45f7",
+  "sha256": "ab4eb024a4089579b5aa5c09b7d848a7fdca9925d76f90771a93758ee146bd9b",
+  "relocation": {
+    "slot": 7,
+    "device_number": 1,
+    "checksum": 62,
+    "changed_offsets": [2, 8, 172],
+    "sha256": "cdb397f497e731e4f1cceb291a1692e6739a51a3093f02e8753b93c2cc678321"
+  }
+}

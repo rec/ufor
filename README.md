@@ -31,9 +31,9 @@ The implemented [score composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
 Explore the [schema](schema/scores.json) and [conformance cases](conformance/).
 
-The proposed [VL70m SysEx example](doc/vl70m-sysex-example.md) explores partial
-MIDI descriptions, lossless patch preservation and explicit patch relocation.
-It is a design example; SysEx decoding and device communication are not implemented.
+The [VL70m SysEx proof of concept](doc/vl70m-sysex-example.md) implements lossless
+dump inspection and explicit patch relocation with a partial MIDI description.
+Device communication and integration into scores remain deferred.
 
 For development, use Python 3.13+:
 
