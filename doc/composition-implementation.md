@@ -29,9 +29,9 @@ meaning of composition:
   empty-event defaults are not supplied. Arbitrary event merging is deferred
   until trigger-identity and same-tick ordering rules are defined.
 - Public parameters are numeric configuration values supplied at initialization.
-  Dynamic external automation and macros are deferred. Reuse internal parameter
-  domain/default validation without duplicating its voice/instrument scopes in
-  the composition interface.
+  Reusable part-scoped numeric automation is placed through arrangement control
+  clips and reuses internal parameter domain/default validation. Competing
+  writers, logical gates, voice/instrument scopes, and macros remain deferred.
 - Both the definition-reference graph and signal graph are acyclic. Check signal
   cycles across public boundaries. Initially treat a child's outputs as depending
   on all its connected inputs; this conservative implementation may reject some

@@ -8,8 +8,9 @@ from urllib.parse import urlsplit
 from pydantic import Field, StrictInt, field_validator, model_validator
 
 from .base import Identifier, Model, unique
+from .control import Scope
 from .lights import LightType
-from .modulation import Target
+from .modulation import Target, Unit
 from .score import Score
 from .selector import parse_selector
 from .streams import AudioType
@@ -86,6 +87,16 @@ class EventType(Model):
         return self
 
 
+class ControlType(Model):
+    """A scalar control curve expressed at an exact native tick rate."""
+
+    family: Literal['control'] = 'control'
+    timebase: Identifier
+    quantity: Literal['gain', 'frequency', 'gate']
+    unit: Unit
+    scope: Scope
+
+
 class NormalizeMode(StrEnum):
     none = auto()
     limit = auto()
@@ -125,6 +136,10 @@ class LightBinding(Model):
     light: Literal[True] = True
 
 
+class ControlBinding(Model):
+    control: Literal[True] = True
+
+
 class MixBinding(Model):
     track: Identifier | None = None
     bus: Identifier | None = None
@@ -150,12 +165,13 @@ class Input(Model):
 
 class Output(Model):
     name: Identifier
-    stream: AudioType | EventType | LightType
+    stream: AudioType | EventType | LightType | ControlType
     binding: (
         StreamBinding
         | SequenceBinding
         | AudioBinding
         | LightBinding
+        | ControlBinding
         | MixBinding
         | OutputSelection
     )

@@ -1,0 +1,9 @@
+{
+  "name": "millisecond-control-on-audio-timeline",
+  "source_rate": 1000,
+  "timeline_rate": 48000,
+  "source_interval": [0, 2000],
+  "timeline_start": 0,
+  "requested_timeline": [0, 96000],
+  "requested_source": [0, 2000]
+}
