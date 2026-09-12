@@ -12,6 +12,7 @@ from .control import Scope
 
 
 class Unit(StrEnum):
+    logical = auto()
     ratio = auto()
     db = auto()
     cents = auto()

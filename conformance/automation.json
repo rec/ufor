@@ -1,0 +1,18 @@
+{
+  "cases": [
+    {"example": "gain", "tick": -1, "expected": 0.25},
+    {"example": "gain", "tick": 999, "expected": 0.25},
+    {"example": "gain", "tick": 1000, "expected": 0.0},
+    {"example": "gain", "tick": 2000, "expected": 0.5},
+    {"example": "gain", "tick": 3000, "expected": 1.0},
+    {"example": "gain", "tick": 9000, "expected": 1.0},
+    {"example": "gain", "tick": 0, "override": 0.75, "expected": 0.75},
+    {"example": "gain", "tick": 2000, "override": 0.75, "expected": 0.5},
+    {"example": "frequency", "tick": 0, "expected": 220.0},
+    {"example": "frequency", "tick": 2000, "expected": 660.0},
+    {"example": "gate", "tick": 999, "expected": false},
+    {"example": "gate", "tick": 1000, "expected": true},
+    {"example": "gate", "tick": 2999, "expected": true},
+    {"example": "gate", "tick": 3000, "expected": false}
+  ]
+}
