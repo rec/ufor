@@ -9,6 +9,38 @@
       "title": "Accidentals",
       "type": "string"
     },
+    "Accompaniment": {
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "title": "Asset",
+          "type": "string"
+        },
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "source_start": {
+          "minimum": 0,
+          "title": "Source Start",
+          "type": "integer"
+        },
+        "source_end": {
+          "exclusiveMinimum": 0,
+          "title": "Source End",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "asset",
+        "start",
+        "source_start",
+        "source_end"
+      ],
+      "title": "Accompaniment",
+      "type": "object"
+    },
     "Advance": {
       "enum": [
         "automatic",
@@ -41,10 +73,37 @@
             "end",
             "replacement",
             "cue",
-            "dropout"
+            "dropout",
+            "submitted",
+            "delivered",
+            "failed"
           ],
           "title": "Action",
           "type": "string"
+        },
+        "source_instance": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Instance"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
         }
       },
       "required": [
@@ -1171,6 +1230,38 @@
           },
           "title": "Parameters",
           "type": "array"
+        },
+        "streams": {
+          "items": {
+            "$ref": "#/$defs/StreamContract"
+          },
+          "title": "Streams",
+          "type": "array"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelMapping"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "controls": {
+          "items": {
+            "$ref": "#/$defs/InputControl"
+          },
+          "title": "Controls",
+          "type": "array"
+        },
+        "opaque_state": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/OpaqueState"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1346,6 +1437,14 @@
       "title": "BusSpec",
       "type": "object"
     },
+    "ByteOrder": {
+      "enum": [
+        "coarse_fine",
+        "fine_coarse"
+      ],
+      "title": "ByteOrder",
+      "type": "string"
+    },
     "CandleBank": {
       "additionalProperties": false,
       "properties": {
@@ -1459,6 +1558,91 @@
       "title": "Capability",
       "type": "object"
     },
+    "Caption": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "minimum": 0,
+          "title": "Start",
+          "type": "integer"
+        },
+        "end": {
+          "exclusiveMinimum": 0,
+          "title": "End",
+          "type": "integer"
+        },
+        "language": {
+          "minLength": 2,
+          "title": "Language",
+          "type": "string"
+        },
+        "text": {
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "speaker": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Speaker"
+        }
+      },
+      "required": [
+        "start",
+        "end",
+        "language",
+        "text"
+      ],
+      "title": "Caption",
+      "type": "object"
+    },
+    "CaptionTrack": {
+      "additionalProperties": false,
+      "properties": {
+        "language": {
+          "minLength": 2,
+          "title": "Language",
+          "type": "string"
+        },
+        "captions": {
+          "items": {
+            "$ref": "#/$defs/Caption"
+          },
+          "title": "Captions",
+          "type": "array"
+        },
+        "asset": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Asset"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "language"
+      ],
+      "title": "CaptionTrack",
+      "type": "object"
+    },
     "CellularAutomaton": {
       "additionalProperties": false,
       "properties": {
@@ -1559,6 +1743,93 @@
         }
       },
       "title": "CellularAutomaton",
+      "type": "object"
+    },
+    "ChannelEncoding": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        },
+        "slots": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 2,
+          "minItems": 1,
+          "title": "Slots",
+          "type": "array"
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        },
+        "values": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Values",
+          "type": "object"
+        },
+        "byte_order": {
+          "$ref": "#/$defs/ByteOrder",
+          "default": "coarse_fine"
+        }
+      },
+      "required": [
+        "parameter",
+        "slots"
+      ],
+      "title": "ChannelEncoding",
+      "type": "object"
+    },
+    "ChannelMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "logical": {
+          "title": "Logical",
+          "type": "string"
+        },
+        "native": {
+          "title": "Native",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "title": "Direction",
+          "type": "string"
+        }
+      },
+      "required": [
+        "logical",
+        "native",
+        "direction"
+      ],
+      "title": "ChannelMapping",
       "type": "object"
     },
     "ChannelRoute": {
@@ -2097,6 +2368,33 @@
       "title": "ComponentMap",
       "type": "object"
     },
+    "CompositeRule": {
+      "enum": [
+        "maximum",
+        "override",
+        "color_blend"
+      ],
+      "title": "CompositeRule",
+      "type": "string"
+    },
+    "Compositor": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        },
+        "rule": {
+          "$ref": "#/$defs/CompositeRule"
+        }
+      },
+      "required": [
+        "parameter",
+        "rule"
+      ],
+      "title": "Compositor",
+      "type": "object"
+    },
     "Computed": {
       "additionalProperties": false,
       "properties": {
@@ -2482,7 +2780,9 @@
         "identity",
         "affine",
         "log_normalize",
-        "gain_db"
+        "gain_db",
+        "piecewise",
+        "enum_table"
       ],
       "title": "Conversion",
       "type": "string"
@@ -2690,6 +2990,79 @@
       "title": "DirectorySelection",
       "type": "object"
     },
+    "EndKind": {
+      "enum": [
+        "duration",
+        "at",
+        "cue_or_source_end"
+      ],
+      "title": "EndKind",
+      "type": "string"
+    },
+    "EndRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/EndKind"
+        },
+        "tick": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tick"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        },
+        "cue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cue"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "EndRule",
+      "type": "object"
+    },
     "Endpoint": {
       "additionalProperties": false,
       "properties": {
@@ -2709,6 +3082,26 @@
         "port"
       ],
       "title": "Endpoint",
+      "type": "object"
+    },
+    "EnumValue": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "output": {
+          "minLength": 1,
+          "title": "Output",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input",
+        "output"
+      ],
+      "title": "EnumValue",
       "type": "object"
     },
     "Envelope": {
@@ -3505,6 +3898,11 @@
             }
           ],
           "title": "Value"
+        },
+        "source": {
+          "default": "score",
+          "title": "Source",
+          "type": "string"
         }
       },
       "required": [
@@ -3587,6 +3985,20 @@
           "minItems": 1,
           "title": "Parameters",
           "type": "array"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelEncoding"
+          },
+          "title": "Channels",
+          "type": "array"
+        },
+        "stop": {
+          "$ref": "#/$defs/StopBehavior",
+          "default": {
+            "kind": "hold",
+            "duration": null
+          }
         }
       },
       "required": [
@@ -3669,6 +4081,24 @@
           },
           "title": "Cues",
           "type": "array"
+        },
+        "compositors": {
+          "items": {
+            "$ref": "#/$defs/Compositor"
+          },
+          "title": "Compositors",
+          "type": "array"
+        },
+        "raw_dmx": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RawDmxCapture"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -3972,6 +4402,67 @@
         "binding"
       ],
       "title": "Input",
+      "type": "object"
+    },
+    "InputControl": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "protocol": {
+          "title": "Protocol",
+          "type": "string"
+        },
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "source_unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "target_unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "conversion": {
+          "$ref": "#/$defs/Conversion",
+          "default": "identity"
+        },
+        "scope": {
+          "default": "global",
+          "enum": [
+            "global",
+            "performance",
+            "voice"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "reset": {
+          "default": "hold",
+          "enum": [
+            "hold",
+            "default",
+            "zero"
+          ],
+          "title": "Reset",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "protocol",
+        "field",
+        "target",
+        "source_unit",
+        "target_unit"
+      ],
+      "title": "InputControl",
       "type": "object"
     },
     "InputSelection": {
@@ -4718,6 +5209,11 @@
           "title": "Unit",
           "type": "string"
         },
+        "frame": {
+          "default": "local",
+          "title": "Frame",
+          "type": "string"
+        },
         "lights": {
           "items": {
             "$ref": "#/$defs/Light"
@@ -5049,6 +5545,15 @@
       "title": "LoopMode",
       "type": "string"
     },
+    "ManualAudioPolicy": {
+      "enum": [
+        "continue",
+        "pause",
+        "seek"
+      ],
+      "title": "ManualAudioPolicy",
+      "type": "string"
+    },
     "Mapping": {
       "additionalProperties": false,
       "properties": {
@@ -5110,6 +5615,25 @@
         "highest_key"
       ],
       "title": "Mapping",
+      "type": "object"
+    },
+    "MappingPoint": {
+      "additionalProperties": false,
+      "properties": {
+        "input": {
+          "title": "Input",
+          "type": "number"
+        },
+        "output": {
+          "title": "Output",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "output"
+      ],
+      "title": "MappingPoint",
       "type": "object"
     },
     "MidiEvent": {
@@ -5357,6 +5881,23 @@
         }
       },
       "title": "OceanCurrent",
+      "type": "object"
+    },
+    "OpaqueState": {
+      "additionalProperties": false,
+      "properties": {
+        "asset": {
+          "$ref": "#/$defs/Asset"
+        },
+        "order": {
+          "$ref": "#/$defs/StateOrder",
+          "default": "opaque_then_canonical"
+        }
+      },
+      "required": [
+        "asset"
+      ],
+      "title": "OpaqueState",
       "type": "object"
     },
     "Operation": {
@@ -5971,6 +6512,24 @@
           "minimum": 1,
           "title": "Update Ticks",
           "type": "integer"
+        },
+        "out_of_range": {
+          "$ref": "#/$defs/RangePolicy",
+          "default": "reject"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/MappingPoint"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "values": {
+          "items": {
+            "$ref": "#/$defs/EnumValue"
+          },
+          "title": "Values",
+          "type": "array"
         }
       },
       "required": [
@@ -6332,6 +6891,19 @@
         },
         "kind": {
           "$ref": "#/$defs/SourceKind"
+        },
+        "relay_buffer": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Relay Buffer"
         }
       },
       "required": [
@@ -6652,6 +7224,14 @@
       "title": "Randomize",
       "type": "object"
     },
+    "RangePolicy": {
+      "enum": [
+        "reject",
+        "clamp"
+      ],
+      "title": "RangePolicy",
+      "type": "string"
+    },
     "Rate": {
       "additionalProperties": false,
       "properties": {
@@ -6718,6 +7298,97 @@
         "values"
       ],
       "title": "RatioTable",
+      "type": "object"
+    },
+    "RawDmxCapture": {
+      "additionalProperties": false,
+      "properties": {
+        "patch_contract": {
+          "title": "Patch Contract",
+          "type": "string"
+        },
+        "frames": {
+          "items": {
+            "$ref": "#/$defs/RawDmxFrame"
+          },
+          "minItems": 1,
+          "title": "Frames",
+          "type": "array"
+        },
+        "synchronization": {
+          "default": "none",
+          "enum": [
+            "none",
+            "artnet_sync",
+            "scheduled"
+          ],
+          "title": "Synchronization",
+          "type": "string"
+        },
+        "measured_skew_ticks": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured Skew Ticks"
+        }
+      },
+      "required": [
+        "patch_contract",
+        "frames"
+      ],
+      "title": "RawDmxCapture",
+      "type": "object"
+    },
+    "RawDmxFrame": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "universe": {
+          "minimum": 1,
+          "title": "Universe",
+          "type": "integer"
+        },
+        "slots": {
+          "items": {
+            "type": "integer"
+          },
+          "maxItems": 512,
+          "minItems": 1,
+          "title": "Slots",
+          "type": "array"
+        },
+        "sequence": {
+          "anyOf": [
+            {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sequence"
+        }
+      },
+      "required": [
+        "tick",
+        "universe",
+        "slots"
+      ],
+      "title": "RawDmxFrame",
       "type": "object"
     },
     "ReactionDiffusionStrip": {
@@ -7193,7 +7864,10 @@
             "advance",
             "back",
             "hold",
-            "cue"
+            "cue",
+            "transition",
+            "caption",
+            "failure"
           ],
           "title": "Action",
           "type": "string"
@@ -7201,6 +7875,18 @@
         "item": {
           "title": "Item",
           "type": "string"
+        },
+        "detail": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Detail"
         }
       },
       "required": [
@@ -7744,67 +8430,34 @@
           "type": "string"
         },
         "start": {
+          "$ref": "#/$defs/StartRule"
+        },
+        "end": {
+          "$ref": "#/$defs/EndRule"
+        },
+        "transition": {
+          "$ref": "#/$defs/ufor__broadcast__Transition",
+          "default": {
+            "kind": "cut",
+            "duration": 0
+          }
+        },
+        "unavailable": {
+          "$ref": "#/$defs/Unavailable",
+          "default": {
+            "kind": "stop",
+            "source": null
+          }
+        },
+        "late_join": {
+          "default": "current",
           "enum": [
-            "at",
-            "after",
-            "cue"
+            "current",
+            "from_start",
+            "reject"
           ],
-          "title": "Start",
+          "title": "Late Join",
           "type": "string"
-        },
-        "tick": {
-          "anyOf": [
-            {
-              "minimum": 0,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Tick"
-        },
-        "after": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "After"
-        },
-        "cue": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Cue"
-        },
-        "duration": {
-          "exclusiveMinimum": 0,
-          "title": "Duration",
-          "type": "integer"
-        },
-        "replacement": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Replacement"
         },
         "capture": {
           "default": false,
@@ -7816,7 +8469,7 @@
         "name",
         "source",
         "start",
-        "duration"
+        "end"
       ],
       "title": "Section",
       "type": "object"
@@ -8145,6 +8798,36 @@
           ],
           "default": null,
           "title": "Cue"
+        },
+        "visual_kind": {
+          "$ref": "#/$defs/VisualKind",
+          "default": "image"
+        },
+        "source_start": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source Start"
+        },
+        "source_end": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source End"
         }
       },
       "required": [
@@ -8183,7 +8866,7 @@
         },
         "transitions": {
           "items": {
-            "$ref": "#/$defs/Transition"
+            "$ref": "#/$defs/ufor__slideshow__Transition"
           },
           "title": "Transitions",
           "type": "array"
@@ -8191,6 +8874,28 @@
         "default_advance": {
           "$ref": "#/$defs/Advance",
           "default": "automatic"
+        },
+        "accompaniment": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Accompaniment"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "manual_audio": {
+          "$ref": "#/$defs/ManualAudioPolicy",
+          "default": "continue"
+        },
+        "captions": {
+          "items": {
+            "$ref": "#/$defs/CaptionTrack"
+          },
+          "title": "Captions",
+          "type": "array"
         },
         "run": {
           "anyOf": [
@@ -8352,6 +9057,130 @@
       "title": "SourceKind",
       "type": "string"
     },
+    "StartKind": {
+      "enum": [
+        "at",
+        "after",
+        "cue"
+      ],
+      "title": "StartKind",
+      "type": "string"
+    },
+    "StartRule": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/StartKind"
+        },
+        "tick": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tick"
+        },
+        "section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Section"
+        },
+        "cue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cue"
+        },
+        "earliest": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Earliest"
+        },
+        "deadline": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Deadline"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "StartRule",
+      "type": "object"
+    },
+    "StateOrder": {
+      "enum": [
+        "opaque_then_canonical"
+      ],
+      "title": "StateOrder",
+      "type": "string"
+    },
+    "StopBehavior": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "blackout",
+            "fade",
+            "hold"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "duration": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "StopBehavior",
+      "type": "object"
+    },
     "StreamBinding": {
       "additionalProperties": false,
       "properties": {
@@ -8379,6 +9208,66 @@
         "stream"
       ],
       "title": "StreamBinding",
+      "type": "object"
+    },
+    "StreamContract": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "input",
+            "output"
+          ],
+          "title": "Direction",
+          "type": "string"
+        },
+        "family": {
+          "enum": [
+            "audio",
+            "event",
+            "control",
+            "light"
+          ],
+          "title": "Family",
+          "type": "string"
+        },
+        "channels": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Channels"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rate"
+        }
+      },
+      "required": [
+        "name",
+        "direction",
+        "family"
+      ],
+      "title": "StreamContract",
       "type": "object"
     },
     "Subtype": {
@@ -8545,41 +9434,6 @@
         "stream"
       ],
       "title": "TrackSpec",
-      "type": "object"
-    },
-    "Transition": {
-      "additionalProperties": false,
-      "properties": {
-        "outgoing": {
-          "title": "Outgoing",
-          "type": "string"
-        },
-        "incoming": {
-          "title": "Incoming",
-          "type": "string"
-        },
-        "kind": {
-          "default": "cut",
-          "enum": [
-            "cut",
-            "crossfade",
-            "wipe"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
-        "duration": {
-          "default": 0,
-          "minimum": 0,
-          "title": "Duration",
-          "type": "integer"
-        }
-      },
-      "required": [
-        "outgoing",
-        "incoming"
-      ],
-      "title": "Transition",
       "type": "object"
     },
     "Trigger": {
@@ -8873,6 +9727,37 @@
       "title": "UmpEvent",
       "type": "object"
     },
+    "Unavailable": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "enum": [
+            "replacement",
+            "skip",
+            "stop"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "source": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Source"
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "title": "Unavailable",
+      "type": "object"
+    },
     "UnfinishedFile": {
       "additionalProperties": false,
       "properties": {
@@ -8941,6 +9826,14 @@
       ],
       "title": "UnmappedAudioFragment",
       "type": "object"
+    },
+    "VisualKind": {
+      "enum": [
+        "image",
+        "video"
+      ],
+      "title": "VisualKind",
+      "type": "string"
     },
     "Wave": {
       "additionalProperties": false,
@@ -9095,6 +9988,29 @@
       "title": "Interpolation",
       "type": "string"
     },
+    "ufor__broadcast__Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "default": "cut",
+          "enum": [
+            "cut",
+            "crossfade",
+            "mix"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "duration": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration",
+          "type": "integer"
+        }
+      },
+      "title": "Transition",
+      "type": "object"
+    },
     "ufor__interface__ControlBinding": {
       "additionalProperties": false,
       "properties": {
@@ -9191,6 +10107,41 @@
         "control"
       ],
       "title": "ControlBinding",
+      "type": "object"
+    },
+    "ufor__slideshow__Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "outgoing": {
+          "title": "Outgoing",
+          "type": "string"
+        },
+        "incoming": {
+          "title": "Incoming",
+          "type": "string"
+        },
+        "kind": {
+          "default": "cut",
+          "enum": [
+            "cut",
+            "crossfade",
+            "wipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "duration": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "outgoing",
+        "incoming"
+      ],
+      "title": "Transition",
       "type": "object"
     }
   },

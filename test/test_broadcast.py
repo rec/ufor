@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.broadcast import BroadcastScore
+from ufor.broadcast import BroadcastScore, provisional_sections
 
 
 def test_planned_and_aired_programme_keep_live_decisions() -> None:
@@ -19,17 +19,24 @@ def test_planned_and_aired_programme_keep_live_decisions() -> None:
                 {
                     'name': 'opening',
                     'source': 'recording',
-                    'start': 'at',
-                    'tick': 0,
-                    'duration': 60,
+                    'start': {'kind': 'at', 'tick': 0},
+                    'end': {'kind': 'duration', 'duration': 60},
                 },
                 {
                     'name': 'guest',
                     'source': 'guest',
-                    'start': 'cue',
-                    'cue': 'guest-ready',
-                    'duration': 300,
-                    'replacement': 'bed',
+                    'start': {
+                        'kind': 'cue',
+                        'cue': 'guest-ready',
+                        'earliest': 60,
+                        'deadline': 120,
+                    },
+                    'end': {
+                        'kind': 'cue_or_source_end',
+                        'cue': 'guest-end',
+                        'maximum': 300,
+                    },
+                    'unavailable': {'kind': 'replacement', 'source': 'bed'},
                     'capture': True,
                 },
             ],
@@ -46,14 +53,10 @@ def test_planned_and_aired_programme_keep_live_decisions() -> None:
             },
         },
     }
-    assert (
-        BroadcastScore.model_validate(data).body.aired.events[1].action == 'replacement'
-    )
-    data['body']['sections'][0]['start'] = 'after'
-    data['body']['sections'][0]['after'] = 'guest'
-    del data['body']['sections'][0]['tick']
-    data['body']['sections'][1]['start'] = 'after'
-    data['body']['sections'][1]['after'] = 'opening'
-    del data['body']['sections'][1]['cue']
+    score = BroadcastScore.model_validate(data)
+    assert score.body.aired.events[1].action == 'replacement'
+    assert provisional_sections(score.body) == ['guest']
+    data['body']['sections'][0]['start'] = {'kind': 'after', 'section': 'guest'}
+    data['body']['sections'][1]['start'] = {'kind': 'after', 'section': 'opening'}
     with pytest.raises(ValidationError, match='cycle'):
         BroadcastScore.model_validate(data)

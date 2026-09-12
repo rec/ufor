@@ -24,6 +24,17 @@ class Advance(StrEnum):
     cue = auto()
 
 
+class VisualKind(StrEnum):
+    image = auto()
+    video = auto()
+
+
+class ManualAudioPolicy(StrEnum):
+    continue_ = 'continue'
+    pause = auto()
+    seek = auto()
+
+
 class Crop(Model):
     x: float = Field(ge=0, le=1)
     y: float = Field(ge=0, le=1)
@@ -56,11 +67,24 @@ class Slide(Model):
     fit: Fit = Fit.contain
     advance: Advance = Advance.automatic
     cue: Identifier | None = None
+    visual_kind: VisualKind = VisualKind.image
+    source_start: int | None = Field(default=None, ge=0, strict=True)
+    source_end: int | None = Field(default=None, gt=0, strict=True)
 
     @model_validator(mode='after')
     def cue_policy(self) -> Self:
         if (self.advance == Advance.cue) != (self.cue is not None):
             raise ValueError('cue advance requires exactly one cue name')
+        video_range = self.source_start is not None or self.source_end is not None
+        if self.visual_kind == VisualKind.video:
+            if (
+                self.source_start is None
+                or self.source_end is None
+                or self.source_end <= self.source_start
+            ):
+                raise ValueError('video requires a finite source range')
+        elif video_range:
+            raise ValueError('only video declares a source range')
         return self
 
 
@@ -71,11 +95,59 @@ class Transition(Model):
     duration: int = Field(default=0, ge=0, strict=True)
 
 
+class Accompaniment(Model):
+    asset: Identifier
+    start: int = Field(ge=0, strict=True)
+    source_start: int = Field(ge=0, strict=True)
+    source_end: int = Field(gt=0, strict=True)
+
+    @model_validator(mode='after')
+    def source_range(self) -> Self:
+        if self.source_end <= self.source_start:
+            raise ValueError('accompaniment source end must exceed start')
+        return self
+
+
+class Caption(Model):
+    start: int = Field(ge=0, strict=True)
+    end: int = Field(gt=0, strict=True)
+    language: str = Field(min_length=2)
+    text: str = Field(min_length=1)
+    speaker: str | None = None
+
+    @model_validator(mode='after')
+    def interval(self) -> Self:
+        if self.end <= self.start:
+            raise ValueError('caption end must exceed start')
+        return self
+
+
+class CaptionTrack(Model):
+    language: str = Field(min_length=2)
+    captions: list[Caption] = Field(default_factory=list)
+    asset: Identifier | None = None
+    offset: int = Field(default=0, ge=0, strict=True)
+
+    @model_validator(mode='after')
+    def source(self) -> Self:
+        if bool(self.captions) == (self.asset is not None):
+            raise ValueError('caption track requires captions or one caption asset')
+        if any(
+            b.start < a.end
+            for a, b in zip(self.captions, self.captions[1:], strict=False)
+        ):
+            raise ValueError('captions must not overlap')
+        return self
+
+
 class RunEvent(Model):
     tick: int = Field(ge=0, strict=True)
     ordinal: int = Field(ge=0, strict=True)
-    action: Literal['enter', 'advance', 'back', 'hold', 'cue']
+    action: Literal[
+        'enter', 'advance', 'back', 'hold', 'cue', 'transition', 'caption', 'failure'
+    ]
     item: Identifier
+    detail: str | None = None
 
 
 class SlideshowRun(Model):
@@ -97,6 +169,9 @@ class Slideshow(Model):
     items: list[Slide] = Field(min_length=1)
     transitions: list[Transition] = Field(default_factory=list)
     default_advance: Advance = Advance.automatic
+    accompaniment: Accompaniment | None = None
+    manual_audio: ManualAudioPolicy = ManualAudioPolicy.continue_
+    captions: list[CaptionTrack] = Field(default_factory=list)
     run: SlideshowRun | None = None
 
     @model_validator(mode='after')
@@ -121,6 +196,18 @@ class Slideshow(Model):
                 or transition.incoming != self.items[outgoing + 1].name
             ):
                 raise ValueError('transition must join adjacent slides')
+            incoming = self.items[outgoing + 1]
+            if transition.duration > min(
+                self.items[outgoing].duration, incoming.duration
+            ):
+                raise ValueError('transition exceeds a visible item duration')
+        if self.accompaniment is not None and self.accompaniment.asset not in assets:
+            raise ValueError('accompaniment references an unknown asset')
+        for track in self.captions:
+            if track.asset is not None and track.asset not in assets:
+                raise ValueError('caption track references an unknown asset')
+        if self.accompaniment is not None and not self.captions:
+            raise ValueError('audible accompaniment requires captions')
         if self.run is not None and any(e.item not in names for e in self.run.events):
             raise ValueError('run event references an unknown slide')
         return self

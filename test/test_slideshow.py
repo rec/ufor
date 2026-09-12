@@ -76,3 +76,63 @@ def test_still_show_requires_accessibility_and_replayable_decisions() -> None:
     del data['body']['items'][0]['alt']
     with pytest.raises(ValidationError):
         SlideshowScore.model_validate(data)
+
+
+def test_video_accompaniment_and_captions_are_portable_timeline_data() -> None:
+    score = SlideshowScore.model_validate(
+        {
+            'name': 'film',
+            'title': 'Film',
+            'timebase': {'name': 'seconds', 'rate': {'numerator': 1}},
+            'body': {
+                'assets': [
+                    {
+                        'name': 'video',
+                        'path': 'film.mov',
+                        'encoding': 'mov',
+                        'byte_length': 1,
+                        'sha256': '0' * 64,
+                    },
+                    {
+                        'name': 'audio',
+                        'path': 'music.flac',
+                        'encoding': 'flac',
+                        'byte_length': 1,
+                        'sha256': '1' * 64,
+                    },
+                ],
+                'items': [
+                    {
+                        'name': 'scene',
+                        'asset': 'video',
+                        'visual_kind': 'video',
+                        'source_start': 2,
+                        'source_end': 12,
+                        'duration': 10,
+                        'alt': 'A train arrives',
+                    }
+                ],
+                'accompaniment': {
+                    'asset': 'audio',
+                    'start': 0,
+                    'source_start': 0,
+                    'source_end': 10,
+                },
+                'manual_audio': 'pause',
+                'captions': [
+                    {
+                        'language': 'en',
+                        'captions': [
+                            {
+                                'start': 1,
+                                'end': 3,
+                                'language': 'en',
+                                'text': 'A train approaches.',
+                            }
+                        ],
+                    }
+                ],
+            },
+        }
+    )
+    assert score.body.items[0].visual_kind == 'video'

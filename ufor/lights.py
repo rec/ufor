@@ -25,6 +25,7 @@ class Layout(Model):
     name: Identifier
     axes: list[Identifier] = Field(min_length=1, max_length=3)
     unit: Literal['metres', 'unitless'] = 'unitless'
+    frame: Identifier = 'local'
     lights: list[Light] = Field(min_length=1)
     regions: dict[Identifier, list[Identifier]] = Field(default_factory=dict)
 
