@@ -18,6 +18,62 @@
       "title": "Advance",
       "type": "string"
     },
+    "AiredEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "section": {
+          "title": "Section",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "start",
+            "end",
+            "replacement",
+            "cue",
+            "dropout"
+          ],
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "section",
+        "action"
+      ],
+      "title": "AiredEvent",
+      "type": "object"
+    },
+    "AiredRun": {
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/AiredEvent"
+          },
+          "minItems": 1,
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "required": [
+        "events"
+      ],
+      "title": "AiredRun",
+      "type": "object"
+    },
     "Alternates": {
       "additionalProperties": false,
       "properties": {
@@ -1174,6 +1230,97 @@
         "body"
       ],
       "title": "BindingScore",
+      "type": "object"
+    },
+    "Broadcast": {
+      "additionalProperties": false,
+      "properties": {
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ProgrammeSource"
+          },
+          "minItems": 1,
+          "title": "Sources",
+          "type": "array"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/Section"
+          },
+          "minItems": 1,
+          "title": "Sections",
+          "type": "array"
+        },
+        "aired": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/AiredRun"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "sources",
+        "sections"
+      ],
+      "title": "Broadcast",
+      "type": "object"
+    },
+    "BroadcastScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "broadcast",
+          "default": "broadcast",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timebase": {
+          "$ref": "#/$defs/Timebase"
+        },
+        "body": {
+          "$ref": "#/$defs/Broadcast"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "timebase",
+        "body"
+      ],
+      "title": "BroadcastScore",
       "type": "object"
     },
     "BusSpec": {
@@ -6176,6 +6323,24 @@
       "title": "Processing",
       "type": "object"
     },
+    "ProgrammeSource": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/SourceKind"
+        }
+      },
+      "required": [
+        "name",
+        "kind"
+      ],
+      "title": "ProgrammeSource",
+      "type": "object"
+    },
     "Pulse": {
       "additionalProperties": false,
       "properties": {
@@ -7567,6 +7732,95 @@
       "title": "Searchlights",
       "type": "object"
     },
+    "Section": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "start": {
+          "enum": [
+            "at",
+            "after",
+            "cue"
+          ],
+          "title": "Start",
+          "type": "string"
+        },
+        "tick": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Tick"
+        },
+        "after": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "After"
+        },
+        "cue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cue"
+        },
+        "duration": {
+          "exclusiveMinimum": 0,
+          "title": "Duration",
+          "type": "integer"
+        },
+        "replacement": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Replacement"
+        },
+        "capture": {
+          "default": false,
+          "title": "Capture",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "name",
+        "source",
+        "start",
+        "duration"
+      ],
+      "title": "Section",
+      "type": "object"
+    },
     "Segment": {
       "additionalProperties": false,
       "properties": {
@@ -8088,6 +8342,15 @@
       ],
       "title": "Source",
       "type": "object"
+    },
+    "SourceKind": {
+      "enum": [
+        "recorded",
+        "live",
+        "relay"
+      ],
+      "title": "SourceKind",
+      "type": "string"
     },
     "StreamBinding": {
       "additionalProperties": false,
@@ -8937,6 +9200,7 @@
       "arrangement": "#/$defs/ArrangementScore",
       "automation": "#/$defs/AutomationScore",
       "binding": "#/$defs/BindingScore",
+      "broadcast": "#/$defs/BroadcastScore",
       "envelope": "#/$defs/EnvelopeScore",
       "fixture": "#/$defs/FixtureScore",
       "instrument": "#/$defs/InstrumentScore",
@@ -8960,6 +9224,9 @@
     },
     {
       "$ref": "#/$defs/BindingScore"
+    },
+    {
+      "$ref": "#/$defs/BroadcastScore"
     },
     {
       "$ref": "#/$defs/FixtureScore"
