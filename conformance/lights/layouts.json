@@ -3,6 +3,7 @@
     "name": "matrix",
     "axes": ["x", "y"],
     "unit": "unitless",
+    "frame": "local",
     "lights": [
       {"name": "light_0", "position": [0.0, 0.0]},
       {"name": "light_1", "position": [1.0, 0.0]},
