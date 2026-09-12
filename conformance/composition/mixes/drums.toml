@@ -38,7 +38,7 @@ media_types = ["audio"]
 connections = []
 buses = []
 routes = []
-automation = []
+control_clips = []
 
 [[body.parts]]
 name = "take"

@@ -107,18 +107,21 @@ def test_arrangement_requires_matching_layouts_and_existing_output_ports() -> No
         ArrangementScore.model_validate(data)
 
 
-def test_arrangement_orders_dependent_buses_and_checks_automation() -> None:
+def test_arrangement_orders_dependent_buses_and_checks_control_clips() -> None:
     data = arrangement_data()
     data['body']['buses'].insert(
         0, {'name': 'master', 'stream': {'timebase': 'audio', 'channels': ['mono']}}
     )
     data['body']['routes'].append({'source': 'bus', 'destination': 'master'})
     assert ArrangementScore.model_validate(data).body.bus_order == ['bus', 'master']
-    data['body']['automation'] = [
+    data['body']['control_clips'] = [
         {
-            'target': {'kind': 'clip', 'name': 'missing'},
-            'points': [{'frame': 0, 'value': 1}],
+            'name': 'fade',
+            'source': {'name': 'missing', 'output': 'control'},
+            'source_start': 0,
+            'source_end': 1,
+            'timeline_start': 0,
         }
     ]
-    with pytest.raises(ValidationError, match='Unknown automation'):
+    with pytest.raises(ValidationError, match='unknown source'):
         ArrangementScore.model_validate(data)

@@ -88,11 +88,12 @@ and retains native gaps and offsets. Open recordings and unresolved historical
 placement are rejected. Nested arrangement outputs retain their native frame
 coordinates. Unsupported instrument realization fails during preparation.
 
-Automation targets are structured tables, such as
-`{ kind = "clip", part = "opening", parameter = "gain" }`. A route target also
-names `destination`. Gain remains a linear amplitude multiplier. Existing
-equal-power gain interpolation retains its squared-gain formula and its base
-value before the first knot.
+`control_clips` place reusable automation-score outputs. Each has a name, source
+`{ name, output }`, native source interval, and timeline start. The source score
+names the local target part and public parameter. Ufor resolves the target's unit,
+scope, range, and exact clock conversion before a host begins work. A control clip
+has speed one in this profile. Audio gain remains a linear amplitude multiplier;
+crossfades and equal-power mixing remain later audio operations.
 
 The Pydantic definition is `ufor.arrangement.ArrangementScore`; its
 `model_json_schema()` describes this implemented profile. The parser and TOML
@@ -102,12 +103,12 @@ composition stages retain their recipe provenance and store the new scores.
 
 ## Validation ownership
 
-Ufor validates identifier uniqueness, clip and routing references, matching route
-channel layouts and timebases, acyclic bus routing, automation targets, output
+Ufor validates identifier uniqueness, clip, control-clip and routing references,
+matching route channel layouts and timebases, acyclic bus routing, output
 references, and destination ports. Frame positions require integers and gains
 must be finite. `Arrangement.bus_order` supplies dependency order to consumers.
 
 Applications still inspect media to check source channel counts and available
 frames, determine rendered extents, and validate output encodings. Arrangement
-`ParameterTarget` specializes the shared modulation `Target` address while
-retaining its existing clip, bus and route selectors and gain-only profile.
+Resolved control clips validate their reusable curve against the target parameter.
+They do not execute it or generate a second audio stream.

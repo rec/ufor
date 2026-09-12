@@ -7,10 +7,15 @@ from pydantic import Field, model_validator
 
 from . import light_animation
 from .arrangement import ArrangementScore
+from .automation import AutomationScore
+from .automation import evaluate as evaluate_automation
 from .base import Model
 from .codec import ScoreValue
+from .control import Scope
 from .events import ControlChange, Release, StoredEvent, Trigger
 from .interface import (
+    ControlBinding,
+    ControlType,
     EventType,
     Input,
     InputSelection,
@@ -40,6 +45,7 @@ class ScoreRecord(Model):
 
 class ParameterContract(Model):
     unit: Unit
+    scope: Scope
     minimum: float
     maximum: float
     default: float
@@ -119,6 +125,7 @@ class Composition:
                 )
             inherited = ParameterContract(
                 unit=internal.unit,
+                scope=internal.scope,
                 minimum=internal.minimum,
                 maximum=internal.maximum,
                 default=internal.default,
@@ -318,17 +325,27 @@ class Composition:
         requests: dict[tuple[str, str], tuple[int, int]],
     ) -> None:
         port = self.output(path, name)
+        key = path, name
+        score = self.scores[self.parts[path].score].score
+        if isinstance(score, AutomationScore):
+            if not isinstance(port.binding, ControlBinding):
+                raise ValueError(f'{path}.{name}: automation requires a control output')
+            previous = requests.get(key)
+            requests[key] = (
+                (min(start, previous[0]), max(end, previous[1]))
+                if previous
+                else (start, end)
+            )
+            return
         low, high = self.extent(path, name)
         if start < low or high is not None and end > high:
             raise ValueError(f'{path}.{name}: request exceeds output extent')
-        key = path, name
         previous = requests.get(key)
         requests[key] = (
             (min(start, previous[0]), max(end, previous[1]))
             if previous
             else (start, end)
         )
-        score = self.scores[self.parts[path].score].score
         binding = port.binding
         if isinstance(binding, OutputSelection):
             child = self.parts[path].children[binding.name]
@@ -384,6 +401,27 @@ class Composition:
                         clip.source.output,
                         clip.source_start + lo - clip.timeline_start,
                         clip.source_start + hi - clip.timeline_start,
+                        requests,
+                    )
+            for clip in score.body.control_clips:
+                source = self.parts[path].children[clip.source.name]
+                source_port = self.output(source, clip.source.output)
+                source_rate = self.rate(source, source_port.stream.timebase)
+                timeline_rate = self.rate(path, score.body.timebase)
+                duration = exact_tick(
+                    clip.source_end - clip.source_start, timeline_rate / source_rate
+                )
+                clip_end = clip.timeline_start + duration
+                if max(start, clip.timeline_start) < min(end, clip_end):
+                    requested_end = clip.source_start + exact_tick(
+                        min(end, clip_end) - clip.timeline_start,
+                        source_rate / timeline_rate,
+                    )
+                    self._request(
+                        source,
+                        clip.source.output,
+                        clip.source_start,
+                        requested_end,
                         requests,
                     )
 
@@ -634,6 +672,59 @@ class Composition:
                     and clip.source_end > end
                 ):
                     raise ValueError(f'{path}/{clip.name}: clip exceeds source extent')
+            targets: set[tuple[str, str]] = set()
+            for clip in score.body.control_clips:
+                source = part.children[clip.source.name]
+                source_score = self.scores[self.parts[source].score].score
+                port = self.output(source, clip.source.output)
+                if (
+                    not isinstance(source_score, AutomationScore)
+                    or not isinstance(port.binding, ControlBinding)
+                    or not isinstance(port.stream, ControlType)
+                ):
+                    raise ValueError(f'{path}/{clip.name}: source is not automation')
+                target = source_score.body.target
+                if target.name not in part.children:
+                    raise ValueError(f'{path}/{clip.name}: unknown automation target')
+                target_path = part.children[target.name]
+                contract = self.parameter_contract(
+                    self.parts[target_path].score, target.parameter
+                )
+                if source_score.body.scope != Scope.part:
+                    raise ValueError(
+                        f'{path}/{clip.name}: only part automation is supported'
+                    )
+                if source_score.body.quantity == 'gate':
+                    raise ValueError(
+                        f'{path}/{clip.name}: logical gate automation is unsupported'
+                    )
+                if (
+                    contract.unit != source_score.body.unit
+                    or contract.scope != source_score.body.scope
+                ):
+                    raise ValueError(
+                        f'{path}/{clip.name}: incompatible automation target'
+                    )
+                key = target_path, target.parameter
+                if key in targets:
+                    raise ValueError(f'{path}: competing automation target {target!r}')
+                targets.add(key)
+                source_rate = self.rate(source, port.stream.timebase)
+                timeline_rate = self.rate(path, score.body.timebase)
+                exact_tick(
+                    clip.source_end - clip.source_start, timeline_rate / source_rate
+                )
+                for curve in source_score.body.curves:
+                    for knot in curve.knots:
+                        value = evaluate_automation(source_score, knot.tick)
+                        if (
+                            isinstance(value, bool)
+                            or not contract.minimum <= value <= contract.maximum
+                        ):
+                            raise ValueError(
+                                f'{path}/{clip.name}: automation value exceeds '
+                                'target range'
+                            )
 
 
 def exact_tick(tick: int, ratio: Fraction) -> int:
@@ -650,6 +741,7 @@ def _narrow(inherited: ParameterContract, export: ParameterExport) -> ParameterC
         raise ValueError('public parameter cannot widen the internal range')
     return ParameterContract(
         unit=inherited.unit,
+        scope=inherited.scope,
         minimum=minimum,
         maximum=maximum,
         default=inherited.default if export.default is None else export.default,

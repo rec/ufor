@@ -4,10 +4,15 @@ kind = "automation"
 name = "fade"
 title = "Fade in a recording"
 
-[timebase]
+[[timebases]]
 name = "milliseconds"
-[timebase.rate]
+[timebases.rate]
 numerator = 1000
+
+[[outputs]]
+name = "control"
+binding = { control = true }
+stream = { family = "control", timebase = "milliseconds", quantity = "gain", unit = "ratio", scope = "part" }
 
 [body]
 quantity = "gain"
