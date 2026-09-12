@@ -1,0 +1,21 @@
+format = "recs"
+version = 3
+kind = "binding"
+name = "vl70m"
+title = "VL70m SysEx librarian binding"
+
+[body]
+adapter = "sysexy.vl70m"
+implementation = "yamaha-vl70m"
+implementation_revision = "observed-174-byte-bulk"
+
+[body.definition]
+path = "patch.toml"
+
+[[body.capabilities]]
+name = "sysex"
+live = true
+offline = false
+deterministic = true
+state_restore = true
+latency_ticks = 0

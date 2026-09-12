@@ -7,6 +7,7 @@ from pydantic import Field, TypeAdapter
 
 from .arrangement import ArrangementScore
 from .automation import AutomationScore
+from .binding import BindingScore
 from .envelope import EnvelopeScore
 from .lfo import LFOScore
 from .light_animation import AnimationScore
@@ -22,6 +23,7 @@ def parse_score(
 ) -> (
     ArrangementScore
     | AutomationScore
+    | BindingScore
     | RecordingScore
     | SequenceScore
     | TuningScore
@@ -39,6 +41,7 @@ def parse_score(
 def score_toml(
     value: ArrangementScore
     | AutomationScore
+    | BindingScore
     | RecordingScore
     | SequenceScore
     | TuningScore
@@ -61,6 +64,7 @@ def score_schema() -> dict[str, object]:
 ScoreValue = Annotated[
     ArrangementScore
     | AutomationScore
+    | BindingScore
     | RecordingScore
     | SequenceScore
     | TuningScore
