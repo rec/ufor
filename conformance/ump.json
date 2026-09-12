@@ -1,0 +1,13 @@
+{
+  "valid": [
+    {"words": [546323583], "message_type": 2, "group": 0, "sysex_format": null},
+    {"words": [1167072256, 4294901760], "message_type": 4, "group": 5, "sysex_format": null},
+    {"words": [805306368, 0], "message_type": 3, "group": 0, "sysex_format": "sysex7"},
+    {"words": [1342177280, 0, 0, 0], "message_type": 5, "group": 0, "sysex_format": "sysex8"},
+    {"words": [1358954496, 4294967295, 0, 1], "message_type": 5, "group": 1, "sysex_format": "sysex8"},
+    {"words": [1346371584, 0, 0, 0], "message_type": 5, "group": 0, "sysex_format": null},
+    {"words": [2952790016, 123, 456], "message_type": 11, "group": null, "sysex_format": null},
+    {"words": [4043309056, 0, 0, 0], "message_type": 15, "group": null, "sysex_format": null}
+  ],
+  "invalid": [[], [1073741824], [536870912, 0], [-1], [4294967296], [true]]
+}

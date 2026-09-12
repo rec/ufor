@@ -51,3 +51,6 @@ uv run pytest
 ```
 
 Extracted from Recs, Tuney and Lyte. MIT licensed.
+
+Sequence cropping, seeking, loop ownership, and UMP storage are described in
+[sequence playback](doc/sequence-playback.md).
