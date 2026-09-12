@@ -1071,6 +1071,102 @@
       "title": "AutomationScore",
       "type": "object"
     },
+    "Binding": {
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/ScoreVersion"
+        },
+        "adapter": {
+          "minLength": 1,
+          "title": "Adapter",
+          "type": "string"
+        },
+        "implementation": {
+          "minLength": 1,
+          "title": "Implementation",
+          "type": "string"
+        },
+        "implementation_revision": {
+          "minLength": 1,
+          "title": "Implementation Revision",
+          "type": "string"
+        },
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/Capability"
+          },
+          "minItems": 1,
+          "title": "Capabilities",
+          "type": "array"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/ParameterMapping"
+          },
+          "title": "Parameters",
+          "type": "array"
+        }
+      },
+      "required": [
+        "definition",
+        "adapter",
+        "implementation",
+        "implementation_revision",
+        "capabilities"
+      ],
+      "title": "Binding",
+      "type": "object"
+    },
+    "BindingScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "binding",
+          "default": "binding",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Binding"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "body"
+      ],
+      "title": "BindingScore",
+      "type": "object"
+    },
     "BusSpec": {
       "additionalProperties": false,
       "properties": {
@@ -1165,6 +1261,46 @@
         }
       },
       "title": "CandleBank",
+      "type": "object"
+    },
+    "Capability": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "live": {
+          "title": "Live",
+          "type": "boolean"
+        },
+        "offline": {
+          "title": "Offline",
+          "type": "boolean"
+        },
+        "deterministic": {
+          "title": "Deterministic",
+          "type": "boolean"
+        },
+        "state_restore": {
+          "title": "State Restore",
+          "type": "boolean"
+        },
+        "latency_ticks": {
+          "minimum": 0,
+          "title": "Latency Ticks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "live",
+        "offline",
+        "deterministic",
+        "state_restore",
+        "latency_ticks"
+      ],
+      "title": "Capability",
       "type": "object"
     },
     "CellularAutomaton": {
@@ -2184,6 +2320,16 @@
       ],
       "title": "ControlType",
       "type": "object"
+    },
+    "Conversion": {
+      "enum": [
+        "identity",
+        "affine",
+        "log_normalize",
+        "gain_db"
+      ],
+      "title": "Conversion",
+      "type": "string"
     },
     "Crossfade": {
       "additionalProperties": false,
@@ -5338,6 +5484,60 @@
       "title": "ParameterExport",
       "type": "object"
     },
+    "ParameterMapping": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        },
+        "native_id": {
+          "minLength": 1,
+          "title": "Native Id",
+          "type": "string"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "conversion": {
+          "$ref": "#/$defs/Conversion",
+          "default": "identity"
+        },
+        "input_min": {
+          "title": "Input Min",
+          "type": "number"
+        },
+        "input_max": {
+          "title": "Input Max",
+          "type": "number"
+        },
+        "output_min": {
+          "title": "Output Min",
+          "type": "number"
+        },
+        "output_max": {
+          "title": "Output Max",
+          "type": "number"
+        },
+        "update_ticks": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Update Ticks",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "parameter",
+        "native_id",
+        "unit",
+        "input_min",
+        "input_max",
+        "output_min",
+        "output_max"
+      ],
+      "title": "ParameterMapping",
+      "type": "object"
+    },
     "Part": {
       "additionalProperties": false,
       "properties": {
@@ -8158,6 +8358,7 @@
       "animation": "#/$defs/AnimationScore",
       "arrangement": "#/$defs/ArrangementScore",
       "automation": "#/$defs/AutomationScore",
+      "binding": "#/$defs/BindingScore",
       "envelope": "#/$defs/EnvelopeScore",
       "instrument": "#/$defs/InstrumentScore",
       "lfo": "#/$defs/LFOScore",
@@ -8176,6 +8377,9 @@
     },
     {
       "$ref": "#/$defs/AutomationScore"
+    },
+    {
+      "$ref": "#/$defs/BindingScore"
     },
     {
       "$ref": "#/$defs/RecordingScore"
