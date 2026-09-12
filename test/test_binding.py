@@ -1,7 +1,12 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.binding import BindingScore, ParameterMapping, map_parameter
+from ufor.binding import (
+    BindingScore,
+    ParameterMapping,
+    map_enum_parameter,
+    map_parameter,
+)
 from ufor.codec import parse_score, score_toml
 from ufor.modulation import Unit
 
@@ -71,3 +76,54 @@ def test_binding_round_trips_and_rejects_ambiguous_native_parameters() -> None:
     ]
     with pytest.raises(ValidationError, match='native parameter'):
         BindingScore.model_validate(data)
+
+
+def test_binding_maps_table_values_and_describes_streams() -> None:
+    mapping = ParameterMapping(
+        parameter='gobo',
+        native_id='wheel',
+        unit=Unit.logical,
+        conversion='enum_table',
+        input_min=0,
+        input_max=1,
+        output_min=0,
+        output_max=1,
+        values=[{'input': 'open', 'output': '0'}, {'input': 'dots', 'output': '12'}],
+    )
+    assert map_enum_parameter(mapping, 'dots') == '12'
+    binding = BindingScore.model_validate(
+        {
+            'name': 'adapter',
+            'title': 'Adapter',
+            'body': {
+                'definition': {'path': 'definition.toml'},
+                'adapter': 'example.adapter',
+                'implementation': 'example',
+                'implementation_revision': '1',
+                'capabilities': [
+                    {
+                        'name': 'render',
+                        'live': True,
+                        'offline': True,
+                        'deterministic': True,
+                        'state_restore': True,
+                        'latency_ticks': 0,
+                    }
+                ],
+                'streams': [
+                    {
+                        'name': 'main',
+                        'direction': 'output',
+                        'family': 'audio',
+                        'channels': 2,
+                        'rate': 48000,
+                    }
+                ],
+                'channels': [
+                    {'logical': 'main', 'native': 'out_1_2', 'direction': 'output'}
+                ],
+                'parameters': [mapping.model_dump()],
+            },
+        }
+    )
+    assert binding.body.channels[0].native == 'out_1_2'
