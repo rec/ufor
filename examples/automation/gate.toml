@@ -1,0 +1,25 @@
+format = "recs"
+version = 3
+kind = "automation"
+name = "gate"
+title = "Logical gate"
+
+[timebase]
+name = "milliseconds"
+[timebase.rate]
+numerator = 1000
+
+[body]
+quantity = "gate"
+unit = "logical"
+scope = "part"
+default = false
+[body.target]
+name = "light"
+parameter = "enabled"
+
+[[body.curves]]
+name = "switch"
+unit = "logical"
+interpolation = "hold"
+knots = [{ tick = 1000, value = true }, { tick = 3000, value = false }]

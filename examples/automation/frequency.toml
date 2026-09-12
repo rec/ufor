@@ -1,0 +1,25 @@
+format = "recs"
+version = 3
+kind = "automation"
+name = "sweep"
+title = "Linear frequency sweep"
+
+[timebase]
+name = "milliseconds"
+[timebase.rate]
+numerator = 1000
+
+[body]
+quantity = "frequency"
+unit = "hz"
+scope = "part"
+default = 220.0
+[body.target]
+name = "filter"
+parameter = "cutoff"
+
+[[body.curves]]
+name = "sweep"
+unit = "hz"
+interpolation = "linear"
+knots = [{ tick = 1000, value = 440.0 }, { tick = 3000, value = 880.0 }]
