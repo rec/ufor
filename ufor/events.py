@@ -26,6 +26,43 @@ class MidiEvent(Event):
         return value
 
 
+class UmpEvent(Event):
+    """One complete Universal MIDI Packet, stored as unsigned 32-bit words."""
+
+    kind: Literal['ump'] = 'ump'
+    words: list[Annotated[int, Field(strict=True, ge=0, le=0xFFFFFFFF)]] = Field(
+        min_length=1, max_length=4
+    )
+
+    @model_validator(mode='after')
+    def packet_length(self) -> Self:
+        if len(self.words) != _UMP_WORD_COUNTS[self.message_type]:
+            raise ValueError('UMP word count does not match message type')
+        return self
+
+    @property
+    def message_type(self) -> int:
+        return self.words[0] >> 28
+
+    @property
+    def group(self) -> int | None:
+        """Zero-based wire group for known grouped types; unknown types stay opaque."""
+        return (
+            (self.words[0] >> 24) & 15
+            if self.message_type in (1, 2, 3, 4, 5, 13)
+            else None
+        )
+
+    @property
+    def sysex_format(self) -> Literal['sysex7', 'sysex8'] | None:
+        if (self.words[0] >> 20) & 15 <= 3:
+            if self.message_type == 3:
+                return 'sysex7'
+            if self.message_type == 5:
+                return 'sysex8'
+        return None
+
+
 class OscMessage(Model):
     path: str
     types: str
@@ -114,6 +151,9 @@ PerformanceEvent = Annotated[
     Trigger | Release | ControlChange, Field(discriminator='kind')
 ]
 StoredEvent = Annotated[
-    MidiEvent | OscEvent | KeyEvent | Trigger | Release | ControlChange,
+    MidiEvent | UmpEvent | OscEvent | KeyEvent | Trigger | Release | ControlChange,
     Field(discriminator='kind'),
 ]
+
+
+_UMP_WORD_COUNTS = (1, 1, 1, 2, 2, 4, 1, 1, 2, 2, 2, 3, 3, 4, 4, 4)
