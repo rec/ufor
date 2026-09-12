@@ -943,6 +943,51 @@
       "title": "Aurora",
       "type": "object"
     },
+    "Automation": {
+      "additionalProperties": false,
+      "description": "One parameter's base value and explicitly combined timeline writers.",
+      "properties": {
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        },
+        "quantity": {
+          "$ref": "#/$defs/Quantity"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "default": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Default"
+        },
+        "curves": {
+          "items": {
+            "$ref": "#/$defs/TimelineCurve"
+          },
+          "title": "Curves",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target",
+        "scope",
+        "quantity",
+        "unit",
+        "default"
+      ],
+      "title": "Automation",
+      "type": "object"
+    },
     "AutomationPoint": {
       "additionalProperties": false,
       "properties": {
@@ -961,6 +1006,59 @@
         "value"
       ],
       "title": "AutomationPoint",
+      "type": "object"
+    },
+    "AutomationScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "automation",
+          "default": "automation",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timebase": {
+          "$ref": "#/$defs/Timebase"
+        },
+        "body": {
+          "$ref": "#/$defs/Automation"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "timebase",
+        "body"
+      ],
+      "title": "AutomationScore",
       "type": "object"
     },
     "AutomationSpec": {
@@ -3775,6 +3873,32 @@
       "title": "KeySwitch",
       "type": "object"
     },
+    "Knot": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "tick",
+        "value"
+      ],
+      "title": "Knot",
+      "type": "object"
+    },
     "LFO": {
       "additionalProperties": false,
       "properties": {
@@ -5626,6 +5750,15 @@
       "title": "Pulse",
       "type": "object"
     },
+    "Quantity": {
+      "enum": [
+        "gain",
+        "frequency",
+        "gate"
+      ],
+      "title": "Quantity",
+      "type": "string"
+    },
     "Rain": {
       "additionalProperties": false,
       "properties": {
@@ -7352,6 +7485,48 @@
       "title": "Timebase",
       "type": "object"
     },
+    "TimelineCurve": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "interpolation": {
+          "$ref": "#/$defs/ufor__automation__Interpolation",
+          "default": "linear"
+        },
+        "knots": {
+          "items": {
+            "$ref": "#/$defs/Knot"
+          },
+          "minItems": 1,
+          "title": "Knots",
+          "type": "array"
+        },
+        "operation": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Operation"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "name",
+        "unit",
+        "knots"
+      ],
+      "title": "TimelineCurve",
+      "type": "object"
+    },
     "TrackSpec": {
       "additionalProperties": false,
       "properties": {
@@ -7648,6 +7823,7 @@
     },
     "Unit": {
       "enum": [
+        "logical",
         "ratio",
         "db",
         "cents",
@@ -7844,6 +8020,14 @@
       "title": "Interpolation",
       "type": "string"
     },
+    "ufor__automation__Interpolation": {
+      "enum": [
+        "hold",
+        "linear"
+      ],
+      "title": "Interpolation",
+      "type": "string"
+    },
     "ufor__light_animation__Control": {
       "additionalProperties": false,
       "description": "A free-running control in seconds from this score's activation.",
@@ -7902,6 +8086,7 @@
     "mapping": {
       "animation": "#/$defs/AnimationScore",
       "arrangement": "#/$defs/ArrangementScore",
+      "automation": "#/$defs/AutomationScore",
       "envelope": "#/$defs/EnvelopeScore",
       "instrument": "#/$defs/InstrumentScore",
       "lfo": "#/$defs/LFOScore",
@@ -7917,6 +8102,9 @@
   "oneOf": [
     {
       "$ref": "#/$defs/ArrangementScore"
+    },
+    {
+      "$ref": "#/$defs/AutomationScore"
     },
     {
       "$ref": "#/$defs/RecordingScore"
