@@ -1,0 +1,11 @@
+{
+  "sequence": {
+    "timebase": "clock", "start": 0, "end": 10,
+    "events": [{"kind": "trigger", "tick": 1, "ordinal": 0, "part": "lead", "trigger_id": "a", "key": 60}]
+  },
+  "selection": {"name": "phrase", "interval": {"start": 2, "end": 5}, "repetitions": 2},
+  "expected": [
+    {"start": 0, "end": 3, "trigger_id": "clip-6-phrase-0-a", "trigger_tick": 0, "release_tick": 3},
+    {"start": 3, "end": 6, "trigger_id": "clip-6-phrase-1-a", "trigger_tick": 3, "release_tick": 6}
+  ]
+}

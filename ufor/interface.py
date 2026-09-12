@@ -77,7 +77,7 @@ class EventType(Model):
     family: Literal['event'] = 'event'
     timebase: Identifier
     kinds: list[
-        Literal['midi', 'osc', 'key', 'trigger', 'release', 'control_change']
+        Literal['midi', 'ump', 'osc', 'key', 'trigger', 'release', 'control_change']
     ] = Field(min_length=1)
 
     @model_validator(mode='after')

@@ -2573,6 +2573,7 @@
             {
               "enum": [
                 "midi",
+                "ump",
                 "osc",
                 "key",
                 "trigger",
@@ -2633,6 +2634,7 @@
           "items": {
             "enum": [
               "midi",
+              "ump",
               "osc",
               "key",
               "trigger",
@@ -7115,13 +7117,17 @@
                 "midi": "#/$defs/MidiEvent",
                 "osc": "#/$defs/OscEvent",
                 "release": "#/$defs/Release",
-                "trigger": "#/$defs/Trigger"
+                "trigger": "#/$defs/Trigger",
+                "ump": "#/$defs/UmpEvent"
               },
               "propertyName": "kind"
             },
             "oneOf": [
               {
                 "$ref": "#/$defs/MidiEvent"
+              },
+              {
+                "$ref": "#/$defs/UmpEvent"
               },
               {
                 "$ref": "#/$defs/OscEvent"
@@ -7795,6 +7801,45 @@
         }
       },
       "title": "Twinkle",
+      "type": "object"
+    },
+    "UmpEvent": {
+      "additionalProperties": false,
+      "description": "One complete Universal MIDI Packet, stored as unsigned 32-bit words.",
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "ump",
+          "default": "ump",
+          "title": "Kind",
+          "type": "string"
+        },
+        "words": {
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "maxItems": 4,
+          "minItems": 1,
+          "title": "Words",
+          "type": "array"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "words"
+      ],
+      "title": "UmpEvent",
       "type": "object"
     },
     "UnfinishedFile": {
