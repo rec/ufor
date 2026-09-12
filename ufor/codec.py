@@ -9,6 +9,7 @@ from .arrangement import ArrangementScore
 from .automation import AutomationScore
 from .binding import BindingScore
 from .envelope import EnvelopeScore
+from .fixture import FixtureScore
 from .lfo import LFOScore
 from .light_animation import AnimationScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
@@ -25,6 +26,7 @@ def parse_score(
     ArrangementScore
     | AutomationScore
     | BindingScore
+    | FixtureScore
     | RecordingScore
     | SequenceScore
     | SlideshowScore
@@ -44,6 +46,7 @@ def score_toml(
     value: ArrangementScore
     | AutomationScore
     | BindingScore
+    | FixtureScore
     | RecordingScore
     | SequenceScore
     | SlideshowScore
@@ -68,6 +71,7 @@ ScoreValue = Annotated[
     ArrangementScore
     | AutomationScore
     | BindingScore
+    | FixtureScore
     | RecordingScore
     | SequenceScore
     | SlideshowScore
