@@ -4,10 +4,15 @@ kind = "automation"
 name = "sweep"
 title = "Linear frequency sweep"
 
-[timebase]
+[[timebases]]
 name = "milliseconds"
-[timebase.rate]
+[timebases.rate]
 numerator = 1000
+
+[[outputs]]
+name = "control"
+binding = { control = true }
+stream = { family = "control", timebase = "milliseconds", quantity = "frequency", unit = "hz", scope = "part" }
 
 [body]
 quantity = "frequency"

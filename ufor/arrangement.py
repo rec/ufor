@@ -1,4 +1,3 @@
-from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
 from typing import Literal, Self
 
@@ -14,15 +13,8 @@ from .interface import (
     OutputSelection,
     Part,
 )
-from .references import ParameterTarget
 from .streams import AudioType, FileDestination
 from .time import Timebase
-
-
-class Interpolation(StrEnum):
-    hold = auto()
-    linear = auto()
-    equal_power = auto()
 
 
 class TrackSpec(Model):
@@ -58,25 +50,19 @@ class RouteSpec(Model):
     gain: float = 1.0
 
 
-class AutomationPoint(Model):
-    frame: int = Field(ge=0, strict=True)
-    value: float
+class ControlClip(Model):
+    """Place a reusable automation score on this arrangement's timeline."""
 
-
-class AutomationSpec(Model):
-    target: ParameterTarget
-    interpolation: Interpolation = Interpolation.linear
-    points: list[AutomationPoint] = Field(min_length=1)
+    name: Identifier
+    source: OutputSelection
+    source_start: int = Field(strict=True)
+    source_end: int = Field(strict=True)
+    timeline_start: int = Field(ge=0, strict=True)
 
     @model_validator(mode='after')
-    def validate_points(self) -> Self:
-        frames = [p.frame for p in self.points]
-        if any(a >= b for a, b in zip(frames, frames[1:], strict=False)):
-            raise ValueError('automation point frames must be strictly increasing')
-        if self.interpolation == Interpolation.equal_power and any(
-            p.value < 0 for p in self.points
-        ):
-            raise ValueError('equal-power automation values cannot be negative')
+    def validate_interval(self) -> Self:
+        if self.source_end <= self.source_start:
+            raise ValueError('source_end must be greater than source_start')
         return self
 
 
@@ -89,7 +75,7 @@ class Arrangement(Model):
     buses: list[BusSpec] = Field(default_factory=list)
     clips: list[ClipSpec] = Field(default_factory=list)
     routes: list[RouteSpec] = Field(default_factory=list)
-    automation: list[AutomationSpec] = Field(default_factory=list)
+    control_clips: list[ControlClip] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def graph_references(self) -> Self:
@@ -98,9 +84,9 @@ class Arrangement(Model):
             ('track', self.tracks),
             ('bus', self.buses),
             ('clip', self.clips),
+            ('control clip', self.control_clips),
         ):
             unique((i.name for i in items), f'{kind} ID')
-        unique((a.target for a in self.automation), 'automation target')
         unique(((r.source, r.destination) for r in self.routes), 'route')
         tracks = {t.name: t.stream for t in self.tracks}
         buses = {b.name: b.stream for b in self.buses}
@@ -108,8 +94,6 @@ class Arrangement(Model):
             raise ValueError(f'Track and bus IDs collide: {sorted(overlap)}')
         streams = tracks | buses
         sources = {n.name for n in self.parts}
-        clips = {c.name for c in self.clips}
-        routes = {(r.source, r.destination) for r in self.routes}
         for clip in self.clips:
             if clip.source.name not in sources:
                 raise ValueError(f'Clip {clip.name}: unknown source {clip.source}')
@@ -125,17 +109,11 @@ class Arrangement(Model):
             if streams[route.source] != buses[route.destination]:
                 raise ValueError('Route channel layouts and timebases must match')
         _ = self.bus_order
-        for automation in self.automation:
-            target = automation.target
-            valid = (
-                target.name in clips
-                if target.kind == 'clip'
-                else target.name in buses
-                if target.kind == 'bus'
-                else (target.name, target.destination) in routes
-            )
-            if not valid:
-                raise ValueError(f'Unknown automation target {target!r}')
+        for clip in self.control_clips:
+            if clip.source.name not in sources:
+                raise ValueError(
+                    f'Control clip {clip.name}: unknown source {clip.source}'
+                )
         unique((c.destination for c in self.connections), 'input connection')
         for connection in self.connections:
             if (

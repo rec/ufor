@@ -233,8 +233,8 @@ The generators output dimensionless values. Instrument/processor routes must
 name their source instance, structured target `{part, parameter}`, mapping,
 operation, and target domain. The embedded `ufor.modulation.Modulation`
 collection now implements [typed routes](instrument-format.md#modulation-routes)
-for the later instrument/processor bodies. It does not overload the existing
-arrangement-only `ParameterTarget`. The composition contract is:
+for the later instrument/processor bodies. Reusable timeline automation reaches
+an arrangement through its own typed control clip. The composition contract is:
 
 1. Resolve one base value, including authored replacement automation.
 2. Map each source value to an additive amount in the target's units or a

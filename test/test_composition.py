@@ -3,11 +3,26 @@ from pathlib import Path
 
 import pytest
 
+from ufor import light_animation, lights, modulation
 from ufor.arrangement import ArrangementScore
+from ufor.automation import Automation, AutomationScore, Knot, TimelineCurve
 from ufor.codec import parse_score, score_toml
 from ufor.composition import Composition, ScoreRecord
+from ufor.control import Scope
+from ufor.interface import (
+    ControlBinding,
+    ControlType,
+    LightBinding,
+    Output,
+    OutputSelection,
+    ParameterExport,
+    Part,
+    ScoreVersion,
+)
+from ufor.modulation import Target, Unit
 from ufor.samples.instrument import InstrumentScore
 from ufor.sequence import SequenceScore
+from ufor.time import Rate, Timebase
 
 
 def scores() -> dict[str, ScoreRecord]:
@@ -110,12 +125,95 @@ def scores() -> dict[str, ScoreRecord]:
             },
         }
     )
+    light_source = light_animation.AnimationScore(
+        name='solid',
+        title='Solid',
+        timebases=[Timebase(name='frames', rate=Rate(numerator=48000))],
+        outputs=[
+            Output(
+                name='light',
+                stream=lights.LightType(
+                    timebase='frames', components=['white'], layout=lights.strip(1)
+                ),
+                binding=LightBinding(),
+            )
+        ],
+        body=light_animation.Animation(operation=light_animation.Fill(values=[1])),
+    )
+    target = Target(name='animation', parameter='amount')
+    light = light_animation.AnimationScore(
+        name='light',
+        title='Light',
+        timebases=[Timebase(name='frames', rate=Rate(numerator=48000))],
+        outputs=[
+            Output(
+                name='light',
+                stream=lights.LightType(
+                    timebase='frames', components=['white'], layout=lights.strip(1)
+                ),
+                binding=LightBinding(),
+            )
+        ],
+        parameters=[ParameterExport(name='brightness', binding=target)],
+        body=light_animation.Animation(
+            operation=light_animation.Gain(
+                source=OutputSelection(name='solid', output='light')
+            ),
+            parts=[Part(name='solid', score=ScoreVersion(path='solid.toml'))],
+            modulation=modulation.Modulation(
+                parameters=[
+                    modulation.Parameter(
+                        target=target,
+                        unit=Unit.ratio,
+                        scope=Scope.part,
+                        minimum=0,
+                        maximum=2,
+                        default=1,
+                    )
+                ]
+            ),
+        ),
+    )
+    fade = AutomationScore(
+        name='fade',
+        title='Light fade',
+        timebases=[Timebase(name='milliseconds', rate=Rate(numerator=1000))],
+        outputs=[
+            Output(
+                name='control',
+                stream=ControlType(
+                    timebase='milliseconds',
+                    quantity='gain',
+                    unit=Unit.ratio,
+                    scope=Scope.part,
+                ),
+                binding=ControlBinding(),
+            )
+        ],
+        body=Automation(
+            target=Target(name='light', parameter='brightness'),
+            scope=Scope.part,
+            quantity='gain',
+            unit=Unit.ratio,
+            default=0,
+            curves=[
+                TimelineCurve(
+                    name='fade',
+                    unit=Unit.ratio,
+                    knots=[Knot(tick=0, value=0), Knot(tick=2000, value=1)],
+                )
+            ],
+        ),
+    )
     return {
         'mix': ScoreRecord(
             score=mix, paths={'notes.toml': 'notes', 'piano.toml': 'piano'}
         ),
         'notes': ScoreRecord(score=notes),
         'piano': ScoreRecord(score=InstrumentScore.model_validate(piano)),
+        'light': ScoreRecord(score=light, paths={'solid.toml': 'solid'}),
+        'solid': ScoreRecord(score=light_source),
+        'fade': ScoreRecord(score=fade),
     }
 
 
@@ -130,6 +228,121 @@ def test_sequence_drives_an_independently_configured_instrument() -> None:
     ]
     assert composition.performance_trace(96000, start=48000) == trace
     assert parse_score(score_toml(values['mix'].score)) == values['mix'].score
+
+
+def test_arrangement_requests_reusable_control_with_audio_and_events() -> None:
+    values = scores()
+    control_case = json.loads(
+        (Path(__file__).parents[1] / 'conformance/control-clips.json').read_text()
+    )
+    recording = parse_score(
+        (
+            Path(__file__).parents[1]
+            / 'conformance/composition/recordings/rehearsal.toml'
+        ).read_text()
+    )
+    raw = values['mix'].score.model_dump()
+    raw['body']['parts'] += [
+        {'name': 'take', 'score': {'path': 'take.toml'}},
+        {'name': 'light', 'score': {'path': 'light.toml'}},
+        {'name': 'fade', 'score': {'path': 'fade.toml'}},
+    ]
+    raw['body']['clips'].append(
+        {
+            'name': 'recorded-take',
+            'source': {'name': 'take', 'output': 'desk'},
+            'track': 'mix',
+            'source_start': 0,
+            'source_end': 96000,
+            'timeline_start': 0,
+        }
+    )
+    raw['body']['control_clips'] = [
+        {
+            'name': 'light-fade',
+            'source': {'name': 'fade', 'output': 'control'},
+            'source_start': control_case['source_interval'][0],
+            'source_end': control_case['source_interval'][1],
+            'timeline_start': control_case['timeline_start'],
+        }
+    ]
+    values['mix'] = ScoreRecord(
+        score=ArrangementScore.model_validate(raw),
+        paths={
+            'notes.toml': 'notes',
+            'piano.toml': 'piano',
+            'take.toml': 'take',
+            'light.toml': 'light',
+            'fade.toml': 'fade',
+        },
+    )
+    values['take'] = ScoreRecord(score=recording)
+    composition = Composition('mix', values)
+    windows = composition.evaluation_windows(*control_case['requested_timeline'])
+    assert windows['root/fade', 'control'] == tuple(control_case['requested_source'])
+    assert windows['root/piano', 'audio'] == (0, 96000)
+    assert windows['root/take', 'desk'] == (0, 96000)
+    assert [event.event.kind for event in composition.performance_trace(96000)] == [
+        'trigger',
+        'release',
+    ]
+
+
+@pytest.mark.parametrize(
+    ('change', 'message'),
+    [
+        ('wrong-source', 'source is not automation'),
+        ('unknown-target', 'unknown automation target'),
+        ('duplicate-target', 'competing automation target'),
+        ('inexact-rate', 'integer tick'),
+    ],
+)
+def test_control_clips_reject_ambiguous_or_unrepresentable_mappings(
+    change: str, message: str
+) -> None:
+    values = scores()
+    raw = values['mix'].score.model_dump()
+    raw['body']['parts'] += [
+        {'name': 'light', 'score': {'path': 'light.toml'}},
+        {'name': 'fade', 'score': {'path': 'fade.toml'}},
+    ]
+    clip = {
+        'name': 'light-fade',
+        'source': {'name': 'fade', 'output': 'control'},
+        'source_start': 0,
+        'source_end': 2000,
+        'timeline_start': 0,
+    }
+    raw['body']['control_clips'] = [clip]
+    if change == 'wrong-source':
+        clip['source'] = {'name': 'notes', 'output': 'notes'}
+    elif change == 'unknown-target':
+        auto = values['fade'].score.model_copy(
+            update={
+                'body': values['fade'].score.body.model_copy(
+                    update={'target': Target(name='missing', parameter='brightness')}
+                )
+            }
+        )
+        values['fade'] = ScoreRecord(score=auto)
+    elif change == 'duplicate-target':
+        raw['body']['control_clips'].append(clip | {'name': 'second-fade'})
+    elif change == 'inexact-rate':
+        auto_data = values['fade'].score.model_dump()
+        auto_data['timebases'][0]['rate']['numerator'] = 1001
+        values['fade'] = ScoreRecord(score=AutomationScore.model_validate(auto_data))
+        clip['source_end'] = 1
+    values['mix'] = ScoreRecord(
+        score=ArrangementScore.model_validate(raw),
+        paths={
+            'notes.toml': 'notes',
+            'piano.toml': 'piano',
+            'light.toml': 'light',
+            'fade.toml': 'fade',
+        },
+    )
+    with pytest.raises(ValueError, match=message):
+        Composition('mix', values)
 
 
 def test_cropped_nested_instances_replay_their_own_histories() -> None:

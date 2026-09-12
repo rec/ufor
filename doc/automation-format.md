@@ -41,10 +41,12 @@ and curves. Scope uses the existing instrument, part, or voice vocabulary.
 A host evaluates a separate resolved context for each scope; this profile does
 not infer voice identity or resolve a target against a graph.
 
-Each score has one named physical timebase with an exact rational rate. Curve
-ticks are strict signed integers in that timebase. A curve names its unit and
-contains strictly increasing knots. It has at least one knot; a score can have
-no curves, in which case it evaluates to its base value.
+Each score has one named physical timebase with an exact rational rate and one
+`control` output. The output declares the curve's quantity, unit, scope, and
+timebase, and must exactly match the body. Curve ticks are strict signed integers
+in that timebase. A curve names its unit and contains strictly increasing knots.
+It has at least one knot; a score can have no curves, in which case it evaluates
+to its base value.
 
 The unit is explicit and checked against the quantity. No conversion happens
 because two values happen to have the same numeric representation. Frequency
@@ -90,11 +92,19 @@ clamp. Gate automation permits one direct hold curve and no arithmetic writers.
 For example, a 660 Hz direct value with an additive -10 Hz offset and a ratio
 multiplier of 2 evaluates to 1300 Hz, independently of curve list order.
 
-The caller must provide at most one automation score for a target in a resolved
-scope. Resolving competing scores, manual controls, and generator routes together
-belongs to future graph preparation. Existing instrument modulation and audio
-arrangement automation keep their current contracts; this score adds the missing
-typed scalar timeline representation.
+An arrangement places a reusable automation output through a `control_clips`
+entry. Its source interval is in the automation timebase and its timeline start
+is in the arrangement timebase. Speed is fixed at one. The body target names a
+sibling part and its public parameter; target resolution, rate conversion, and
+parameter-domain validation occur when the arrangement is resolved. A rendered
+window requests the curve from the clip start through the needed endpoint, so the
+host can reconstruct its value at the render start.
+
+The current arrangement profile accepts one part-scoped numeric automation score
+per target. Competing writers, logical gates, and voice- or instrument-scoped
+automation are rejected rather than given ambiguous behavior. Combining manual
+controls, generators, and multiple control writers belongs to later graph
+preparation.
 
 ## Verification and boundaries
 
@@ -103,7 +113,12 @@ queries and expected values for the three TOML examples. Tests also cover editin
 and serialization, invalid units and domains, competing writers, explicit
 combination, and large timestamps.
 
+[conformance/control-clips.json](../conformance/control-clips.json) gives an
+exact source/timeline interval conversion vector for a 1 kHz control score in a
+48 kHz arrangement.
+
 The score participates in the common codec and generated
-[schema/scores.json](../schema/scores.json). No GUI, audio renderer, device
-adapter, dense-array format, general graph integration, or equal-power/logarithmic
-mapping is introduced by this first scalar profile.
+[schema/scores.json](../schema/scores.json). Arrangements resolve it without
+rendering audio or sending device output. No GUI, audio renderer, device adapter,
+dense-array format, general control combiner, or equal-power/logarithmic mapping
+is introduced by this profile.

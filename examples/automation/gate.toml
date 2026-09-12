@@ -4,10 +4,15 @@ kind = "automation"
 name = "gate"
 title = "Logical gate"
 
-[timebase]
+[[timebases]]
 name = "milliseconds"
-[timebase.rate]
+[timebases.rate]
 numerator = 1000
+
+[[outputs]]
+name = "control"
+binding = { control = true }
+stream = { family = "control", timebase = "milliseconds", quantity = "gate", unit = "logical", scope = "part" }
 
 [body]
 quantity = "gate"

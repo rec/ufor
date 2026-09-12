@@ -432,11 +432,11 @@
           "title": "Routes",
           "type": "array"
         },
-        "automation": {
+        "control_clips": {
           "items": {
-            "$ref": "#/$defs/AutomationSpec"
+            "$ref": "#/$defs/ControlClip"
           },
-          "title": "Automation",
+          "title": "Control Clips",
           "type": "array"
         }
       },
@@ -988,26 +988,6 @@
       "title": "Automation",
       "type": "object"
     },
-    "AutomationPoint": {
-      "additionalProperties": false,
-      "properties": {
-        "frame": {
-          "minimum": 0,
-          "title": "Frame",
-          "type": "integer"
-        },
-        "value": {
-          "title": "Value",
-          "type": "number"
-        }
-      },
-      "required": [
-        "frame",
-        "value"
-      ],
-      "title": "AutomationPoint",
-      "type": "object"
-    },
     "AutomationScore": {
       "additionalProperties": false,
       "properties": {
@@ -1039,14 +1019,43 @@
           "title": "Tags",
           "type": "array"
         },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Timebases",
+          "type": "array"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Input"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "maxItems": 1,
+          "minItems": 1,
+          "title": "Outputs",
+          "type": "array"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/ParameterExport"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
         "kind": {
           "const": "automation",
           "default": "automation",
           "title": "Kind",
           "type": "string"
-        },
-        "timebase": {
-          "$ref": "#/$defs/Timebase"
         },
         "body": {
           "$ref": "#/$defs/Automation"
@@ -1055,36 +1064,11 @@
       "required": [
         "name",
         "title",
-        "timebase",
+        "timebases",
+        "outputs",
         "body"
       ],
       "title": "AutomationScore",
-      "type": "object"
-    },
-    "AutomationSpec": {
-      "additionalProperties": false,
-      "properties": {
-        "target": {
-          "$ref": "#/$defs/ParameterTarget"
-        },
-        "interpolation": {
-          "$ref": "#/$defs/ufor__arrangement__Interpolation",
-          "default": "linear"
-        },
-        "points": {
-          "items": {
-            "$ref": "#/$defs/AutomationPoint"
-          },
-          "minItems": 1,
-          "title": "Points",
-          "type": "array"
-        }
-      },
-      "required": [
-        "target",
-        "points"
-      ],
-      "title": "AutomationSpec",
       "type": "object"
     },
     "BusSpec": {
@@ -1954,38 +1938,6 @@
       "title": "Connection",
       "type": "object"
     },
-    "ControlBinding": {
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "kind": {
-          "const": "control",
-          "default": "control",
-          "title": "Kind",
-          "type": "string"
-        },
-        "control": {
-          "title": "Control",
-          "type": "string"
-        },
-        "smoothing": {
-          "default": "1/200",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Smoothing",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "control"
-      ],
-      "title": "ControlBinding",
-      "type": "object"
-    },
     "ControlChange": {
       "additionalProperties": false,
       "properties": {
@@ -2056,6 +2008,41 @@
         "scope"
       ],
       "title": "ControlChange",
+      "type": "object"
+    },
+    "ControlClip": {
+      "additionalProperties": false,
+      "description": "Place a reusable automation score on this arrangement's timeline.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "source_start": {
+          "title": "Source Start",
+          "type": "integer"
+        },
+        "source_end": {
+          "title": "Source End",
+          "type": "integer"
+        },
+        "timeline_start": {
+          "minimum": 0,
+          "title": "Timeline Start",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "name",
+        "source",
+        "source_start",
+        "source_end",
+        "timeline_start"
+      ],
+      "title": "ControlClip",
       "type": "object"
     },
     "ControlCrossfade": {
@@ -2157,6 +2144,45 @@
         "articulation"
       ],
       "title": "ControlSwitch",
+      "type": "object"
+    },
+    "ControlType": {
+      "additionalProperties": false,
+      "description": "A scalar control curve expressed at an exact native tick rate.",
+      "properties": {
+        "family": {
+          "const": "control",
+          "default": "control",
+          "title": "Family",
+          "type": "string"
+        },
+        "timebase": {
+          "title": "Timebase",
+          "type": "string"
+        },
+        "quantity": {
+          "enum": [
+            "gain",
+            "frequency",
+            "gate"
+          ],
+          "title": "Quantity",
+          "type": "string"
+        },
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope"
+        }
+      },
+      "required": [
+        "timebase",
+        "quantity",
+        "unit",
+        "scope"
+      ],
+      "title": "ControlType",
       "type": "object"
     },
     "Crossfade": {
@@ -3438,7 +3464,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "control": "#/$defs/ControlBinding",
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
                 "lfo": "#/$defs/GeneratorBinding",
@@ -3451,7 +3477,7 @@
                 "$ref": "#/$defs/EventBinding"
               },
               {
-                "$ref": "#/$defs/ControlBinding"
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
@@ -4989,6 +5015,9 @@
             },
             {
               "$ref": "#/$defs/LightType"
+            },
+            {
+              "$ref": "#/$defs/ControlType"
             }
           ],
           "title": "Stream"
@@ -5006,6 +5035,9 @@
             },
             {
               "$ref": "#/$defs/LightBinding"
+            },
+            {
+              "$ref": "#/$defs/ufor__interface__ControlBinding"
             },
             {
               "$ref": "#/$defs/MixBinding"
@@ -5304,48 +5336,6 @@
         "binding"
       ],
       "title": "ParameterExport",
-      "type": "object"
-    },
-    "ParameterTarget": {
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "parameter": {
-          "const": "gain",
-          "default": "gain",
-          "title": "Parameter",
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "clip",
-            "bus",
-            "route"
-          ],
-          "title": "Kind",
-          "type": "string"
-        },
-        "destination": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Destination"
-        }
-      },
-      "required": [
-        "name",
-        "kind"
-      ],
-      "title": "ParameterTarget",
       "type": "object"
     },
     "Part": {
@@ -6646,7 +6636,7 @@
           "items": {
             "discriminator": {
               "mapping": {
-                "control": "#/$defs/ControlBinding",
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
                 "lfo": "#/$defs/GeneratorBinding",
@@ -6659,7 +6649,7 @@
                 "$ref": "#/$defs/EventBinding"
               },
               {
-                "$ref": "#/$defs/ControlBinding"
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
@@ -8056,15 +8046,6 @@
       "title": "WhiteTwinkle",
       "type": "object"
     },
-    "ufor__arrangement__Interpolation": {
-      "enum": [
-        "hold",
-        "linear",
-        "equal_power"
-      ],
-      "title": "Interpolation",
-      "type": "string"
-    },
     "ufor__automation__Interpolation": {
       "enum": [
         "hold",
@@ -8072,6 +8053,19 @@
       ],
       "title": "Interpolation",
       "type": "string"
+    },
+    "ufor__interface__ControlBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "const": true,
+          "default": true,
+          "title": "Control",
+          "type": "boolean"
+        }
+      },
+      "title": "ControlBinding",
+      "type": "object"
     },
     "ufor__light_animation__Control": {
       "additionalProperties": false,
@@ -8124,6 +8118,38 @@
         }
       },
       "title": "Control",
+      "type": "object"
+    },
+    "ufor__samples__processing__ControlBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "control",
+          "default": "control",
+          "title": "Kind",
+          "type": "string"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "smoothing": {
+          "default": "1/200",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Smoothing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "control"
+      ],
+      "title": "ControlBinding",
       "type": "object"
     }
   },

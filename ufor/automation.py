@@ -10,8 +10,8 @@ from pydantic import Field, StrictBool, model_validator
 
 from .base import Identifier, Model, Number, unique
 from .control import Scope
+from .interface import ControlBinding, ControlType, InterfaceScore, Output
 from .modulation import Operation, Target, Unit
-from .score import Score
 from .time import Timebase
 
 
@@ -87,10 +87,32 @@ class Automation(Model):
         return self
 
 
-class AutomationScore(Score):
+class AutomationScore(InterfaceScore):
     kind: Literal['automation'] = 'automation'
-    timebase: Timebase
+    timebases: list[Timebase] = Field(min_length=1, max_length=1)
+    outputs: list[Output] = Field(min_length=1, max_length=1)
     body: Automation
+
+    @model_validator(mode='after')
+    def control_export(self) -> Self:
+        if self.inputs:
+            raise ValueError('automation scores have no inputs')
+        if self.parameters:
+            raise ValueError('automation scores have no configurable parameters')
+        output = self.outputs[0]
+        if not isinstance(output.binding, ControlBinding) or not isinstance(
+            output.stream, ControlType
+        ):
+            raise ValueError('automation scores export one control stream')
+        timebase = self.timebases[0]
+        if (
+            output.stream.timebase != timebase.name
+            or output.stream.quantity != self.body.quantity
+            or output.stream.unit != self.body.unit
+            or output.stream.scope != self.body.scope
+        ):
+            raise ValueError('automation output must match its curve contract')
+        return self
 
 
 def evaluate(
