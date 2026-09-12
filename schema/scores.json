@@ -3327,6 +3327,210 @@
       "title": "Fit",
       "type": "string"
     },
+    "FixtureCue": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "fixture": {
+          "title": "Fixture",
+          "type": "string"
+        },
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "fixture",
+        "parameter",
+        "value"
+      ],
+      "title": "FixtureCue",
+      "type": "object"
+    },
+    "FixtureParameter": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Unit"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "minimum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Minimum"
+        },
+        "maximum": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Maximum"
+        },
+        "choices": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Choices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "FixtureParameter",
+      "type": "object"
+    },
+    "FixtureProfile": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/FixtureParameter"
+          },
+          "minItems": 1,
+          "title": "Parameters",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "parameters"
+      ],
+      "title": "FixtureProfile",
+      "type": "object"
+    },
+    "FixtureScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "fixture",
+          "default": "fixture",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timebase": {
+          "$ref": "#/$defs/Timebase"
+        },
+        "body": {
+          "$ref": "#/$defs/FixtureShow"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "timebase",
+        "body"
+      ],
+      "title": "FixtureScore",
+      "type": "object"
+    },
+    "FixtureShow": {
+      "additionalProperties": false,
+      "properties": {
+        "profile": {
+          "$ref": "#/$defs/FixtureProfile"
+        },
+        "fixtures": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Fixtures",
+          "type": "array"
+        },
+        "cues": {
+          "items": {
+            "$ref": "#/$defs/FixtureCue"
+          },
+          "title": "Cues",
+          "type": "array"
+        }
+      },
+      "required": [
+        "profile",
+        "fixtures"
+      ],
+      "title": "FixtureShow",
+      "type": "object"
+    },
     "Format": {
       "enum": [
         "flac",
@@ -8734,6 +8938,7 @@
       "automation": "#/$defs/AutomationScore",
       "binding": "#/$defs/BindingScore",
       "envelope": "#/$defs/EnvelopeScore",
+      "fixture": "#/$defs/FixtureScore",
       "instrument": "#/$defs/InstrumentScore",
       "lfo": "#/$defs/LFOScore",
       "oscillator": "#/$defs/OscillatorScore",
@@ -8755,6 +8960,9 @@
     },
     {
       "$ref": "#/$defs/BindingScore"
+    },
+    {
+      "$ref": "#/$defs/FixtureScore"
     },
     {
       "$ref": "#/$defs/RecordingScore"
