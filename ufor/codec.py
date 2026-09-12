@@ -16,6 +16,7 @@ from .preset import PresetScore
 from .recording import RecordingScore
 from .samples.instrument import InstrumentScore
 from .sequence import SequenceScore
+from .slideshow import SlideshowScore
 
 
 def parse_score(
@@ -26,6 +27,7 @@ def parse_score(
     | BindingScore
     | RecordingScore
     | SequenceScore
+    | SlideshowScore
     | TuningScore
     | ScaleScore
     | OscillatorScore
@@ -44,6 +46,7 @@ def score_toml(
     | BindingScore
     | RecordingScore
     | SequenceScore
+    | SlideshowScore
     | TuningScore
     | ScaleScore
     | OscillatorScore
@@ -67,6 +70,7 @@ ScoreValue = Annotated[
     | BindingScore
     | RecordingScore
     | SequenceScore
+    | SlideshowScore
     | TuningScore
     | ScaleScore
     | OscillatorScore

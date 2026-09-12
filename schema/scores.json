@@ -9,6 +9,15 @@
       "title": "Accidentals",
       "type": "string"
     },
+    "Advance": {
+      "enum": [
+        "automatic",
+        "manual",
+        "cue"
+      ],
+      "title": "Advance",
+      "type": "string"
+    },
     "Alternates": {
       "additionalProperties": false,
       "properties": {
@@ -2331,6 +2340,43 @@
       "title": "Conversion",
       "type": "string"
     },
+    "Crop": {
+      "additionalProperties": false,
+      "properties": {
+        "x": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Y",
+          "type": "number"
+        },
+        "width": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Width",
+          "type": "number"
+        },
+        "height": {
+          "exclusiveMinimum": 0,
+          "maximum": 1,
+          "title": "Height",
+          "type": "number"
+        }
+      },
+      "required": [
+        "x",
+        "y",
+        "width",
+        "height"
+      ],
+      "title": "Crop",
+      "type": "object"
+    },
     "Crossfade": {
       "additionalProperties": false,
       "properties": {
@@ -2455,6 +2501,47 @@
       ],
       "title": "Direction",
       "type": "string"
+    },
+    "DirectorySelection": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "directory": {
+          "minLength": 1,
+          "title": "Directory",
+          "type": "string"
+        },
+        "recursive": {
+          "default": false,
+          "title": "Recursive",
+          "type": "boolean"
+        },
+        "include": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Include",
+          "type": "array"
+        },
+        "exclude": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Exclude",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "directory",
+        "include"
+      ],
+      "title": "DirectorySelection",
+      "type": "object"
     },
     "Endpoint": {
       "additionalProperties": false,
@@ -3230,6 +3317,15 @@
       },
       "title": "FireFlies",
       "type": "object"
+    },
+    "Fit": {
+      "enum": [
+        "contain",
+        "cover",
+        "stretch"
+      ],
+      "title": "Fit",
+      "type": "string"
     },
     "Format": {
       "enum": [
@@ -6709,6 +6805,44 @@
       "title": "RouteSpec",
       "type": "object"
     },
+    "RunEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "tick": {
+          "minimum": 0,
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "action": {
+          "enum": [
+            "enter",
+            "advance",
+            "back",
+            "hold",
+            "cue"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "item": {
+          "title": "Item",
+          "type": "string"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "action",
+        "item"
+      ],
+      "title": "RunEvent",
+      "type": "object"
+    },
     "SaberBlade": {
       "additionalProperties": false,
       "properties": {
@@ -7481,6 +7615,211 @@
       "title": "Slice",
       "type": "object"
     },
+    "Slide": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "asset": {
+          "title": "Asset",
+          "type": "string"
+        },
+        "duration": {
+          "exclusiveMinimum": 0,
+          "title": "Duration",
+          "type": "integer"
+        },
+        "alt": {
+          "minLength": 1,
+          "title": "Alt",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "crop": {
+          "$ref": "#/$defs/Crop",
+          "default": {
+            "x": 0.0,
+            "y": 0.0,
+            "width": 1.0,
+            "height": 1.0
+          }
+        },
+        "rotation": {
+          "default": 0,
+          "enum": [
+            0,
+            90,
+            180,
+            270
+          ],
+          "title": "Rotation",
+          "type": "integer"
+        },
+        "fit": {
+          "$ref": "#/$defs/Fit",
+          "default": "contain"
+        },
+        "advance": {
+          "$ref": "#/$defs/Advance",
+          "default": "automatic"
+        },
+        "cue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cue"
+        }
+      },
+      "required": [
+        "name",
+        "asset",
+        "duration",
+        "alt"
+      ],
+      "title": "Slide",
+      "type": "object"
+    },
+    "Slideshow": {
+      "additionalProperties": false,
+      "properties": {
+        "assets": {
+          "items": {
+            "$ref": "#/$defs/Asset"
+          },
+          "title": "Assets",
+          "type": "array"
+        },
+        "selections": {
+          "items": {
+            "$ref": "#/$defs/DirectorySelection"
+          },
+          "title": "Selections",
+          "type": "array"
+        },
+        "items": {
+          "items": {
+            "$ref": "#/$defs/Slide"
+          },
+          "minItems": 1,
+          "title": "Items",
+          "type": "array"
+        },
+        "transitions": {
+          "items": {
+            "$ref": "#/$defs/Transition"
+          },
+          "title": "Transitions",
+          "type": "array"
+        },
+        "default_advance": {
+          "$ref": "#/$defs/Advance",
+          "default": "automatic"
+        },
+        "run": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SlideshowRun"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "assets",
+        "items"
+      ],
+      "title": "Slideshow",
+      "type": "object"
+    },
+    "SlideshowRun": {
+      "additionalProperties": false,
+      "properties": {
+        "events": {
+          "items": {
+            "$ref": "#/$defs/RunEvent"
+          },
+          "title": "Events",
+          "type": "array"
+        }
+      },
+      "title": "SlideshowRun",
+      "type": "object"
+    },
+    "SlideshowScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "slideshow",
+          "default": "slideshow",
+          "title": "Kind",
+          "type": "string"
+        },
+        "timebase": {
+          "$ref": "#/$defs/Timebase"
+        },
+        "body": {
+          "$ref": "#/$defs/Slideshow"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "timebase",
+        "body"
+      ],
+      "title": "SlideshowScore",
+      "type": "object"
+    },
     "SlotPlayback": {
       "additionalProperties": false,
       "description": "None inherits the instrument traversal setting, including after serialization.",
@@ -7739,6 +8078,41 @@
         "stream"
       ],
       "title": "TrackSpec",
+      "type": "object"
+    },
+    "Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "outgoing": {
+          "title": "Outgoing",
+          "type": "string"
+        },
+        "incoming": {
+          "title": "Incoming",
+          "type": "string"
+        },
+        "kind": {
+          "default": "cut",
+          "enum": [
+            "cut",
+            "crossfade",
+            "wipe"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "duration": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Duration",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "outgoing",
+        "incoming"
+      ],
+      "title": "Transition",
       "type": "object"
     },
     "Trigger": {
@@ -8367,6 +8741,7 @@
       "recording": "#/$defs/RecordingScore",
       "scale": "#/$defs/ScaleScore",
       "sequence": "#/$defs/SequenceScore",
+      "slideshow": "#/$defs/SlideshowScore",
       "tuning": "#/$defs/TuningScore"
     },
     "propertyName": "kind"
@@ -8386,6 +8761,9 @@
     },
     {
       "$ref": "#/$defs/SequenceScore"
+    },
+    {
+      "$ref": "#/$defs/SlideshowScore"
     },
     {
       "$ref": "#/$defs/TuningScore"
