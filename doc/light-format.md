@@ -175,9 +175,12 @@ from local zero needed to answer later requests.
 Light parameters reuse `modulation.Parameter`, `Target` and `ParameterExport`.
 The reserved local target name is `animation`; the parameter names a numeric
 operation field, for example `{name="animation", parameter="amount"}` on `Gain`.
-The body cannot also contain a part named `animation`. Exports can instead name
-a child part and forward its public parameter. Structured fields such as palettes
-and component matrices are edited as typed data, not float parameter overrides.
+`renderer_parameters` use the reserved local target name `renderer` for scalar
+values consumed by an explicit host renderer rather than the portable operation.
+Both kinds require part scope and may be exported normally. The body cannot also
+contain a part named `animation` or `renderer`. Exports can instead name a child
+part and forward its public parameter. Structured fields such as palettes and
+component matrices are edited as typed data, not float parameter overrides.
 
 Autonomous controls have part scope and use either shared `envelope.Curve` or
 `LFO` data. Curves reuse `Segment` and its exponential curve calculation; they

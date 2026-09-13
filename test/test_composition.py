@@ -455,6 +455,45 @@ def test_parent_parameter_inherits_child_configuration_and_can_narrow_it() -> No
         Composition('mix', values)
 
 
+def test_animation_can_export_host_renderer_parameters() -> None:
+    target = Target(name='renderer', parameter='note')
+    score = light_animation.AnimationScore(
+        name='renderer',
+        title='Host renderer',
+        timebases=[Timebase(name='frames', rate=Rate(numerator=60))],
+        outputs=[
+            Output(
+                name='light',
+                stream=lights.LightType(
+                    timebase='frames', components=['white'], layout=lights.strip(1)
+                ),
+                binding=LightBinding(),
+            )
+        ],
+        parameters=[ParameterExport(name='note', binding=target)],
+        body=light_animation.Animation(
+            operation=light_animation.Fill(values=[0]),
+            renderer_parameters=[
+                modulation.Parameter(
+                    target=target,
+                    unit=Unit.ratio,
+                    scope=Scope.part,
+                    minimum=0,
+                    maximum=127,
+                    default=60,
+                )
+            ],
+        ),
+    )
+
+    composition = Composition(
+        'renderer', {'renderer': ScoreRecord(score=score)}, {'note': 72}
+    )
+
+    assert composition.parameter_contract('renderer', 'note').default == 60
+    assert composition.parts['root'].parameters == {'note': 72}
+
+
 def test_worked_example_and_longer_tail_do_not_extend_recordings() -> None:
     root = Path('conformance/composition').resolve()
     values = {}

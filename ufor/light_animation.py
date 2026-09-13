@@ -12,7 +12,7 @@ from .envelope import Curve, curve_at
 from .interface import InterfaceScore, LightBinding, OutputSelection, Part
 from .lfo import LFO, initial_lfo, lfo_at
 from .lights import Interpretation, LightType
-from .modulation import Modulation
+from .modulation import Modulation, Parameter
 
 
 class Fill(Model):
@@ -150,14 +150,17 @@ class Animation(Model):
     ]
     parts: list[Part] = Field(default_factory=list)
     modulation: Modulation = Field(default_factory=Modulation)
+    renderer_parameters: list[Parameter] = Field(default_factory=list)
     controls: list[Control] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def references(self) -> Self:
         unique((p.name for p in self.parts), 'part name')
         names = {p.name for p in self.parts}
-        if 'animation' in names:
-            raise ValueError('animation is reserved for local parameter targets')
+        if names.intersection({'animation', 'renderer'}):
+            raise ValueError(
+                'animation and renderer are reserved for local parameter targets'
+            )
         if any(s.name not in names for s in sources(self.operation)):
             raise ValueError('operation selects an unknown part')
         unique((c.name for c in self.controls), 'control name')
@@ -177,6 +180,18 @@ class Animation(Model):
                 configured_operation(
                     self.operation, {parameter.target.parameter: bound}
                 )
+        for parameter in self.renderer_parameters:
+            if parameter.scope != Scope.part:
+                raise ValueError('renderer parameters require part scope')
+            if parameter.target.name != 'renderer':
+                raise ValueError('renderer parameter target name must be renderer')
+        unique(
+            (
+                p.target
+                for p in [*self.modulation.parameters, *self.renderer_parameters]
+            ),
+            'animation parameter target',
+        )
         return self
 
 
@@ -223,7 +238,13 @@ class AnimationScore(InterfaceScore):
             times.extend(t for c in operation.cues for t in [c.start, c.duration])
         if any((t * rate).denominator != 1 for t in times):
             raise ValueError('cue and fade boundaries must be exact logical ticks')
-        local = {p.target for p in self.body.modulation.parameters}
+        local = {
+            p.target
+            for p in [
+                *self.body.modulation.parameters,
+                *self.body.renderer_parameters,
+            ]
+        }
         names = {p.name for p in self.body.parts}
         if any(
             p.binding not in local and p.binding.name not in names
