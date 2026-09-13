@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 
 from . import light_animation
 from .arrangement import ArrangementScore
-from .automation import AutomationScore
+from .automation import ArrangementGainTarget, AutomationScore
 from .automation import evaluate as evaluate_automation
 from .base import Model
 from .codec import ScoreValue
@@ -672,7 +672,7 @@ class Composition:
                     and clip.source_end > end
                 ):
                     raise ValueError(f'{path}/{clip.name}: clip exceeds source extent')
-            targets: set[tuple[str, str]] = set()
+            targets: set[tuple[str, object]] = set()
             for clip in score.body.control_clips:
                 source = part.children[clip.source.name]
                 source_score = self.scores[self.parts[source].score].score
@@ -684,12 +684,6 @@ class Composition:
                 ):
                     raise ValueError(f'{path}/{clip.name}: source is not automation')
                 target = source_score.body.target
-                if target.name not in part.children:
-                    raise ValueError(f'{path}/{clip.name}: unknown automation target')
-                target_path = part.children[target.name]
-                contract = self.parameter_contract(
-                    self.parts[target_path].score, target.parameter
-                )
                 if source_score.body.scope != Scope.part:
                     raise ValueError(
                         f'{path}/{clip.name}: only part automation is supported'
@@ -698,14 +692,45 @@ class Composition:
                     raise ValueError(
                         f'{path}/{clip.name}: logical gate automation is unsupported'
                     )
-                if (
-                    contract.unit != source_score.body.unit
-                    or contract.scope != source_score.body.scope
-                ):
-                    raise ValueError(
-                        f'{path}/{clip.name}: incompatible automation target'
+                if isinstance(target, ArrangementGainTarget):
+                    valid = (
+                        target.name in {c.name for c in score.body.clips}
+                        if target.kind == 'clip'
+                        else target.name in {b.name for b in score.body.buses}
+                        if target.kind == 'bus'
+                        else (target.name, target.destination)
+                        in {(r.source, r.destination) for r in score.body.routes}
                     )
-                key = target_path, target.parameter
+                    if not valid:
+                        raise ValueError(
+                            f'{path}/{clip.name}: unknown automation target'
+                        )
+                    if (
+                        source_score.body.quantity != 'gain'
+                        or source_score.body.unit != 'ratio'
+                    ):
+                        raise ValueError(
+                            f'{path}/{clip.name}: incompatible automation target'
+                        )
+                    key = path, target
+                    contract = None
+                else:
+                    if target.name not in part.children:
+                        raise ValueError(
+                            f'{path}/{clip.name}: unknown automation target'
+                        )
+                    target_path = part.children[target.name]
+                    contract = self.parameter_contract(
+                        self.parts[target_path].score, target.parameter
+                    )
+                    if (
+                        contract.unit != source_score.body.unit
+                        or contract.scope != source_score.body.scope
+                    ):
+                        raise ValueError(
+                            f'{path}/{clip.name}: incompatible automation target'
+                        )
+                    key = target_path, target.parameter
                 if key in targets:
                     raise ValueError(f'{path}: competing automation target {target!r}')
                 targets.add(key)
@@ -717,7 +742,7 @@ class Composition:
                 for curve in source_score.body.curves:
                     for knot in curve.knots:
                         value = evaluate_automation(source_score, knot.tick)
-                        if (
+                        if contract is not None and (
                             isinstance(value, bool)
                             or not contract.minimum <= value <= contract.maximum
                         ):
