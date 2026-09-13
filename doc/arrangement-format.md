@@ -90,10 +90,11 @@ coordinates. Unsupported instrument realization fails during preparation.
 
 `control_clips` place reusable automation-score outputs. Each has a name, source
 `{ name, output }`, native source interval, and timeline start. The source score
-names the local target part and public parameter. Ufor resolves the target's unit,
-scope, range, and exact clock conversion before a host begins work. A control clip
-has speed one in this profile. Audio gain remains a linear amplitude multiplier;
-crossfades and equal-power mixing remain later audio operations.
+names either a local target part and public parameter or one local clip, bus, or
+route gain. Ufor resolves the target's unit, scope, range, and exact clock
+conversion before a host begins work. A control clip has speed one in this
+profile. Audio gain remains a linear amplitude multiplier; a direct gain curve
+may use the explicit equal-power law for a crossfade.
 
 The Pydantic definition is `ufor.arrangement.ArrangementScore`; its
 `model_json_schema()` describes this implemented profile. The parser and TOML
