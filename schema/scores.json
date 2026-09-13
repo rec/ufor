@@ -6615,7 +6615,85 @@
           "type": "string"
         },
         "score": {
-          "$ref": "#/$defs/ScoreVersion"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreVersion"
+            },
+            {
+              "discriminator": {
+                "mapping": {
+                  "animation": "#/$defs/AnimationScore",
+                  "arrangement": "#/$defs/ArrangementScore",
+                  "automation": "#/$defs/AutomationScore",
+                  "binding": "#/$defs/BindingScore",
+                  "broadcast": "#/$defs/BroadcastScore",
+                  "envelope": "#/$defs/EnvelopeScore",
+                  "fixture": "#/$defs/FixtureScore",
+                  "instrument": "#/$defs/InstrumentScore",
+                  "lfo": "#/$defs/LFOScore",
+                  "oscillator": "#/$defs/OscillatorScore",
+                  "preset": "#/$defs/PresetScore",
+                  "recording": "#/$defs/RecordingScore",
+                  "scale": "#/$defs/ScaleScore",
+                  "sequence": "#/$defs/SequenceScore",
+                  "slideshow": "#/$defs/SlideshowScore",
+                  "tuning": "#/$defs/TuningScore"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ArrangementScore"
+                },
+                {
+                  "$ref": "#/$defs/AutomationScore"
+                },
+                {
+                  "$ref": "#/$defs/BindingScore"
+                },
+                {
+                  "$ref": "#/$defs/BroadcastScore"
+                },
+                {
+                  "$ref": "#/$defs/FixtureScore"
+                },
+                {
+                  "$ref": "#/$defs/RecordingScore"
+                },
+                {
+                  "$ref": "#/$defs/SequenceScore"
+                },
+                {
+                  "$ref": "#/$defs/SlideshowScore"
+                },
+                {
+                  "$ref": "#/$defs/TuningScore"
+                },
+                {
+                  "$ref": "#/$defs/ScaleScore"
+                },
+                {
+                  "$ref": "#/$defs/OscillatorScore"
+                },
+                {
+                  "$ref": "#/$defs/EnvelopeScore"
+                },
+                {
+                  "$ref": "#/$defs/InstrumentScore"
+                },
+                {
+                  "$ref": "#/$defs/LFOScore"
+                },
+                {
+                  "$ref": "#/$defs/AnimationScore"
+                },
+                {
+                  "$ref": "#/$defs/PresetScore"
+                }
+              ]
+            }
+          ],
+          "title": "Score"
         },
         "parameters": {
           "additionalProperties": {

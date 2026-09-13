@@ -11,6 +11,7 @@ from .binding import BindingScore
 from .broadcast import BroadcastScore
 from .envelope import EnvelopeScore
 from .fixture import FixtureScore
+from .interface import Part
 from .lfo import LFOScore
 from .light_animation import AnimationScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
@@ -89,3 +90,5 @@ ScoreValue = Annotated[
     | PresetScore,
     Field(discriminator='kind'),
 ]
+
+Part.model_rebuild(_types_namespace={'ScoreValue': ScoreValue})
