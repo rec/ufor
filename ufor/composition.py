@@ -91,7 +91,8 @@ class Composition:
         if export is None:
             raise ValueError(f'{identity}: unknown public parameter {name}')
         if isinstance(score, (ArrangementScore, AnimationScore)) and (
-            not isinstance(score, AnimationScore) or export.binding.name != 'animation'
+            not isinstance(score, AnimationScore)
+            or export.binding.name not in {'animation', 'renderer'}
         ):
             child_part = next(
                 n for n in score.body.parts if n.name == export.binding.name
@@ -112,7 +113,10 @@ class Composition:
                     for p in (
                         score.body.instrument.modulation.parameters
                         if isinstance(score, InstrumentScore)
-                        else score.body.modulation.parameters
+                        else [
+                            *score.body.modulation.parameters,
+                            *score.body.renderer_parameters,
+                        ]
                     )
                     if p.target == export.binding
                 ),
