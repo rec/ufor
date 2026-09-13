@@ -36,6 +36,12 @@ class Choke(Model):
         return self
 
 
+class VoicePolicy(Model):
+    maximum_voices: int = Field(strict=True, gt=0)
+    same_key: enums.SameKey = enums.SameKey.stack
+    overflow: enums.VoiceOverflow = enums.VoiceOverflow.release_oldest
+
+
 class Sustain(Model):
     control: Identifier
     threshold: UnitInterval = Field(default=0.5, gt=0)

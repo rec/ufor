@@ -4585,6 +4585,17 @@
           "title": "Selections",
           "type": "array"
         },
+        "voice_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoicePolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "sustain": {
           "anyOf": [
             {
@@ -7937,6 +7948,15 @@
       "title": "SaberBlade",
       "type": "object"
     },
+    "SameKey": {
+      "enum": [
+        "stack",
+        "release",
+        "replace"
+      ],
+      "title": "SameKey",
+      "type": "string"
+    },
     "SampleInstrument": {
       "additionalProperties": false,
       "description": "Instrument body. Slice frames belong to each referenced native asset.",
@@ -9834,6 +9854,37 @@
       ],
       "title": "VisualKind",
       "type": "string"
+    },
+    "VoiceOverflow": {
+      "enum": [
+        "release_oldest",
+        "replace_oldest"
+      ],
+      "title": "VoiceOverflow",
+      "type": "string"
+    },
+    "VoicePolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "maximum_voices": {
+          "exclusiveMinimum": 0,
+          "title": "Maximum Voices",
+          "type": "integer"
+        },
+        "same_key": {
+          "$ref": "#/$defs/SameKey",
+          "default": "stack"
+        },
+        "overflow": {
+          "$ref": "#/$defs/VoiceOverflow",
+          "default": "release_oldest"
+        }
+      },
+      "required": [
+        "maximum_voices"
+      ],
+      "title": "VoicePolicy",
+      "type": "object"
     },
     "Wave": {
       "additionalProperties": false,
