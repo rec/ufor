@@ -139,3 +139,36 @@ def test_large_native_ticks_keep_exact_interpolation_positions() -> None:
         {'tick': 10**18 + 2, 'value': 1},
     ]
     assert evaluate(AutomationScore.model_validate(data), 10**18 + 1) == 0.5
+
+
+def test_equal_power_gain_curve_and_arrangement_target_round_trip() -> None:
+    data = example('gain').model_dump()
+    data['body']['target'] = {
+        'kind': 'route',
+        'name': 'left',
+        'destination': 'master',
+    }
+    data['body']['curves'][0]['interpolation'] = 'equal_power'
+    data['body']['curves'][0]['knots'] = [
+        {'tick': 0, 'value': 0},
+        {'tick': 4, 'value': 1},
+    ]
+    score = AutomationScore.model_validate(data)
+    assert evaluate(score, 2) == pytest.approx(2**-0.5)
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize(
+    'target',
+    [
+        {'kind': 'route', 'name': 'left'},
+        {'kind': 'bus', 'name': 'master', 'destination': 'other'},
+    ],
+)
+def test_arrangement_gain_target_requires_its_exact_address(
+    target: dict[str, object],
+) -> None:
+    data = example('gain').model_dump()
+    data['body']['target'] = target
+    with pytest.raises(ValidationError):
+        AutomationScore.model_validate(data)

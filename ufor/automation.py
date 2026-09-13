@@ -24,6 +24,21 @@ class Quantity(StrEnum):
 class Interpolation(StrEnum):
     hold = auto()
     linear = auto()
+    equal_power = auto()
+
+
+class ArrangementGainTarget(Model):
+    """A gain owned directly by the containing arrangement."""
+
+    kind: Literal['clip', 'bus', 'route']
+    name: Identifier
+    destination: Identifier | None = None
+
+    @model_validator(mode='after')
+    def destination_matches_kind(self) -> Self:
+        if (self.kind == 'route') != (self.destination is not None):
+            raise ValueError('only route targets require destination')
+        return self
 
 
 class Knot(Model):
@@ -48,7 +63,7 @@ class TimelineCurve(Model):
 class Automation(Model):
     """One parameter's base value and explicitly combined timeline writers."""
 
-    target: Target
+    target: Target | ArrangementGainTarget
     scope: Scope
     quantity: Quantity
     unit: Unit
@@ -64,6 +79,11 @@ class Automation(Model):
         }[self.quantity]
         if self.unit != required:
             raise ValueError(f'{self.quantity} requires unit {required}')
+        if (
+            isinstance(self.target, ArrangementGainTarget)
+            and self.quantity != Quantity.gain
+        ):
+            raise ValueError('arrangement targets support gain only')
         check_value(self.quantity, self.default)
         unique([c.name for c in self.curves], 'curve names')
         if sum(c.operation is None for c in self.curves) > 1:
@@ -79,6 +99,12 @@ class Automation(Model):
                     raise ValueError('gates do not support arithmetic combination')
                 if curve.interpolation != Interpolation.hold:
                     raise ValueError('gates require hold interpolation')
+            if curve.interpolation == Interpolation.equal_power and (
+                self.quantity != Quantity.gain or curve.operation is not None
+            ):
+                raise ValueError(
+                    'equal-power interpolation requires a direct gain curve'
+                )
             for knot in curve.knots:
                 if curve.operation is None:
                     check_value(self.quantity, knot.value)
@@ -152,6 +178,11 @@ def curve_value(curve: TimelineCurve, tick: int) -> float | bool:
             if curve.interpolation == Interpolation.hold:
                 return first.value
             progress = Fraction(tick - first.tick, second.tick - first.tick)
+            if curve.interpolation == Interpolation.equal_power:
+                return (
+                    (1 - float(progress)) * float(first.value) ** 2
+                    + float(progress) * float(second.value) ** 2
+                ) ** 0.5
             return (1 - float(progress)) * first.value + float(progress) * second.value
     return curve.knots[-1].value
 

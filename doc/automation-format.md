@@ -94,14 +94,19 @@ multiplier of 2 evaluates to 1300 Hz, independently of curve list order.
 
 An arrangement places a reusable automation output through a `control_clips`
 entry. Its source interval is in the automation timebase and its timeline start
-is in the arrangement timebase. Speed is fixed at one. The body target names a
-sibling part and its public parameter; target resolution, rate conversion, and
-parameter-domain validation occur when the arrangement is resolved. A rendered
-window requests the curve from the clip start through the needed endpoint, so the
-host can reconstruct its value at the render start.
+is in the arrangement timebase. Speed is fixed at one. The body target either
+names a sibling part and its public parameter, or names one gain in the containing
+arrangement: `{ kind, name }` for a clip or bus, or `{ kind = "route", name,
+destination }` for a route. Arrangement targets accept gain ratios only. Target
+resolution, rate conversion, and parameter-domain validation occur when the
+arrangement is resolved. A rendered window requests the curve from the clip start
+through the needed endpoint, so the host can reconstruct its value at the render
+start.
 
 The current arrangement profile accepts one part-scoped numeric automation score
-per target. Competing writers, logical gates, and voice- or instrument-scoped
+per target. Gain curves may use `equal_power`, whose value between `a` and `b` at
+progress `t` is `sqrt((1-t)*a**2 + t*b**2)`; it is only valid for a direct gain
+curve. Competing writers, logical gates, and voice- or instrument-scoped
 automation are rejected rather than given ambiguous behavior. Combining manual
 controls, generators, and multiple control writers belongs to later graph
 preparation.

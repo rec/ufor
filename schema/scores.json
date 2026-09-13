@@ -570,6 +570,43 @@
       "title": "Arrangement",
       "type": "object"
     },
+    "ArrangementGainTarget": {
+      "additionalProperties": false,
+      "description": "A gain owned directly by the containing arrangement.",
+      "properties": {
+        "kind": {
+          "enum": [
+            "clip",
+            "bus",
+            "route"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "destination": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Destination"
+        }
+      },
+      "required": [
+        "kind",
+        "name"
+      ],
+      "title": "ArrangementGainTarget",
+      "type": "object"
+    },
     "ArrangementScore": {
       "additionalProperties": false,
       "properties": {
@@ -1072,7 +1109,15 @@
       "description": "One parameter's base value and explicitly combined timeline writers.",
       "properties": {
         "target": {
-          "$ref": "#/$defs/Target"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Target"
+            },
+            {
+              "$ref": "#/$defs/ArrangementGainTarget"
+            }
+          ],
+          "title": "Target"
         },
         "scope": {
           "$ref": "#/$defs/Scope"
@@ -10034,7 +10079,8 @@
     "ufor__automation__Interpolation": {
       "enum": [
         "hold",
-        "linear"
+        "linear",
+        "equal_power"
       ],
       "title": "Interpolation",
       "type": "string"
