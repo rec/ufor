@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from pathlib import PurePosixPath, PureWindowsPath
-from typing import Literal, Self
+from typing import TYPE_CHECKING, Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import Field, StrictInt, field_validator, model_validator
@@ -15,6 +15,9 @@ from .score import Score
 from .selector import parse_selector
 from .streams import AudioType
 from .time import Timebase
+
+if TYPE_CHECKING:
+    from .codec import ScoreValue
 
 
 class ScoreVersion(Model):
@@ -65,7 +68,7 @@ class InputSelection(Model):
 
 class Part(Model):
     name: Identifier
-    score: ScoreVersion
+    score: 'ScoreVersion | ScoreValue'
     parameters: dict[Identifier, float] = Field(default_factory=dict)
 
 

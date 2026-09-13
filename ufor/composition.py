@@ -24,6 +24,8 @@ from .interface import (
     Output,
     OutputSelection,
     ParameterExport,
+    Part,
+    ScoreVersion,
     SequenceBinding,
     StreamBinding,
 )
@@ -97,7 +99,7 @@ class Composition:
             child_part = next(
                 n for n in score.body.parts if n.name == export.binding.name
             )
-            child = self.scores[identity].paths[child_part.score.key]
+            child = self._child(identity, child_part)
             inherited = self.parameter_contract(child, export.binding.parameter)
             inherited = inherited.model_copy(
                 update={
@@ -491,13 +493,9 @@ class Composition:
         if not isinstance(score, (ArrangementScore, AnimationScore)):
             return
         for child_part in score.body.parts:
+            child = self._child(identity, child_part)
             reference = child_part.score
-            child = record.paths.get(reference.key)
-            if child is None or child not in self.scores:
-                raise ValueError(
-                    f'{identity}/{child_part.name}: missing score {reference.key}'
-                )
-            if reference.sha256 is not None:
+            if isinstance(reference, ScoreVersion) and reference.sha256 is not None:
                 if child in pins and pins[child] != reference.sha256:
                     raise ValueError(f'Contradictory score pins: {child}')
                 pins[child] = reference.sha256
@@ -525,13 +523,29 @@ class Composition:
                 for export in score.parameters:
                     if export.binding.name == child_part.name:
                         child_values[export.binding.parameter] = configured[export.name]
-                child = self.scores[identity].paths[child_part.score.key]
+                child = self._child(identity, child_part)
                 child_path = f'{path}/{child_part.name}'
                 children[child_part.name] = child_path
                 self._instantiate(child, child_path, child_values)
         self.parts[path] = PreparedPart(
             score=identity, parameters=configured, children=children
         )
+
+    def _child(self, identity: str, part: Part) -> str:
+        if isinstance(part.score, ScoreVersion):
+            child = self.scores[identity].paths.get(part.score.key)
+            if child is None or child not in self.scores:
+                raise ValueError(
+                    f'{identity}/{part.name}: missing score {part.score.key}'
+                )
+            return child
+        child = f'{identity}::{part.name}'
+        existing = self.scores.get(child)
+        if existing is None:
+            self.scores[child] = ScoreRecord(score=part.score)
+        elif existing.score != part.score:
+            raise ValueError(f'{identity}/{part.name}: conflicting inline score')
+        return child
 
     def _compatible(
         self,
