@@ -409,6 +409,13 @@
         "modulation": {
           "$ref": "#/$defs/Modulation"
         },
+        "renderer_parameters": {
+          "items": {
+            "$ref": "#/$defs/Parameter"
+          },
+          "title": "Renderer Parameters",
+          "type": "array"
+        },
         "controls": {
           "items": {
             "$ref": "#/$defs/ufor__light_animation__Control"
