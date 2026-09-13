@@ -74,9 +74,11 @@ rates require explicit conversion and are currently rejected by preparation.
 The pure `convert_tick` operation converts exact positions and never resamples
 audio. Musical time and generalized DSP remain later capabilities.
 
-Each part directly names a definition with `{ path, sha256? }`. Each clip selects
-its public output with `{ part, port }`. Definitions resolve relative to the
-containing score; public `inputs`, `outputs` bind internal tracks, buses or child ports.
+Each part contains either a referenced definition with `{ path, sha256? }` or a
+complete inline score. Referenced definitions resolve relative to the containing
+score; inline definitions are private to that part and have no separate path or
+hash. Each clip selects its public output with `{ part, port }`. Public `inputs`,
+`outputs` bind internal tracks, buses or child ports.
 See the [composition design](composition-design.md) for connections and parameters.
 
 Recording exports use stable stream IDs and optional zero-based consecutive
