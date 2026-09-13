@@ -98,6 +98,37 @@ def test_articulation_ranges_use_declared_control_domains() -> None:
     Instrument.model_validate({**raw, 'controls': {'style': {'polarity': 'bipolar'}}})
 
 
+@pytest.mark.parametrize(
+    'raw',
+    [
+        {'maximum_voices': 12},
+        {'maximum_voices': 12, 'same_key': 'release'},
+        {'maximum_voices': 12, 'same_key': 'replace', 'overflow': 'replace_oldest'},
+    ],
+)
+def test_voice_policy_round_trips(raw: dict[str, object]) -> None:
+    policy = selection.VoicePolicy.model_validate(raw)
+    assert selection.VoicePolicy.model_validate_json(policy.model_dump_json()) == policy
+    assert policy.model_dump(mode='json', exclude_unset=True) == raw
+    assert Instrument.model_validate({'voice_policy': raw}).voice_policy == policy
+
+
+@pytest.mark.parametrize(
+    'raw',
+    [
+        {},
+        {'maximum_voices': 0},
+        {'maximum_voices': True},
+        {'maximum_voices': 1.5},
+        {'maximum_voices': 1, 'same_key': 'restart'},
+        {'maximum_voices': 1, 'overflow': 'newest'},
+    ],
+)
+def test_voice_policy_rejects_invalid_values(raw: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        selection.VoicePolicy.model_validate(raw)
+
+
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:
     mapping = playback.Mapping(
         lowest_key=-200, highest_key=10000, reference_pitch_hz=443.123456

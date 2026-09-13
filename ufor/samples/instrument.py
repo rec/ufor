@@ -23,7 +23,7 @@ from .controls import Control
 from .crossfade import ControlCrossfade, LayerCrossfade
 from .playback import Mapping, Playback, Slice, SlotPlayback
 from .processing import ChannelRoute, EventBinding, SoundSettings, spatial_bounds
-from .selection import Articulations, Choke, Selection, Sustain
+from .selection import Articulations, Choke, Selection, Sustain, VoicePolicy
 
 
 class Instrument(SoundSettings):
@@ -33,6 +33,7 @@ class Instrument(SoundSettings):
     )
     playback: Playback = Playback()
     selections: list[Selection] = Field(default_factory=list)
+    voice_policy: VoicePolicy | None = None
     sustain: Sustain | None = None
     articulations: Articulations | None = None
     controls: dict[base.Identifier, Control] = Field(default_factory=dict)
