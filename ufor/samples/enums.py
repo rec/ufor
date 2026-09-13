@@ -39,6 +39,17 @@ class ChokeMode(StrEnum):
     release = auto()
 
 
+class SameKey(StrEnum):
+    stack = auto()
+    release = auto()
+    replace = auto()
+
+
+class VoiceOverflow(StrEnum):
+    release_oldest = auto()
+    replace_oldest = auto()
+
+
 class KeyBehavior(StrEnum):
     latched = auto()
     momentary = auto()
