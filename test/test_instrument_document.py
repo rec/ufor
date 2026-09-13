@@ -38,7 +38,10 @@ def test_sfz_conformance_requires_only_text_and_supplied_asset_facts() -> None:
         output_channels=['left', 'right'],
     )
     assert result.complete
-    assert result.instrument.model_dump(mode='json') == fixture()
+    expected = InstrumentScore.model_validate(fixture())
+    assert result.instrument.model_dump(
+        mode='json', exclude_none=True
+    ) == expected.model_dump(mode='json', exclude_none=True)
     assert sfz.write(result.instrument).complete
 
 
@@ -51,6 +54,17 @@ def test_native_instrument_round_trips_through_the_common_codec() -> None:
     assert document.assets[0].audio.timebase == 'native-44100'
     assert document.outputs[0].stream.timebase == 'output'
     assert document.body.slices[0].end_frame == 1000
+
+
+def test_voice_policy_round_trips_through_toml() -> None:
+    raw = fixture()
+    raw['body']['instrument']['voice_policy'] = {
+        'maximum_voices': 16,
+        'same_key': 'release',
+        'overflow': 'replace_oldest',
+    }
+    document = InstrumentScore.model_validate(raw)
+    assert parse_score(score_toml(document)) == document
 
 
 def test_documented_native_example_is_complete() -> None:

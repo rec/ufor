@@ -140,7 +140,7 @@ There is one native format; the old `format_version` score is removed.
 | Owner | Fields |
 | --- | --- |
 | Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |
-| Body | `instrument` defaults, named `slices`, nonempty `slots` |
+| Body | `instrument` defaults and optional voice policy, named `slices`, nonempty `slots` |
 | Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
 | Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, sound settings, selection/choke/articulation/crossfade declarations, trigger kind, metadata |
@@ -190,6 +190,11 @@ frames = 44100
 kind = "sample_instrument"
 
 [body.instrument]
+
+[body.instrument.voice_policy]
+maximum_voices = 16
+same_key = "release"
+overflow = "release_oldest"
 
 [[body.slices]]
 name = "whole"
@@ -285,6 +290,17 @@ a positive fade time. Choking is distinct from physical or logical release.
 Release and sustain-transition slots require one-shot playback. Sustain slots
 require the declared unipolar sustain control, an untracked mapping containing
 `event_key`, and consistent event keys across alternate takes.
+
+An instrument may declare `voice_policy` when it has a fixed capacity.
+`maximum_voices` is a positive integer and counts rendered slot voices, so a
+layered trigger may consume several voices. `same_key` applies first to voices
+with the same logical input key and articulation: `stack` keeps them,
+`release` sends them through their normal release path, and `replace` ends them
+immediately. When capacity is still needed, `overflow` applies to the oldest
+remaining active voices: `release_oldest` releases them and `replace_oldest`
+ends them. Ties use trigger ordinal. Explicit chokes take precedence over this
+general policy. These are player requirements; the format does not provide a
+voice engine.
 
 Articulation IDs and references are unique and checked. Keyswitches are latched
 or momentary and may consume their trigger. Control selectors use disjoint
@@ -415,8 +431,8 @@ overlap/release rules from Recsam for the future player.
 
 ## Preparation boundary
 
-Preparing efficient lookups, resolving effective voice settings, defining voice
-limits, enforcing trigger lifetimes, and producing event-to-action traces remain
+Preparing efficient lookups, resolving effective voice settings, enforcing voice
+limits and trigger lifetimes, and producing event-to-action traces remain
 future work. Dependencies on other instrument scores, multiple audio output
 ports, linked microphones, and generic graphs need their own settled models.
 This extraction does not add speculative fields for those unimplemented features.
@@ -445,11 +461,9 @@ Legato is a host performance policy that may omit a trigger; it is not inferred
 by an envelope from another key's activity. Pitch changes do not mutate a
 trigger's selection key or select another sample retrospectively.
 
-Enforce capacities deterministically: eligible released voices first, then
-oldest trigger, then stable IDs to break ties. A trigger limit retires the
-whole selected onset, including its layers; a voice limit must have explicit
-layer-retirement behavior in the action traces. Applying either retirement
-uses the declared fade and does not depend on block size.
+The declared voice policy handles capacity pressure deterministically. A future
+action-trace profile must preserve its same-key, choke, oldest-voice, and trigger
+ordinal rules without depending on audio block size.
 
 Cycle selection counters belong to named sets and reset at performance start.
 The first prepared profile supports deterministic cycle selection. Existing
