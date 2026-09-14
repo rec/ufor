@@ -210,7 +210,9 @@ def test_random_ranges_share_one_value_per_input_event() -> None:
         seed=42,
     )
     assert [
-        action.slot for action in result.actions if isinstance(action, trace.VoiceStart)
+        action.template
+        for action in result.actions
+        if isinstance(action, trace.VoiceStart)
     ] == ['wide', 'narrow']
 
 
@@ -294,7 +296,7 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
         voice_id='voice-1',
         part='piano',
         trigger_id='note-1',
-        slot='close-a',
+        template='close-a',
         slice='strike-a',
         start_frame=100,
         alignment_frames=-12,
@@ -310,7 +312,7 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
                 voice_id='voice-1',
                 part='piano',
                 trigger_id='note-1',
-                slot='close-a',
+                template='close-a',
                 key=60,
             )
         ],
@@ -393,7 +395,7 @@ def test_prepare_keeps_repeated_keys_until_their_first_releases() -> None:
     starts = [
         action for action in result.actions if isinstance(action, trace.VoiceStart)
     ]
-    assert [(action.trigger_id, action.slot) for action in starts] == [
+    assert [(action.trigger_id, action.template) for action in starts] == [
         ('first', 'start'),
         ('second', 'start'),
         ('second', 'release'),
@@ -402,7 +404,7 @@ def test_prepare_keeps_repeated_keys_until_their_first_releases() -> None:
         ('first', 'logical-release'),
     ]
     assert [
-        (trigger.trigger_id, trigger.slots, trigger.logical_released)
+        (trigger.trigger_id, trigger.templates, trigger.logical_released)
         for trigger in result.snapshots[0].triggers
     ] == [
         ('first', ['start'], True),
@@ -471,7 +473,7 @@ def test_prepare_defers_logical_release_and_emits_sustain_crossings() -> None:
     starts = [
         action for action in result.actions if isinstance(action, trace.VoiceStart)
     ]
-    assert [(action.trigger_id, action.slot) for action in starts] == [
+    assert [(action.trigger_id, action.template) for action in starts] == [
         (None, 'pedal-down'),
         ('note', 'start'),
         ('note', 'release'),
@@ -516,7 +518,7 @@ def test_prepare_does_not_emit_release_slots_for_a_choked_trigger() -> None:
     starts = [
         action for action in result.actions if isinstance(action, trace.VoiceStart)
     ]
-    assert [(action.trigger_id, action.slot) for action in starts] == [
+    assert [(action.trigger_id, action.template) for action in starts] == [
         ('first', 'held'),
         ('second', 'choker'),
     ]
