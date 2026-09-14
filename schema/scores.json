@@ -10023,6 +10023,23 @@
         "oscillator": {
           "$ref": "#/$defs/Oscillator"
         },
+        "frequency_offset_hz": {
+          "default": 0,
+          "title": "Frequency Offset Hz",
+          "type": "number"
+        },
+        "synchronize_oscillator": {
+          "default": false,
+          "title": "Synchronize Oscillator",
+          "type": "boolean"
+        },
+        "minimum_hold_seconds": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Minimum Hold Seconds",
+          "type": "string"
+        },
         "trigger": {
           "$ref": "#/$defs/TriggerKind",
           "default": "start"
