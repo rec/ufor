@@ -16,7 +16,7 @@ from .instrument import (
     effective_settings,
 )
 from .processing import ChannelRoute, SoundSettings
-from .selection import SelectionState, choose
+from .selection import SelectionState, choose, random_range_value
 from .variation import ResolvedVariation, resolve
 
 
@@ -142,15 +142,23 @@ def prepare(
     selections = {s.name: s for s in instrument.instrument.selections}
 
     def selected_slots(
-        part: Identifier, kind: enums.TriggerKind, key: int, velocity: float
+        part: Identifier,
+        kind: enums.TriggerKind,
+        key: int,
+        velocity: float,
+        event: PerformanceEvent,
     ) -> list[SampleSlot]:
         nonlocal state
+        random_value = random_range_value(
+            seed, part, getattr(event, 'trigger_id', None), event.tick, event.ordinal
+        )
         eligible = [
             s
             for s in instrument.slots
             if s.trigger == kind
             and s.mapping.lowest_key <= key <= s.mapping.highest_key
             and s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+            and (s.random_range is None or s.random_range.contains(random_value))
             and (
                 kind
                 not in (
@@ -287,7 +295,7 @@ def prepare(
         }
         for key in sorted(keys):
             start_slots(
-                selected_slots(part, kind, key, event.value),
+                selected_slots(part, kind, key, event.value, event),
                 event,
                 part,
                 None,
@@ -353,6 +361,7 @@ def prepare(
                                         enums.TriggerKind.logical_release,
                                         trigger.key,
                                         trigger.velocity,
+                                        event,
                                     ),
                                     event,
                                     trigger.part,
@@ -395,6 +404,7 @@ def prepare(
                             enums.TriggerKind.release,
                             trigger.key,
                             trigger.velocity,
+                            event,
                         ),
                         event,
                         trigger.part,
@@ -417,6 +427,7 @@ def prepare(
                                 enums.TriggerKind.logical_release,
                                 trigger.key,
                                 trigger.velocity,
+                                event,
                             ),
                             event,
                             trigger.part,
@@ -434,7 +445,11 @@ def prepare(
         elif isinstance(event, Trigger):
             instrument.validate_event(event)
             selected = selected_slots(
-                event.part, enums.TriggerKind.start, event.key, event.velocity
+                event.part,
+                enums.TriggerKind.start,
+                event.key,
+                event.velocity,
+                event,
             )
             triggers.append(
                 ActiveTrigger(

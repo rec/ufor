@@ -22,6 +22,22 @@ class Selection(Model):
     mode: enums.SelectionMode
 
 
+class RandomRange(Model):
+    """A half-open interval selected by one seeded draw per input event."""
+
+    minimum: UnitInterval = 0
+    maximum: UnitInterval = 1
+
+    @model_validator(mode='after')
+    def nonempty_range(self) -> Self:
+        if self.minimum >= self.maximum:
+            raise ValueError('random range must not be empty')
+        return self
+
+    def contains(self, value: float) -> bool:
+        return self.minimum <= value < self.maximum
+
+
 class SelectionSequence(Model):
     """One state partition for a named selection set and eligible slot IDs."""
 
@@ -115,6 +131,29 @@ def choose(
     sequences = [s for s in state.sequences if s != sequence]
     sequences.append(next_sequence)
     return choice, state.model_copy(update={'sequences': sequences})
+
+
+def random_range_value(
+    seed: int,
+    part: str,
+    trigger_id: str | None,
+    tick: int,
+    ordinal: int,
+) -> float:
+    """Return the shared random condition value for one input event."""
+    digest = sha256()
+    for value in (
+        'sample-random-range-v1',
+        str(seed),
+        part,
+        trigger_id or '',
+        str(tick),
+        str(ordinal),
+    ):
+        encoded = value.encode()
+        digest.update(len(encoded).to_bytes(4, 'big'))
+        digest.update(encoded)
+    return int.from_bytes(digest.digest()[:7], 'big') / 2**56
 
 
 def _shuffle(
