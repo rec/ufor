@@ -211,6 +211,31 @@ def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:
     )
 
 
+def test_linked_microphone_takes_share_a_selection_identity() -> None:
+    raw = document(instrument={'selections': [{'name': 'takes', 'mode': 'cycle'}]})
+    slots = []
+    for take in ('strike-a', 'strike-b'):
+        for microphone in ('close', 'room'):
+            slot = raw['slots'][0].copy()
+            slot.update(
+                {
+                    'name': f'{take}-{microphone}',
+                    'selection': 'takes',
+                    'take': take,
+                    'microphone': microphone,
+                    'alignment_frames': -12 if microphone == 'room' else 0,
+                }
+            )
+            slots.append(slot)
+    raw['slots'] = slots
+    instrument = SampleInstrument.model_validate(raw)
+    assert {s.take for s in instrument.slots} == {'strike-a', 'strike-b'}
+    missing = raw.copy()
+    missing['slots'] = slots[:-1]
+    with pytest.raises(ValidationError, match='different microphones'):
+        SampleInstrument.model_validate(missing)
+
+
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:
     mapping = playback.Mapping(
         lowest_key=-200, highest_key=10000, reference_pitch_hz=443.123456
