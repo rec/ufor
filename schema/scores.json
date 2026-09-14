@@ -8108,6 +8108,13 @@
         "instrument": {
           "$ref": "#/$defs/Instrument"
         },
+        "groups": {
+          "items": {
+            "$ref": "#/$defs/SlotGroup"
+          },
+          "title": "Groups",
+          "type": "array"
+        },
         "slots": {
           "items": {
             "$ref": "#/$defs/SampleSlot"
@@ -8256,6 +8263,18 @@
             "direction": null,
             "mode": null
           }
+        },
+        "group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group"
         },
         "selection": {
           "anyOf": [
@@ -9131,6 +9150,103 @@
         "body"
       ],
       "title": "SlideshowScore",
+      "type": "object"
+    },
+    "SlotGroup": {
+      "additionalProperties": false,
+      "description": "One non-nested shared selection and sound-settings layer.",
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": []
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "envelopes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Envelope"
+          },
+          "title": "Envelopes",
+          "type": "object"
+        },
+        "lfos": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LFO"
+          },
+          "title": "Lfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
+                "envelope": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "lfo": "#/$defs/GeneratorBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "selection": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selection"
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "SlotGroup",
       "type": "object"
     },
     "SlotPlayback": {

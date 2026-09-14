@@ -140,10 +140,10 @@ There is one native format; the old `format_version` score is removed.
 | Owner | Fields |
 | --- | --- |
 | Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |
-| Body | `instrument` defaults and optional voice policy, named `slices`, nonempty `slots` |
+| Body | `instrument` defaults and optional voice policy, named `slices`, optional non-nested slot `groups`, nonempty `slots` |
 | Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
-| Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, sound settings, selection/choke/articulation/crossfade declarations, trigger kind, metadata |
+| Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, optional group, sound settings, selection/choke/articulation/crossfade declarations, trigger kind, metadata |
 
 All references are checked without opening files. Slices must be nonempty and
 contained in the asset; loops remain in absolute native asset-frame coordinates
@@ -265,6 +265,15 @@ A slot's amplitude `envelope` is either absent or one complete shared
 supplies a default instantaneous gate. Amplitude envelopes are unipolar and
 voice-scoped. Named `envelopes` and `lfos` are dictionaries keyed by local IDs,
 using the same definitions as standalone envelope and LFO scores.
+
+A slot may name one non-nested group. A group provides an optional selection set
+and the six whole sound-setting categories: processing, amplitude envelope,
+named envelopes, LFOs, modulation, and bindings. For each category, an explicitly
+authored slot value replaces the group's complete value; an omitted slot value
+inherits the group value. A group does not affect mappings, slices, channel routes,
+playback, choke groups, articulations, crossfades, or microphone synchronization.
+Groups are therefore configuration sharing, not alternate selection or voice-state
+groups.
 
 Key and velocity ranges are inclusive. Keys are unrestricted integers, independent
 of pitch. Pitch tracking requires `reference_pitch_hz`; the eventual player also

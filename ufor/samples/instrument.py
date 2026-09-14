@@ -65,6 +65,13 @@ class Instrument(SoundSettings):
         return self.controls[name]
 
 
+class SlotGroup(SoundSettings):
+    """One non-nested shared selection and sound-settings layer."""
+
+    name: Identifier
+    selection: Identifier | None = None
+
+
 class SampleSlot(SoundSettings):
     name: Identifier
     slice: Identifier
@@ -74,6 +81,7 @@ class SampleSlot(SoundSettings):
     description: str | None = None
     tags: list[Text] = Field(default_factory=list)
     playback: SlotPlayback = SlotPlayback()
+    group: Identifier | None = None
     selection: Identifier | None = None
     choke_group: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)
@@ -133,21 +141,43 @@ class SampleSlot(SoundSettings):
         return self
 
 
+def effective_settings(slot: SampleSlot, group: SlotGroup | None) -> SoundSettings:
+    """Resolve whole sound-setting categories from slot, group, then defaults."""
+    fields = ('processing', 'envelope', 'envelopes', 'lfos', 'modulation', 'bindings')
+    return SoundSettings.model_validate(
+        {
+            name: getattr(slot, name)
+            if group is None or name in slot.model_fields_set
+            else getattr(group, name)
+            for name in fields
+        }
+    )
+
+
+def effective_selection(slot: SampleSlot, group: SlotGroup | None) -> Identifier | None:
+    if 'selection' in slot.model_fields_set or group is None:
+        return slot.selection
+    return group.selection
+
+
 class SampleInstrument(Model):
     """Instrument body. Slice frames belong to each referenced native asset."""
 
     kind: Literal['sample_instrument'] = 'sample_instrument'
     slices: list[Slice] = Field(min_length=1)
     instrument: Instrument
+    groups: list[SlotGroup] = Field(default_factory=list)
     slots: list[SampleSlot] = Field(min_length=1)
 
     @model_validator(mode='after')
     def instrument_references(self) -> Self:
         unique((s.name for s in self.slots), 'slot ID')
         unique((s.name for s in self.slices), 'slice ID')
+        unique((g.name for g in self.groups), 'slot group ID')
         slices = {s.name: s for s in self.slices}
         selections = {s.name for s in self.instrument.selections}
-        groups = {s.choke_group for s in self.slots if s.choke_group is not None}
+        slot_groups = {g.name: g for g in self.groups}
+        choke_groups = {s.choke_group for s in self.slots if s.choke_group is not None}
         articulations = (
             set(self.instrument.articulations.ids)
             if self.instrument.articulations
@@ -155,14 +185,24 @@ class SampleInstrument(Model):
         )
         sustain_keys: dict[tuple[str, enums.TriggerKind], int] = {}
         self.instrument.validate_controls(self.instrument.controls)
+        for group in self.groups:
+            group.validate_controls(self.instrument.controls)
+            if group.selection is not None and group.selection not in selections:
+                raise ValueError(
+                    f'Slot group {group.name}: unknown selection {group.selection}'
+                )
         for slot in self.slots:
             if slot.slice not in slices:
                 raise ValueError(f'Unknown slice: {slot.slice}')
             sample_slice = slices[slot.slice]
-            slot.validate_controls(self.instrument.controls)
-            for settings in (self.instrument, slot):
-                sources = {s.name: s for s in settings.modulation.sources}
-                for binding in settings.bindings:
+            if slot.group is not None and slot.group not in slot_groups:
+                raise ValueError(f'Slot {slot.name}: unknown group {slot.group}')
+            group = slot_groups.get(slot.group) if slot.group is not None else None
+            effective = effective_settings(slot, group)
+            effective.validate_controls(self.instrument.controls)
+            for sound_settings in (self.instrument, effective):
+                sources = {s.name: s for s in sound_settings.modulation.sources}
+                for binding in sound_settings.bindings:
                     if isinstance(binding, EventBinding) and binding.kind == 'key':
                         source = sources[binding.name]
                         if (
@@ -179,13 +219,17 @@ class SampleInstrument(Model):
                     declared = self.instrument.require_control(fade.control)
                     declared.validate_value(fade.start)
                     declared.validate_value(fade.end)
-            if any(g.scope != control.Scope.voice for g in slot.envelopes.values()):
+            if any(
+                g.scope != control.Scope.voice for g in effective.envelopes.values()
+            ):
                 raise ValueError('Slot envelopes must have voice scope')
-            if any(p.scope != control.Scope.voice for p in slot.modulation.parameters):
+            if any(
+                p.scope != control.Scope.voice for p in effective.modulation.parameters
+            ):
                 raise ValueError('Slot parameters must have voice scope')
             for target in ('pan', 'stereo_balance'):
                 instrument_bounds = spatial_bounds(self.instrument, target)
-                slot_bounds = spatial_bounds(slot, target)
+                slot_bounds = spatial_bounds(effective, target)
                 low = instrument_bounds[0] + slot_bounds[0]
                 high = instrument_bounds[1] + slot_bounds[1]
                 if low < -1 or high > 1:
@@ -193,16 +237,15 @@ class SampleInstrument(Model):
                         f'Slot {slot.name}: combined {target} range [{low}, {high}] '
                         'exceeds [-1, 1]'
                     )
-            if slot.selection is not None and slot.selection not in selections:
-                raise ValueError(
-                    f'Slot {slot.name}: unknown selection {slot.selection}'
-                )
+            selection = effective_selection(slot, group)
+            if selection is not None and selection not in selections:
+                raise ValueError(f'Slot {slot.name}: unknown selection {selection}')
             if missing := set(slot.articulations) - articulations:
                 raise ValueError(
                     f'Slot {slot.name}: unknown articulations {sorted(missing)}'
                 )
             for choke in slot.chokes:
-                if choke.group not in groups:
+                if choke.group not in choke_groups:
                     raise ValueError(
                         f'Slot {slot.name}: unknown choke group {choke.group}'
                     )
@@ -239,14 +282,14 @@ class SampleInstrument(Model):
                     raise ValueError(
                         f'Slot {slot.name}: sustain triggers require a sustain control'
                     )
-                if slot.selection is not None:
-                    key = slot.selection, slot.trigger
+                if selection is not None:
+                    key = selection, slot.trigger
                     if (
                         key in sustain_keys
                         and sustain_keys[key] != slot.mapping.event_key
                     ):
                         raise ValueError(
-                            f'Selection {slot.selection}: '
+                            f'Selection {selection}: '
                             'sustain alternatives must share event_key'
                         )
                     if slot.mapping.event_key is not None:
