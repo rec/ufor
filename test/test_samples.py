@@ -301,7 +301,17 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
 def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> None:
     raw = document(instrument={'selections': [{'name': 'takes', 'mode': 'cycle'}]})
     raw['slots'][0].update(
-        {'selection': 'takes', 'take': 'hit-a', 'microphone': 'close'}
+        {
+            'selection': 'takes',
+            'take': 'hit-a',
+            'microphone': 'close',
+            'variation': {
+                'delay_seconds': 0.01,
+                'offset_frames': 20,
+                'pitch_cents': 5,
+                'gain_db': 1,
+            },
+        }
     )
     room = raw['slots'][0].copy()
     room.update({'name': 'room-a', 'microphone': 'room', 'alignment_frames': -12})
@@ -324,6 +334,7 @@ def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> Non
         'diagnostic',
     ]
     assert result.actions[1].alignment_frames == -12
+    assert result.actions[0].variation == result.actions[1].variation
     assert result.actions[-1].code == 'unknown-release'
 
 
