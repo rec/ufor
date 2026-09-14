@@ -8288,6 +8288,35 @@
           "default": null,
           "title": "Selection"
         },
+        "take": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Take"
+        },
+        "microphone": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Microphone"
+        },
+        "alignment_frames": {
+          "default": 0,
+          "title": "Alignment Frames",
+          "type": "integer"
+        },
         "choke_group": {
           "anyOf": [
             {
