@@ -13,8 +13,10 @@ from ..instrument_trace import (
     Diagnostic,
     LifecycleSnapshot,
     RetirementCause,
-    VoiceStart as LifecycleVoiceStart,
     VoiceRetirement,
+)
+from ..instrument_trace import (
+    VoiceStart as LifecycleVoiceStart,
 )
 from ..modulation import ParameterValue
 from . import enums
@@ -203,6 +205,8 @@ def prepare(
                     part=part,
                     trigger_id=trigger_id,
                     template=slot.name,
+                    key=key,
+                    pitch_hz=(event.pitch_hz if isinstance(event, Trigger) else None),
                     slice=slot.slice,
                     start_frame=sample_slice.start_frame + slot.alignment_frames,
                     alignment_frames=slot.alignment_frames,
