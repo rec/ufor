@@ -1,5 +1,6 @@
-"""Alternate takes, choking, sustain, and articulation switches."""
+"""Alternate takes, choking, sustain, and deterministic selection state."""
 
+from hashlib import sha256
 from typing import Self
 
 from pydantic import Field, StrictBool, model_validator
@@ -19,6 +20,152 @@ from . import enums
 class Selection(Model):
     name: Identifier
     mode: enums.SelectionMode
+
+
+class SelectionSequence(Model):
+    """One state partition for a named selection set and eligible slot IDs."""
+
+    part: Identifier
+    selection: Identifier
+    trigger: enums.TriggerKind
+    key: Key
+    candidates: list[Identifier] = Field(min_length=1)
+    counter: int = Field(default=0, ge=0)
+    remaining: list[Identifier] = Field(default_factory=list)
+    previous: Identifier | None = None
+
+    @model_validator(mode='after')
+    def sequence_values(self) -> Self:
+        if self.candidates != sorted(self.candidates):
+            raise ValueError('candidates must be sorted')
+        unique(self.candidates, 'candidate ID')
+        if any(c not in self.candidates for c in self.remaining):
+            raise ValueError('remaining choices must be candidates')
+        unique(self.remaining, 'remaining choice')
+        if self.previous is not None and self.previous not in self.candidates:
+            raise ValueError('previous choice must be a candidate')
+        return self
+
+
+class SelectionState(Model):
+    """Serializable state reset from an explicit performance seed."""
+
+    seed: int = Field(strict=True, ge=0, lt=2**64)
+    sequences: list[SelectionSequence] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def unique_sequences(self) -> Self:
+        unique(
+            (
+                (s.part, s.selection, s.trigger, s.key, tuple(s.candidates))
+                for s in self.sequences
+            ),
+            'selection state partition',
+        )
+        return self
+
+
+def choose(
+    selection: Selection,
+    state: SelectionState,
+    part: str,
+    trigger: enums.TriggerKind,
+    key: int,
+    candidates: list[str],
+) -> tuple[str, SelectionState]:
+    """Choose one stable candidate and return its replacement state."""
+    ordered = sorted(candidates)
+    unique(ordered, 'candidate ID')
+    if not ordered:
+        raise ValueError('selection requires at least one candidate')
+    sequence = next(
+        (
+            s
+            for s in state.sequences
+            if (s.part, s.selection, s.trigger, s.key, s.candidates)
+            == (part, selection.name, trigger, key, ordered)
+        ),
+        SelectionSequence(
+            part=part,
+            selection=selection.name,
+            trigger=trigger,
+            key=key,
+            candidates=ordered,
+        ),
+    )
+    if selection.mode == enums.SelectionMode.cycle:
+        choice = ordered[sequence.counter % len(ordered)]
+        next_sequence = sequence.model_copy(update={'counter': sequence.counter + 1})
+    elif selection.mode == enums.SelectionMode.random:
+        choice = ordered[_index(state.seed, sequence, len(ordered), 0)]
+        next_sequence = sequence.model_copy(update={'counter': sequence.counter + 1})
+    else:
+        remaining = sequence.remaining
+        counter = sequence.counter
+        if not remaining:
+            remaining, counter = _shuffle(state.seed, sequence, counter)
+        choice = remaining[0]
+        next_sequence = sequence.model_copy(
+            update={
+                'counter': counter,
+                'remaining': remaining[1:],
+                'previous': choice,
+            }
+        )
+    sequences = [s for s in state.sequences if s != sequence]
+    sequences.append(next_sequence)
+    return choice, state.model_copy(update={'sequences': sequences})
+
+
+def _shuffle(
+    seed: int, sequence: SelectionSequence, counter: int
+) -> tuple[list[str], int]:
+    candidates = sequence.candidates.copy()
+    if len(candidates) > 1 and sequence.previous is not None:
+        first_candidates = [c for c in candidates if c != sequence.previous]
+        first = first_candidates[
+            _index(seed, sequence, len(first_candidates), counter, sequence.previous)
+        ]
+        candidates.remove(first)
+        candidates.insert(0, first)
+        counter += 1
+    for index in range(len(candidates) - 1, 0, -1):
+        swap = _index(seed, sequence, index + 1, counter)
+        candidates[index], candidates[swap] = candidates[swap], candidates[index]
+        counter += 1
+    return candidates, counter
+
+
+def _index(
+    seed: int,
+    sequence: SelectionSequence,
+    bound: int,
+    counter: int,
+    excluded: str | None = None,
+) -> int:
+    values = (
+        str(seed),
+        sequence.part,
+        sequence.selection,
+        sequence.trigger.value,
+        str(sequence.key),
+        *sequence.candidates,
+        str(counter),
+        excluded or '',
+    )
+    limit = 1 << 256
+    retry = 0
+    while True:
+        digest = sha256()
+        for value in (*values, str(retry)):
+            encoded = value.encode()
+            digest.update(len(encoded).to_bytes(4, 'big'))
+            digest.update(encoded)
+        value = int.from_bytes(digest.digest(), 'big')
+        acceptable = limit - limit % bound
+        if value < acceptable:
+            return value % bound
+        retry += 1
 
 
 class Choke(Model):
