@@ -6,9 +6,12 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from ..base import Identifier, Model, unique
+from ..events import ControlChange, PerformanceEvent, Release
 from ..modulation import ParameterValue
+from . import enums
+from .instrument import SampleInstrument, effective_selection, effective_settings
 from .processing import ChannelRoute, SoundSettings
-from .selection import SelectionState
+from .selection import SelectionState, choose
 
 
 class RetirementCause(StrEnum):
@@ -102,3 +105,139 @@ class SemanticTrace(Model):
             'voice ID',
         )
         return self
+
+
+def prepare(
+    instrument: SampleInstrument, events: list[PerformanceEvent], seed: int
+) -> SemanticTrace:
+    """Resolve selection, linked takes, releases, and chokes without rendering."""
+    actions: list[Action] = []
+    state = SelectionState(seed=seed)
+    voices: list[ActiveVoice] = []
+    groups = {g.name: g for g in instrument.groups}
+    slices = {s.name: s for s in instrument.slices}
+    selections = {s.name: s for s in instrument.instrument.selections}
+    for event in sorted(events, key=lambda e: (e.tick, e.ordinal)):
+        if isinstance(event, ControlChange):
+            actions.append(
+                ControlObservation(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    control=event.control,
+                    value=event.value,
+                    scope=event.scope,
+                    part=event.part,
+                    trigger_id=event.trigger_id,
+                )
+            )
+        elif isinstance(event, Release):
+            matched = [
+                v
+                for v in voices
+                if v.part == event.part and v.trigger_id == event.trigger_id
+            ]
+            if not matched:
+                actions.append(
+                    Diagnostic(
+                        tick=event.tick,
+                        ordinal=event.ordinal,
+                        code='unknown-release',
+                        message=f'No active trigger {event.trigger_id}',
+                    )
+                )
+            for voice in matched:
+                actions.append(
+                    VoiceRetirement(
+                        tick=event.tick,
+                        ordinal=event.ordinal,
+                        voice_id=voice.voice_id,
+                        cause=RetirementCause.physical_release,
+                        action='release',
+                    )
+                )
+                voices.remove(voice)
+        else:
+            instrument.validate_event(event)
+            eligible = [
+                s
+                for s in instrument.slots
+                if s.trigger.value == 'start'
+                and s.mapping.lowest_key <= event.key <= s.mapping.highest_key
+                and s.mapping.minimum_velocity
+                <= event.velocity
+                <= s.mapping.maximum_velocity
+            ]
+            selected = [
+                s
+                for s in eligible
+                if effective_selection(s, groups.get(s.group)) is None
+            ]
+            for name, selection in selections.items():
+                candidates = [
+                    s
+                    for s in eligible
+                    if effective_selection(s, groups.get(s.group)) == name
+                ]
+                if candidates:
+                    choice, state = choose(
+                        selection,
+                        state,
+                        event.part,
+                        enums.TriggerKind.start,
+                        event.key,
+                        sorted({s.take or s.name for s in candidates}),
+                    )
+                    selected.extend(
+                        s for s in candidates if (s.take or s.name) == choice
+                    )
+            for slot in selected:
+                for voice in list(voices):
+                    if voice.choke_group in {c.group for c in slot.chokes}:
+                        actions.append(
+                            VoiceRetirement(
+                                tick=event.tick,
+                                ordinal=event.ordinal,
+                                voice_id=voice.voice_id,
+                                cause=RetirementCause.choke,
+                                action='stop',
+                            )
+                        )
+                        voices.remove(voice)
+                voice_id = f'voice-{event.part}-{event.trigger_id}-{slot.name}'
+                sample_slice = slices[slot.slice]
+                actions.append(
+                    VoiceStart(
+                        tick=event.tick,
+                        ordinal=event.ordinal,
+                        voice_id=voice_id,
+                        part=event.part,
+                        trigger_id=event.trigger_id,
+                        slot=slot.name,
+                        slice=slot.slice,
+                        start_frame=sample_slice.start_frame + slot.alignment_frames,
+                        alignment_frames=slot.alignment_frames,
+                        channels=slot.channels,
+                        settings=effective_settings(slot, groups.get(slot.group)),
+                    )
+                )
+                voices.append(
+                    ActiveVoice(
+                        voice_id=voice_id,
+                        part=event.part,
+                        trigger_id=event.trigger_id,
+                        slot=slot.name,
+                        choke_group=slot.choke_group,
+                    )
+                )
+    return SemanticTrace(
+        seed=seed,
+        actions=actions,
+        snapshots=[
+            TraceSnapshot(
+                tick=events[-1].tick if events else 0,
+                ordinal=events[-1].ordinal if events else 0,
+                selection=state,
+                voices=voices,
+            )
+        ],
+    )

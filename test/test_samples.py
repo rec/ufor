@@ -2,6 +2,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from ufor import modulation
+from ufor.events import Release, Trigger
 from ufor.samples import crossfade, playback, processing, selection, trace
 from ufor.samples.instrument import (
     Instrument,
@@ -294,6 +295,35 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
         trace.SemanticTrace(
             seed=42, actions=[action, action.model_copy(update={'tick': -1})]
         )
+
+
+def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> None:
+    raw = document(instrument={'selections': [{'name': 'takes', 'mode': 'cycle'}]})
+    raw['slots'][0].update(
+        {'selection': 'takes', 'take': 'hit-a', 'microphone': 'close'}
+    )
+    room = raw['slots'][0].copy()
+    room.update({'name': 'room-a', 'microphone': 'room', 'alignment_frames': -12})
+    raw['slots'].append(room)
+    instrument = SampleInstrument.model_validate(raw)
+    result = trace.prepare(
+        instrument,
+        [
+            Trigger(tick=0, ordinal=0, part='piano', trigger_id='note-a', key=60),
+            Release(tick=1, ordinal=1, part='piano', trigger_id='note-a'),
+            Release(tick=2, ordinal=2, part='piano', trigger_id='missing'),
+        ],
+        seed=42,
+    )
+    assert [action.kind for action in result.actions] == [
+        'voice_start',
+        'voice_start',
+        'voice_retirement',
+        'voice_retirement',
+        'diagnostic',
+    ]
+    assert result.actions[1].alignment_frames == -12
+    assert result.actions[-1].code == 'unknown-release'
 
 
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:
