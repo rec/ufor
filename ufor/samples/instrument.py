@@ -83,6 +83,9 @@ class SampleSlot(SoundSettings):
     playback: SlotPlayback = SlotPlayback()
     group: Identifier | None = None
     selection: Identifier | None = None
+    take: Identifier | None = None
+    microphone: Identifier | None = None
+    alignment_frames: int = Field(default=0, strict=True)
     choke_group: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)
     crossfades: list[LayerCrossfade] = Field(default_factory=list)
@@ -184,6 +187,9 @@ class SampleInstrument(Model):
             else set()
         )
         sustain_keys: dict[tuple[str, enums.TriggerKind], int] = {}
+        microphone_sets: dict[tuple[str, enums.TriggerKind], set[str]] = {}
+        linked_takes: dict[tuple[str, enums.TriggerKind, str], list[str]] = {}
+        take_modes: dict[tuple[str, enums.TriggerKind], set[bool]] = {}
         self.instrument.validate_controls(self.instrument.controls)
         for group in self.groups:
             group.validate_controls(self.instrument.controls)
@@ -240,6 +246,20 @@ class SampleInstrument(Model):
             selection = effective_selection(slot, group)
             if selection is not None and selection not in selections:
                 raise ValueError(f'Slot {slot.name}: unknown selection {selection}')
+            if slot.take is not None:
+                if selection is None or slot.microphone is None:
+                    raise ValueError(
+                        'Linked takes require a selection and microphone identity'
+                    )
+                key = selection, slot.trigger
+                take_modes.setdefault(key, set()).add(True)
+                linked_takes.setdefault(
+                    (selection, slot.trigger, slot.take), []
+                ).append(slot.microphone)
+            elif slot.microphone is not None or slot.alignment_frames:
+                raise ValueError('microphone and alignment_frames require take')
+            elif selection is not None:
+                take_modes.setdefault((selection, slot.trigger), set()).add(False)
             if missing := set(slot.articulations) - articulations:
                 raise ValueError(
                     f'Slot {slot.name}: unknown articulations {sorted(missing)}'
@@ -294,6 +314,18 @@ class SampleInstrument(Model):
                         )
                     if slot.mapping.event_key is not None:
                         sustain_keys[key] = slot.mapping.event_key
+        for key, modes in take_modes.items():
+            if len(modes) > 1:
+                raise ValueError(f'Selection {key[0]} mixes linked and ordinary takes')
+        for (selection, trigger, take), microphones in linked_takes.items():
+            unique(microphones, 'microphone identity')
+            key = selection, trigger
+            names = set(microphones)
+            if key in microphone_sets and microphone_sets[key] != names:
+                raise ValueError(
+                    f'Selection {selection}: take {take} has different microphones'
+                )
+            microphone_sets[key] = names
         return self
 
     def validate_event(self, event: PerformanceEvent) -> None:

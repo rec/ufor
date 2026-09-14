@@ -143,7 +143,7 @@ There is one native format; the old `format_version` score is removed.
 | Body | `instrument` defaults and optional voice policy, named `slices`, optional non-nested slot `groups`, nonempty `slots` |
 | Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
-| Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, optional group, sound settings, selection/choke/articulation/crossfade declarations, trigger kind, metadata |
+| Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, optional group, sound settings, selection/take/microphone/choke/articulation/crossfade declarations, trigger kind, metadata |
 
 All references are checked without opening files. Slices must be nonempty and
 contained in the asset; loops remain in absolute native asset-frame coordinates
@@ -274,6 +274,17 @@ inherits the group value. A group does not affect mappings, slices, channel rout
 playback, choke groups, articulations, crossfades, or microphone synchronization.
 Groups are therefore configuration sharing, not alternate selection or voice-state
 groups.
+
+Linked microphone captures use `selection`, `take`, and `microphone` on each
+slot. A selection chooses one take ID, then activates every eligible slot with
+that ID, so close, room, and ambient captures remain synchronized. Every linked
+take for one selection and trigger kind must declare the same microphone IDs;
+ordinary slots and linked takes cannot share that selection/trigger partition.
+Each slot retains its own explicit channel routes, gain, and output destination.
+`alignment_frames` is a signed native-frame offset added to that slot's source
+position before traversal; it compensates for capture-start differences without
+changing slice or loop coordinates. `take`, `microphone`, and nonzero alignment
+are valid only together with a selection.
 
 Key and velocity ranges are inclusive. Keys are unrestricted integers, independent
 of pitch. Pitch tracking requires `reference_pitch_hz`; the eventual player also
