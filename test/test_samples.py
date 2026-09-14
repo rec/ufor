@@ -286,6 +286,7 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
                 part='piano',
                 trigger_id='note-1',
                 slot='close-a',
+                key=60,
             )
         ],
     )
