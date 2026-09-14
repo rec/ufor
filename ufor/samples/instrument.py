@@ -43,7 +43,9 @@ class Instrument(SoundSettings):
         unique((s.name for s in self.selections), 'selection ID')
         for parameter in self.modulation.parameters:
             target = parameter.target
-            if target.name == 'processing' or target.name.startswith('eq-'):
+            if target.name == 'processing' or target.name.startswith(
+                ('eq-', 'filter-')
+            ):
                 if parameter.scope != control.Scope.voice:
                     raise ValueError(
                         'Instrument processing is per voice, before mixing'

@@ -1,7 +1,8 @@
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from ufor.samples import crossfade, playback, selection
+from ufor import modulation
+from ufor.samples import crossfade, playback, processing, selection
 from ufor.samples.instrument import (
     Instrument,
     SampleInstrument,
@@ -234,6 +235,29 @@ def test_linked_microphone_takes_share_a_selection_identity() -> None:
     missing['slots'] = slots[:-1]
     with pytest.raises(ValidationError, match='different microphones'):
         SampleInstrument.model_validate(missing)
+
+
+def test_resonant_filter_uses_rbj_coefficients_and_configured_boundaries() -> None:
+    filter = processing.ResonantFilter(name='tone', response='lowpass', cutoff_hz=1000)
+    coefficients = processing.biquad_coefficients(filter, 48000)
+    assert (coefficients.b0 + coefficients.b1 + coefficients.b2) / (
+        1 + coefficients.a1 + coefficients.a2
+    ) == pytest.approx(1)
+    settings = processing.SoundSettings(
+        processing=processing.Processing(filters=[filter])
+    )
+    assert processing.parameter_definition(
+        settings, modulation.Target(name='filter-tone', parameter='cutoff_hz')
+    ) == (modulation.Unit.hz, 1000)
+    with pytest.raises(ValueError, match='rate bounds'):
+        processing.biquad_coefficients(
+            filter.model_copy(update={'cutoff_hz': 24000}), 48000
+        )
+    clamped = filter.model_copy(update={'cutoff_hz': 24000, 'boundary': 'clamp'})
+    expected = processing.biquad_coefficients(
+        clamped.model_copy(update={'cutoff_hz': 48000 * 0.5 * 0.999}), 48000
+    )
+    assert processing.biquad_coefficients(clamped, 48000) == expected
 
 
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:
