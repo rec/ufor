@@ -2,7 +2,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from ufor import modulation
-from ufor.events import Release, Trigger
+from ufor.events import ControlChange, Release, Trigger
 from ufor.samples import crossfade, playback, processing, selection, trace
 from ufor.samples.instrument import (
     Instrument,
@@ -325,6 +325,165 @@ def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> Non
     ]
     assert result.actions[1].alignment_frames == -12
     assert result.actions[-1].code == 'unknown-release'
+
+
+def test_prepare_keeps_repeated_keys_until_their_first_releases() -> None:
+    raw = document()
+    raw['slots'][0]['name'] = 'start'
+    release = raw['slots'][0].copy()
+    release.update(
+        {'name': 'release', 'trigger': 'release', 'playback': {'mode': 'one_shot'}}
+    )
+    logical_release = raw['slots'][0].copy()
+    logical_release.update(
+        {
+            'name': 'logical-release',
+            'trigger': 'logical_release',
+            'playback': {'mode': 'one_shot'},
+        }
+    )
+    raw['slots'].extend([release, logical_release])
+    result = trace.prepare(
+        SampleInstrument.model_validate(raw),
+        [
+            Trigger(tick=0, ordinal=0, part='piano', trigger_id='first', key=60),
+            Trigger(tick=1, ordinal=1, part='piano', trigger_id='second', key=60),
+            Release(tick=2, ordinal=2, part='piano', trigger_id='second'),
+            Release(tick=3, ordinal=3, part='piano', trigger_id='first'),
+            Release(tick=4, ordinal=4, part='piano', trigger_id='second'),
+        ],
+        seed=42,
+    )
+    starts = [
+        action for action in result.actions if isinstance(action, trace.VoiceStart)
+    ]
+    assert [(action.trigger_id, action.slot) for action in starts] == [
+        ('first', 'start'),
+        ('second', 'start'),
+        ('second', 'release'),
+        ('second', 'logical-release'),
+        ('first', 'release'),
+        ('first', 'logical-release'),
+    ]
+    assert [
+        (trigger.trigger_id, trigger.slots, trigger.logical_released)
+        for trigger in result.snapshots[0].triggers
+    ] == [
+        ('first', ['start'], True),
+        ('second', ['start'], True),
+    ]
+
+
+def test_prepare_defers_logical_release_and_emits_sustain_crossings() -> None:
+    raw = document(
+        instrument={'controls': {'sustain': {}}, 'sustain': {'control': 'sustain'}}
+    )
+    raw['slots'][0]['name'] = 'start'
+    for name, trigger, mapping in [
+        ('release', 'release', None),
+        ('logical-release', 'logical_release', None),
+        ('pedal-down', 'sustain_press', {'event_key': 50}),
+        ('pedal-up', 'sustain_release', {'event_key': 50}),
+    ]:
+        slot = raw['slots'][0].copy()
+        slot.update(
+            {'name': name, 'trigger': trigger, 'playback': {'mode': 'one_shot'}}
+        )
+        if mapping is not None:
+            slot['mapping'] = {**slot['mapping'], **mapping, 'pitch_tracking': False}
+        raw['slots'].append(slot)
+    result = trace.prepare(
+        SampleInstrument.model_validate(raw),
+        [
+            ControlChange(
+                tick=0,
+                ordinal=0,
+                scope='part',
+                part='piano',
+                control='sustain',
+                value=1,
+            ),
+            ControlChange(
+                tick=1,
+                ordinal=1,
+                scope='part',
+                part='piano',
+                control='sustain',
+                value=1,
+            ),
+            Trigger(tick=2, ordinal=2, part='piano', trigger_id='note', key=60),
+            Release(tick=3, ordinal=3, part='piano', trigger_id='note'),
+            ControlChange(
+                tick=4,
+                ordinal=4,
+                scope='part',
+                part='piano',
+                control='sustain',
+                value=0,
+            ),
+            ControlChange(
+                tick=5,
+                ordinal=5,
+                scope='part',
+                part='piano',
+                control='sustain',
+                value=0,
+            ),
+        ],
+        seed=42,
+    )
+    starts = [
+        action for action in result.actions if isinstance(action, trace.VoiceStart)
+    ]
+    assert [(action.trigger_id, action.slot) for action in starts] == [
+        (None, 'pedal-down'),
+        ('note', 'start'),
+        ('note', 'release'),
+        ('note', 'logical-release'),
+        (None, 'pedal-up'),
+    ]
+    retirements = [
+        action for action in result.actions if isinstance(action, trace.VoiceRetirement)
+    ]
+    assert [(action.tick, action.cause) for action in retirements] == [
+        (4, trace.RetirementCause.logical_release)
+    ]
+
+
+def test_prepare_does_not_emit_release_slots_for_a_choked_trigger() -> None:
+    raw = document(slot={'name': 'held', 'choke_group': 'held'})
+    raw['slots'][0]['mapping']['highest_key'] = 60
+    choker = raw['slots'][0].copy()
+    choker.update(
+        {
+            'name': 'choker',
+            'mapping': {**choker['mapping'], 'lowest_key': 61, 'highest_key': 61},
+            'chokes': [{'group': 'held', 'mode': 'immediate'}],
+        }
+    )
+    release = raw['slots'][0].copy()
+    release.update(
+        {'name': 'release', 'trigger': 'release', 'playback': {'mode': 'one_shot'}}
+    )
+    logical_release = release.copy()
+    logical_release.update({'name': 'logical-release', 'trigger': 'logical_release'})
+    raw['slots'].extend([choker, release, logical_release])
+    result = trace.prepare(
+        SampleInstrument.model_validate(raw),
+        [
+            Trigger(tick=0, ordinal=0, part='piano', trigger_id='first', key=60),
+            Trigger(tick=1, ordinal=1, part='piano', trigger_id='second', key=61),
+            Release(tick=2, ordinal=2, part='piano', trigger_id='first'),
+        ],
+        seed=42,
+    )
+    starts = [
+        action for action in result.actions if isinstance(action, trace.VoiceStart)
+    ]
+    assert [(action.trigger_id, action.slot) for action in starts] == [
+        ('first', 'held'),
+        ('second', 'choker'),
+    ]
 
 
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:

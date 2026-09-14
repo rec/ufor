@@ -6,10 +6,15 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from ..base import Identifier, Model, unique
-from ..events import ControlChange, PerformanceEvent, Release
+from ..events import ControlChange, PerformanceEvent, Release, Trigger
 from ..modulation import ParameterValue
 from . import enums
-from .instrument import SampleInstrument, effective_selection, effective_settings
+from .instrument import (
+    SampleInstrument,
+    SampleSlot,
+    effective_selection,
+    effective_settings,
+)
 from .processing import ChannelRoute, SoundSettings
 from .selection import SelectionState, choose
 
@@ -32,7 +37,7 @@ class VoiceStart(TraceAction):
     kind: Literal['voice_start'] = 'voice_start'
     voice_id: Identifier
     part: Identifier
-    trigger_id: Identifier
+    trigger_id: Identifier | None
     slot: Identifier
     slice: Identifier
     start_frame: int
@@ -73,10 +78,22 @@ Action = Annotated[
 class ActiveVoice(Model):
     voice_id: Identifier
     part: Identifier
-    trigger_id: Identifier
+    trigger_id: Identifier | None
     slot: Identifier
     key: int
+    slot_trigger: enums.TriggerKind = enums.TriggerKind.start
     choke_group: Identifier | None = None
+
+
+class ActiveTrigger(Model):
+    part: Identifier
+    trigger_id: Identifier
+    key: int
+    velocity: float
+    pitch_hz: float | None = None
+    slots: list[Identifier] = Field(default_factory=list)
+    physically_released: bool = False
+    logical_released: bool = False
 
 
 class TraceSnapshot(Model):
@@ -84,6 +101,7 @@ class TraceSnapshot(Model):
     ordinal: int = Field(ge=0, strict=True)
     selection: SelectionState
     voices: list[ActiveVoice] = Field(default_factory=list)
+    triggers: list[ActiveTrigger] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def unique_voice_ids(self) -> Self:
@@ -115,9 +133,165 @@ def prepare(
     actions: list[Action] = []
     state = SelectionState(seed=seed)
     voices: list[ActiveVoice] = []
+    triggers: list[ActiveTrigger] = []
+    sustain: dict[Identifier, bool] = {}
     groups = {g.name: g for g in instrument.groups}
     slices = {s.name: s for s in instrument.slices}
     selections = {s.name: s for s in instrument.instrument.selections}
+
+    def selected_slots(
+        part: Identifier, kind: enums.TriggerKind, key: int, velocity: float
+    ) -> list[SampleSlot]:
+        nonlocal state
+        eligible = [
+            s
+            for s in instrument.slots
+            if s.trigger == kind
+            and s.mapping.lowest_key <= key <= s.mapping.highest_key
+            and s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+            and (
+                kind
+                not in (
+                    enums.TriggerKind.sustain_press,
+                    enums.TriggerKind.sustain_release,
+                )
+                or s.mapping.event_key == key
+            )
+        ]
+        selected = [
+            s for s in eligible if effective_selection(s, groups.get(s.group)) is None
+        ]
+        for selection in selections.values():
+            candidates = [
+                s
+                for s in eligible
+                if effective_selection(s, groups.get(s.group)) == selection.name
+            ]
+            if candidates:
+                choice, state = choose(
+                    selection,
+                    state,
+                    part,
+                    kind,
+                    key,
+                    sorted({s.take or s.name for s in candidates}),
+                )
+                selected.extend(s for s in candidates if (s.take or s.name) == choice)
+        return selected
+
+    def retire(
+        voice: ActiveVoice,
+        event: PerformanceEvent,
+        cause: RetirementCause,
+        action: Literal['release', 'stop'],
+    ) -> None:
+        actions.append(
+            VoiceRetirement(
+                tick=event.tick,
+                ordinal=event.ordinal,
+                voice_id=voice.voice_id,
+                cause=cause,
+                action=action,
+            )
+        )
+        voices.remove(voice)
+
+    def start_slots(
+        slots: list[SampleSlot],
+        event: PerformanceEvent,
+        part: Identifier,
+        trigger_id: Identifier | None,
+        key: int,
+    ) -> None:
+        for slot in slots:
+            for voice in list(voices):
+                if voice.choke_group in {c.group for c in slot.chokes}:
+                    retire(voice, event, RetirementCause.choke, 'stop')
+        for slot in slots:
+            if slot.trigger == enums.TriggerKind.start:
+                policy = instrument.instrument.voice_policy
+                if policy is not None:
+                    same_key = [v for v in voices if v.part == part and v.key == key]
+                    if policy.same_key != enums.SameKey.stack:
+                        action = (
+                            'release'
+                            if policy.same_key == enums.SameKey.release
+                            else 'stop'
+                        )
+                        for voice in same_key:
+                            retire(voice, event, RetirementCause.same_key, action)
+                    while len(voices) >= policy.maximum_voices:
+                        voice = voices[0]
+                        action = (
+                            'release'
+                            if policy.overflow == enums.VoiceOverflow.release_oldest
+                            else 'stop'
+                        )
+                        retire(voice, event, RetirementCause.voice_limit, action)
+            voice_id = (
+                f'voice-{part}-{trigger_id}-{slot.name}'
+                if trigger_id is not None
+                else f'voice-{part}-sustain-{event.tick}-{event.ordinal}-{slot.name}'
+            )
+            sample_slice = slices[slot.slice]
+            actions.append(
+                VoiceStart(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    voice_id=voice_id,
+                    part=part,
+                    trigger_id=trigger_id,
+                    slot=slot.name,
+                    slice=slot.slice,
+                    start_frame=sample_slice.start_frame + slot.alignment_frames,
+                    alignment_frames=slot.alignment_frames,
+                    channels=slot.channels,
+                    settings=effective_settings(slot, groups.get(slot.group)),
+                )
+            )
+            voices.append(
+                ActiveVoice(
+                    voice_id=voice_id,
+                    part=part,
+                    trigger_id=trigger_id,
+                    slot=slot.name,
+                    key=key,
+                    slot_trigger=slot.trigger,
+                    choke_group=slot.choke_group,
+                )
+            )
+
+    def start_sustain(
+        kind: enums.TriggerKind, event: ControlChange, part: Identifier
+    ) -> None:
+        keys = {
+            s.mapping.event_key
+            for s in instrument.slots
+            if s.trigger == kind and s.mapping.event_key is not None
+        }
+        for key in sorted(keys):
+            start_slots(
+                selected_slots(part, kind, key, event.value),
+                event,
+                part,
+                None,
+                key,
+            )
+
+    def update_trigger(trigger: ActiveTrigger, **changes: object) -> ActiveTrigger:
+        updated = trigger.model_copy(update=changes)
+        triggers[triggers.index(trigger)] = updated
+        return updated
+
+    def start_voices(trigger: ActiveTrigger) -> list[ActiveVoice]:
+        return [
+            voice
+            for voice in voices
+            if voice.part == trigger.part
+            and voice.trigger_id == trigger.trigger_id
+            and voice.slot_trigger == enums.TriggerKind.start
+        ]
+
     for event in sorted(events, key=lambda e: (e.tick, e.ordinal)):
         if isinstance(event, ControlChange):
             actions.append(
@@ -131,13 +305,63 @@ def prepare(
                     trigger_id=event.trigger_id,
                 )
             )
+            sustain_definition = instrument.instrument.sustain
+            if (
+                sustain_definition is not None
+                and event.scope == 'part'
+                and event.control == sustain_definition.control
+                and event.part is not None
+            ):
+                assert event.part is not None
+                part = event.part
+                was_pressed = sustain.get(
+                    part,
+                    instrument.instrument.controls[sustain_definition.control].default
+                    >= sustain_definition.threshold,
+                )
+                is_pressed = event.value >= sustain_definition.threshold
+                sustain[part] = is_pressed
+                if not was_pressed and is_pressed:
+                    start_sustain(enums.TriggerKind.sustain_press, event, part)
+                elif was_pressed and not is_pressed:
+                    for trigger in list(triggers):
+                        if (
+                            trigger.part == part
+                            and trigger.physically_released
+                            and not trigger.logical_released
+                        ):
+                            if start_voices(trigger):
+                                start_slots(
+                                    selected_slots(
+                                        trigger.part,
+                                        enums.TriggerKind.logical_release,
+                                        trigger.key,
+                                        trigger.velocity,
+                                    ),
+                                    event,
+                                    trigger.part,
+                                    trigger.trigger_id,
+                                    trigger.key,
+                                )
+                                for voice in list(start_voices(trigger)):
+                                    retire(
+                                        voice,
+                                        event,
+                                        RetirementCause.logical_release,
+                                        'release',
+                                    )
+                            update_trigger(trigger, logical_released=True)
+                    start_sustain(enums.TriggerKind.sustain_release, event, part)
         elif isinstance(event, Release):
-            matched = [
-                v
-                for v in voices
-                if v.part == event.part and v.trigger_id == event.trigger_id
-            ]
-            if not matched:
+            trigger = next(
+                (
+                    t
+                    for t in triggers
+                    if t.part == event.part and t.trigger_id == event.trigger_id
+                ),
+                None,
+            )
+            if trigger is None:
                 actions.append(
                     Diagnostic(
                         tick=event.tick,
@@ -146,129 +370,67 @@ def prepare(
                         message=f'No active trigger {event.trigger_id}',
                     )
                 )
-            for voice in matched:
-                actions.append(
-                    VoiceRetirement(
-                        tick=event.tick,
-                        ordinal=event.ordinal,
-                        voice_id=voice.voice_id,
-                        cause=RetirementCause.physical_release,
-                        action='release',
+            elif not trigger.physically_released:
+                trigger = update_trigger(trigger, physically_released=True)
+                if start_voices(trigger):
+                    start_slots(
+                        selected_slots(
+                            trigger.part,
+                            enums.TriggerKind.release,
+                            trigger.key,
+                            trigger.velocity,
+                        ),
+                        event,
+                        trigger.part,
+                        trigger.trigger_id,
+                        trigger.key,
                     )
+                pressed = sustain.get(
+                    trigger.part,
+                    instrument.instrument.sustain is not None
+                    and instrument.instrument.controls[
+                        instrument.instrument.sustain.control
+                    ].default
+                    >= instrument.instrument.sustain.threshold,
                 )
-                voices.remove(voice)
-        else:
+                if not pressed:
+                    if start_voices(trigger):
+                        start_slots(
+                            selected_slots(
+                                trigger.part,
+                                enums.TriggerKind.logical_release,
+                                trigger.key,
+                                trigger.velocity,
+                            ),
+                            event,
+                            trigger.part,
+                            trigger.trigger_id,
+                            trigger.key,
+                        )
+                        for voice in list(start_voices(trigger)):
+                            retire(
+                                voice,
+                                event,
+                                RetirementCause.logical_release,
+                                'release',
+                            )
+                    update_trigger(trigger, logical_released=True)
+        elif isinstance(event, Trigger):
             instrument.validate_event(event)
-            eligible = [
-                s
-                for s in instrument.slots
-                if s.trigger.value == 'start'
-                and s.mapping.lowest_key <= event.key <= s.mapping.highest_key
-                and s.mapping.minimum_velocity
-                <= event.velocity
-                <= s.mapping.maximum_velocity
-            ]
-            selected = [
-                s
-                for s in eligible
-                if effective_selection(s, groups.get(s.group)) is None
-            ]
-            for name, selection in selections.items():
-                candidates = [
-                    s
-                    for s in eligible
-                    if effective_selection(s, groups.get(s.group)) == name
-                ]
-                if candidates:
-                    choice, state = choose(
-                        selection,
-                        state,
-                        event.part,
-                        enums.TriggerKind.start,
-                        event.key,
-                        sorted({s.take or s.name for s in candidates}),
-                    )
-                    selected.extend(
-                        s for s in candidates if (s.take or s.name) == choice
-                    )
-            for slot in selected:
-                policy = instrument.instrument.voice_policy
-                if policy is not None:
-                    same_key = [
-                        v for v in voices if v.part == event.part and v.key == event.key
-                    ]
-                    if policy.same_key != enums.SameKey.stack:
-                        action = (
-                            'release'
-                            if policy.same_key == enums.SameKey.release
-                            else 'stop'
-                        )
-                        for voice in same_key:
-                            actions.append(
-                                VoiceRetirement(
-                                    tick=event.tick,
-                                    ordinal=event.ordinal,
-                                    voice_id=voice.voice_id,
-                                    cause=RetirementCause.same_key,
-                                    action=action,
-                                )
-                            )
-                            voices.remove(voice)
-                    while len(voices) >= policy.maximum_voices:
-                        voice = voices.pop(0)
-                        action = (
-                            'release'
-                            if policy.overflow == enums.VoiceOverflow.release_oldest
-                            else 'stop'
-                        )
-                        actions.append(
-                            VoiceRetirement(
-                                tick=event.tick,
-                                ordinal=event.ordinal,
-                                voice_id=voice.voice_id,
-                                cause=RetirementCause.voice_limit,
-                                action=action,
-                            )
-                        )
-                for voice in list(voices):
-                    if voice.choke_group in {c.group for c in slot.chokes}:
-                        actions.append(
-                            VoiceRetirement(
-                                tick=event.tick,
-                                ordinal=event.ordinal,
-                                voice_id=voice.voice_id,
-                                cause=RetirementCause.choke,
-                                action='stop',
-                            )
-                        )
-                        voices.remove(voice)
-                voice_id = f'voice-{event.part}-{event.trigger_id}-{slot.name}'
-                sample_slice = slices[slot.slice]
-                actions.append(
-                    VoiceStart(
-                        tick=event.tick,
-                        ordinal=event.ordinal,
-                        voice_id=voice_id,
-                        part=event.part,
-                        trigger_id=event.trigger_id,
-                        slot=slot.name,
-                        slice=slot.slice,
-                        start_frame=sample_slice.start_frame + slot.alignment_frames,
-                        alignment_frames=slot.alignment_frames,
-                        channels=slot.channels,
-                        settings=effective_settings(slot, groups.get(slot.group)),
-                    )
+            selected = selected_slots(
+                event.part, enums.TriggerKind.start, event.key, event.velocity
+            )
+            triggers.append(
+                ActiveTrigger(
+                    part=event.part,
+                    trigger_id=event.trigger_id,
+                    key=event.key,
+                    velocity=event.velocity,
+                    pitch_hz=event.pitch_hz,
+                    slots=[slot.name for slot in selected],
                 )
-                voices.append(
-                    ActiveVoice(
-                        voice_id=voice_id,
-                        part=event.part,
-                        trigger_id=event.trigger_id,
-                        slot=slot.name,
-                        key=event.key,
-                        choke_group=slot.choke_group,
-                    )
-                )
+            )
+            start_slots(selected, event, event.part, event.trigger_id, event.key)
     return SemanticTrace(
         seed=seed,
         actions=actions,
@@ -278,6 +440,7 @@ def prepare(
                 ordinal=events[-1].ordinal if events else 0,
                 selection=state,
                 voices=voices,
+                triggers=triggers,
             )
         ],
     )

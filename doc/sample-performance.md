@@ -3,8 +3,9 @@
 These musical behavior requirements were retained from the Recsam specification
 when its types moved to Ufor. The [native instrument format](instrument-format.md)
 defines the implemented data. This appendix records the intended future player
-behavior, not implemented scheduling, audio processing, or completed action traces.
-The next preparation milestone must turn these requirements into portable traces.
+behavior, not implemented scheduling or audio processing. Semantic traces now
+cover selection, chokes, physical and logical release, and sustain transitions;
+rendering and randomized parameter variation remain later work.
 Any conflict with the new shared envelope/LFO model is resolved in favor of
 [that model](modulation-format.md): exact cumulative times, whole envelope
 overrides, and separate completion/lifetime policy.
@@ -23,7 +24,7 @@ and rendering. It records the explicit performance seed, actions ordered by
 state and every active voice, allowing a host to seek by restoring a snapshot
 and replaying later events.
 
-`voice_start` records a stable voice ID, part and trigger IDs, chosen slot and
+`voice_start` records a stable voice ID, part and optional trigger ID, chosen slot and
 slice, resolved native start and alignment frames, channel routes, complete
 effective sound settings, and resolved modulation parameter values. A renderer
 therefore receives the selection, linked-microphone, inheritance, routing, and
@@ -35,9 +36,8 @@ recoverable preparation failure without inventing a voice.
 
 The trace deliberately excludes audio blocks, interpolation positions, filter
 delay elements, oscillator phase buffers, and generated audio. Those remain
-renderer choices. A future pure preparer must emit this schema for every input
-event; the schema is implemented now so renderers and conformance fixtures have
-one stable target.
+renderer choices. Its pure preparer emits this schema for every input event so
+renderers and conformance fixtures have one stable target.
 
 ## Alternate Sample Selection
 
