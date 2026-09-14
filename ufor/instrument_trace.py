@@ -29,6 +29,8 @@ class VoiceStart(TraceAction):
     part: Identifier
     trigger_id: Identifier | None
     template: Identifier
+    key: int
+    pitch_hz: float | None = None
 
 
 class VoiceRetirement(TraceAction):

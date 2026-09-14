@@ -13,8 +13,10 @@ from .instrument_trace import (
     Diagnostic,
     LifecycleSnapshot,
     RetirementCause,
-    VoiceStart as LifecycleVoiceStart,
     VoiceRetirement,
+)
+from .instrument_trace import (
+    VoiceStart as LifecycleVoiceStart,
 )
 from .oscillator import Oscillator
 from .samples import enums
@@ -149,6 +151,8 @@ def prepare(
                     part=part,
                     trigger_id=trigger_id,
                     template=template.name,
+                    key=key,
+                    pitch_hz=(event.pitch_hz if isinstance(event, Trigger) else None),
                     oscillator=template.oscillator,
                     channels=template.channels,
                     settings=template,
