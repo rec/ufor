@@ -1,5 +1,6 @@
 """Portable synth-instrument definitions, without audio buffer generation."""
 
+from fractions import Fraction
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
@@ -26,6 +27,9 @@ class SynthVoice(SoundSettings):
     mapping: Mapping
     channels: list[ChannelRoute] = Field(min_length=1)
     oscillator: Oscillator
+    frequency_offset_hz: float = 0
+    synchronize_oscillator: bool = False
+    minimum_hold_seconds: control.Rational = Field(default=Fraction(0), ge=0)
     trigger: enums.TriggerKind = enums.TriggerKind.start
     choke_group: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)

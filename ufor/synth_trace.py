@@ -152,7 +152,11 @@ def prepare(
                     trigger_id=trigger_id,
                     template=template.name,
                     key=key,
-                    pitch_hz=(event.pitch_hz if isinstance(event, Trigger) else None),
+                    pitch_hz=(
+                        event.pitch_hz + template.frequency_offset_hz
+                        if isinstance(event, Trigger) and event.pitch_hz is not None
+                        else None
+                    ),
                     oscillator=template.oscillator,
                     channels=template.channels,
                     settings=template,
