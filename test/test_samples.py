@@ -2,7 +2,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from ufor import modulation
-from ufor.samples import crossfade, playback, processing, selection
+from ufor.samples import crossfade, playback, processing, selection, trace
 from ufor.samples.instrument import (
     Instrument,
     SampleInstrument,
@@ -258,6 +258,42 @@ def test_resonant_filter_uses_rbj_coefficients_and_configured_boundaries() -> No
         clamped.model_copy(update={'cutoff_hz': 48000 * 0.5 * 0.999}), 48000
     )
     assert processing.biquad_coefficients(clamped, 48000) == expected
+
+
+def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> None:
+    settings = processing.SoundSettings()
+    action = trace.VoiceStart(
+        tick=0,
+        ordinal=0,
+        voice_id='voice-1',
+        part='piano',
+        trigger_id='note-1',
+        slot='close-a',
+        slice='strike-a',
+        start_frame=100,
+        alignment_frames=-12,
+        channels=[processing.ChannelRoute(input='mono', output='left', gain=1)],
+        settings=settings,
+    )
+    snapshot = trace.TraceSnapshot(
+        tick=0,
+        ordinal=0,
+        selection=selection.SelectionState(seed=42),
+        voices=[
+            trace.ActiveVoice(
+                voice_id='voice-1',
+                part='piano',
+                trigger_id='note-1',
+                slot='close-a',
+            )
+        ],
+    )
+    value = trace.SemanticTrace(seed=42, actions=[action], snapshots=[snapshot])
+    assert trace.SemanticTrace.model_validate_json(value.model_dump_json()) == value
+    with pytest.raises(ValidationError, match='ordered'):
+        trace.SemanticTrace(
+            seed=42, actions=[action, action.model_copy(update={'tick': -1})]
+        )
 
 
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:

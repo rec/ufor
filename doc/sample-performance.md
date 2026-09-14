@@ -15,6 +15,30 @@ references below to equal-frame input order mean that explicit ordering.
 Random and shuffle selection use the portable state contract below. It is pure
 preparation logic, not audio rendering or voice scheduling.
 
+## Semantic trace
+
+`ufor.samples.trace.SemanticTrace` is the portable boundary between preparation
+and rendering. It records the explicit performance seed, actions ordered by
+`(tick, ordinal)`, and optional snapshots. A snapshot contains the selection
+state and every active voice, allowing a host to seek by restoring a snapshot
+and replaying later events.
+
+`voice_start` records a stable voice ID, part and trigger IDs, chosen slot and
+slice, resolved native start and alignment frames, channel routes, complete
+effective sound settings, and resolved modulation parameter values. A renderer
+therefore receives the selection, linked-microphone, inheritance, routing, and
+filter decisions without repeating format policy. `voice_retirement` names the
+voice, its distinct cause (physical/logical release, choke, same-key policy,
+voice limit, or transport stop), and whether the voice releases or stops.
+`control` preserves an addressed control observation. `diagnostic` records a
+recoverable preparation failure without inventing a voice.
+
+The trace deliberately excludes audio blocks, interpolation positions, filter
+delay elements, oscillator phase buffers, and generated audio. Those remain
+renderer choices. A future pure preparer must emit this schema for every input
+event; the schema is implemented now so renderers and conformance fixtures have
+one stable target.
+
 ## Alternate Sample Selection
 
 Declare named selection sets on the instrument and associate each alternative slot
