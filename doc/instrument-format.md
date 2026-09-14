@@ -283,10 +283,12 @@ through the amplitude release. Detailed audio traversal conformance belongs to
 the deferred execution work, not to the scalar envelope evaluator.
 
 Selection sets retain cycle/random/shuffle declarations; slots reference them.
-Matching ordinary layers coexist with selected alternatives. Random/shuffle
-execution needs a named algorithm and seed before portable playback can be
-claimed. Choke groups retain immediate/fade/release modes; fade alone requires
-a positive fade time. Choking is distinct from physical or logical release.
+Matching ordinary layers coexist with selected alternatives. `random` and
+`shuffle` use the `sha256-counter-v1` seeded state contract in
+[Sample performance](sample-performance.md#alternate-sample-selection): state is
+per part, selection set, trigger kind, key, and sorted eligible-slot IDs. Choke
+groups retain immediate/fade/release modes; fade alone requires a positive fade
+time. Choking is distinct from physical or logical release.
 Release and sustain-transition slots require one-shot playback. Sustain slots
 require the declared unipolar sustain control, an untracked mapping containing
 `event_key`, and consistent event keys across alternate takes.
@@ -465,10 +467,10 @@ The declared voice policy handles capacity pressure deterministically. A future
 action-trace profile must preserve its same-key, choke, oldest-voice, and trigger
 ordinal rules without depending on audio block size.
 
-Cycle selection counters belong to named sets and reset at performance start.
-The first prepared profile supports deterministic cycle selection. Existing
-random/shuffle declarations need a named algorithm, seed, and portable cases
-before they can be prepared; they must not be silently converted to cycle.
+Selection state belongs to named sets and resets from the explicit performance
+seed at performance start. The pure portable selector covers cycle, random, and
+shuffle modes; later preparation must use it rather than silently converting a
+mode to cycle.
 Linked microphone take groups remain a later extension requiring one shared
 take-selection identity, rather than independent random selection per mic.
 
