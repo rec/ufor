@@ -7310,6 +7310,28 @@
       "title": "RainbowCycle",
       "type": "object"
     },
+    "RandomRange": {
+      "additionalProperties": false,
+      "description": "A half-open interval selected by one seeded draw per input event.",
+      "properties": {
+        "minimum": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "default": 1,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "title": "RandomRange",
+      "type": "object"
+    },
     "RandomWalk": {
       "additionalProperties": false,
       "properties": {
@@ -8396,6 +8418,17 @@
           ],
           "default": null,
           "title": "Selection"
+        },
+        "random_range": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RandomRange"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "take": {
           "anyOf": [

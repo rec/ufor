@@ -23,7 +23,14 @@ from .controls import Control
 from .crossfade import ControlCrossfade, LayerCrossfade
 from .playback import Mapping, Playback, Slice, SlotPlayback
 from .processing import ChannelRoute, EventBinding, SoundSettings, spatial_bounds
-from .selection import Articulations, Choke, Selection, Sustain, VoicePolicy
+from .selection import (
+    Articulations,
+    Choke,
+    RandomRange,
+    Selection,
+    Sustain,
+    VoicePolicy,
+)
 from .variation import Variation
 
 
@@ -86,6 +93,7 @@ class SampleSlot(SoundSettings):
     playback: SlotPlayback = SlotPlayback()
     group: Identifier | None = None
     selection: Identifier | None = None
+    random_range: RandomRange | None = None
     take: Identifier | None = None
     microphone: Identifier | None = None
     alignment_frames: int = Field(default=0, strict=True)
