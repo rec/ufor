@@ -123,6 +123,9 @@ validates definitions and scalar control domains only; it does not render audio.
 `conformance/synth-instrument.json` is the portable first-profile score. Future
 execution work must give sample and synth scores one lifecycle, snapshot, and
 offline rendering contract rather than importing Tuney's device or UI runtime.
+`ufor.instrument_trace` defines that common action, retirement, trigger, active
+voice, and snapshot vocabulary; the sample and synth trace modules add only their
+resolved source details.
 
 ## Portable scores and conformance
 
