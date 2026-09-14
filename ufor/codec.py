@@ -20,6 +20,7 @@ from .recording import RecordingScore
 from .samples.instrument import InstrumentScore
 from .sequence import SequenceScore
 from .slideshow import SlideshowScore
+from .synth import SynthInstrumentScore
 
 
 def parse_score(
@@ -40,6 +41,7 @@ def parse_score(
     | InstrumentScore
     | LFOScore
     | AnimationScore
+    | SynthInstrumentScore
     | PresetScore
 ):
     return TypeAdapter(ScoreValue).validate_python(tomlkit.parse(text))
@@ -61,6 +63,7 @@ def score_toml(
     | InstrumentScore
     | LFOScore
     | AnimationScore
+    | SynthInstrumentScore
     | PresetScore,
 ) -> str:
     validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
@@ -87,6 +90,7 @@ ScoreValue = Annotated[
     | InstrumentScore
     | LFOScore
     | AnimationScore
+    | SynthInstrumentScore
     | PresetScore,
     Field(discriminator='kind'),
 ]
