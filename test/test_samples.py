@@ -5,6 +5,8 @@ from ufor.samples import crossfade, playback, selection
 from ufor.samples.instrument import (
     Instrument,
     SampleInstrument,
+    effective_selection,
+    effective_settings,
 )
 
 
@@ -183,6 +185,30 @@ def test_selection_state_requires_canonical_sequences() -> None:
             key=60,
             candidates=['take-b', 'take-a'],
         )
+
+
+def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:
+    group = {
+        'name': 'close',
+        'selection': 'takes',
+        'processing': {'volume_db': -6},
+    }
+    raw = document(
+        instrument={'selections': [{'name': 'takes', 'mode': 'cycle'}]},
+        slot={'group': 'close'},
+    )
+    raw['groups'] = [group]
+    instrument = SampleInstrument.model_validate(raw)
+    slot = instrument.slots[0]
+    assert effective_selection(slot, instrument.groups[0]) == 'takes'
+    assert effective_settings(slot, instrument.groups[0]).processing.volume_db == -6
+    overridden = slot.model_copy(
+        update={'selection': None, 'processing': {'volume_db': 0}}
+    )
+    assert effective_selection(overridden, instrument.groups[0]) is None
+    assert (
+        effective_settings(overridden, instrument.groups[0]).processing.volume_db == 0
+    )
 
 
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:
