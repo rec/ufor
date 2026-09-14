@@ -75,6 +75,7 @@ class ActiveVoice(Model):
     part: Identifier
     trigger_id: Identifier
     slot: Identifier
+    key: int
     choke_group: Identifier | None = None
 
 
@@ -191,6 +192,44 @@ def prepare(
                         s for s in candidates if (s.take or s.name) == choice
                     )
             for slot in selected:
+                policy = instrument.instrument.voice_policy
+                if policy is not None:
+                    same_key = [
+                        v for v in voices if v.part == event.part and v.key == event.key
+                    ]
+                    if policy.same_key != enums.SameKey.stack:
+                        action = (
+                            'release'
+                            if policy.same_key == enums.SameKey.release
+                            else 'stop'
+                        )
+                        for voice in same_key:
+                            actions.append(
+                                VoiceRetirement(
+                                    tick=event.tick,
+                                    ordinal=event.ordinal,
+                                    voice_id=voice.voice_id,
+                                    cause=RetirementCause.same_key,
+                                    action=action,
+                                )
+                            )
+                            voices.remove(voice)
+                    while len(voices) >= policy.maximum_voices:
+                        voice = voices.pop(0)
+                        action = (
+                            'release'
+                            if policy.overflow == enums.VoiceOverflow.release_oldest
+                            else 'stop'
+                        )
+                        actions.append(
+                            VoiceRetirement(
+                                tick=event.tick,
+                                ordinal=event.ordinal,
+                                voice_id=voice.voice_id,
+                                cause=RetirementCause.voice_limit,
+                                action=action,
+                            )
+                        )
                 for voice in list(voices):
                     if voice.choke_group in {c.group for c in slot.chokes}:
                         actions.append(
@@ -226,6 +265,7 @@ def prepare(
                         part=event.part,
                         trigger_id=event.trigger_id,
                         slot=slot.name,
+                        key=event.key,
                         choke_group=slot.choke_group,
                     )
                 )
