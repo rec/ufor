@@ -6675,6 +6675,7 @@
                   "scale": "#/$defs/ScaleScore",
                   "sequence": "#/$defs/SequenceScore",
                   "slideshow": "#/$defs/SlideshowScore",
+                  "synth_instrument": "#/$defs/SynthInstrumentScore",
                   "tuning": "#/$defs/TuningScore"
                 },
                 "propertyName": "kind"
@@ -6724,6 +6725,9 @@
                 },
                 {
                   "$ref": "#/$defs/AnimationScore"
+                },
+                {
+                  "$ref": "#/$defs/SynthInstrumentScore"
                 },
                 {
                   "$ref": "#/$defs/PresetScore"
@@ -9761,6 +9765,304 @@
       "title": "Sustain",
       "type": "object"
     },
+    "SynthInstrument": {
+      "additionalProperties": false,
+      "description": "Synth voice templates and their shared performance declarations.",
+      "properties": {
+        "controls": {
+          "additionalProperties": {
+            "$ref": "#/$defs/ufor__samples__controls__Control"
+          },
+          "title": "Controls",
+          "type": "object"
+        },
+        "voice_policy": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/VoicePolicy"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "sustain": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Sustain"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "articulations": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Articulations"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "voices": {
+          "items": {
+            "$ref": "#/$defs/SynthVoice"
+          },
+          "minItems": 1,
+          "title": "Voices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "voices"
+      ],
+      "title": "SynthInstrument",
+      "type": "object"
+    },
+    "SynthInstrumentScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 3,
+          "default": 3,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "timebases": {
+          "items": {
+            "$ref": "#/$defs/Timebase"
+          },
+          "minItems": 1,
+          "title": "Timebases",
+          "type": "array"
+        },
+        "inputs": {
+          "items": {
+            "$ref": "#/$defs/Input"
+          },
+          "title": "Inputs",
+          "type": "array"
+        },
+        "outputs": {
+          "items": {
+            "$ref": "#/$defs/Output"
+          },
+          "title": "Outputs",
+          "type": "array"
+        },
+        "parameters": {
+          "items": {
+            "$ref": "#/$defs/ParameterExport"
+          },
+          "title": "Parameters",
+          "type": "array"
+        },
+        "kind": {
+          "const": "synth_instrument",
+          "default": "synth_instrument",
+          "title": "Kind",
+          "type": "string"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        },
+        "body": {
+          "$ref": "#/$defs/SynthInstrument"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "timebases",
+        "body"
+      ],
+      "title": "SynthInstrumentScore",
+      "type": "object"
+    },
+    "SynthVoice": {
+      "additionalProperties": false,
+      "description": "One mapped oscillator voice template.",
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": []
+          }
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "clock": "seconds",
+            "scope": "voice",
+            "polarity": "unipolar",
+            "initial": 0.0,
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 0.0
+              }
+            ],
+            "hold": true,
+            "retrigger": "current"
+          }
+        },
+        "envelopes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Envelope"
+          },
+          "title": "Envelopes",
+          "type": "object"
+        },
+        "lfos": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LFO"
+          },
+          "title": "Lfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
+                "envelope": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "lfo": "#/$defs/GeneratorBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/Mapping"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelRoute"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "oscillator": {
+          "$ref": "#/$defs/Oscillator"
+        },
+        "trigger": {
+          "$ref": "#/$defs/TriggerKind",
+          "default": "start"
+        },
+        "choke_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choke Group"
+        },
+        "chokes": {
+          "items": {
+            "$ref": "#/$defs/Choke"
+          },
+          "title": "Chokes",
+          "type": "array"
+        },
+        "articulations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Articulations",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "mapping",
+        "channels",
+        "oscillator"
+      ],
+      "title": "SynthVoice",
+      "type": "object"
+    },
     "Target": {
       "additionalProperties": false,
       "properties": {
@@ -10673,6 +10975,7 @@
       "scale": "#/$defs/ScaleScore",
       "sequence": "#/$defs/SequenceScore",
       "slideshow": "#/$defs/SlideshowScore",
+      "synth_instrument": "#/$defs/SynthInstrumentScore",
       "tuning": "#/$defs/TuningScore"
     },
     "propertyName": "kind"
@@ -10722,6 +11025,9 @@
     },
     {
       "$ref": "#/$defs/AnimationScore"
+    },
+    {
+      "$ref": "#/$defs/SynthInstrumentScore"
     },
     {
       "$ref": "#/$defs/PresetScore"
