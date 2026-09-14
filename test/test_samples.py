@@ -129,6 +129,62 @@ def test_voice_policy_rejects_invalid_values(raw: dict[str, object]) -> None:
         selection.VoicePolicy.model_validate(raw)
 
 
+def test_random_selection_is_reproducible_and_part_local() -> None:
+    takes = selection.Selection(name='takes', mode='random')
+    state = selection.SelectionState(seed=42)
+    choices = []
+    for _ in range(4):
+        choice, state = selection.choose(
+            takes, state, 'piano', 'start', 60, ['take-c', 'take-a', 'take-b']
+        )
+        choices.append(choice)
+    replay = selection.SelectionState(seed=42)
+    replayed = []
+    for _ in range(4):
+        choice, replay = selection.choose(
+            takes, replay, 'piano', 'start', 60, ['take-a', 'take-b', 'take-c']
+        )
+        replayed.append(choice)
+    assert replayed == choices
+    other, _ = selection.choose(
+        takes, selection.SelectionState(seed=42), 'drums', 'start', 60, ['take-a']
+    )
+    assert other == 'take-a'
+    choice, restored = selection.choose(
+        takes, state, 'piano', 'start', 60, ['take-a', 'take-b', 'take-c']
+    )
+    replay_choice, replay_state = selection.choose(
+        takes, replay, 'piano', 'start', 60, ['take-a', 'take-b', 'take-c']
+    )
+    assert choice == replay_choice
+    assert restored == replay_state
+
+
+def test_shuffle_selection_visits_every_candidate_before_refilling() -> None:
+    takes = selection.Selection(name='takes', mode='shuffle')
+    state = selection.SelectionState(seed=42)
+    choices = []
+    for _ in range(6):
+        choice, state = selection.choose(
+            takes, state, 'piano', 'start', 60, ['take-a', 'take-b', 'take-c']
+        )
+        choices.append(choice)
+    assert set(choices[:3]) == {'take-a', 'take-b', 'take-c'}
+    assert set(choices[3:]) == {'take-a', 'take-b', 'take-c'}
+    assert choices[2] != choices[3]
+
+
+def test_selection_state_requires_canonical_sequences() -> None:
+    with pytest.raises(ValidationError, match='sorted'):
+        selection.SelectionSequence(
+            part='piano',
+            selection='takes',
+            trigger='start',
+            key=60,
+            candidates=['take-b', 'take-a'],
+        )
+
+
 def test_pitch_tracking_uses_a_reference_frequency_not_selection_key() -> None:
     mapping = playback.Mapping(
         lowest_key=-200, highest_key=10000, reference_pitch_hz=443.123456

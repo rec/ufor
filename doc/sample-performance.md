@@ -12,7 +12,8 @@ overrides, and separate completion/lifetime policy.
 Instrument and slot processing remain per voice, before mixing. Phase during
 LFO delay follows the shared model. Native events use tick/ordinal ordering;
 references below to equal-frame input order mean that explicit ordering.
-Random/shuffle probabilities do not yet specify a portable seeded algorithm.
+Random and shuffle selection use the portable state contract below. It is pure
+preparation logic, not audio rendering or voice scheduling.
 
 ## Alternate Sample Selection
 
@@ -46,10 +47,30 @@ per triggering event, not per audio block or active voice. Returning to a
 previous eligible tuple resumes its state. Loading or explicitly resetting an
 instrument clears all sequence state; ordinary release events do not reset it.
 
-Cycle is fully deterministic. Random and shuffle define selection probabilities
-but not cross-player seeded reproducibility; the separate reproducible-variation
-proposal remains unimplemented. Do not claim that a seed alone guarantees
-identical selection across engines.
+`SelectionState` begins with the explicit unsigned 64-bit performance `seed`.
+It contains independent `SelectionSequence` values keyed by part, set ID,
+trigger kind, trigger key, and ordered eligible slot IDs. The sequence records
+its counter, the remaining shuffle bag, and the previous choice. A performance
+start creates fresh state from its seed. A snapshot serializes that state; a
+seek restores an earlier snapshot and replays later ordered triggers, or replays
+from the seed when no snapshot is available. Controls, releases, inactive sets,
+audio block boundaries, and unrelated state partitions do not advance a
+sequence.
+
+For `random`, derive the candidate index from SHA-256 using length-prefixed UTF-8
+values: the decimal seed, part ID, set ID, trigger kind, decimal key, each sorted
+candidate ID, decimal counter, empty excluded-candidate field, and decimal retry
+number. Interpret the 32-byte digest as an unsigned big-endian integer and use
+rejection sampling to reduce it into the candidate count. Increment the counter
+once after each choice. This is the named `sha256-counter-v1` algorithm.
+
+For `shuffle`, use the same indexed draws to form a Fisher-Yates permutation. On
+a refill after a prior choice, choose the first item uniformly from candidates
+other than that choice, then shuffle the remaining positions. Thus every allowed
+permutation is equally likely and a refill never immediately repeats the prior
+choice. Increment the counter once for every indexed draw. The state format and
+these inputs are sufficient for independent implementations to reproduce every
+choice exactly.
 
 Future execution conformance must cover layering outside sets, several independent sets,
 candidate filtering before selection, one/zero eligible candidates, shuffle
