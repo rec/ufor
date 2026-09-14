@@ -189,6 +189,31 @@ def test_selection_state_requires_canonical_sequences() -> None:
         )
 
 
+def test_random_ranges_share_one_value_per_input_event() -> None:
+    raw = document()
+    raw['slots'][0].update(
+        {'name': 'wide', 'random_range': {'minimum': 0.8, 'maximum': 1}}
+    )
+    narrow = raw['slots'][0].copy()
+    narrow.update(
+        {
+            'name': 'narrow',
+            'random_range': {'minimum': 0.9, 'maximum': 1},
+        }
+    )
+    gap = raw['slots'][0].copy()
+    gap.update({'name': 'gap', 'random_range': {'minimum': 0, 'maximum': 0.8}})
+    raw['slots'].extend([narrow, gap])
+    result = trace.prepare(
+        SampleInstrument.model_validate(raw),
+        [Trigger(tick=0, ordinal=0, part='piano', trigger_id='note-a', key=60)],
+        seed=42,
+    )
+    assert [
+        action.slot for action in result.actions if isinstance(action, trace.VoiceStart)
+    ] == ['wide', 'narrow']
+
+
 def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:
     group = {
         'name': 'close',

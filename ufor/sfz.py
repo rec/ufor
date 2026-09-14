@@ -441,6 +441,7 @@ def _region(
     if slot.title is not None and _safe_value(slot.title):
         opcodes.insert(0, Opcode(name='region_label', value=slot.title))
     opcodes.extend(_mapping(slot.mapping))
+    opcodes.extend(_random_range_opcodes(slot.random_range))
     opcodes.extend(_trigger_opcodes(slot, path, issues))
     opcodes.extend(_choking(slot, path, groups, issues))
     opcodes.extend(_playback_opcodes(document, slot, path, issues))
@@ -548,6 +549,15 @@ def _mapping(mapping: playback.Mapping) -> list[Opcode]:
     else:
         result.append(Opcode(name='pitch_keytrack', value='0'))
     return result
+
+
+def _random_range_opcodes(value: selection.RandomRange | None) -> list[Opcode]:
+    if value is None:
+        return []
+    return [
+        Opcode(name='lorand', value=str(value.minimum)),
+        Opcode(name='hirand', value=str(value.maximum)),
+    ]
 
 
 def _trigger_opcodes(
@@ -1311,6 +1321,11 @@ def _slot(
         'mapping': mapping,
         'channels': _channel_routes(metadata.channels, output_channels),
     }
+    if 'lorand' in values or 'hirand' in values:
+        kwargs['random_range'] = selection.RandomRange(
+            minimum=_number(values.get('lorand', '0'), 'lorand'),
+            maximum=_number(values.get('hirand', '1'), 'hirand'),
+        )
     if name := values.get('region_label'):
         kwargs['title'] = name
     result = _playback(index, values, declarations, metadata, unimplemented)
@@ -1682,9 +1697,11 @@ SUPPORTED_OPCODES = {
     'end',
     'group',
     'hikey',
+    'hirand',
     'hivel',
     'key',
     'lokey',
+    'lorand',
     'loop_end',
     'loop_mode',
     'loop_start',

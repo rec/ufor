@@ -100,6 +100,23 @@ Future execution conformance must cover layering outside sets, several independe
 candidate filtering before selection, one/zero eligible candidates, shuffle
 refill boundaries, and invariance under audio block-size changes.
 
+## Random Range Conditions
+
+`body.slots.random_range` filters a slot after its trigger, key, velocity, and
+sustain-event mapping match, and before named selection sets resolve. Its
+`minimum` is inclusive and its `maximum` is exclusive. The interval must be
+nonempty within `[0, 1]`; intervals may overlap to layer slots or leave gaps that
+select none. This is separate from `Selection`: it never requires exactly one
+slot to match.
+
+For every input event, all candidate slots share one random value. Derive it with
+SHA-256 from length-prefixed UTF-8 values: the domain tag
+`sample-random-range-v1`, decimal seed, part ID, trigger ID (or empty), decimal
+event tick, and decimal ordinal. Interpret the first seven digest bytes as an
+unsigned integer and divide by `2 ** 56`, producing `[0, 1)`. This has no mutable
+state, so unrelated voices, selections, and block boundaries cannot affect it.
+`conformance/random-ranges.json` pins the portable case.
+
 ## Parameter Variation
 
 `body.slots.variation` declares independent maximum variation for delay in

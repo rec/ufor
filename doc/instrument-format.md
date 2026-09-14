@@ -292,6 +292,12 @@ voice action, never drawn by an audio callback. Linked microphone slots sharing
 a selected take also share the resolved variation. The exact seeded algorithm
 and ranges are in [Sample performance](sample-performance.md#parameter-variation).
 
+`random_range` is a portable half-open interval from zero through one. It is an
+eligibility condition, not a selection set: overlapping intervals layer and gaps
+can select no slot. Every slot considered for one input event shares one seeded
+draw, so linked microphone captures and overlapping layers stay coherent. The
+exact draw contract is in [Sample performance](sample-performance.md#random-range-conditions).
+
 Key and velocity ranges are inclusive. Keys are unrestricted integers, independent
 of pitch. Pitch tracking requires `reference_pitch_hz`; the eventual player also
 requires a resolved trigger pitch. Unpitched mappings need no invented pitch.

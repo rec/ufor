@@ -45,6 +45,37 @@ def test_sfz_conformance_requires_only_text_and_supplied_asset_facts() -> None:
     assert sfz.write(result.instrument).complete
 
 
+def test_sfz_random_range_round_trips_without_selection() -> None:
+    source = sfz.parse('<region> sample=audio/glass.wav key=60 lorand=0.25 hirand=0.5')
+    result = sfz.compile(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=44100,
+                sample_rate=44100,
+                encoding='WAV/PCM_16',
+                byte_length=88244,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48000)),
+        output_channels=['left', 'right'],
+    )
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].random_range == selection.RandomRange(
+        minimum=0.25, maximum=0.5
+    )
+    rendered = sfz.write(result.instrument)
+    assert rendered.complete
+    assert 'lorand=0.25' in rendered.contents
+    assert 'hirand=0.5' in rendered.contents
+
+
 def test_native_instrument_round_trips_through_the_common_codec() -> None:
     document = InstrumentScore.model_validate(fixture())
     assert parse_score(score_toml(document)) == document
