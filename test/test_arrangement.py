@@ -17,7 +17,10 @@ def test_documented_arrangement_separates_ports_from_destinations() -> None:
     assert document.outputs[0].name == document.destinations[0].output
     assert 'path' not in document.outputs[0].model_dump()
     assert parse_score(score_toml(document)) == document
-    assert ArrangementScore.model_json_schema()['properties']['body']
+    schema = ArrangementScore.model_json_schema()
+    if '$ref' in schema:
+        schema = schema['$defs'][schema['$ref'].removeprefix('#/$defs/')]
+    assert schema['properties']['body']
 
 
 def test_audio_ports_reject_other_quantities_and_duplicate_channels() -> None:
