@@ -340,6 +340,37 @@ selection or voice ownership. Static fades are latched at onset; live fades
 smooth position before applying the gain law so complementary pairs remain
 complementary. Execution and smoothing traces remain deferred.
 
+## Resonant filters
+
+`processing.filters` is an ordered list of named voice-scoped resonant filters.
+Each filter has a response (`lowpass`, `highpass`, `bandpass`, or `notch`),
+`cutoff_hz`, positive `q`, and one or two `stages`. Stages cascade identical
+filters, producing a configurable second- or fourth-order response. Filters run
+after sample traversal and before gain, pan, channel routing, and mixing; their
+order in the list is their processing order. Each rendered voice owns the state
+for every stage.
+
+The exact profile is RBJ Audio EQ Cookbook v1. For output rate `R`, resolved
+cutoff `f`, and Q `q`, calculate `w = 2*pi*f/R`, `alpha = sin(w)/(2*q)`, and
+`c = cos(w)`. Use numerator coefficients `(1-c)/2, 1-c, (1-c)/2` for lowpass,
+`(1+c)/2, -(1+c), (1+c)/2` for highpass, `alpha, 0, -alpha` for bandpass, and
+`1, -2*c, 1` for notch. The denominator is `1+alpha, -2*c, 1-alpha`; divide all
+coefficients by its first value. Apply the normalized coefficients in direct-form
+II transposed order. Implementations compare each coefficient within the filter's
+configured `tolerance.coefficient` and frequency-response magnitude within
+`tolerance.response_db` dB.
+
+`cutoff_hz` must resolve into `[minimum_hz, nyquist_ratio * R/2]`. The default
+`boundary = "error"` rejects an out-of-range resolved value. Configuring
+`boundary = "clamp"` clips it to that interval. `minimum_hz` and `nyquist_ratio`
+are authored per filter, so an instrument can choose its useful low-frequency
+limit and Nyquist margin explicitly. Q must remain positive in either policy.
+
+Routes target `filter-ID.cutoff_hz` in Hz or `filter-ID.q` as a ratio. They use
+the common replace, add, and multiply reduction rules. Resolve all routes before
+applying the filter boundary policy; a player must report an error or clamp the
+effective cutoff according to that policy, never silently substitute a value.
+
 ## Source bindings and parameter addresses
 
 Each entry of `modulation.sources` has exactly one `bindings` entry with the
@@ -364,6 +395,7 @@ Structured target parts and parameters are:
 | `processing` | `amplitude` | ratio, base 1 |
 | `processing` | `volume_db`, `tuning_cents`, `pan`, `stereo_balance` | db, cents, normalized, normalized |
 | `eq-ID` | `frequency_hz`, `gain_db`, `resonance` | hz, db, ratio |
+| `filter-ID` | `cutoff_hz`, `q` | hz, ratio |
 | `envelope` or `env-ID` | `on-N-duration`, `release-N-duration` | seconds or beats from the envelope clock |
 
 N is a zero-based segment index. The declaration's unit and default must match

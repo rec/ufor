@@ -3733,6 +3733,43 @@
       "title": "Fill",
       "type": "object"
     },
+    "FilterBoundary": {
+      "enum": [
+        "error",
+        "clamp"
+      ],
+      "title": "FilterBoundary",
+      "type": "string"
+    },
+    "FilterResponse": {
+      "enum": [
+        "lowpass",
+        "highpass",
+        "bandpass",
+        "notch"
+      ],
+      "title": "FilterResponse",
+      "type": "string"
+    },
+    "FilterTolerance": {
+      "additionalProperties": false,
+      "properties": {
+        "coefficient": {
+          "default": 1e-12,
+          "exclusiveMinimum": 0,
+          "title": "Coefficient",
+          "type": "number"
+        },
+        "response_db": {
+          "default": 1e-06,
+          "exclusiveMinimum": 0,
+          "title": "Response Db",
+          "type": "number"
+        }
+      },
+      "title": "FilterTolerance",
+      "type": "object"
+    },
     "FireAndEmbers": {
       "additionalProperties": false,
       "properties": {
@@ -4546,7 +4583,8 @@
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
-            "equalizer": []
+            "equalizer": [],
+            "filters": []
           }
         },
         "envelope": {
@@ -7018,6 +7056,13 @@
           },
           "title": "Equalizer",
           "type": "array"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/ResonantFilter"
+          },
+          "title": "Filters",
+          "type": "array"
         }
       },
       "title": "Processing",
@@ -7890,6 +7935,69 @@
       "title": "Reset",
       "type": "string"
     },
+    "ResonantFilter": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "response": {
+          "$ref": "#/$defs/FilterResponse"
+        },
+        "cutoff_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Cutoff Hz",
+          "type": "number"
+        },
+        "q": {
+          "default": 0.7071067811865475,
+          "exclusiveMinimum": 0,
+          "title": "Q",
+          "type": "number"
+        },
+        "stages": {
+          "default": 1,
+          "enum": [
+            1,
+            2
+          ],
+          "title": "Stages",
+          "type": "integer"
+        },
+        "boundary": {
+          "$ref": "#/$defs/FilterBoundary",
+          "default": "error"
+        },
+        "minimum_hz": {
+          "default": 1.0,
+          "exclusiveMinimum": 0,
+          "title": "Minimum Hz",
+          "type": "number"
+        },
+        "nyquist_ratio": {
+          "default": 0.999,
+          "exclusiveMaximum": 1,
+          "exclusiveMinimum": 0,
+          "title": "Nyquist Ratio",
+          "type": "number"
+        },
+        "tolerance": {
+          "$ref": "#/$defs/FilterTolerance",
+          "default": {
+            "coefficient": 1e-12,
+            "response_db": 1e-06
+          }
+        }
+      },
+      "required": [
+        "name",
+        "response",
+        "cutoff_hz"
+      ],
+      "title": "ResonantFilter",
+      "type": "object"
+    },
     "Retrigger": {
       "enum": [
         "reset",
@@ -8142,7 +8250,8 @@
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
-            "equalizer": []
+            "equalizer": [],
+            "filters": []
           }
         },
         "envelope": {
@@ -9192,7 +9301,8 @@
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
-            "equalizer": []
+            "equalizer": [],
+            "filters": []
           }
         },
         "envelope": {
