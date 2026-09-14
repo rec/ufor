@@ -100,6 +100,29 @@ Future execution conformance must cover layering outside sets, several independe
 candidate filtering before selection, one/zero eligible candidates, shuffle
 refill boundaries, and invariance under audio block-size changes.
 
+## Parameter Variation
+
+`body.slots.variation` declares independent maximum variation for delay in
+seconds, native sample offset in frames, pitch in cents, and gain in dB. Delay
+and offset are drawn from `[0, maximum)` and `[0, maximum]` respectively; pitch
+and gain are drawn from `[-maximum, maximum)`. Zero is the default for every
+field and creates no variation.
+
+The performance seed owns every draw. `sample-variation-v1` derives a SHA-256
+digest from length-prefixed UTF-8 fields: the domain tag, decimal seed, part,
+trigger ID (or empty), decimal event tick and ordinal, selected take ID or slot
+ID, parameter name, and retry number for integer offsets. The top 53 digest
+bits form floating draws in `[0, 1)`; offsets use rejection sampling across the
+inclusive integer range. The resolved values are recorded on `voice_start`.
+
+There is no mutable variation stream: a matching seed and event identity always
+produces the same result regardless of block size, other voices, or prior draws.
+The event coordinate distinguishes later reuse of a trigger ID. Linked microphone
+slots use their shared take ID as the draw identity, keeping their random delay,
+offset, pitch, and gain aligned. Sustain samples use their threshold-crossing
+control event and slot ID. `conformance/variation.json` pins the first portable
+case.
+
 ## Choke Groups
 
 `body.slots.choke_group` labels voices created by that slot. Each `[[body.slots.chokes]]`

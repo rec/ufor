@@ -24,6 +24,7 @@ from .crossfade import ControlCrossfade, LayerCrossfade
 from .playback import Mapping, Playback, Slice, SlotPlayback
 from .processing import ChannelRoute, EventBinding, SoundSettings, spatial_bounds
 from .selection import Articulations, Choke, Selection, Sustain, VoicePolicy
+from .variation import Variation
 
 
 class Instrument(SoundSettings):
@@ -93,6 +94,7 @@ class SampleSlot(SoundSettings):
     crossfades: list[LayerCrossfade] = Field(default_factory=list)
     trigger: enums.TriggerKind = enums.TriggerKind.start
     articulations: list[Identifier] = Field(default_factory=list)
+    variation: Variation = Variation()
 
     @model_validator(mode='after')
     def slot_values(self) -> Self:

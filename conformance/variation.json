@@ -1,0 +1,24 @@
+{
+  "seed": 42,
+  "variation": {
+    "delay_seconds": 0.5,
+    "offset_frames": 9,
+    "pitch_cents": 12,
+    "gain_db": 3
+  },
+  "cases": [
+    {
+      "part": "piano",
+      "trigger_id": "note-a",
+      "tick": 48000,
+      "ordinal": 7,
+      "identity": "take-a",
+      "expected": {
+        "delay_seconds": 0.23018122349582287,
+        "offset_frames": 5,
+        "pitch_cents": -8.028455828466882,
+        "gain_db": -2.933351797968201
+      }
+    }
+  ]
+}

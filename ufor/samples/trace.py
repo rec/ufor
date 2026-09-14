@@ -17,6 +17,7 @@ from .instrument import (
 )
 from .processing import ChannelRoute, SoundSettings
 from .selection import SelectionState, choose
+from .variation import ResolvedVariation, resolve
 
 
 class RetirementCause(StrEnum):
@@ -45,6 +46,7 @@ class VoiceStart(TraceAction):
     channels: list[ChannelRoute]
     settings: SoundSettings
     parameters: list[ParameterValue] = Field(default_factory=list)
+    variation: ResolvedVariation = ResolvedVariation()
 
 
 class VoiceRetirement(TraceAction):
@@ -234,6 +236,19 @@ def prepare(
                 else f'voice-{part}-sustain-{event.tick}-{event.ordinal}-{slot.name}'
             )
             sample_slice = slices[slot.slice]
+            resolved_variation = resolve(
+                slot.variation,
+                seed,
+                part,
+                trigger_id,
+                event.tick,
+                event.ordinal,
+                (
+                    slot.take
+                    if trigger_id is not None and slot.take is not None
+                    else slot.name
+                ),
+            )
             actions.append(
                 VoiceStart(
                     tick=event.tick,
@@ -247,6 +262,7 @@ def prepare(
                     alignment_frames=slot.alignment_frames,
                     channels=slot.channels,
                     settings=effective_settings(slot, groups.get(slot.group)),
+                    variation=resolved_variation,
                 )
             )
             voices.append(

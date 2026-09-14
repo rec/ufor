@@ -286,6 +286,12 @@ position before traversal; it compensates for capture-start differences without
 changing slice or loop coordinates. `take`, `microphone`, and nonzero alignment
 are valid only together with a selection.
 
+`variation` declares maximum per-voice delay, native offset, pitch-cents, and
+gain-dB variation. Its values resolve during preparation and are carried by the
+voice action, never drawn by an audio callback. Linked microphone slots sharing
+a selected take also share the resolved variation. The exact seeded algorithm
+and ranges are in [Sample performance](sample-performance.md#parameter-variation).
+
 Key and velocity ranges are inclusive. Keys are unrestricted integers, independent
 of pitch. Pitch tracking requires `reference_pitch_hz`; the eventual player also
 requires a resolved trigger pitch. Unpitched mappings need no invented pitch.

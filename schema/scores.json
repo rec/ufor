@@ -8477,6 +8477,15 @@
           },
           "title": "Articulations",
           "type": "array"
+        },
+        "variation": {
+          "$ref": "#/$defs/Variation",
+          "default": {
+            "delay_seconds": 0.0,
+            "offset_frames": 0,
+            "pitch_cents": 0.0,
+            "gain_db": 0.0
+          }
         }
       },
       "required": [
@@ -10230,6 +10239,38 @@
         "journal_range"
       ],
       "title": "UnmappedAudioFragment",
+      "type": "object"
+    },
+    "Variation": {
+      "additionalProperties": false,
+      "description": "Maximum independent variation applied when one voice starts.",
+      "properties": {
+        "delay_seconds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Delay Seconds",
+          "type": "number"
+        },
+        "offset_frames": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset Frames",
+          "type": "integer"
+        },
+        "pitch_cents": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Pitch Cents",
+          "type": "number"
+        },
+        "gain_db": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Gain Db",
+          "type": "number"
+        }
+      },
+      "title": "Variation",
       "type": "object"
     },
     "VisualKind": {
