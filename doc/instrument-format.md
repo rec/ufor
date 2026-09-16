@@ -377,10 +377,65 @@ cutoff `f`, and Q `q`, calculate `w = 2*pi*f/R`, `alpha = sin(w)/(2*q)`, and
 `c = cos(w)`. Use numerator coefficients `(1-c)/2, 1-c, (1-c)/2` for lowpass,
 `(1+c)/2, -(1+c), (1+c)/2` for highpass, `alpha, 0, -alpha` for bandpass, and
 `1, -2*c, 1` for notch. The denominator is `1+alpha, -2*c, 1-alpha`; divide all
-coefficients by its first value. Apply the normalized coefficients in direct-form
-II transposed order. Implementations compare each coefficient within the filter's
+coefficients by its first value. These coefficients describe the **static transfer
+function**, not the state recurrence for changing parameters. Implementations
+compare each coefficient within the filter's
 configured `tolerance.coefficient` and frequency-response magnitude within
 `tolerance.response_db` dB.
+
+Render with the trapezoidal state-variable recurrence below. This replaces the
+previous direct-form II transposed requirement: retaining direct-form delay state
+while switching between individually stable coefficient sets can cause growing
+zero-input oscillations. The static RBJ responses and authored fields are unchanged.
+
+For each stage and source channel, initialize independent states `s1 = s2 = 0`.
+At each output sample, resolve cutoff and Q, apply the boundary policy, and compute:
+
+```text
+g = tan(pi * f / R)
+k = 1 / q
+a1 = 1 / (1 + g * (g + k))
+a2 = g * a1
+a3 = g * a2
+v3 = input - s2
+v1 = a1 * s1 + a2 * v3
+v2 = s2 + a2 * s1 + a3 * v3
+band = k * v1
+low = v2
+high = input - band - low
+notch = input - band
+s1 = 2 * v1 - s1
+s2 = 2 * v2 - s2
+```
+
+Select the named response as the stage output. `band` has constant 0 dB peak
+gain, matching the RBJ bandpass above. For small Q, avoid overflowing `1/q` by
+using the algebraically equivalent `d = q * (1 + g*g) + g`, `a1 = q/d`,
+`a2 = g*a1`, `a3 = g*a2`, and `band = s1/d + (g/d)*v3`, using the old `s1`.
+Implementations must reject non-finite numerical results rather than emit them.
+
+Install each sample's coefficients before processing that sample. Changes to
+cutoff or Q preserve `s1` and `s2`; do not reset, interpolate coefficients, or add
+hidden smoothing. Declared control-source smoothing still applies before mapping.
+Filter identity, response, order, and stage count are fixed for a voice. Stages
+cascade in order, with all stages of one filter using the same resolved values.
+Filter each oscillator/sample source channel before the amplitude envelope,
+gain, routing, and mixing. For samples, apply the effective slot/group filter
+list first, then the instrument filter list, both independently per voice.
+Identical local filter IDs in those lists retain separate parameter namespaces
+and states. Stops and source/envelope completion discard all filter state; no
+extra filter tail extends a voice's lifetime.
+
+Snapshots preserve every stage/channel state before the next sample. Arbitrary
+block partitions and serialized restores must reproduce the same continuation.
+Conformance includes static RBJ responses, rapidly changing cutoff and Q,
+zero-input state decay, declared clamp/error boundaries, independent channel and
+voice state, and exact lifecycle boundaries. With zero input, the ideal recurrence
+does not increase `s1*s1 + s2*s2` for positive Q and cutoff below Nyquist, even
+when parameters change each sample. This does not imply bounded output for
+arbitrarily large inputs/Q, absence of modulation aliasing, or bitwise identity.
+
+Numerical basis: [Cytomic's trapezoidal state-variable derivation](https://cytomic.com/files/dsp/SvfLinearTrapOptimised2.pdf).
 
 `cutoff_hz` must resolve into `[minimum_hz, nyquist_ratio * R/2]`. The default
 `boundary = "error"` rejects an out-of-range resolved value. Configuring
