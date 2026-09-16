@@ -100,10 +100,26 @@ class FixtureProfile(Model):
     @model_validator(mode='after')
     def distinct(self) -> Self:
         unique((p.name for p in self.parameters), 'fixture parameter')
-        parameters = {p.name for p in self.parameters}
+        parameters = {p.name: p for p in self.parameters}
         unique((c.parameter for c in self.channels), 'encoded parameter')
         if any(c.parameter not in parameters for c in self.channels):
             raise ValueError('channel encoding references an unknown parameter')
+        unique((s for c in self.channels for s in c.slots), 'profile channel slot')
+        for channel in self.channels:
+            parameter = parameters[channel.parameter]
+            if parameter.choices:
+                if (
+                    set(channel.values) != set(parameter.choices)
+                    or len(channel.slots) != 1
+                ):
+                    raise ValueError(
+                        'discrete encoding requires all choices and one byte slot'
+                    )
+            elif channel.values or (channel.minimum, channel.maximum) != (
+                parameter.minimum,
+                parameter.maximum,
+            ):
+                raise ValueError('numeric encoding must match its parameter domain')
         return self
 
 
@@ -224,4 +240,15 @@ def patch_fixtures(
         raise ValueError('every logical fixture requires one physical patch')
     if any(p.wire_universe < 0 for p in patches):
         raise ValueError('patch creates a negative Art-Net wire universe')
+    occupied: set[tuple[int, int]] = set()
+    for patch in patches:
+        for channel in show.profile.channels:
+            for slot in channel.slots:
+                absolute = patch.start_slot + slot - 1
+                if absolute > 512:
+                    raise ValueError('fixture footprint exceeds the DMX universe')
+                address = patch.wire_universe, absolute
+                if address in occupied:
+                    raise ValueError('fixture patches overlap')
+                occupied.add(address)
     return result

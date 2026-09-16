@@ -352,6 +352,9 @@ distinct if it intentionally has different semantics.
 
 ### 22. Scale interval input can be silently truncated despite the integer contract
 
+**Resolved:** interval input accepts integers and integer text, and rejects
+booleans and floats. The documented editing exceptions remain explicit.
+
 **P2, confirmed.** [scale.py:20](../ufor/scale.py#L20).
 
 The before-validator calls `int(c)` on every supplied element. Values such as
@@ -376,6 +379,9 @@ really are the same. Similar spelling must not imply compatibility.
 
 ### 24. Fixture validation does not establish a usable physical patch
 
+**Resolved:** encoding domains and choice coverage are checked, profile slots
+must be distinct, and physical patching rejects overflow and overlapping slots.
+
 **P2, confirmed gaps.** [fixture.py:94](../ufor/fixture.py#L94),
 [fixture.py:217](../ufor/fixture.py#L217).
 
@@ -389,6 +395,9 @@ reject contradictory encodings and impossible/colliding placements.
 
 ### 25. Broadcast provisional timing is not propagated through dependencies
 
+**Resolved:** provisional timing propagates through the dependency graph, and
+cue windows are rejected on non-cue starts.
+
 **P2, confirmed.** [broadcast.py:226](../ufor/broadcast.py#L226).
 
 `provisional_sections` returns only sections directly using cue rules. A section
@@ -399,6 +408,10 @@ Also reject `earliest`/`deadline` on non-cue starts: those fields currently pass
 unchecked and have no specified meaning there.
 
 ### 26. Slideshow defaults, transitions, and caption language can conflict
+
+**Resolved:** omitted advancement inherits the show default, explicit modes
+override it, and effective cue policy is validated. Duplicate transitions,
+nonzero cuts, and conflicting caption languages are rejected.
 
 **P2, confirmed gaps.** [slideshow.py:59](../ufor/slideshow.py#L59),
 [slideshow.py:125](../ufor/slideshow.py#L125),
@@ -413,6 +426,9 @@ effective advancement and reject or specify these contradictory declarations.
 
 ### 27. Piecewise binding conversion has asymmetric endpoint behavior
 
+**Resolved:** piecewise tables must cover both input endpoints and stay inside
+the output domain. Enum tables omit and reject irrelevant numeric bounds.
+
 **P2, confirmed; intended policy unclear.**
 [binding.py:96](../ufor/binding.py#L96),
 [binding.py:169](../ufor/binding.py#L169).
@@ -425,6 +441,10 @@ Enum maps also require irrelevant numeric input/output bounds, making discrete
 authoring unnecessarily awkward.
 
 ### 28. Score-model construction depends on a codec import side effect
+
+**Resolved:** the score union lives in `score_types`; recursive models rebuild
+lazily on direct use. Fresh-process construction, validation, and schema tests
+verify that importing the codec is unnecessary.
 
 **P2, API risk.** [interface.py:19](../ufor/interface.py#L19),
 [interface.py:69](../ufor/interface.py#L69),

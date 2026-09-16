@@ -84,13 +84,13 @@ def test_binding_maps_table_values_and_describes_streams() -> None:
         native_id='wheel',
         unit=Unit.logical,
         conversion='enum_table',
-        input_min=0,
-        input_max=1,
-        output_min=0,
-        output_max=1,
         values=[{'input': 'open', 'output': '0'}, {'input': 'dots', 'output': '12'}],
     )
     assert map_enum_parameter(mapping, 'dots') == '12'
+    with pytest.raises(ValueError, match='map_enum_parameter'):
+        map_parameter(mapping, 0)
+    with pytest.raises(ValidationError, match='numeric bounds'):
+        ParameterMapping.model_validate(mapping.model_dump() | {'input_min': 0})
     binding = BindingScore.model_validate(
         {
             'name': 'adapter',
@@ -127,3 +127,21 @@ def test_binding_maps_table_values_and_describes_streams() -> None:
         }
     )
     assert binding.body.channels[0].native == 'out_1_2'
+
+
+def test_piecewise_mapping_covers_domain_and_interpolates() -> None:
+    data = mapping('affine').model_dump() | {
+        'conversion': 'piecewise',
+        'points': [{'input': 20, 'output': 0}, {'input': 20000, 'output': 1}],
+    }
+    piecewise = ParameterMapping.model_validate(data)
+    assert map_parameter(piecewise, 20) == 0
+    assert map_parameter(piecewise, 10010) == pytest.approx(0.5)
+    assert map_parameter(piecewise, 20000) == 1
+    for points in (
+        [{'input': 21, 'output': 0}, {'input': 20000, 'output': 1}],
+        [{'input': 20, 'output': 0}, {'input': 19999, 'output': 1}],
+        [{'input': 20, 'output': -1}, {'input': 20000, 'output': 1}],
+    ):
+        with pytest.raises(ValidationError, match='piecewise points'):
+            ParameterMapping.model_validate(data | {'points': points})

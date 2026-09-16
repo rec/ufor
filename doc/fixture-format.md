@@ -16,3 +16,10 @@ patch contract, synchronization method, and measured multi-universe skew. Raw
 playback bypasses semantic remapping and therefore requires that contract. A
 `PixelPatch` separately maps stable layout light names to a device and LED index;
 layouts also name their coordinate frame. Ufor does not send DMX or Art-Net.
+
+Channel slots are relative to the fixture's start slot. Profile encodings must
+use distinct slots. Numeric encoding bounds must match the parameter domain;
+discrete encodings must cover every choice using exactly one byte slot.
+`patch_fixtures` rejects placements extending past slot 512 or sharing encoded
+slots in the same wire universe. Slot aliasing is unsupported. A profile without
+channel encodings has no declared physical footprint to check.

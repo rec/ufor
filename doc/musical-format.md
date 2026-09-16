@@ -152,7 +152,8 @@ scale spellings are calculated from the current values rather than cached.
 loading a score also validates it. Direct list edits are not themselves a
 validation boundary.
 
-Scale intervals must be non-negative integers. The interval pattern cycles over the
+Scale intervals must be non-negative integers or integer text. Booleans and
+floating-point values, including integral floats, are rejected. The interval pattern cycles over the
 selected note names; the period is the sum of those expanded intervals. Unknown
 fields are ignored and unrecognized note text remains available for consumers to
 report.
