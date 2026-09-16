@@ -130,6 +130,9 @@ preparer's supported profile.
 
 ### 8. Accepted articulation declarations are silently ignored by preparers
 
+**Resolved:** sample and synth preparation explicitly reject articulation
+declarations until their execution semantics are implemented.
+
 **P1, confirmed implementation gap.** [sample trace:85](../ufor/samples/trace.py#L85),
 [synth trace:69](../ufor/synth_trace.py#L69).
 
@@ -141,6 +144,10 @@ diagnostic. Reject unsupported declarations until their semantics are implemente
 do not present the resulting trace as fully resolved.
 
 ### 9. Prepared voice payloads are not the complete rendering contract advertised
+
+**Resolved by the approved boundary:** traces require the original definition;
+documentation lists unresolved responsibilities. Synth actions serialize the full
+SynthVoice settings, with a regression test for hold time and synchronization.
 
 **P1, confirmed gap; contract decision needed.**
 [sample VoiceStart](../ufor/samples/trace.py#L34),
@@ -161,6 +168,9 @@ the serialized trace, not only access to the in-memory subclass object.
 
 ### 10. Snapshots cannot restore the documented semantic state
 
+**Resolved by the approved boundary:** snapshots are explicitly observational;
+seeking requires full replay. No resumable-snapshot API is claimed or introduced.
+
 **P1, confirmed gap.** [snapshot schema](../ufor/instrument_trace.py#L79),
 [sample preparation](../ufor/samples/trace.py#L71).
 
@@ -172,6 +182,10 @@ seeking by restoring one and replaying later events. Either define a complete
 resumable semantic snapshot or narrow that promise to observation-only output.
 
 ### 11. Voice IDs have delimiter collisions and no onset generation
+
+**Resolved:** trace-local sequential voice IDs cannot collide through component
+spelling. Active trigger reuse is rejected; released IDs without owned logical
+voices may be reused and subsequent releases address the new onset.
 
 **P1, confirmed.** [sample trace:181](../ufor/samples/trace.py#L181),
 [synth trace:139](../ufor/synth_trace.py#L139).
@@ -186,6 +200,8 @@ and its lifetime. Include distinct-part collisions and eventual reuse in cases.
 
 ### 12. ControlChange validation is skipped during preparation
 
+**Resolved:** both preparers validate every event against declared control domains.
+
 **P2, confirmed.** [sample trace:261](../ufor/samples/trace.py#L261),
 [synth trace:204](../ufor/synth_trace.py#L204).
 
@@ -195,6 +211,9 @@ negative value for a declared unipolar control, becomes a trace observation.
 Apply the instrument's event contract consistently before changing state.
 
 ### 13. Snapshot coordinates can precede the actions they describe
+
+**Resolved:** both preparers use one sorted event list for processing and snapshot
+coordinates, and reject duplicate event coordinates. Shared tests cover both cases.
 
 **P2, confirmed.** [sample trace:412](../ufor/samples/trace.py#L412),
 [synth trace:340](../ufor/synth_trace.py#L340).

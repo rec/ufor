@@ -18,17 +18,22 @@ preparation logic, not audio rendering or voice scheduling.
 
 ## Semantic trace
 
-`ufor.samples.trace.SemanticTrace` is the portable boundary between preparation
-and rendering. It records the explicit performance seed, actions ordered by
-`(tick, ordinal)`, and optional snapshots. A snapshot contains the selection
-state and every active voice, allowing a host to seek by restoring a snapshot
-and replaying later events.
+`ufor.samples.trace.SemanticTrace` records reference lifecycle decisions against
+the original instrument definition. Consumers require both the trace and that
+definition. It records the explicit performance seed, actions ordered by
+`(tick, ordinal)`, and optional observational snapshots. Snapshots describe the
+preparer's logical voices and triggers, not complete restorable player state:
+they omit current control values, sustain state, and renderer completion state.
+Seeking currently requires replay from the beginning; no snapshot-resume API is
+provided. SelectionState alone remains serializable and usable by `choose`.
 
 `voice_start` records a stable voice ID, part and optional trigger ID, chosen slot and
-slice, resolved native start and alignment frames, channel routes, complete
-effective sound settings, and resolved modulation parameter values. A renderer
-therefore receives the selection, linked-microphone, inheritance, routing, and
-filter decisions without repeating format policy. `voice_retirement` names the
+slice, resolved native start and alignment frames, channel routes, and effective
+slot/group sound settings. Instrument-level settings, mapping, playback, loops,
+and crossfades remain in the original definition. The current preparer does not
+evaluate modulation into `parameters`; consumers must not interpret its empty
+list as a resolved set of controls. Synth actions serialize the full `SynthVoice`
+settings, including synchronization and minimum hold time. `voice_retirement` names the
 voice, its distinct cause (physical/logical release, choke, same-key policy,
 voice limit, or transport stop), and whether the voice releases or stops.
 Fade retirements use `action = "fade"` with positive `fade_seconds`. Chokes
@@ -41,8 +46,17 @@ recoverable preparation failure without inventing a voice.
 
 The trace deliberately excludes audio blocks, interpolation positions, filter
 delay elements, oscillator phase buffers, and generated audio. Those remain
-renderer choices. Its pure preparer emits this schema for every input event so
-renderers and conformance fixtures have one stable target.
+renderer choices. Articulation execution is unsupported and both preparers reject
+instruments declaring articulations. A trace is not proof that a renderer supports
+every feature in its definition.
+
+Input events are processed in increasing `(tick, ordinal)` order; duplicate
+coordinates are rejected. Snapshots use the final processed coordinate. Voice IDs
+are trace-local `voice-N` identifiers numbered from zero in start-action order,
+independent of punctuation in part/template/trigger names. A trigger ID cannot be
+reused until logically released and no longer owning a logical voice in the trace.
+The current preparer receives no audio-exhaustion feedback, so one-shot and release
+voices remain logically active unless explicitly retired.
 
 ## Alternate Sample Selection
 

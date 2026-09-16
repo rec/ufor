@@ -20,14 +20,14 @@ from .instrument_trace import (
 )
 from .oscillator import Oscillator
 from .samples import enums
-from .samples.processing import ChannelRoute, SoundSettings
+from .samples.processing import ChannelRoute
 from .synth import SynthInstrument, SynthVoice
 
 
 class VoiceStart(LifecycleVoiceStart):
     oscillator: Oscillator
     channels: list[ChannelRoute]
-    settings: SoundSettings
+    settings: SynthVoice
 
 
 Action = Annotated[
@@ -61,10 +61,15 @@ def prepare(
     instrument: SynthInstrument, events: list[PerformanceEvent], seed: int
 ) -> SemanticTrace:
     """Resolve synth voice lifecycle without rendering audio."""
+    if instrument.articulations is not None:
+        raise ValueError('articulation preparation is unsupported')
+    events = sorted(events, key=lambda e: (e.tick, e.ordinal))
+    unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
     actions: list[Action] = []
     voices: list[ActiveVoice] = []
     triggers: list[ActiveTrigger] = []
     sustain: dict[Identifier, bool] = {}
+    next_voice = 0
 
     def selected_voices(
         kind: enums.TriggerKind, key: int, velocity: float
@@ -114,6 +119,7 @@ def prepare(
         key: int,
         pitch_hz: float | None = None,
     ) -> None:
+        nonlocal next_voice
         pitch_hz = event.pitch_hz if isinstance(event, Trigger) else pitch_hz
         for voice in list(voices):
             rules = [
@@ -163,13 +169,8 @@ def prepare(
                 )
                 retire(voices[0], event, RetirementCause.voice_limit, action)
         for template in selected:
-            voice_id = (
-                f'voice-{part}-{trigger_id}-{template.name}'
-                if trigger_id is not None
-                else (
-                    f'voice-{part}-sustain-{event.tick}-{event.ordinal}-{template.name}'
-                )
-            )
+            voice_id = f'voice-{next_voice}'
+            next_voice += 1
             actions.append(
                 VoiceStart(
                     tick=event.tick,
@@ -228,7 +229,8 @@ def prepare(
             and voice.template_trigger == enums.TriggerKind.start
         ]
 
-    for event in sorted(events, key=lambda e: (e.tick, e.ordinal)):
+    for event in events:
+        instrument.validate_event(event)
         if isinstance(event, ControlChange):
             actions.append(
                 ControlObservation(
@@ -347,7 +349,21 @@ def prepare(
                             )
                     update_trigger(trigger, logical_released=True)
         elif isinstance(event, Trigger):
-            instrument.validate_event(event)
+            previous = next(
+                (
+                    t
+                    for t in triggers
+                    if (t.part, t.trigger_id) == (event.part, event.trigger_id)
+                ),
+                None,
+            )
+            if previous is not None:
+                if not previous.logical_released or any(
+                    (v.part, v.trigger_id) == (event.part, event.trigger_id)
+                    for v in voices
+                ):
+                    raise ValueError('trigger ID is still active in this part')
+                triggers.remove(previous)
             selected = selected_voices(
                 enums.TriggerKind.start, event.key, event.velocity
             )
