@@ -3,7 +3,13 @@
 from math import sqrt
 from typing import Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import (
+    Field,
+    SerializerFunctionWrapHandler,
+    field_validator,
+    model_serializer,
+    model_validator,
+)
 
 from .. import base, control
 from ..assets import Asset, AudioDescription
@@ -92,7 +98,7 @@ class SampleSlot(SoundSettings):
     tags: list[Text] = Field(default_factory=list)
     playback: SlotPlayback = SlotPlayback()
     group: Identifier | None = None
-    selection: Identifier | None = None
+    selection: Identifier | Literal[False] | None = None
     random_range: RandomRange | None = None
     take: Identifier | None = None
     microphone: Identifier | None = None
@@ -103,6 +109,36 @@ class SampleSlot(SoundSettings):
     trigger: enums.TriggerKind = enums.TriggerKind.start
     articulations: list[Identifier] = Field(default_factory=list)
     variation: Variation = Variation()
+
+    @field_validator(
+        'envelope',
+        mode='before',
+        json_schema_input_type=Envelope | Literal[False] | None,
+    )
+    @classmethod
+    def no_envelope(cls, value: object) -> object:
+        return None if value is False else value
+
+    @model_serializer(mode='wrap')
+    def authored_settings(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
+        data = handler(self)
+        if self.group is not None:
+            for name in (
+                'processing',
+                'envelope',
+                'envelopes',
+                'lfos',
+                'modulation',
+                'bindings',
+                'selection',
+            ):
+                if name not in self.model_fields_set:
+                    data.pop(name, None)
+            if 'envelope' in self.model_fields_set and self.envelope is None:
+                data['envelope'] = False
+        return data
 
     @model_validator(mode='after')
     def slot_values(self) -> Self:
@@ -170,9 +206,11 @@ def effective_settings(slot: SampleSlot, group: SlotGroup | None) -> SoundSettin
 
 
 def effective_selection(slot: SampleSlot, group: SlotGroup | None) -> Identifier | None:
-    if 'selection' in slot.model_fields_set or group is None:
+    if slot.selection is False:
+        return None
+    if slot.selection is not None:
         return slot.selection
-    return group.selection
+    return group.selection if group is not None else None
 
 
 class SampleInstrument(Model):

@@ -232,7 +232,7 @@ def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:
     assert effective_selection(slot, instrument.groups[0]) == 'takes'
     assert effective_settings(slot, instrument.groups[0]).processing.volume_db == -6
     overridden = slot.model_copy(
-        update={'selection': None, 'processing': {'volume_db': 0}}
+        update={'selection': False, 'processing': {'volume_db': 0}}
     )
     assert effective_selection(overridden, instrument.groups[0]) is None
     assert (

@@ -275,6 +275,14 @@ playback, choke groups, articulations, crossfades, or microphone synchronization
 Groups are therefore configuration sharing, not alternate selection or voice-state
 groups.
 
+Serialization and library normalization preserve omitted slot categories rather
+than writing their defaults as explicit overrides. An explicitly authored neutral
+category, such as `processing = { volume_db = 0 }`, still replaces the group value.
+An omitted or null slot selection inherits the group's selection; `selection =
+false` explicitly disables it, and a name selects that set. An explicit null
+amplitude envelope overrides the group and falls back to the instrument envelope;
+its TOML spelling is `envelope = false`. JSON and Python also accept that spelling.
+
 Linked microphone captures use `selection`, `take`, and `microphone` on each
 slot. A selection chooses one take ID, then activates every eligible slot with
 that ID, so close, room, and ambient captures remain synchronized. Every linked
