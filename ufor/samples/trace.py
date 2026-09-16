@@ -72,11 +72,16 @@ def prepare(
     instrument: SampleInstrument, events: list[PerformanceEvent], seed: int
 ) -> SemanticTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering."""
+    if instrument.instrument.articulations is not None:
+        raise ValueError('articulation preparation is unsupported')
+    events = sorted(events, key=lambda e: (e.tick, e.ordinal))
+    unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
     actions: list[Action] = []
     state = SelectionState(seed=seed)
     voices: list[ActiveVoice] = []
     triggers: list[ActiveTrigger] = []
     sustain: dict[Identifier, bool] = {}
+    next_voice = 0
     groups = {g.name: g for g in instrument.groups}
     slices = {s.name: s for s in instrument.slices}
     selections = {s.name: s for s in instrument.instrument.selections}
@@ -160,6 +165,7 @@ def prepare(
         key: int,
         pitch_hz: float | None = None,
     ) -> None:
+        nonlocal next_voice
         for voice in list(voices):
             rules = [
                 c
@@ -208,11 +214,8 @@ def prepare(
                 )
                 retire(voices[0], event, RetirementCause.voice_limit, action)
         for slot in slots:
-            voice_id = (
-                f'voice-{part}-{trigger_id}-{slot.name}'
-                if trigger_id is not None
-                else f'voice-{part}-sustain-{event.tick}-{event.ordinal}-{slot.name}'
-            )
+            voice_id = f'voice-{next_voice}'
+            next_voice += 1
             sample_slice = slices[slot.slice]
             resolved_variation = resolve(
                 slot.variation,
@@ -288,7 +291,8 @@ def prepare(
             and voice.template_trigger == enums.TriggerKind.start
         ]
 
-    for event in sorted(events, key=lambda e: (e.tick, e.ordinal)):
+    for event in events:
+        instrument.validate_event(event)
         if isinstance(event, ControlChange):
             actions.append(
                 ControlObservation(
@@ -428,7 +432,21 @@ def prepare(
                             )
                     update_trigger(trigger, logical_released=True)
         elif isinstance(event, Trigger):
-            instrument.validate_event(event)
+            previous = next(
+                (
+                    t
+                    for t in triggers
+                    if (t.part, t.trigger_id) == (event.part, event.trigger_id)
+                ),
+                None,
+            )
+            if previous is not None:
+                if not previous.logical_released or any(
+                    (v.part, v.trigger_id) == (event.part, event.trigger_id)
+                    for v in voices
+                ):
+                    raise ValueError('trigger ID is still active in this part')
+                triggers.remove(previous)
             selected = selected_slots(
                 event.part,
                 enums.TriggerKind.start,
