@@ -439,6 +439,7 @@ class InstrumentScore(InterfaceScore):
             if sample_slice.end_frame > assets[sample_slice.asset].audio.frames:
                 raise ValueError('Slice exceeds native asset frames')
         slices = {s.name: s for s in self.body.slices}
+        groups = {g.name: g for g in self.body.groups}
         for slot in self.body.slots:
             source = assets[slices[slot.slice].asset].audio
             if any(
@@ -456,7 +457,10 @@ class InstrumentScore(InterfaceScore):
                         r.target.name == 'processing' and r.target.parameter == target
                         for r in s.modulation.routes
                     )
-                    for s in (self.body.instrument, slot)
+                    for s in (
+                        self.body.instrument,
+                        effective_settings(slot, groups.get(slot.group)),
+                    )
                 )
                 if active:
                     if source.channels != layout or output.channels != [

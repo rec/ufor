@@ -20,6 +20,8 @@ from .samples.instrument import (
     InstrumentScore,
     SampleInstrument,
     SampleSlot,
+    effective_selection,
+    effective_settings,
 )
 from .samples.metadata import AudioMetadata
 from .streams import AudioType
@@ -240,7 +242,15 @@ def write(instrument: InstrumentScore) -> SfzWriteResult:
     _instrument_issues(instrument, issues)
     groups = _choke_groups(instrument)
     regions: list[list[str]] = []
+    slot_groups = {g.name: g for g in instrument.body.groups}
     for i, slot in enumerate(instrument.body.slots):
+        group = slot_groups.get(slot.group)
+        if group is not None:
+            slot = SampleSlot.model_validate(
+                slot.model_dump()
+                | effective_settings(slot, group).model_dump()
+                | {'group': None, 'selection': effective_selection(slot, group)}
+            )
         opcodes = _region(instrument, slot, i, groups, issues)
         if opcodes is None:
             continue
@@ -326,6 +336,20 @@ def _instrument_issues(
     document: InstrumentScore, issues: list[UnimplementedFeature]
 ) -> None:
     instrument = document.body.instrument
+    if instrument.voice_policy is not None:
+        _issue(
+            issues,
+            'body.instrument.voice_policy',
+            instrument.voice_policy,
+            'Voice policy has no exact SFZ conversion',
+        )
+    for i, parameter in enumerate(document.parameters):
+        _issue(
+            issues,
+            f'parameters[{i}]',
+            parameter,
+            'Public parameter exports have no SFZ conversion',
+        )
     if instrument.selections:
         for i, value in enumerate(instrument.selections):
             _issue(
@@ -365,6 +389,13 @@ def _sound_issues(
     path: str,
     issues: list[UnimplementedFeature],
 ) -> None:
+    for i, value in enumerate(settings.processing.filters):
+        _issue(
+            issues,
+            f'{path}.processing.filters[{i}]',
+            value,
+            'Resonant filters have no implemented SFZ conversion',
+        )
     for i, value in enumerate(settings.processing.equalizer):
         _issue(
             issues,
@@ -903,7 +934,30 @@ def _crossfade_opcodes(
 def _slot_issues(
     slot: SampleSlot, path: str, issues: list[UnimplementedFeature]
 ) -> None:
-    if slot.selection is not None:
+    for name in ('take', 'microphone', 'alignment_frames'):
+        if value := getattr(slot, name):
+            _issue(
+                issues,
+                f'{path}.{name}',
+                value,
+                'Linked microphone takes have no exact SFZ conversion',
+            )
+    for name, value in slot.variation.model_dump().items():
+        if value:
+            _issue(
+                issues,
+                f'{path}.variation.{name}',
+                value,
+                'Seeded variation has no exact SFZ conversion',
+            )
+    for i, value in enumerate(slot.processing.filters):
+        _issue(
+            issues,
+            f'{path}.processing.filters[{i}]',
+            value,
+            'Resonant filters have no implemented SFZ conversion',
+        )
+    if slot.selection:
         _issue(
             issues,
             f'{path}.selection',

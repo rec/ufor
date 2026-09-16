@@ -405,12 +405,18 @@ def test_sfz_rejects_velocity_gain_outside_its_representable_domain() -> None:
 
 
 @pytest.mark.parametrize(('field', 'value'), [('pan', 0.2), ('stereo_balance', 0.2)])
+@pytest.mark.parametrize('grouped', [False, True])
 def test_spatial_controls_reject_inapplicable_channel_layouts(
-    field: str, value: float
+    field: str, value: float, grouped: bool
 ) -> None:
     raw = fixture()
     raw['body']['slots'][0]['processing']['pan'] = 0
     raw['body']['slots'][0]['processing'][field] = value
+    if grouped:
+        raw['body']['groups'] = [
+            {'name': 'spatial', 'processing': raw['body']['slots'][0].pop('processing')}
+        ]
+        raw['body']['slots'][0]['group'] = 'spatial'
     if field == 'pan':
         raw['outputs'][0]['stream']['channels'] = ['mono']
         raw['body']['slots'][0]['channels'] = [
@@ -426,6 +432,44 @@ def test_sfz_generator_diagnostics_use_dictionary_paths() -> None:
     result = sfz.write(InstrumentScore.model_validate(raw))
     assert not result.complete
     assert result.unimplemented[0].location.path == 'body.slots[0].lfos.vibrato'
+
+
+def test_sfz_export_resolves_group_processing() -> None:
+    raw = fixture()
+    settings = raw['body']['slots'][0].pop('processing')
+    settings['volume_db'] = -6
+    raw['body']['groups'] = [{'name': 'quiet', 'processing': settings}]
+    raw['body']['slots'][0]['group'] = 'quiet'
+    result = sfz.write(InstrumentScore.model_validate(raw))
+    assert result.complete
+    assert 'volume=-6' in result.contents
+
+
+@pytest.mark.parametrize(
+    'field,value,path',
+    [
+        ('variation', {'pitch_cents': 5}, 'body.slots[0].variation.pitch_cents'),
+        (
+            'filters',
+            [{'name': 'tone', 'response': 'lowpass', 'cutoff_hz': 1000}],
+            'body.slots[0].processing.filters[0]',
+        ),
+        ('voice_policy', {'maximum_voices': 4}, 'body.instrument.voice_policy'),
+    ],
+)
+def test_sfz_reports_unrepresentable_native_features(
+    field: str, value: object, path: str
+) -> None:
+    raw = fixture()
+    if field == 'voice_policy':
+        raw['body']['instrument'][field] = value
+    elif field == 'filters':
+        raw['body']['slots'][0]['processing'][field] = value
+    else:
+        raw['body']['slots'][0][field] = value
+    result = sfz.write(InstrumentScore.model_validate(raw))
+    assert not result.complete
+    assert path in [i.location.path for i in result.unimplemented]
 
 
 @pytest.mark.parametrize('sample', ['../outside.wav', '/outside.wav', 'C:/outside.wav'])

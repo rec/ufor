@@ -22,6 +22,7 @@ from ufor.interface import (
 from ufor.modulation import Target, Unit
 from ufor.samples.instrument import InstrumentScore
 from ufor.sequence import SequenceScore
+from ufor.synth import SynthInstrumentScore
 from ufor.time import Rate, Timebase
 
 
@@ -228,6 +229,25 @@ def test_sequence_drives_an_independently_configured_instrument() -> None:
     ]
     assert composition.performance_trace(96000, start=48000) == trace
     assert parse_score(score_toml(values['mix'].score)) == values['mix'].score
+
+
+def test_sequence_drives_a_synth_instrument() -> None:
+    values = scores()
+    raw = values['mix'].score.model_dump()
+    raw['body']['parts'][1]['parameters'] = {}
+    values['mix'] = ScoreRecord(
+        score=ArrangementScore.model_validate(raw), paths=values['mix'].paths
+    )
+    values['piano'] = ScoreRecord(
+        score=SynthInstrumentScore.model_validate(
+            json.loads(Path('conformance/synth-instrument.json').read_text())
+        )
+    )
+    result = Composition('mix', values).performance_trace(96000)
+    assert [(e.event.kind, e.event.tick) for e in result] == [
+        ('trigger', 480),
+        ('release', 43200),
+    ]
 
 
 def test_arrangement_requests_reusable_control_with_audio_and_events() -> None:
