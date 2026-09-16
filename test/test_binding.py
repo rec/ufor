@@ -3,6 +3,7 @@ from pydantic import ValidationError
 
 from ufor.binding import (
     BindingScore,
+    InputControl,
     ParameterMapping,
     map_enum_parameter,
     map_parameter,
@@ -45,7 +46,20 @@ def test_gain_silence_uses_an_explicit_native_mute() -> None:
     assert map_parameter(gain, 1) == 0
 
 
-def test_binding_round_trips_and_rejects_ambiguous_native_parameters() -> None:
+@pytest.mark.parametrize('scope', [None, 'instrument', 'part', 'voice'])
+def test_binding_round_trips_and_rejects_ambiguous_native_parameters(
+    scope: str | None,
+) -> None:
+    control = {
+        'source': 'keyboard',
+        'protocol': 'midi',
+        'field': 'pressure',
+        'target': 'cutoff',
+        'source_unit': 'normalized',
+        'target_unit': 'hz',
+    }
+    if scope is not None:
+        control['scope'] = scope
     score = BindingScore.model_validate(
         {
             'name': 'vl70m',
@@ -55,6 +69,7 @@ def test_binding_round_trips_and_rejects_ambiguous_native_parameters() -> None:
                 'adapter': 'sysexy.vl70m',
                 'implementation': 'yamaha-vl70m',
                 'implementation_revision': 'observed-174-byte-bulk',
+                'controls': [control],
                 'capabilities': [
                     {
                         'name': 'sysex',
@@ -69,6 +84,9 @@ def test_binding_round_trips_and_rejects_ambiguous_native_parameters() -> None:
         }
     )
     assert parse_score(score_toml(score)) == score
+    assert score.body.controls[0].model_dump(mode='json')['scope'] == (
+        scope or 'instrument'
+    )
     data = score.model_dump()
     data['body']['parameters'] = [
         mapping().model_dump(),
@@ -76,6 +94,22 @@ def test_binding_round_trips_and_rejects_ambiguous_native_parameters() -> None:
     ]
     with pytest.raises(ValidationError, match='native parameter'):
         BindingScore.model_validate(data)
+
+
+@pytest.mark.parametrize('scope', ['global', 'performance', 'trigger'])
+def test_binding_rejects_unsupported_control_scopes(scope: str) -> None:
+    with pytest.raises(ValidationError, match='scope'):
+        InputControl.model_validate(
+            {
+                'source': 'keyboard',
+                'protocol': 'midi',
+                'field': 'pressure',
+                'target': 'cutoff',
+                'source_unit': 'normalized',
+                'target_unit': 'hz',
+                'scope': scope,
+            }
+        )
 
 
 def test_binding_maps_table_values_and_describes_streams() -> None:

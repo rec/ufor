@@ -366,6 +366,11 @@ obvious to callers accustomed to other models' `extra='forbid'` behavior.
 
 ### 23. Binding scopes and stream types form a second, incompatible vocabulary
 
+**Resolved:** binding controls use the shared Scope type with instrument/part/voice
+and an instrument default. The old scope names are rejected. Stream contracts
+remain adapter capability summaries, with their relation to public-port types
+and their compatibility-checking limits documented explicitly.
+
 **P2, design concern.** [binding.py:43](../ufor/binding.py#L43),
 [binding.py:68](../ufor/binding.py#L68), [control.py:17](../ufor/control.py#L17).
 

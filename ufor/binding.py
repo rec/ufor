@@ -8,6 +8,7 @@ from pydantic import Field, model_validator
 
 from .assets import Asset
 from .base import Identifier, Model, unique
+from .control import Scope
 from .interface import ScoreVersion
 from .modulation import Unit
 from .score import Score
@@ -42,6 +43,8 @@ class EnumValue(Model):
 
 
 class StreamContract(Model):
+    """Adapter capability summary, not a complete public-port contract."""
+
     name: Identifier
     direction: Literal['input', 'output']
     family: Literal['audio', 'event', 'control', 'light']
@@ -73,7 +76,7 @@ class InputControl(Model):
     source_unit: Unit
     target_unit: Unit
     conversion: Conversion = Conversion.identity
-    scope: Literal['global', 'performance', 'voice'] = 'global'
+    scope: Scope = Scope.instrument
     reset: Literal['hold', 'default', 'zero'] = 'hold'
 
 

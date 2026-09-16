@@ -17,10 +17,24 @@ and monotone piecewise tables. Discrete parameters use an explicit enum table.
 Ratio zero maps to an explicit native mute (`null` from `map_parameter`), never a
 fictitious finite dB value. `map_enum_parameter` maps discrete values.
 
-Bindings also declare typed stream contracts, their logical-to-native channel
+Bindings also declare stream capability summaries, their logical-to-native channel
 maps, and incoming physical controls. Controls retain protocol field, source and
 target units, conversion, scope, and reset semantics. This is portable adapter
 metadata; a host alone resolves an actual MIDI, audio, or network endpoint.
+
+Input controls use the shared `Scope` vocabulary: `instrument` (the default),
+`part`, or `voice`. The former `global` and `performance` spellings are replaced
+by `instrument` and `part`; they are no longer accepted. Trigger scope is not
+supported by binding input controls.
+
+`StreamContract` describes adapter capabilities, not complete public-port
+compatibility. Its `audio` family corresponds to public sampled audio amplitude;
+`light` corresponds to sampled light, while `event` and `control` identify those
+public stream families. For audio, `channels` is a count and `rate` is samples
+per second. These do not name a channel layout or a score timebase. Other families
+omit those fields and do not describe event kinds, control quantities/units, or
+light layouts. Hosts must consult the definition's full public-port contracts
+when checking compatibility; matching these summaries alone is insufficient.
 
 Opaque implementation state is a sealed `Asset`. When it accompanies canonical
 parameters, it has the only supported restore order: opaque state first, then
