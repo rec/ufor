@@ -17,6 +17,19 @@ class Effect(Model):
     family: ClassVar[str]
 
 
+class AudioSpectrum(Effect):
+    """Requires AudioFeatures.spectrum at each logical frame boundary."""
+
+    effect: Literal['audio_spectrum'] = 'audio_spectrum'
+    family: ClassVar[str] = 'reactive'
+    palette: list[RGB] = Field(
+        default=[[255, 0, 51], [255, 178, 0], [0, 204, 255], [178, 0, 255]],
+        min_length=2,
+    )
+    gain: float = Field(default=1.5, ge=0)
+    smoothing: float = Field(default=10, ge=0)
+
+
 class ColorChase(Effect):
     effect: Literal['color_chase'] = 'color_chase'
     family: ClassVar[str] = 'events'
@@ -716,7 +729,8 @@ def validate_hamiltonian(n: int, order: str | int, inverted: str) -> None:
 
 
 EffectValue = Annotated[
-    ColorChase
+    AudioSpectrum
+    | ColorChase
     | ConfettiWithDecay
     | ExpandingRipples
     | FireFlies

@@ -197,6 +197,7 @@
           "discriminator": {
             "mapping": {
               "alternates": "#/$defs/Alternates",
+              "audio_spectrum": "#/$defs/AudioSpectrum",
               "aurora": "#/$defs/Aurora",
               "candle_bank": "#/$defs/CandleBank",
               "cellular_automaton": "#/$defs/CellularAutomaton",
@@ -249,6 +250,9 @@
             "propertyName": "effect"
           },
           "oneOf": [
+            {
+              "$ref": "#/$defs/AudioSpectrum"
+            },
             {
               "$ref": "#/$defs/ColorChase"
             },
@@ -902,6 +906,69 @@
         "asset"
       ],
       "title": "AudioFragment",
+      "type": "object"
+    },
+    "AudioSpectrum": {
+      "additionalProperties": false,
+      "description": "Requires AudioFeatures.spectrum at each logical frame boundary.",
+      "properties": {
+        "effect": {
+          "const": "audio_spectrum",
+          "default": "audio_spectrum",
+          "title": "Effect",
+          "type": "string"
+        },
+        "palette": {
+          "default": [
+            [
+              255,
+              0,
+              51
+            ],
+            [
+              255,
+              178,
+              0
+            ],
+            [
+              0,
+              204,
+              255
+            ],
+            [
+              178,
+              0,
+              255
+            ]
+          ],
+          "items": {
+            "items": {
+              "maximum": 255,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "maxItems": 3,
+            "minItems": 3,
+            "type": "array"
+          },
+          "minItems": 2,
+          "title": "Palette",
+          "type": "array"
+        },
+        "gain": {
+          "default": 1.5,
+          "minimum": 0,
+          "title": "Gain",
+          "type": "number"
+        },
+        "smoothing": {
+          "default": 10,
+          "minimum": 0,
+          "title": "Smoothing",
+          "type": "number"
+        }
+      },
+      "title": "AudioSpectrum",
       "type": "object"
     },
     "AudioStream": {
