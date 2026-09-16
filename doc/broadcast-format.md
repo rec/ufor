@@ -12,3 +12,8 @@ they require before starting. An optional as-aired run records actual starts,
 ends, cues, dropouts, replacements, source instances, local submission, remote
 delivery, and delivery failures. Replaying that record never requires the original
 live source. Ufor does not connect inputs or deliver output.
+
+`provisional_sections` includes cue-dependent sections and all sections starting
+`after` them, transitively, in authored order. Their complete timing is unknown
+until live decisions are available. Only cue starts may declare `earliest` or
+`deadline`; fixed and relative starts reject these fields.

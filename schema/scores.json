@@ -6592,20 +6592,52 @@
           "default": "identity"
         },
         "input_min": {
-          "title": "Input Min",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Min"
         },
         "input_max": {
-          "title": "Input Max",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Input Max"
         },
         "output_min": {
-          "title": "Output Min",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Min"
         },
         "output_max": {
-          "title": "Output Max",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output Max"
         },
         "update_ticks": {
           "default": 1,
@@ -6635,11 +6667,7 @@
       "required": [
         "parameter",
         "native_id",
-        "unit",
-        "input_min",
-        "input_max",
-        "output_min",
-        "output_max"
+        "unit"
       ],
       "title": "ParameterMapping",
       "type": "object"
@@ -9143,8 +9171,15 @@
           "default": "contain"
         },
         "advance": {
-          "$ref": "#/$defs/Advance",
-          "default": "automatic"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Advance"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "cue": {
           "anyOf": [

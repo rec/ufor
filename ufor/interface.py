@@ -11,13 +11,14 @@ from .base import Identifier, Model, unique
 from .control import Scope
 from .lights import LightType
 from .modulation import Target, Unit
+from .recursive import RecursiveModel
 from .score import Score
 from .selector import parse_selector
 from .streams import AudioType
 from .time import Timebase
 
 if TYPE_CHECKING:
-    from .codec import ScoreValue
+    from .score_types import ScoreValue
 
 
 class ScoreVersion(Model):
@@ -66,7 +67,7 @@ class InputSelection(Model):
     input: Identifier
 
 
-class Part(Model):
+class Part(RecursiveModel):
     name: Identifier
     score: 'ScoreVersion | ScoreValue'
     parameters: dict[Identifier, float] = Field(default_factory=dict)

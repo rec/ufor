@@ -199,8 +199,6 @@ def test_table_edits_are_reflected_in_evaluation(
     'settings',
     [
         {'intervals': [0]},
-        {'intervals': [1.9]},
-        {'intervals': [True]},
         {'intervlas': [1]},
         {'notes': 'nonsense'},
         {'notes': 'C nonsense'},
@@ -213,6 +211,12 @@ def test_scale_accepts_tuney_editing_states(settings: dict[str, object]) -> None
 def test_scale_rejects_negative_intervals() -> None:
     with pytest.raises(ValueError):
         Scale(intervals=[-1])
+
+
+@pytest.mark.parametrize('value', [1.9, 1.0, True, False])
+def test_scale_rejects_noninteger_interval_values(value: object) -> None:
+    with pytest.raises(ValueError, match='not an integer interval'):
+        Scale.model_validate({'intervals': [value]})
 
 
 def test_scale_repeated_intervals_and_edits_keep_pitch_mapping_consistent() -> None:

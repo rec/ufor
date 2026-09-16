@@ -25,3 +25,9 @@ than cached, so valid edits remain visible.
 
 Public functions do not promise safe concurrent mutation. Author, validate, then
 evaluate or prepare; maintain runtime state separately from the definition.
+
+Recursive composition models support direct construction, validation, and schema
+generation from their defining modules. Their model rebuild loads the supported
+score union from `ufor.score_types` only when needed; callers need not import
+`ufor.codec` for initialization. This applies to `Part`, arrangement models, and
+light animation models.

@@ -13,6 +13,7 @@ from .interface import (
     OutputSelection,
     Part,
 )
+from .recursive import RecursiveModel
 from .streams import AudioType, FileDestination
 from .time import Timebase
 
@@ -66,7 +67,7 @@ class ControlClip(Model):
         return self
 
 
-class Arrangement(Model):
+class Arrangement(RecursiveModel):
     timebase: Identifier
     media_types: list[str] = Field(default_factory=lambda: ['audio'])
     parts: list[Part] = Field(default_factory=list)
@@ -155,7 +156,7 @@ class Arrangement(Model):
             raise ValueError(f'Routing cycle: {error.args[1]}') from error
 
 
-class ArrangementScore(InterfaceScore):
+class ArrangementScore(InterfaceScore, RecursiveModel):
     kind: Literal['arrangement'] = 'arrangement'
     timebases: list[Timebase] = Field(min_length=1, max_length=1)
     body: Arrangement

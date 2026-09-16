@@ -9,9 +9,9 @@ from pathlib import Path
 import tomlkit
 from pydantic import TypeAdapter
 
-from .codec import ScoreValue
 from .library import Diagnostic, Entry, Library, State
 from .score import Score
+from .score_types import ScoreValue
 from .selector import LibraryConfig, LibraryRegistration, address
 
 

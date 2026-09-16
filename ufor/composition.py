@@ -10,7 +10,6 @@ from .arrangement import ArrangementScore
 from .automation import ArrangementGainTarget, AutomationScore
 from .automation import evaluate as evaluate_automation
 from .base import Model
-from .codec import ScoreValue
 from .control import Scope
 from .events import ControlChange, Release, StoredEvent, Trigger
 from .interface import (
@@ -35,6 +34,7 @@ from .modulation import Unit
 from .recording import AudioStream, RecordingScore
 from .samples.enums import SelectionMode
 from .samples.instrument import InstrumentScore
+from .score_types import ScoreValue
 from .sequence import SequenceScore
 from .streams import AudioType
 from .synth import SynthInstrumentScore

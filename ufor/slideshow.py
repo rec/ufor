@@ -65,7 +65,7 @@ class Slide(Model):
     crop: Crop = Crop(x=0, y=0, width=1, height=1)
     rotation: Literal[0, 90, 180, 270] = 0
     fit: Fit = Fit.contain
-    advance: Advance = Advance.automatic
+    advance: Advance | None = None
     cue: Identifier | None = None
     visual_kind: VisualKind = VisualKind.image
     source_start: int | None = Field(default=None, ge=0, strict=True)
@@ -73,7 +73,9 @@ class Slide(Model):
 
     @model_validator(mode='after')
     def cue_policy(self) -> Self:
-        if (self.advance == Advance.cue) != (self.cue is not None):
+        if self.advance is not None and (self.advance == Advance.cue) != (
+            self.cue is not None
+        ):
             raise ValueError('cue advance requires exactly one cue name')
         video_range = self.source_start is not None or self.source_end is not None
         if self.visual_kind == VisualKind.video:
@@ -93,6 +95,12 @@ class Transition(Model):
     incoming: Identifier
     kind: Literal['cut', 'crossfade', 'wipe'] = 'cut'
     duration: int = Field(default=0, ge=0, strict=True)
+
+    @model_validator(mode='after')
+    def duration_contract(self) -> Self:
+        if self.kind == 'cut' and self.duration != 0:
+            raise ValueError('a cut has no duration')
+        return self
 
 
 class Accompaniment(Model):
@@ -130,6 +138,8 @@ class CaptionTrack(Model):
 
     @model_validator(mode='after')
     def source(self) -> Self:
+        if any(c.language != self.language for c in self.captions):
+            raise ValueError('caption language must match its track')
         if bool(self.captions) == (self.asset is not None):
             raise ValueError('caption track requires captions or one caption asset')
         if any(
@@ -183,6 +193,12 @@ class Slideshow(Model):
         names = {i.name for i in self.items}
         if any(i.asset not in assets for i in self.items):
             raise ValueError('slide references an unknown asset')
+        for item in self.items:
+            if ((item.advance or self.default_advance) == Advance.cue) != (
+                item.cue is not None
+            ):
+                raise ValueError('effective cue advance requires exactly one cue name')
+        unique(((t.outgoing, t.incoming) for t in self.transitions), 'transition pair')
         for transition in self.transitions:
             if transition.outgoing not in names or transition.incoming not in names:
                 raise ValueError('transition references an unknown slide')

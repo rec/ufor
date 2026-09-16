@@ -87,10 +87,10 @@ class ParameterMapping(Model):
     native_id: str = Field(min_length=1)
     unit: Unit
     conversion: Conversion = Conversion.identity
-    input_min: float
-    input_max: float
-    output_min: float
-    output_max: float
+    input_min: float | None = None
+    input_max: float | None = None
+    output_min: float | None = None
+    output_max: float | None = None
     update_ticks: int = Field(default=1, ge=1, strict=True)
     out_of_range: RangePolicy = RangePolicy.reject
     points: list[MappingPoint] = Field(default_factory=list)
@@ -98,6 +98,29 @@ class ParameterMapping(Model):
 
     @model_validator(mode='after')
     def ranges(self) -> Self:
+        if self.conversion == Conversion.enum_table:
+            if not self.values or self.points:
+                raise ValueError('enum conversion requires one or more values')
+            if any(
+                v is not None
+                for v in (
+                    self.input_min,
+                    self.input_max,
+                    self.output_min,
+                    self.output_max,
+                )
+            ):
+                raise ValueError('enum conversion does not declare numeric bounds')
+            unique((v.input for v in self.values), 'enum input')
+            unique((v.output for v in self.values), 'enum output')
+            return self
+        if (
+            self.input_min is None
+            or self.input_max is None
+            or self.output_min is None
+            or self.output_max is None
+        ):
+            raise ValueError('numeric conversion requires input and output bounds')
         if self.input_max <= self.input_min or self.output_max <= self.output_min:
             raise ValueError('mapping ranges must increase')
         if self.conversion == Conversion.log_normalize and self.input_min <= 0:
@@ -109,6 +132,15 @@ class ParameterMapping(Model):
         if self.conversion == Conversion.piecewise:
             if len(self.points) < 2 or self.values:
                 raise ValueError('piecewise conversion requires at least two points')
+            if (
+                self.points[0].input != self.input_min
+                or self.points[-1].input != self.input_max
+            ):
+                raise ValueError('piecewise points must cover the input endpoints')
+            if any(
+                not self.output_min <= p.output <= self.output_max for p in self.points
+            ):
+                raise ValueError('piecewise points must stay within the output range')
             if any(
                 b.input <= a.input
                 for a, b in zip(self.points, self.points[1:], strict=False)
@@ -119,11 +151,6 @@ class ParameterMapping(Model):
                 for a, b in zip(self.points, self.points[1:], strict=False)
             ):
                 raise ValueError('piecewise conversion must be monotone')
-        elif self.conversion == Conversion.enum_table:
-            if not self.values or self.points:
-                raise ValueError('enum conversion requires one or more values')
-            unique((v.input for v in self.values), 'enum input')
-            unique((v.output for v in self.values), 'enum output')
         elif self.points or self.values:
             raise ValueError('only table conversions may declare points or values')
         return self
@@ -173,6 +200,10 @@ class BindingScore(Score):
 
 def map_parameter(mapping: ParameterMapping, value: float) -> float | None:
     """Convert one canonical value, returning None only for ratio silence in dB."""
+    if mapping.conversion == Conversion.enum_table:
+        raise ValueError('enum-table mappings require map_enum_parameter')
+    assert mapping.input_min is not None and mapping.input_max is not None
+    assert mapping.output_min is not None and mapping.output_max is not None
     if not mapping.input_min <= value <= mapping.input_max:
         if mapping.out_of_range == RangePolicy.reject:
             raise ValueError(f'{mapping.parameter}: value is outside the binding range')

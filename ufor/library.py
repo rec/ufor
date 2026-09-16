@@ -7,11 +7,11 @@ from pathlib import PurePosixPath
 from pydantic import BaseModel, Field, TypeAdapter
 
 from .base import Model
-from .codec import ScoreValue
 from .composition import Composition, ScoreRecord
 from .interface import InterfaceScore, ScoreVersion
 from .preset import PresetScore
 from .score import Score
+from .score_types import ScoreValue
 from .selector import (
     Address,
     LibraryName,

@@ -23,3 +23,10 @@ A run record stores ordered entered, advanced, backed-up, held, cue, transition,
 caption, and failure observations, so an as-presented replay does not need to
 guess what an operator did. Image/video decoding, display output, audio playback,
 caption rendering, and cue delivery are host work.
+
+An omitted slide `advance` inherits `default_advance`; explicit `automatic`
+overrides even a manual or cue default. Hosts resolve each slide with
+`slide.advance or slideshow.default_advance`. The effective mode requires a cue
+name exactly when it is `cue`. Serialization preserves omission separately from
+an explicit mode. Each adjacent slide pair may have only one transition, cuts
+have zero duration, and every embedded caption must use its track's language.

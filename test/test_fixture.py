@@ -118,3 +118,102 @@ def test_profile_encoding_raw_capture_and_compositing_are_explicit() -> None:
         RawDmxCapture(
             patch_contract='x', frames=[{'tick': 0, 'universe': 1, 'slots': [256]}]
         )
+
+
+@pytest.mark.parametrize(
+    'start,other,offset,error',
+    [
+        (512, 10, -1, 'exceeds'),
+        (1, 2, -1, 'overlap'),
+        (1, 1, -1, 'overlap'),
+    ],
+)
+def test_patch_rejects_invalid_footprints(
+    start: int, other: int, offset: int, error: str
+) -> None:
+    from ufor.fixture import FixtureShow
+
+    show = FixtureShow.model_validate(
+        {
+            'profile': {
+                'name': 'pan',
+                'parameters': [
+                    {'name': 'pan', 'unit': 'logical', 'minimum': 0, 'maximum': 1}
+                ],
+                'channels': [
+                    {'parameter': 'pan', 'slots': [1, 2], 'minimum': 0, 'maximum': 1}
+                ],
+            },
+            'fixtures': ['left', 'right'],
+            'cues': [],
+        }
+    )
+    with pytest.raises(ValueError, match=error):
+        patch_fixtures(
+            show,
+            [
+                FixturePatch(fixture='left', universe=1, start_slot=start),
+                FixturePatch(
+                    fixture='right',
+                    universe=1,
+                    universe_offset=offset,
+                    start_slot=other,
+                ),
+            ],
+        )
+    assert (
+        len(
+            patch_fixtures(
+                show,
+                [
+                    FixturePatch(fixture='left', universe=1, start_slot=511),
+                    FixturePatch(fixture='right', universe=2, start_slot=511),
+                ],
+            )
+        )
+        == 2
+    )
+
+
+@pytest.mark.parametrize(
+    'channel',
+    [
+        {'parameter': 'gobo', 'slots': [1], 'minimum': 0, 'maximum': 1},
+        {'parameter': 'gobo', 'slots': [1], 'values': {'open': 0}},
+        {'parameter': 'gobo', 'slots': [1, 2], 'values': {'open': 0, 'dots': 1}},
+    ],
+)
+def test_discrete_encoding_requires_complete_single_byte_table(
+    channel: dict[str, object],
+) -> None:
+    from ufor.fixture import FixtureProfile
+
+    with pytest.raises(ValidationError, match='discrete encoding'):
+        FixtureProfile.model_validate(
+            {
+                'name': 'gobo',
+                'parameters': [{'name': 'gobo', 'choices': ['open', 'dots']}],
+                'channels': [channel],
+            }
+        )
+
+
+def test_numeric_domains_and_profile_slots_must_agree() -> None:
+    from ufor.fixture import FixtureProfile
+
+    data = {
+        'name': 'pan',
+        'parameters': [
+            {'name': 'pan', 'unit': 'logical', 'minimum': 0, 'maximum': 1},
+            {'name': 'tilt', 'unit': 'logical', 'minimum': 0, 'maximum': 1},
+        ],
+        'channels': [{'parameter': 'pan', 'slots': [1], 'minimum': 0, 'maximum': 2}],
+    }
+    with pytest.raises(ValidationError, match='numeric encoding'):
+        FixtureProfile.model_validate(data)
+    data['channels'] = [
+        {'parameter': 'pan', 'slots': [1], 'minimum': 0, 'maximum': 1},
+        {'parameter': 'tilt', 'slots': [1], 'minimum': 0, 'maximum': 1},
+    ]
+    with pytest.raises(ValidationError, match='profile channel slot'):
+        FixtureProfile.model_validate(data)

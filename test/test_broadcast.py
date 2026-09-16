@@ -60,3 +60,53 @@ def test_planned_and_aired_programme_keep_live_decisions() -> None:
     data['body']['sections'][1]['start'] = {'kind': 'after', 'section': 'opening'}
     with pytest.raises(ValidationError, match='cycle'):
         BroadcastScore.model_validate(data)
+
+
+def test_provisional_timing_propagates_in_dependency_order() -> None:
+    from ufor.broadcast import Broadcast
+
+    broadcast = Broadcast.model_validate(
+        {
+            'sources': [{'name': 'source', 'kind': 'recorded'}],
+            'sections': [
+                {
+                    'name': 'third',
+                    'source': 'source',
+                    'start': {'kind': 'after', 'section': 'second'},
+                    'end': {'kind': 'duration', 'duration': 10},
+                },
+                {
+                    'name': 'fixed',
+                    'source': 'source',
+                    'start': {'kind': 'at', 'tick': 0},
+                    'end': {'kind': 'duration', 'duration': 10},
+                },
+                {
+                    'name': 'first',
+                    'source': 'source',
+                    'start': {'kind': 'cue', 'cue': 'go'},
+                    'end': {'kind': 'duration', 'duration': 10},
+                },
+                {
+                    'name': 'second',
+                    'source': 'source',
+                    'start': {'kind': 'after', 'section': 'first'},
+                    'end': {'kind': 'duration', 'duration': 10},
+                },
+            ],
+        }
+    )
+    assert provisional_sections(broadcast) == ['third', 'first', 'second']
+
+
+@pytest.mark.parametrize(
+    'kind,fields', [('at', {'tick': 0}), ('after', {'section': 'previous'})]
+)
+@pytest.mark.parametrize('window', ['earliest', 'deadline'])
+def test_only_cue_starts_accept_windows(
+    kind: str, fields: dict[str, object], window: str
+) -> None:
+    from ufor.broadcast import StartRule
+
+    with pytest.raises(ValidationError, match='only cue starts'):
+        StartRule.model_validate({'kind': kind, **fields, window: 1})

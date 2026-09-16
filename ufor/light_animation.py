@@ -13,6 +13,7 @@ from .interface import InterfaceScore, LightBinding, OutputSelection, Part
 from .lfo import LFO, initial_lfo, lfo_at
 from .lights import Interpretation, LightType
 from .modulation import Modulation, Parameter
+from .recursive import RecursiveModel
 
 
 class Fill(Model):
@@ -135,7 +136,7 @@ class Control(Model):
         return self
 
 
-class Animation(Model):
+class Animation(RecursiveModel):
     operation: Annotated[
         effects.EffectValue
         | Fill
@@ -195,7 +196,7 @@ class Animation(Model):
         return self
 
 
-class AnimationScore(InterfaceScore):
+class AnimationScore(InterfaceScore, RecursiveModel):
     kind: Literal['animation'] = 'animation'
     body: Animation
 
