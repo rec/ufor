@@ -16,6 +16,8 @@ historical wire format, not the producer; SFZ output identifies Ufor.
 | Define sample instruments | `samples.instrument.SampleInstrumentScore`, `SampleInstrument`, `SampleSettings`; shared settings are at `body.settings` |
 | Define synth instruments | `synth.SynthInstrumentScore`, `SynthInstrument`, `SynthVoice` |
 | Prepare instrument lifecycles | `samples.trace.prepare` returns `SampleTrace`; `synth_trace.prepare` returns `SynthTrace`; `instrument_trace` owns common actions and `LifecycleSnapshot` |
+| Evolve instrument controls | `samples.controls.initial_control`, `control_event`, `control_at`; `instrument_trace.TriggerContext` preserves onset initialization |
+| Realize scalar instrument pitch | `synth.frequency` consumes prepared Hz and final routed cents; `samples.playback.pitch_ratio` combines tracked pitch, tuning, and resolved variation |
 | Convert SFZ text | `sfz.compile_instrument` returns `SfzCompileResult`; `sfz.write` returns `SfzExportResult`; neither function opens files |
 | Work with pitch | `tuning`, `scale`, `scala`, `oscillator`; `number.PitchNumber`, `cents_to_ratio`, `ratio_to_cents` preserve explicit arithmetic intent |
 | Declare finite scalar fields | `base.FiniteScalar`; `base.NoteKey` is a strict integer musical selection key, independent of rendered pitch |

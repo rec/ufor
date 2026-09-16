@@ -359,7 +359,8 @@ domains. Clamp normalized transition position to [0,1]. Linear fade-in/out uses
 within a slot without normalizing across layers. Zero weight does not suppress
 selection or voice ownership. Static fades are latched at onset; live fades
 smooth position before applying the gain law so complementary pairs remain
-complementary. Execution and smoothing traces remain deferred.
+complementary. Layer-crossfade audio conformance remains deferred; scalar source
+smoothing follows [instrument control evolution](control-evolution.md).
 
 ## Resonant filters
 
@@ -403,6 +404,11 @@ same ID. Bindings have tagged forms:
 | `velocity` | `id`, `kind` | Voice scope and [0,1] domain |
 | `control` | `id`, `kind`, `control`, exact seconds `smoothing` (default `1/200`) | Declared polarity domain; instrument/part/trigger scope |
 | `envelope` / `lfo` | `id`, `kind`, `reference` | Existing local named generator; exact scope and polarity domain match |
+
+Control smoothing is an interruptible linear transition in the source domain,
+before route mapping. Exact timing, scope lifetime, and trigger initialization
+follow [instrument control evolution](control-evolution.md). The scalar reference
+is implemented in `ufor.samples.controls`; audio realization remains in engines.
 
 A source ID never resolves into another slot. Instrument-scoped generators may
 be shared by voices through explicit bindings; slot generators are voice-only.

@@ -5,7 +5,7 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from .base import Identifier, Model, unique
+from .base import Bipolar, Identifier, Model, UnitInterval, unique
 from .samples import enums
 
 
@@ -21,6 +21,16 @@ class RetirementCause(StrEnum):
 class TraceAction(Model):
     tick: int = Field(strict=True)
     ordinal: int = Field(ge=0, strict=True)
+
+
+class TriggerContext(TraceAction):
+    """Initialize one onset's controls before any of its voice starts."""
+
+    kind: Literal['trigger_context'] = 'trigger_context'
+    part: Identifier
+    trigger_id: Identifier
+    velocity: UnitInterval
+    controls: dict[Identifier, Bipolar]
 
 
 class VoiceStart(TraceAction):

@@ -4,9 +4,9 @@ from pathlib import Path
 import pytest
 from pydantic import TypeAdapter
 
-from ufor import synth_trace
+from ufor import modulation, synth, synth_trace
 from ufor.events import ControlChange, PerformanceEvent, Release, Trigger
-from ufor.instrument_trace import VoiceRetirement
+from ufor.instrument_trace import TriggerContext, VoiceRetirement
 from ufor.samples import trace
 from ufor.samples.instrument import SampleInstrument
 from ufor.synth import SynthInstrument
@@ -71,7 +71,7 @@ def test_chokes_preserve_mode_and_part(kind: str, mode: str, action: str) -> Non
     )
     retirements = [a for a in result.actions if isinstance(a, VoiceRetirement)]
     assert len(retirements) == 1
-    assert retirements[0].voice_id == result.actions[0].voice_id
+    assert retirements[0].voice_id == result.actions[1].voice_id
     assert retirements[0].action == action
     assert retirements[0].fade_seconds == (0.25 if mode == 'fade' else None)
     assert any(v.part == 'right' for v in result.snapshots[0].voices)
@@ -89,7 +89,16 @@ def test_release_voices_retain_the_onset_pitch(kind: str, sustain: bool) -> None
             template['frequency_offset_hz'] = 5
         templates.append(template)
     events = [
-        Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60, pitch_hz=440)
+        Trigger(
+            tick=0,
+            ordinal=0,
+            part='part',
+            trigger_id='note',
+            key=60,
+            pitch_hz=440,
+            velocity=0.6,
+            controls={'pedal': 0.75},
+        )
     ]
     if sustain:
         events.append(
@@ -115,6 +124,10 @@ def test_release_voices_retain_the_onset_pitch(kind: str, sustain: bool) -> None
     ]
     assert [a.pitch_hz for a in starts] == [440 if kind == 'sample' else 445] * 2
     assert [a.tick for a in starts] == [2, 3 if sustain else 2]
+    contexts = [a for a in result.actions if isinstance(a, TriggerContext)]
+    assert len(contexts) == 1
+    assert contexts[0].controls == {'pedal': 0.75}
+    assert contexts[0].velocity == 0.6
 
 
 def test_one_shot_survives_ordinary_release() -> None:
@@ -190,8 +203,8 @@ def test_synth_action_serialization_preserves_voice_settings() -> None:
     )
     restored = synth_trace.SynthTrace.model_validate_json(result.model_dump_json())
     assert restored == result
-    assert restored.actions[0].settings.minimum_hold_seconds == 0.25
-    assert restored.actions[0].settings.synchronize_oscillator
+    assert restored.actions[1].settings.minimum_hold_seconds == 0.25
+    assert restored.actions[1].settings.synchronize_oscillator
 
 
 @pytest.mark.parametrize('kind', ['sample', 'synth'])
@@ -273,6 +286,92 @@ def test_preparation_rejects_duplicate_event_coordinates(kind: str) -> None:
         prepare(kind, [{'name': 'voice'}], [event, event])
 
 
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_control_context_conformance(kind: str) -> None:
+    case = CONTROL_CASES['context']
+    events = TypeAdapter(list[PerformanceEvent]).validate_python(case['events'])
+    result = prepare(kind, case['templates'], events, case['settings'])
+    assert len(result.actions) == len(case['actions'])
+    for action, expected in zip(result.actions, case['actions'], strict=True):
+        actual = action.model_dump(mode='json')
+        assert {k: actual[k] for k in expected} == expected
+    assert type(result).model_validate_json(result.model_dump_json()) == result
+
+
+def test_synth_pitch_applies_offset_and_routed_tuning_once() -> None:
+    case = CONTROL_CASES['pitch']['synth']
+    target = {'name': 'processing', 'parameter': 'tuning_cents'}
+    result = prepare(
+        'synth',
+        [
+            {
+                'name': 'voice',
+                'frequency_offset_hz': case['offset_hz'],
+                'processing': {'tuning_cents': case['static_cents']},
+                'modulation': {
+                    'parameters': [
+                        {
+                            'target': target,
+                            'unit': 'cents',
+                            'scope': 'voice',
+                            'minimum': -2400,
+                            'maximum': 2400,
+                            'default': case['static_cents'],
+                        }
+                    ],
+                    'sources': [
+                        {'name': 'bend', 'scope': 'trigger', 'minimum': 0, 'maximum': 1}
+                    ],
+                    'routes': [
+                        {
+                            'name': 'bend',
+                            'source': 'bend',
+                            'target': target,
+                            'operation': 'add',
+                            'unit': 'cents',
+                            'points': [
+                                {'input': 0, 'amount': 0},
+                                {'input': 1, 'amount': case['route_maximum_cents']},
+                            ],
+                        }
+                    ],
+                },
+                'bindings': [
+                    {
+                        'name': 'bend',
+                        'kind': 'control',
+                        'control': 'bend',
+                        'smoothing': '0',
+                    }
+                ],
+            }
+        ],
+        [
+            Trigger(
+                tick=0,
+                ordinal=0,
+                part='main',
+                trigger_id='note',
+                key=60,
+                pitch_hz=case['onset_hz'],
+                controls={'bend': case['source_value']},
+            )
+        ],
+        {'controls': {'bend': {}}},
+    )
+    context, voice = result.actions
+    assert isinstance(voice, synth_trace.VoiceStart)
+    assert voice.pitch_hz == case['prepared_hz']
+    values = modulation.evaluate(
+        voice.settings.modulation,
+        {'bend': modulation.SourceValue(value=context.controls['bend'])},
+    )
+    assert values[0].value == case['resolved_cents']
+    assert synth.frequency(voice.pitch_hz, values[0].value) == pytest.approx(
+        case['frequency_hz'], abs=CONTROL_CASES['absolute_tolerance'], rel=0
+    )
+
+
 def prepare(
     kind: str,
     templates: list[dict[str, object]],
@@ -303,3 +402,8 @@ def prepare(
         }
     )
     return trace.prepare(instrument, events, seed=42)
+
+
+CONTROL_CASES = json.loads(
+    (Path(__file__).parents[1] / 'conformance/control-evolution.json').read_text()
+)
