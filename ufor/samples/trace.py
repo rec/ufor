@@ -72,6 +72,7 @@ def prepare(
     instrument: SampleInstrument, events: list[PerformanceEvent], seed: int
 ) -> SemanticTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering."""
+    instrument = SampleInstrument.model_validate(instrument.model_dump())
     if instrument.instrument.articulations is not None:
         raise ValueError('articulation preparation is unsupported')
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))

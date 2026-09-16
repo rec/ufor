@@ -107,7 +107,8 @@ that the caller supplied the right physical controller or parent instance.
 `evaluate` takes that collection, observations by source ID, and optional
 replacement base values. It requires every routed source, rejects unknown
 sources, and permits at most one base override for each declared parameter.
-The definition is immutable and is not changed by an override. The result
+An override does not change the definition. Its field-frozen collections remain
+editable during authoring; see [validation boundaries](validation.md). The result
 contains one value per declared parameter in parameter-declaration order.
 
 For each route, map the source value first. With activation weight w, additive

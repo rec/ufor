@@ -250,6 +250,23 @@ def test_sequence_drives_a_synth_instrument() -> None:
     ]
 
 
+def test_composition_owns_its_registry_and_validates_edited_definitions() -> None:
+    values = scores()
+    raw = values['mix'].score.model_dump()
+    raw['body']['parts'][0]['score'] = values['notes'].score.model_dump()
+    values['mix'] = ScoreRecord(
+        score=ArrangementScore.model_validate(raw), paths=values['mix'].paths
+    )
+    original_keys = set(values)
+    composition = Composition('mix', values)
+    assert set(values) == original_keys
+    assert 'mix::notes' in composition.scores
+    values['notes'].score.body.events.reverse()
+    assert composition.scores['notes'].score.body.events[0].kind == 'trigger'
+    with pytest.raises(ValueError, match='timestamp and ordinal order'):
+        Composition('mix', values)
+
+
 def test_arrangement_requests_reusable_control_with_audio_and_events() -> None:
     values = scores()
     control_case = json.loads(

@@ -4745,7 +4745,6 @@
         },
         "tags": {
           "items": {
-            "minLength": 1,
             "type": "string"
           },
           "title": "Tags",
@@ -9857,7 +9856,6 @@
         },
         "tags": {
           "items": {
-            "minLength": 1,
             "type": "string"
           },
           "title": "Tags",

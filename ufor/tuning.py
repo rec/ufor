@@ -22,7 +22,9 @@ class Computed(Model):
     octave_ratio: Annotated[str, AfterValidator(positive)] = '2'
 
     def __call__(self, note_delta: int) -> Number:
-        ratio = evaluate(self.octave_ratio) ** (note_delta / self.notes_per_octave)
+        ratio = evaluate(self.octave_ratio) ** Fraction(
+            note_delta, self.notes_per_octave
+        )
         return Fraction(ratio).limit_denominator(self.limit) if self.limit else ratio
 
     def as_ratios(self) -> RatioTable:
@@ -108,4 +110,4 @@ class Tuning(Model):
             frequency = evaluate(self.root_frequency) * self.source(
                 note - self.root_note
             )
-        return frequency * cents(self.detune)
+        return frequency if self.detune == 0 else frequency * cents(self.detune)

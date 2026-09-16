@@ -61,6 +61,7 @@ def prepare(
     instrument: SynthInstrument, events: list[PerformanceEvent], seed: int
 ) -> SemanticTrace:
     """Resolve synth voice lifecycle without rendering audio."""
+    instrument = SynthInstrument.model_validate(instrument.model_dump())
     if instrument.articulations is not None:
         raise ValueError('articulation preparation is unsupported')
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))

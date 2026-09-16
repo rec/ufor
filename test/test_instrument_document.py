@@ -106,6 +106,28 @@ def test_voice_policy_round_trips_through_toml() -> None:
     assert parse_score(score_toml(document)) == document
 
 
+def test_instrument_score_tags_use_the_library_contract() -> None:
+    raw = fixture()
+    raw['tags'] = ['#sample', '#sample']
+    document = InstrumentScore.model_validate(raw)
+    assert document.tags == ['#sample']
+    library = Library(
+        [
+            Entry(
+                library='test',
+                address='/glass.toml',
+                name=document.name,
+                tags=document.tags,
+                score=document,
+            )
+        ]
+    )
+    assert library.resolve('#sample').resolved.tags == ['#sample']
+    raw['tags'] = ['sample']
+    with pytest.raises(ValueError, match='tags require #'):
+        InstrumentScore.model_validate(raw)
+
+
 @pytest.mark.parametrize('boundary', ['json', 'toml', 'library', 'preset'])
 @pytest.mark.parametrize('override', [False, True])
 def test_group_processing_survives_interchange(boundary: str, override: bool) -> None:

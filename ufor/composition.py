@@ -79,7 +79,9 @@ class Composition:
         scores: dict[str, ScoreRecord],
         parameters: dict[str, float] | None = None,
     ) -> None:
-        self.scores = scores
+        self.scores = {
+            k: ScoreRecord.model_validate(v.model_dump()) for k, v in scores.items()
+        }
         self.parts: dict[str, PreparedPart] = {}
         self.root = root
         self._check_definitions(root, [], {})
