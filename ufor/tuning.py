@@ -10,22 +10,26 @@ from pydantic import AfterValidator, Field
 
 from .base import Model
 from .expression import evaluate, positive
-from .number import Number, cents
+from .number import PitchNumber, cents_to_ratio
 
 
 class Computed(Model):
     kind: Literal['computed'] = 'computed'
-    limit: int = Field(
+    denominator_limit: int = Field(
         0, ge=0, description='Maximum rational denominator; 0 disables approximation'
     )
     notes_per_octave: int = Field(12, gt=0)
     octave_ratio: Annotated[str, AfterValidator(positive)] = '2'
 
-    def __call__(self, note_delta: int) -> Number:
+    def __call__(self, note_delta: int) -> PitchNumber:
         ratio = evaluate(self.octave_ratio) ** Fraction(
             note_delta, self.notes_per_octave
         )
-        return Fraction(ratio).limit_denominator(self.limit) if self.limit else ratio
+        return (
+            Fraction(ratio).limit_denominator(self.denominator_limit)
+            if self.denominator_limit
+            else ratio
+        )
 
     def as_ratios(self) -> RatioTable:
         return RatioTable(
@@ -41,13 +45,13 @@ class RatioTable(Model):
     values: list[Annotated[str, AfterValidator(positive)]] = Field(min_length=1)
     repeat_ratio: Annotated[str, AfterValidator(positive)] | None = None
     name: str = ''
-    desc: str = ''
+    description: str = ''
 
     @property
-    def ratios(self) -> list[Number]:
+    def ratios(self) -> list[PitchNumber]:
         return [evaluate(i) for i in self.values]
 
-    def __call__(self, degree: int) -> Number:
+    def __call__(self, degree: int) -> PitchNumber:
         if self.repeat_ratio is None:
             if not 0 <= degree < len(self.values):
                 raise ValueError('Degree is outside the finite ratio table')
@@ -64,10 +68,10 @@ class IntervalPattern(Model):
     repeat: bool = True
 
     @property
-    def ratios(self) -> list[Number]:
+    def ratios(self) -> list[PitchNumber]:
         return [evaluate(i) for i in self.intervals]
 
-    def __call__(self, degree: int) -> Number:
+    def __call__(self, degree: int) -> PitchNumber:
         if not self.repeat:
             if not 0 <= degree <= len(self.intervals):
                 raise ValueError('Degree is outside the finite interval pattern')
@@ -84,10 +88,10 @@ class FrequencyTable(Model):
     first_note: int = 0
 
     @property
-    def frequencies(self) -> list[Number]:
+    def frequencies(self) -> list[PitchNumber]:
         return [evaluate(i) for i in self.values]
 
-    def __call__(self, note: int) -> Number:
+    def __call__(self, note: int) -> PitchNumber:
         index = note - self.first_note
         if not 0 <= index < len(self.values):
             raise ValueError('Note is outside the finite frequency table')
@@ -101,13 +105,17 @@ class Tuning(Model):
     ]
     root_note: int = 69
     root_frequency: Annotated[str, AfterValidator(positive)] = '440'
-    detune: float = 0
+    detune_cents: float = 0
 
-    def __call__(self, note: int) -> Number:
+    def __call__(self, note: int) -> PitchNumber:
         if isinstance(self.source, FrequencyTable):
             frequency = self.source(note)
         else:
             frequency = evaluate(self.root_frequency) * self.source(
                 note - self.root_note
             )
-        return frequency if self.detune == 0 else frequency * cents(self.detune)
+        return (
+            frequency
+            if self.detune_cents == 0
+            else frequency * cents_to_ratio(self.detune_cents)
+        )

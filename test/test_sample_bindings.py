@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from ufor import envelope, modulation
-from ufor.samples.controls import Control
+from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import SampleInstrument
 from ufor.samples.processing import SoundSettings
 
@@ -44,7 +44,9 @@ def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) 
         binding['reference'] = 'motion'
     raw['bindings'] = [binding]
     result = SoundSettings.model_validate(raw)
-    result.validate_controls({'bend': Control.model_validate({'polarity': 'bipolar'})})
+    result.validate_controls(
+        {'bend': ControlDeclaration.model_validate({'polarity': 'bipolar'})}
+    )
     assert SoundSettings.model_validate_json(result.model_dump_json()) == result
 
 
@@ -112,15 +114,15 @@ def test_control_bindings_validate_names_domains_and_scopes() -> None:
     with pytest.raises(ValueError, match='Unknown control'):
         settings.validate_controls({})
     with pytest.raises(ValueError, match='declared domain'):
-        settings.validate_controls({'bend': Control()})
+        settings.validate_controls({'bend': ControlDeclaration()})
     settings.validate_controls(
-        {'bend': Control.model_validate({'polarity': 'bipolar'})}
+        {'bend': ControlDeclaration.model_validate({'polarity': 'bipolar'})}
     )
     raw['modulation']['sources'][0]['scope'] = 'voice'
     settings = SoundSettings.model_validate(raw)
     with pytest.raises(ValueError, match='control scope'):
         settings.validate_controls(
-            {'bend': Control.model_validate({'polarity': 'bipolar'})}
+            {'bend': ControlDeclaration.model_validate({'polarity': 'bipolar'})}
         )
 
 
@@ -187,7 +189,7 @@ def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> N
 def test_spatial_bounds_include_both_scopes_and_delayed_lfo_neutral() -> None:
     raw = body(lfo_settings())
     SampleInstrument.model_validate(raw)
-    raw['instrument']['processing'] = {'pan': 0.8}
+    raw['settings']['processing'] = {'pan': 0.8}
     with pytest.raises(ValidationError, match='combined pan range'):
         SampleInstrument.model_validate(raw)
     raw = body(lfo_settings())
@@ -196,7 +198,7 @@ def test_spatial_bounds_include_both_scopes_and_delayed_lfo_neutral() -> None:
     raw['slots'][0]['modulation']['routes'][0]['points'] = [
         {'input': 0, 'amount': -0.5}
     ]
-    raw['instrument']['processing'] = {'pan': 0.4}
+    raw['settings']['processing'] = {'pan': 0.4}
     SampleInstrument.model_validate(raw)
     raw['slots'][0]['lfos']['motion']['delay'] = '1/2'
     with pytest.raises(ValidationError, match='combined pan range'):
@@ -255,7 +257,7 @@ def lfo_settings() -> dict[str, object]:
 
 def body(settings: dict[str, object]) -> dict[str, object]:
     return {
-        'instrument': {},
+        'settings': {},
         'slices': [{'name': 'sample', 'asset': 'audio', 'end_frame': 48000}],
         'slots': [
             {

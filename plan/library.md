@@ -293,11 +293,11 @@ Reuse the current concepts rather than making a second composition model:
   from internal part names.
 - Add a parsed `ScoreSelector` value with optional library, name and address,
   plus a tag list. Store selectors as strings in authored TOML and parse once.
-- Extend `ScoreVersion` to select by either existing relative `path` or a
+- Extend `ScoreReference` to select by either existing relative `path` or a
   `selector`, exactly one, with its existing optional `sha256`. A relative path
   remains useful for standalone score files; library authors use selectors.
   Both forms converge on one resolved entry, not separate loading pipelines.
-- Apply selector support to every field that already uses `ScoreVersion`, not
+- Apply selector support to every field that already uses `ScoreReference`, not
   only animation parts. Keep `InputSelection` and `OutputSelection` unchanged:
   they select a particular part's interface, not a library score.
 - Derive dependencies from actual score references, including the new preset
@@ -324,7 +324,7 @@ read libraries and how to display their diagnostics.
    equivalent user examples, meaningful internal spaces, omitted parts, repeated
    tags, forbidden delimiters in metadata and paths, exact addresses and
    extensionless ambiguity. Verify that quotes and escapes cannot hide delimiters.
-2. Add configuration and metadata models, tags, selector-bearing `ScoreVersion`
+2. Add configuration and metadata models, tags, selector-bearing `ScoreReference`
    and preset declarations. Update schema, TOML round trips and documentation.
 3. Build deterministic discovery and indexing with temporary-directory tests.
    Cover local/default configuration, paths relative to configuration, multiple

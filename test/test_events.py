@@ -3,7 +3,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from ufor.codec import score_toml
 from ufor.events import MidiEvent, OscEvent, OscMessage, StoredEvent
-from ufor.sequence import Sequence, SequenceScore
+from ufor.sequence import EventSequence, SequenceScore
 from ufor.time import Rate, Timebase
 
 
@@ -25,7 +25,7 @@ def test_toml_rejects_null_osc_arguments_without_dropping_positions() -> None:
         name='osc',
         title='OSC',
         timebases=[Timebase(name='ticks', rate=Rate(numerator=1))],
-        body=Sequence(
+        body=EventSequence(
             timebase='ticks',
             end=1,
             events=[

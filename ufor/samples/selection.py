@@ -8,8 +8,8 @@ from pydantic import Field, StrictBool, model_validator
 from ..base import (
     Bipolar,
     Identifier,
-    Key,
     Model,
+    NoteKey,
     PositiveSeconds,
     UnitInterval,
     unique,
@@ -44,7 +44,7 @@ class SelectionSequence(Model):
     part: Identifier
     selection: Identifier
     trigger: enums.TriggerKind
-    key: Key
+    key: NoteKey
     candidates: list[Identifier] = Field(min_length=1)
     counter: int = Field(default=0, ge=0)
     remaining: list[Identifier] = Field(default_factory=list)
@@ -236,7 +236,7 @@ class Sustain(Model):
 
 
 class KeySwitch(Model):
-    key: Key
+    key: NoteKey
     articulation: Identifier
     behavior: enums.KeyBehavior = enums.KeyBehavior.latched
     consume: StrictBool = True

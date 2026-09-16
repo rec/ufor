@@ -9,7 +9,7 @@ from pydantic import Field, model_validator
 from .assets import Asset
 from .base import Identifier, Model, unique
 from .control import Scope
-from .interface import ScoreVersion
+from .interface import ScoreReference
 from .modulation import Unit
 from .score import Score
 
@@ -62,8 +62,8 @@ class StreamContract(Model):
         return self
 
 
-class ChannelMapping(Model):
-    logical: Identifier
+class StreamMapping(Model):
+    stream: Identifier
     native: Identifier
     direction: Literal['input', 'output']
 
@@ -169,14 +169,14 @@ class Capability(Model):
 
 
 class Binding(Model):
-    definition: ScoreVersion
+    definition: ScoreReference
     adapter: str = Field(min_length=1)
     implementation: str = Field(min_length=1)
     implementation_revision: str = Field(min_length=1)
     capabilities: list[Capability] = Field(min_length=1)
     parameters: list[ParameterMapping] = Field(default_factory=list)
     streams: list[StreamContract] = Field(default_factory=list)
-    channels: list[ChannelMapping] = Field(default_factory=list)
+    stream_mappings: list[StreamMapping] = Field(default_factory=list)
     controls: list[InputControl] = Field(default_factory=list)
     opaque_state: OpaqueState | None = None
 
@@ -186,13 +186,13 @@ class Binding(Model):
         unique((p.parameter for p in self.parameters), 'mapped parameter')
         unique((p.native_id for p in self.parameters), 'native parameter')
         unique((s.name for s in self.streams), 'stream')
-        unique((c.logical for c in self.channels), 'logical channel')
-        unique((c.native for c in self.channels), 'native channel')
-        for channel in self.channels:
-            if channel.logical not in {
-                s.name for s in self.streams if s.direction == channel.direction
+        unique((c.stream for c in self.stream_mappings), 'logical stream')
+        unique((c.native for c in self.stream_mappings), 'native stream')
+        for mapping in self.stream_mappings:
+            if mapping.stream not in {
+                s.name for s in self.streams if s.direction == mapping.direction
             }:
-                raise ValueError('channel mapping references an unknown logical stream')
+                raise ValueError('stream mapping references an unknown logical stream')
         return self
 
 

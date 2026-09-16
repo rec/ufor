@@ -6,7 +6,7 @@ from pydantic import Field
 
 from .base import Identifier, Model
 from .events import ControlChange, PerformanceEvent, Release, StoredEvent, Trigger
-from .sequence import Sequence
+from .sequence import EventSequence
 from .time import TickRange
 
 
@@ -39,7 +39,7 @@ class PlaybackIteration(Model):
     cleanup: list[Release]
 
 
-def state_at(sequence: Sequence, tick: int) -> SequenceState:
+def state_at(sequence: EventSequence, tick: int) -> SequenceState:
     """Reconstruct semantic state before tick without replaying raw messages."""
     if type(tick) is not int or not sequence.start <= tick <= sequence.end:
         raise ValueError('seek tick must be an integer within the sequence extent')
@@ -76,7 +76,7 @@ def state_at(sequence: Sequence, tick: int) -> SequenceState:
 
 
 def plan_playback(
-    sequence: Sequence, selection: SequenceSelection
+    sequence: EventSequence, selection: SequenceSelection
 ) -> list[PlaybackIteration]:
     """Crop/seek and repeat a half-open interval, with explicit note cleanup."""
     left, right = selection.interval.start, selection.interval.end

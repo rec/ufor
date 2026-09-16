@@ -47,14 +47,14 @@ Action = Annotated[
 ]
 
 
-class TraceSnapshot(LifecycleSnapshot):
+class SampleSnapshot(LifecycleSnapshot):
     selection: SelectionState
 
 
-class SemanticTrace(Model):
+class SampleTrace(Model):
     seed: int = Field(strict=True, ge=0, lt=2**64)
     actions: list[Action] = Field(default_factory=list)
-    snapshots: list[TraceSnapshot] = Field(default_factory=list)
+    snapshots: list[SampleSnapshot] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def ordered_actions(self) -> Self:
@@ -70,10 +70,10 @@ class SemanticTrace(Model):
 
 def prepare(
     instrument: SampleInstrument, events: list[PerformanceEvent], seed: int
-) -> SemanticTrace:
+) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering."""
     instrument = SampleInstrument.model_validate(instrument.model_dump())
-    if instrument.instrument.articulations is not None:
+    if instrument.settings.articulations is not None:
         raise ValueError('articulation preparation is unsupported')
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))
     unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
@@ -85,9 +85,9 @@ def prepare(
     next_voice = 0
     groups = {g.name: g for g in instrument.groups}
     slices = {s.name: s for s in instrument.slices}
-    selections = {s.name: s for s in instrument.instrument.selections}
+    selections = {s.name: s for s in instrument.settings.selections}
     playback_modes = {
-        s.name: s.playback.mode or instrument.instrument.playback.mode
+        s.name: s.playback.mode or instrument.settings.playback.mode
         for s in instrument.slots
     }
 
@@ -193,7 +193,7 @@ def prepare(
                 raise ValueError(
                     'combined fade and envelope-release chokes are unsupported'
                 )
-        policy = instrument.instrument.voice_policy
+        policy = instrument.settings.voice_policy
         if policy is not None and any(
             s.trigger == enums.TriggerKind.start for s in slots
         ):
@@ -306,7 +306,7 @@ def prepare(
                     trigger_id=event.trigger_id,
                 )
             )
-            sustain_definition = instrument.instrument.sustain
+            sustain_definition = instrument.settings.sustain
             if (
                 sustain_definition is not None
                 and event.scope == 'part'
@@ -317,7 +317,7 @@ def prepare(
                 part = event.part
                 was_pressed = sustain.get(
                     part,
-                    instrument.instrument.controls[sustain_definition.control].default
+                    instrument.settings.controls[sustain_definition.control].default
                     >= sustain_definition.threshold,
                 )
                 is_pressed = event.value >= sustain_definition.threshold
@@ -397,11 +397,11 @@ def prepare(
                     )
                 pressed = sustain.get(
                     trigger.part,
-                    instrument.instrument.sustain is not None
-                    and instrument.instrument.controls[
-                        instrument.instrument.sustain.control
+                    instrument.settings.sustain is not None
+                    and instrument.settings.controls[
+                        instrument.settings.sustain.control
                     ].default
-                    >= instrument.instrument.sustain.threshold,
+                    >= instrument.settings.sustain.threshold,
                 )
                 if not pressed:
                     if start_voices(trigger):
@@ -466,11 +466,11 @@ def prepare(
                 )
             )
             start_slots(selected, event, event.part, event.trigger_id, event.key)
-    return SemanticTrace(
+    return SampleTrace(
         seed=seed,
         actions=actions,
         snapshots=[
-            TraceSnapshot(
+            SampleSnapshot(
                 tick=events[-1].tick if events else 0,
                 ordinal=events[-1].ordinal if events else 0,
                 selection=state,

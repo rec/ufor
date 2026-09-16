@@ -91,7 +91,7 @@ class Cues(Model):
     @model_validator(mode='after')
     def ordered(self) -> Self:
         # Each cue owns a part; a repeated score is instantiated as another part.
-        unique((c.source.name for c in self.cues), 'cue part')
+        unique((c.source.part for c in self.cues), 'cue part')
         for i, (left, right) in enumerate(zip(self.cues, self.cues[1:], strict=False)):
             if (
                 left.start >= right.start
@@ -162,7 +162,7 @@ class Animation(RecursiveModel):
             raise ValueError(
                 'animation and renderer are reserved for local parameter targets'
             )
-        if any(s.name not in names for s in sources(self.operation)):
+        if any(s.part not in names for s in sources(self.operation)):
             raise ValueError('operation selects an unknown part')
         unique((c.name for c in self.controls), 'control name')
         if {c.name for c in self.controls} != {s.name for s in self.modulation.sources}:

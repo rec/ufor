@@ -18,18 +18,18 @@ from .streams import AudioType, FileDestination
 from .time import Timebase
 
 
-class TrackSpec(Model):
+class Track(Model):
     name: Identifier
     stream: AudioType
 
 
-class BusSpec(Model):
+class Bus(Model):
     name: Identifier
     stream: AudioType
     gain: float = 1.0
 
 
-class ClipSpec(Model):
+class Clip(Model):
     name: Identifier
     source: OutputSelection
     track: Identifier
@@ -45,7 +45,7 @@ class ClipSpec(Model):
         return self
 
 
-class RouteSpec(Model):
+class BusRoute(Model):
     source: Identifier
     destination: Identifier
     gain: float = 1.0
@@ -72,10 +72,10 @@ class Arrangement(RecursiveModel):
     media_types: list[str] = Field(default_factory=lambda: ['audio'])
     parts: list[Part] = Field(default_factory=list)
     connections: list[Connection] = Field(default_factory=list)
-    tracks: list[TrackSpec] = Field(default_factory=list)
-    buses: list[BusSpec] = Field(default_factory=list)
-    clips: list[ClipSpec] = Field(default_factory=list)
-    routes: list[RouteSpec] = Field(default_factory=list)
+    tracks: list[Track] = Field(default_factory=list)
+    buses: list[Bus] = Field(default_factory=list)
+    clips: list[Clip] = Field(default_factory=list)
+    routes: list[BusRoute] = Field(default_factory=list)
     control_clips: list[ControlClip] = Field(default_factory=list)
 
     @model_validator(mode='after')
@@ -96,7 +96,7 @@ class Arrangement(RecursiveModel):
         streams = tracks | buses
         sources = {n.name for n in self.parts}
         for clip in self.clips:
-            if clip.source.name not in sources:
+            if clip.source.part not in sources:
                 raise ValueError(f'Clip {clip.name}: unknown source {clip.source}')
             if clip.track not in tracks:
                 raise ValueError(f'Clip {clip.name}: unknown track {clip.track}')
@@ -111,15 +111,15 @@ class Arrangement(RecursiveModel):
                 raise ValueError('Route channel layouts and timebases must match')
         _ = self.bus_order
         for clip in self.control_clips:
-            if clip.source.name not in sources:
+            if clip.source.part not in sources:
                 raise ValueError(
                     f'Control clip {clip.name}: unknown source {clip.source}'
                 )
         unique((c.destination for c in self.connections), 'input connection')
         for connection in self.connections:
             if (
-                connection.source.name not in sources
-                or connection.destination.name not in sources
+                connection.source.part not in sources
+                or connection.destination.part not in sources
             ):
                 raise ValueError('connection references an unknown part')
         try:
@@ -127,9 +127,9 @@ class Arrangement(RecursiveModel):
                 TopologicalSorter(
                     {
                         n.name: [
-                            c.source.name
+                            c.source.part
                             for c in self.connections
-                            if c.destination.name == n.name
+                            if c.destination.part == n.name
                         ]
                         for n in self.parts
                     }
@@ -185,7 +185,7 @@ class ArrangementScore(InterfaceScore, RecursiveModel):
                         'and existing track/bus'
                     )
             elif isinstance(binding, (InputSelection, OutputSelection)):
-                if binding.name not in parts:
+                if binding.part not in parts:
                     raise ValueError('binding references an unknown part')
                 if isinstance(point, Input):
                     forwarded.append(binding)

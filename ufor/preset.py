@@ -5,11 +5,11 @@ from typing import Literal
 from pydantic import Field
 
 from .base import Identifier
-from .interface import ScoreVersion
+from .interface import ScoreReference
 from .score import Score
 
 
 class PresetScore(Score):
     kind: Literal['preset'] = 'preset'
-    score: ScoreVersion
+    score: ScoreReference
     parameters: dict[Identifier, float] = Field(default_factory=dict)
