@@ -26,3 +26,9 @@ Opaque implementation state is a sealed `Asset`. When it accompanies canonical
 parameters, it has the only supported restore order: opaque state first, then
 canonical values. This keeps canonical score values authoritative while retaining
 implementation-specific detail.
+
+Numeric maps require all four input/output bounds. Piecewise points must start
+and end at the declared input endpoints, increase in input, remain monotone in
+output, and stay inside the output range. Values outside the input range follow
+`out_of_range`; there is no implicit extrapolation. Enum tables omit numeric
+bounds and reject them if supplied.

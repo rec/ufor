@@ -20,6 +20,9 @@ INTERVALS = [int(i) for i in '2212221']
 def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     intervals, errors = [], []
     for c in it:
+        if isinstance(c, bool) or not isinstance(c, (int, str)):
+            errors.append(f'{c!r} is not an integer interval')
+            continue
         if isinstance(c, str) and c.isspace():
             continue
         try:

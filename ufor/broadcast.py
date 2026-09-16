@@ -51,6 +51,10 @@ class StartRule(Model):
 
     @model_validator(mode='after')
     def selection(self) -> Self:
+        if self.kind != StartKind.cue and (
+            self.earliest is not None or self.deadline is not None
+        ):
+            raise ValueError('only cue starts declare earliest or deadline')
         if (
             self.kind == StartKind.at
             and self.tick is not None
@@ -225,9 +229,17 @@ class BroadcastScore(Score):
 
 def provisional_sections(broadcast: Broadcast) -> list[Identifier]:
     """Return sections that cannot have a complete time without a live cue."""
-    return [
+    provisional = {
         section.name
         for section in broadcast.sections
         if section.start.kind == StartKind.cue
         or section.end.kind == EndKind.cue_or_source_end
-    ]
+    }
+    sections = {s.name: s for s in broadcast.sections}
+    dependencies = {
+        s.name: [s.start.section] if s.start.section else [] for s in broadcast.sections
+    }
+    for name in TopologicalSorter(dependencies).static_order():
+        if sections[name].start.section in provisional:
+            provisional.add(name)
+    return [s.name for s in broadcast.sections if s.name in provisional]
