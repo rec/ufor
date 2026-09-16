@@ -651,6 +651,13 @@ def test_unknown_fields_and_old_bank_key_are_rejected() -> None:
         SampleInstrument.model_validate(document(slot={'playback': {'typo': 1}}))
 
 
+def test_preparation_revalidates_edited_instrument_collections() -> None:
+    instrument = SampleInstrument.model_validate(document())
+    instrument.slots.append(instrument.slots[0])
+    with pytest.raises(ValueError, match='duplicate slot ID'):
+        trace.prepare(instrument, [], seed=42)
+
+
 def document(
     slot: dict[str, object] | None = None, instrument: dict[str, object] | None = None
 ) -> dict[str, object]:

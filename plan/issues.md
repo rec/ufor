@@ -273,6 +273,9 @@ Use an otherwise representable instrument with one nondefault feature per case.
 
 ### 17. Tuning evaluation discards exact fractions even with no detuning
 
+**Resolved:** zero-detune evaluation retains exact values, and Computed uses an
+exact exponent so whole periods remain rational. Regression tests assert fractions.
+
 **P2, confirmed.** [tuning.py:103](../ufor/tuning.py#L103),
 [number.py:12](../ufor/number.py#L12).
 
@@ -284,6 +287,9 @@ is exact, and document where approximation becomes intentional. Test types and
 exact values as well as approximate frequency equality.
 
 ### 18. OSC null arguments have no declared TOML representation
+
+**Resolved:** the TOML boundary explicitly rejects null array arguments without
+dropping positions; JSON remains lossless. This limitation is documented and tested.
 
 **P2, interoperability risk.** [events.py:70](../ufor/events.py#L70),
 [codec.py:70](../ufor/codec.py#L70).
@@ -297,6 +303,10 @@ case for a decoded OSC message containing a null argument.
 ## Validation, ownership, and data-shape traps
 
 ### 19. “Frozen” and “immutable” have conflicting meanings across the API
+
+**Resolved:** validation.md defines editable authoring collections and each
+validation boundary. Composition and instrument preparation revalidate definitions;
+low-level scalar calculations explicitly require already-valid inputs.
 
 **P2, design concern grounded in current behavior.**
 [base.py:9](../ufor/base.py#L9),
@@ -313,6 +323,9 @@ explicit current design choice.
 
 ### 20. Composition mutates and retains the caller's score registry
 
+**Resolved:** Composition owns revalidated independent score records and its
+inline entries. Regression tests verify registry and nested-collection isolation.
+
 **P2, confirmed ownership trap.** [composition.py:81](../ufor/composition.py#L81),
 [composition.py:536](../ufor/composition.py#L536).
 
@@ -323,6 +336,9 @@ before a later validation failure. Subsequent compositions inherit those entries
 Define ownership and isolate resolution additions from the input registry.
 
 ### 21. Instrument tags violate the common score/library tag contract
+
+**Resolved:** both instrument scores inherit the common Tags contract. Slot tags
+remain local descriptive metadata; the synth conformance score uses `#synth`.
 
 **P2, confirmed.** [score.py:16](../ufor/score.py#L16),
 [sample score:359](../ufor/samples/instrument.py#L359),

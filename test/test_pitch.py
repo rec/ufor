@@ -96,6 +96,19 @@ def test_computed_limit_is_a_maximum_denominator() -> None:
     assert computed.as_ratios()(16) == Fraction(5, 2)
 
 
+def test_tuning_preserves_exact_ratios_without_detuning() -> None:
+    tuning = Tuning(source=RatioTable(values=['1', '5/4']), root_frequency='440/3')
+    assert isinstance(tuning(70), Fraction)
+    assert tuning(70) == Fraction(550, 3)
+    for degree, expected in [
+        (-12, Fraction(1, 2)),
+        (0, Fraction(1)),
+        (12, Fraction(2)),
+    ]:
+        assert isinstance(Computed()(degree), Fraction)
+        assert Computed()(degree) == expected
+
+
 def test_scala_preserves_fractions_and_converts_decimal_cents() -> None:
     table = parse_scala('! example\nExample\n3\n5/4\n700.0\n2\n', name='example.scl')
     assert table(0) == 1

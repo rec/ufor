@@ -36,6 +36,7 @@ describe the remaining host work; Lyte has not yet been migrated.
 The implemented [score composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
 See [user libraries](doc/library.md) for configuration, selection and host integration.
+See [editing and validation boundaries](doc/validation.md) before mutating model collections.
 Explore the [schema](schema/scores.json) and [conformance cases](conformance/).
 See [scalar automation](doc/automation-format.md) for editable curves and examples.
 
