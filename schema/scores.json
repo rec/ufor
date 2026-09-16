@@ -4523,14 +4523,8 @@
           "default": "identity"
         },
         "scope": {
-          "default": "global",
-          "enum": [
-            "global",
-            "performance",
-            "voice"
-          ],
-          "title": "Scope",
-          "type": "string"
+          "$ref": "#/$defs/Scope",
+          "default": "instrument"
         },
         "reset": {
           "default": "hold",
@@ -9704,6 +9698,7 @@
     },
     "StreamContract": {
       "additionalProperties": false,
+      "description": "Adapter capability summary, not a complete public-port contract.",
       "properties": {
         "name": {
           "title": "Name",
