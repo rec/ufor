@@ -362,6 +362,11 @@ voices, including release voices. Repeated keys have distinct IDs and may be
 released in any order. Retain ownership of held triggers even after their
 audio exhausts. Ignore unknown or already-released Release events.
 
+Same-key policy retires prior voices before starting any layer of a new trigger.
+The preparer reserves capacity for the complete new start batch, retiring older
+voices according to the overflow policy. If the batch alone exceeds
+`maximum_voices`, preparation rejects it rather than dropping selected layers.
+
 On the first matched Release, generate `release` once if at least one original
 start voice is active and neither released nor choked. If sustain is off,
 generate `logical_release` under the same condition and release owned

@@ -85,6 +85,10 @@ three choke modes.
 
 ### 5. Same-key policy retires layers started by the same trigger
 
+**Resolved:** policy retirement happens before the new batch starts. Capacity
+is reserved for the whole batch; a batch exceeding the limit is rejected, as
+requested. Shared regression cases cover layered replacement and oversized batches.
+
 **P1, confirmed.** [sample trace:160](../ufor/samples/trace.py#L160),
 [synth trace:118](../ufor/synth_trace.py#L118).
 
@@ -95,6 +99,9 @@ onsets before creating the batch. The related maximum-voice behavior also needs
 an explicit decision when one onset creates more layers than the limit.
 
 ### 6. Release voices lose the original pitch
+
+**Resolved:** physical and sustain-deferred logical releases retain their
+owning trigger's pitch, including synth offsets. Both preparers have regression cases.
 
 **P1, confirmed.** [sample trace:209](../ufor/samples/trace.py#L209),
 [synth trace:155](../ufor/synth_trace.py#L155).
@@ -107,6 +114,9 @@ Pass the owning trigger's pitch through both release paths, including the synth
 frequency offset, and cover sustain-deferred release.
 
 ### 7. One-shot sample voices are released like while-held voices
+
+**Resolved:** ordinary logical release retires only while-held sample voices;
+one-shots retain their active voice and their trigger records logical release.
 
 **P1, confirmed.** [sample trace:371](../ufor/samples/trace.py#L371),
 [playback models](../ufor/samples/playback.py#L54).
