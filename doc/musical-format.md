@@ -120,6 +120,10 @@ processor graph, buffer API, or host MIDI binding.
 
 The score has exactly one native performance input and one audio output. It
 validates definitions and scalar control domains only; it does not render audio.
+Composition can connect native event sequences to this performance input and
+produce deliveries in its native clock. Public synth parameter exports are
+currently rejected: the format has no defined address for selecting a parameter
+from one of several voice templates.
 `conformance/synth-instrument.json` is the portable first-profile score. Future
 execution work must give sample and synth scores one lifecycle, snapshot, and
 offline rendering contract rather than importing Tuney's device or UI runtime.

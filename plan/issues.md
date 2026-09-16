@@ -226,6 +226,10 @@ event coordinates are handled for this list-based API.
 
 ### 14. Synth instruments cannot use the composition performance path
 
+**Resolved:** synth parts participate in composition event validation/delivery.
+Undefined synth public parameter exports fail at score validation with an explicit
+unsupported-profile error rather than later resolution.
+
 **P2, confirmed integration gap.**
 [composition.py:273](../ufor/composition.py#L273),
 [composition.py:460](../ufor/composition.py#L460).
@@ -239,6 +243,9 @@ or reject it at a clear boundary rather than after apparently compatible wiring.
 
 ### 15. Group-inherited spatial processing bypasses channel-layout validation
 
+**Resolved:** channel validation uses effective group/slot processing. Both
+direct and inherited pan/balance have incompatible-layout regression cases.
+
 **P1, confirmed.** [instrument.py:408](../ufor/samples/instrument.py#L408).
 
 Instrument validation computes effective group/slot settings earlier, but the
@@ -248,6 +255,11 @@ pan. An incompatible source layout or noncanonical channel map can pass.
 Validate spatial processing against the same resolved categories used by preparation.
 
 ### 16. SFZ export can silently omit newly supported native features
+
+**Resolved:** export resolves group settings before translating each slot, and
+reports unsupported voice policy, public parameter exports, seeded variation,
+linked-microphone metadata/alignment, and resonant filters instead of claiming
+complete conversion. Regression cases cover group gain and unsupported features.
 
 **P1, confirmed.** [sfz.py:237](../ufor/sfz.py#L237),
 [sfz.py:325](../ufor/sfz.py#L325), [sfz.py:903](../ufor/sfz.py#L903).

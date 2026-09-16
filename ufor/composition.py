@@ -37,6 +37,7 @@ from .samples.enums import SelectionMode
 from .samples.instrument import InstrumentScore
 from .sequence import SequenceScore
 from .streams import AudioType
+from .synth import SynthInstrumentScore
 
 
 class ScoreRecord(Model):
@@ -270,9 +271,9 @@ class Composition:
         deliveries: list[EventDelivery] = []
         for (path, port_name), (_, stop) in windows.items():
             score = self.scores[self.parts[path].score].score
-            if not isinstance(score, InstrumentScore):
+            if not isinstance(score, (InstrumentScore, SynthInstrumentScore)):
                 continue
-            if any(
+            if isinstance(score, InstrumentScore) and any(
                 s.mode in (SelectionMode.random, SelectionMode.shuffle)
                 for s in score.body.instrument.selections
             ):
@@ -457,7 +458,7 @@ class Composition:
             )
             return
         score = self.scores[self.parts[target].score].score
-        if not isinstance(score, InstrumentScore):
+        if not isinstance(score, (InstrumentScore, SynthInstrumentScore)):
             raise ValueError(f'{target}: no performance consumer')
         for event in converted:
             if event.tick < 0:
@@ -474,7 +475,11 @@ class Composition:
                     and s.mapping.minimum_velocity
                     <= event.velocity
                     <= s.mapping.maximum_velocity
-                    for s in score.body.slots
+                    for s in (
+                        score.body.slots
+                        if isinstance(score, InstrumentScore)
+                        else score.body.voices
+                    )
                 )
             ):
                 raise ValueError(f'{target}: pitch-tracked trigger requires pitch_hz')
