@@ -1,0 +1,82 @@
+{
+  "description": "Scalar source smoothing on rational seconds; observations follow all events at their coordinate. No audio or block clock is implied.",
+  "absolute_tolerance": 1e-12,
+  "smoothing": [
+    {
+      "name": "interrupted five millisecond ramp",
+      "declaration": {}, "start": "0", "smoothing": "1/200",
+      "events": [{"at": "0", "ordinal": 0, "value": 1}, {"at": "1/400", "ordinal": 0, "value": 0}],
+      "observations": [{"at": "0", "value": 0}, {"at": "1/800", "value": 0.25}, {"at": "1/400", "value": 0.5}, {"at": "1/200", "value": 0.25}, {"at": "3/400", "value": 0}, {"at": "1", "value": 0}]
+    },
+    {
+      "name": "default and explicit initialization do not ramp from zero",
+      "declaration": {"default": 0.75}, "start": "0", "smoothing": "1",
+      "initial": 0.25, "events": [],
+      "observations": [{"at": "0", "value": 0.25}, {"at": "1/2", "value": 0.25}, {"at": "2", "value": 0.25}]
+    },
+    {
+      "name": "declared default remains constant",
+      "declaration": {"default": 0.75}, "start": "0", "smoothing": "1",
+      "events": [], "observations": [{"at": "0", "value": 0.75}, {"at": "1/2", "value": 0.75}]
+    },
+    {
+      "name": "same-time targets interrupt in ordinal order",
+      "declaration": {"polarity": "bipolar"}, "start": "0", "smoothing": "1",
+      "events": [{"at": "0", "ordinal": 0, "value": 1}, {"at": "0", "ordinal": 1, "value": -1}],
+      "observations": [{"at": "0", "value": 0}, {"at": "1/2", "value": -0.5}, {"at": "1", "value": -1}]
+    },
+    {
+      "name": "zero smoothing steps immediately",
+      "declaration": {}, "start": "0", "smoothing": "0",
+      "events": [{"at": "1", "ordinal": 0, "value": 1}, {"at": "1", "ordinal": 1, "value": 0.25}],
+      "observations": [{"at": "0", "value": 0}, {"at": "1", "value": 0.25}, {"at": "2", "value": 0.25}]
+    },
+    {
+      "name": "one and a half frames are not rounded at 48 kHz",
+      "declaration": {}, "start": "0", "smoothing": "1/32000",
+      "events": [{"at": "0", "ordinal": 0, "value": 1}],
+      "observations": [{"at": "1/48000", "value": 0.6666666666666666}, {"at": "1/32000", "value": 1}, {"at": "1/24000", "value": 1}]
+    },
+    {
+      "name": "large clock coordinate retains a short ramp",
+      "declaration": {}, "start": "10000000000000000", "smoothing": "1/200",
+      "events": [{"at": "10000000000000000", "ordinal": 0, "value": 1}],
+      "observations": [{"at": "10000000000000000", "value": 0}, {"at": "4000000000000000001/400", "value": 0.5}, {"at": "2000000000000000001/200", "value": 1}]
+    }
+  ],
+  "context": {
+    "settings": {"controls": {"expression": {"default": 0.25}, "bend": {"polarity": "bipolar"}}},
+    "templates": [{"name": "voice", "mapping": {"lowest_key": 60, "highest_key": 60, "pitch_tracking": false}}],
+    "events": [
+      {"kind": "control_change", "tick": 0, "ordinal": 0, "control": "expression", "value": 1, "scope": "part", "part": "main"},
+      {"kind": "trigger", "tick": 60, "ordinal": 0, "part": "main", "trigger_id": "silent", "key": 61, "velocity": 0.5, "controls": {"bend": -0.5}},
+      {"kind": "trigger", "tick": 120, "ordinal": 0, "part": "main", "trigger_id": "note", "key": 60, "controls": {"expression": 0.75}},
+      {"kind": "control_change", "tick": 120, "ordinal": 1, "control": "expression", "value": 0, "scope": "trigger", "part": "main", "trigger_id": "note"},
+      {"kind": "trigger", "tick": 180, "ordinal": 0, "part": "other", "trigger_id": "note", "key": 60},
+      {"kind": "release", "tick": 240, "ordinal": 0, "part": "main", "trigger_id": "note"},
+      {"kind": "control_change", "tick": 300, "ordinal": 0, "control": "bend", "value": 0.5, "scope": "trigger", "part": "main", "trigger_id": "note"},
+      {"kind": "trigger", "tick": 360, "ordinal": 0, "part": "main", "trigger_id": "note", "key": 60}
+    ],
+    "actions": [
+      {"kind": "control", "tick": 0, "ordinal": 0, "control": "expression", "value": 1, "scope": "part", "part": "main", "trigger_id": null},
+      {"kind": "trigger_context", "tick": 60, "ordinal": 0, "part": "main", "trigger_id": "silent", "velocity": 0.5, "controls": {"expression": 0.25, "bend": -0.5}},
+      {"kind": "trigger_context", "tick": 120, "ordinal": 0, "part": "main", "trigger_id": "note", "velocity": 1, "controls": {"expression": 0.75, "bend": 0}},
+      {"kind": "voice_start", "tick": 120, "ordinal": 0, "part": "main", "trigger_id": "note"},
+      {"kind": "control", "tick": 120, "ordinal": 1, "control": "expression", "value": 0, "scope": "trigger", "part": "main", "trigger_id": "note"},
+      {"kind": "trigger_context", "tick": 180, "ordinal": 0, "part": "other", "trigger_id": "note", "velocity": 1, "controls": {"expression": 0.25, "bend": 0}},
+      {"kind": "voice_start", "tick": 180, "ordinal": 0, "part": "other", "trigger_id": "note"},
+      {"kind": "voice_retirement", "tick": 240, "ordinal": 0, "action": "release"},
+      {"kind": "control", "tick": 300, "ordinal": 0, "control": "bend", "value": 0.5, "scope": "trigger", "part": "main", "trigger_id": "note"},
+      {"kind": "trigger_context", "tick": 360, "ordinal": 0, "part": "main", "trigger_id": "note", "velocity": 1, "controls": {"expression": 0.25, "bend": 0}},
+      {"kind": "voice_start", "tick": 360, "ordinal": 0, "part": "main", "trigger_id": "note"}
+    ]
+  },
+  "pitch": {
+    "synth": {"onset_hz": 440, "offset_hz": 5, "static_cents": 600, "source_value": 0.5, "route_maximum_cents": 1200, "prepared_hz": 445, "resolved_cents": 1200, "frequency_hz": 890},
+    "sample": [
+      {"tracking": true, "reference_hz": 440, "onset_hz": 880, "instrument_cents": -1200, "slot_cents": 1200, "variation_cents": 1200, "ratio": 4},
+      {"tracking": false, "onset_hz": null, "instrument_cents": -1200, "slot_cents": 1200, "variation_cents": 1200, "ratio": 2},
+      {"tracking": true, "reference_hz": 440, "onset_hz": 440, "instrument_cents": 0, "slot_cents": -1200, "variation_cents": 0, "ratio": 0.5}
+    ]
+  }
+}

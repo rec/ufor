@@ -11,6 +11,7 @@ different operations; none is a replacement for all the others.
 | `lfo.LFO` | Elapsed seconds or beats and ordered rate/reset events | Repeats waveform; reset policy controls phase, and phase integrates the event history | Normalized waveform with declared scope; host supplies the clock |
 | `modulation.Route` | Current source value, not its own clock | Maps a source through an optional table and combines at a target; no independent activation or gate | Source and target domains, units and scopes are validated by the containing modulation model |
 | `binding.ParameterMapping` | A canonical parameter value supplied to an adapter | Stateless conversion; explicit reject/clamp policy; piecewise tables cover input endpoints, enum maps list allowed values | Converts declared canonical units to native adapter values; does not schedule updates itself |
+| `samples.controls.ControlState` | Ordered target events on rational seconds | Finite linear smoothing with interruption from the current value; zero duration steps immediately | Declared control source domain, before modulation mapping; one state per context/control/smoothing duration |
 
 Automation `hold` and route interpolation `step` both retain a preceding value
 between points, but their axes differ: timeline ticks versus current source
@@ -27,3 +28,8 @@ Scalar evaluators work on validated inputs. Event-driven envelope/LFO state can
 be replayed using its own API; instrument snapshots are observations and do not
 provide a resumable player. See [validation](validation.md) and
 [capabilities](capabilities.md) for those boundaries.
+
+[Instrument control evolution](control-evolution.md) defines source smoothing,
+prepared trigger contexts, and how resolved pitch combines with live tuning.
+Scalar control state is resumable independently of observational instrument
+snapshots; it does not by itself restore the whole instrument.

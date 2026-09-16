@@ -10,6 +10,7 @@ from .base import Identifier, Model, unique
 from .envelope import Envelope, Segment
 from .events import ControlChange, PerformanceEvent, Trigger
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
+from .number import cents_to_ratio
 from .oscillator import Oscillator
 from .samples import enums
 from .samples.controls import ControlDeclaration
@@ -175,3 +176,8 @@ class SynthInstrumentScore(InterfaceScore):
                     'Synth voice channel maps require mono input and known outputs'
                 )
         return self
+
+
+def frequency(pitch_hz: float, tuning_cents: float) -> float:
+    """Realize a prepared onset pitch with the final routed tuning value."""
+    return pitch_hz * cents_to_ratio(tuning_cents)

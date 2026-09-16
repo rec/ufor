@@ -383,14 +383,15 @@ def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> Non
         seed=42,
     )
     assert [action.kind for action in result.actions] == [
+        'trigger_context',
         'voice_start',
         'voice_start',
         'voice_retirement',
         'voice_retirement',
         'diagnostic',
     ]
-    assert result.actions[1].alignment_frames == -12
-    assert result.actions[0].variation == result.actions[1].variation
+    assert result.actions[2].alignment_frames == -12
+    assert result.actions[1].variation == result.actions[2].variation
     assert result.actions[-1].code == 'unknown-release'
 
 
