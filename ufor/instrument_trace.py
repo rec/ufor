@@ -37,7 +37,14 @@ class VoiceRetirement(TraceAction):
     kind: Literal['voice_retirement'] = 'voice_retirement'
     voice_id: Identifier
     cause: RetirementCause
-    action: Literal['release', 'stop']
+    action: Literal['release', 'stop', 'fade']
+    fade_seconds: float | None = Field(default=None, strict=True, gt=0)
+
+    @model_validator(mode='after')
+    def fade_duration(self) -> Self:
+        if (self.action == 'fade') != (self.fade_seconds is not None):
+            raise ValueError('only fade retirement requires fade_seconds')
+        return self
 
 
 class ControlObservation(TraceAction):

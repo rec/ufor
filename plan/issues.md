@@ -68,6 +68,10 @@ over multiple seeds, not just uniqueness within each bag.
 
 ### 4. Chokes ignore both mode and part ownership
 
+**Resolved:** both preparers isolate chokes by part and preserve stop, release,
+and fade semantics. Fade retirement carries its duration; unsupported combined
+fade/envelope-release rules fail explicitly. Shared tests cover all three modes.
+
 **P1, confirmed.** [sample trace:156](../ufor/samples/trace.py#L156),
 [synth trace:114](../ufor/synth_trace.py#L114),
 [choke contract](../doc/sample-performance.md#L145).

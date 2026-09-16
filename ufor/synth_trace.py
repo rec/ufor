@@ -91,7 +91,8 @@ def prepare(
         voice: ActiveVoice,
         event: PerformanceEvent,
         cause: RetirementCause,
-        action: Literal['release', 'stop'],
+        action: Literal['release', 'stop', 'fade'],
+        fade_seconds: float | None = None,
     ) -> None:
         actions.append(
             VoiceRetirement(
@@ -100,6 +101,7 @@ def prepare(
                 voice_id=voice.voice_id,
                 cause=cause,
                 action=action,
+                fade_seconds=fade_seconds,
             )
         )
         voices.remove(voice)
@@ -111,10 +113,32 @@ def prepare(
         trigger_id: Identifier | None,
         key: int,
     ) -> None:
-        for template in selected:
-            for voice in list(voices):
-                if voice.choke_group in {c.group for c in template.chokes}:
-                    retire(voice, event, RetirementCause.choke, 'stop')
+        for voice in list(voices):
+            rules = [
+                c
+                for s in selected
+                for c in s.chokes
+                if voice.part == part and c.group == voice.choke_group
+            ]
+            if not rules:
+                continue
+            modes = {c.mode for c in rules}
+            if enums.ChokeMode.immediate in modes:
+                retire(voice, event, RetirementCause.choke, 'stop')
+            elif modes == {enums.ChokeMode.release}:
+                retire(voice, event, RetirementCause.choke, 'release')
+            elif modes == {enums.ChokeMode.fade}:
+                retire(
+                    voice,
+                    event,
+                    RetirementCause.choke,
+                    'fade',
+                    min(c.fade_seconds for c in rules if c.fade_seconds is not None),
+                )
+            else:
+                raise ValueError(
+                    'combined fade and envelope-release chokes are unsupported'
+                )
         for template in selected:
             if template.trigger == enums.TriggerKind.start:
                 policy = instrument.voice_policy

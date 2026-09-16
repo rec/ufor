@@ -31,6 +31,11 @@ therefore receives the selection, linked-microphone, inheritance, routing, and
 filter decisions without repeating format policy. `voice_retirement` names the
 voice, its distinct cause (physical/logical release, choke, same-key policy,
 voice limit, or transport stop), and whether the voice releases or stops.
+Fade retirements use `action = "fade"` with positive `fade_seconds`. Chokes
+affect only existing voices on the event's part. Simultaneous immediate chokes
+win over other modes, and simultaneous fades use the shortest duration. The
+current preparer rejects a combined fade and envelope-release choke on one
+voice because a single retirement cannot express their combined gain curve.
 `control` preserves an addressed control observation. `diagnostic` records a
 recoverable preparation failure without inventing a voice.
 
