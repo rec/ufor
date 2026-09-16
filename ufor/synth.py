@@ -140,6 +140,8 @@ class SynthInstrumentScore(InterfaceScore):
 
     @model_validator(mode='after')
     def public_ports(self) -> Self:
+        if self.parameters:
+            raise ValueError('synth public parameter exports are unsupported')
         unique(self.tags, 'tag')
         audio = [p for p in self.outputs if isinstance(p.binding, AudioBinding)]
         performance = [
