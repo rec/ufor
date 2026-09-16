@@ -8535,7 +8535,6 @@
       "type": "object"
     },
     "Scale": {
-      "additionalProperties": false,
       "description": "A generalized musical Scale, where the default is \"regular tuning\".\n\nThe common Western scale has\n* 12 equal-tempered semitones per octave\n* Note names CDEFGAB, with intervals of 2212221 semitones between them\n* FLAT to lower pitch by a semitone, SHARP to raise it\n\nScale generalizes this to allow more or less than 12 notes per octave, N-just limit,\ncustom tunings, different note names and intervals.",
       "properties": {
         "note_names": {

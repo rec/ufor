@@ -193,9 +193,13 @@ def test_table_edits_are_reflected_in_evaluation(
         {'notes': 'C nonsense'},
     ],
 )
-def test_scale_rejects_invalid_definitions(settings: dict[str, object]) -> None:
+def test_scale_accepts_tuney_editing_states(settings: dict[str, object]) -> None:
+    Scale.model_validate(settings)
+
+
+def test_scale_rejects_negative_intervals() -> None:
     with pytest.raises(ValueError):
-        Scale.model_validate(settings)
+        Scale(intervals=[-1])
 
 
 def test_scale_repeated_intervals_and_edits_keep_pitch_mapping_consistent() -> None:

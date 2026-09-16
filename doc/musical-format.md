@@ -148,9 +148,10 @@ scale spellings are calculated from the current values rather than cached.
 loading a score also validates it. Direct list edits are not themselves a
 validation boundary.
 
-Scale intervals must be positive integers. The interval pattern cycles over the
+Scale intervals must be non-negative integers. The interval pattern cycles over the
 selected note names; the period is the sum of those expanded intervals. Unknown
-fields and unrecognized note text are rejected instead of ignored.
+fields are ignored and unrecognized note text remains available for consumers to
+report.
 
 Oscillators and LFOs inherit one `Shape` definition and use `oscillator.shape_value`
 for scalar waveform observations. Duty cycle is stored as an exact fraction,
