@@ -5,6 +5,7 @@ from typing import Self
 from pydantic import StrictBool, model_validator
 
 from .. import base
+from ..number import cents_to_ratio
 from . import enums
 
 
@@ -78,3 +79,19 @@ class Slice(base.Model):
         ):
             raise ValueError('Loop must be contained in the slice interval')
         return self
+
+
+def pitch_ratio(
+    mapping: Mapping,
+    pitch_hz: float | None,
+    tuning_cents: float,
+    variation_cents: float = 0,
+) -> float:
+    """Realize pitch without folding in the native/output sample-rate ratio."""
+    ratio = 1.0
+    if mapping.pitch_tracking:
+        if pitch_hz is None:
+            raise ValueError('Pitch-tracked sample requires resolved pitch_hz')
+        assert mapping.reference_pitch_hz is not None
+        ratio = pitch_hz / mapping.reference_pitch_hz
+    return ratio * cents_to_ratio(tuning_cents + variation_cents)

@@ -13,6 +13,7 @@ from .instrument_trace import (
     Diagnostic,
     LifecycleSnapshot,
     RetirementCause,
+    TriggerContext,
     VoiceRetirement,
 )
 from .instrument_trace import (
@@ -31,7 +32,7 @@ class VoiceStart(LifecycleVoiceStart):
 
 
 Action = Annotated[
-    VoiceStart | VoiceRetirement | ControlObservation | Diagnostic,
+    VoiceStart | VoiceRetirement | TriggerContext | ControlObservation | Diagnostic,
     Field(discriminator='kind'),
 ]
 
@@ -361,6 +362,17 @@ def prepare(
                 ):
                     raise ValueError('trigger ID is still active in this part')
                 triggers.remove(previous)
+            actions.append(
+                TriggerContext(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    part=event.part,
+                    trigger_id=event.trigger_id,
+                    velocity=event.velocity,
+                    controls={n: c.default for n, c in instrument.controls.items()}
+                    | event.controls,
+                )
+            )
             selected = selected_voices(
                 enums.TriggerKind.start, event.key, event.velocity
             )

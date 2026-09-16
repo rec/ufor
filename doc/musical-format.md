@@ -131,6 +131,11 @@ offline rendering contract rather than importing Tuney's device or UI runtime.
 voice, and snapshot vocabulary; the sample and synth trace modules add only their
 resolved source details.
 
+[Instrument control evolution](control-evolution.md) specifies trigger-context
+initialization, scalar smoothing, and pitch composition for both engines. Synth
+prepared pitch includes the template Hz offset but not processing tuning; apply
+the final routed cents value once through `ufor.synth.frequency`.
+
 ## Portable scores and conformance
 
 The common codec accepts `tuning`, `scale`, `oscillator`, `envelope`, `lfo`, and

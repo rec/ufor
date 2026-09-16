@@ -41,7 +41,12 @@ affect only existing voices on the event's part. Simultaneous immediate chokes
 win over other modes, and simultaneous fades use the shortest duration. The
 current preparer rejects a combined fade and envelope-release choke on one
 voice because a single retirement cannot express their combined gain curve.
-`control` preserves an addressed control observation. `diagnostic` records a
+`trigger_context` precedes each accepted onset's voice actions and preserves its
+velocity and complete initial control values, even when it selects no voice.
+`control` preserves an addressed control observation, including changes while
+silent and during release. Context lifetime, smoothing, and pitch composition
+are specified in [instrument control evolution](control-evolution.md).
+`diagnostic` records a
 recoverable preparation failure without inventing a voice.
 
 The trace deliberately excludes audio blocks, interpolation positions, filter
@@ -229,7 +234,8 @@ Multiply all weights within a slot, then apply the result as a separate layer
 gain alongside its envelope and volume before its EQ. Exact zero is silence,
 not a fabricated finite dB value. Existing instrument and slot volume curves still
 apply; neither replaces the crossfade. Key/velocity weights are captured at
-trigger time; live-input weights follow the smoothing rules below.
+trigger time; live-input weights use the source smoothing rules in
+[instrument control evolution](control-evolution.md) before the fade law.
 
 Pairing is explicit through matching parameters, not inferred from neighboring
 slots. With three or more overlapping layers, all their weighted signals sum
