@@ -1,7 +1,7 @@
 import pytest
 
 from ufor import synth_trace
-from ufor.events import PerformanceEvent, Trigger
+from ufor.events import ControlChange, PerformanceEvent, Release, Trigger
 from ufor.instrument_trace import VoiceRetirement
 from ufor.samples import trace
 from ufor.samples.instrument import SampleInstrument
@@ -50,6 +50,92 @@ def test_chokes_preserve_mode_and_part(kind: str, mode: str, action: str) -> Non
     assert retirements[0].action == action
     assert retirements[0].fade_seconds == (0.25 if mode == 'fade' else None)
     assert any(v.part == 'right' for v in result.snapshots[0].voices)
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+@pytest.mark.parametrize('sustain', [False, True])
+def test_release_voices_retain_the_onset_pitch(kind: str, sustain: bool) -> None:
+    templates = [{'name': 'held'}]
+    for trigger in ('release', 'logical_release'):
+        template = {'name': trigger, 'trigger': trigger}
+        if kind == 'sample':
+            template['playback'] = {'mode': 'one_shot'}
+        else:
+            template['frequency_offset_hz'] = 5
+        templates.append(template)
+    events = [
+        Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60, pitch_hz=440)
+    ]
+    if sustain:
+        events.append(
+            ControlChange(
+                tick=1, ordinal=1, control='pedal', value=1, scope='part', part='part'
+            )
+        )
+    events.append(Release(tick=2, ordinal=2, part='part', trigger_id='note'))
+    if sustain:
+        events.append(
+            ControlChange(
+                tick=3, ordinal=3, control='pedal', value=0, scope='part', part='part'
+            )
+        )
+    result = prepare(
+        kind,
+        templates,
+        events,
+        {'controls': {'pedal': {}}, 'sustain': {'control': 'pedal'}},
+    )
+    starts = [
+        a for a in result.actions if a.kind == 'voice_start' and a.template != 'held'
+    ]
+    assert [a.pitch_hz for a in starts] == [440 if kind == 'sample' else 445] * 2
+    assert [a.tick for a in starts] == [2, 3 if sustain else 2]
+
+
+def test_one_shot_survives_ordinary_release() -> None:
+    result = prepare(
+        'sample',
+        [{'name': 'shot', 'playback': {'mode': 'one_shot'}}],
+        [
+            Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60),
+            Release(tick=1, ordinal=1, part='part', trigger_id='note'),
+        ],
+    )
+    assert not any(isinstance(a, VoiceRetirement) for a in result.actions)
+    assert len(result.snapshots[0].voices) == 1
+    assert result.snapshots[0].triggers[0].logical_released
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+@pytest.mark.parametrize('same_key', ['release', 'replace'])
+def test_same_key_policy_keeps_all_new_layers(kind: str, same_key: str) -> None:
+    result = prepare(
+        kind,
+        [{'name': 'a'}, {'name': 'b'}],
+        [
+            Trigger(tick=0, ordinal=0, part='part', trigger_id='old', key=60),
+            Trigger(tick=1, ordinal=1, part='part', trigger_id='new', key=60),
+        ],
+        {'voice_policy': {'maximum_voices': 2, 'same_key': same_key}},
+    )
+    assert [v.template for v in result.snapshots[0].voices] == ['a', 'b']
+    assert all(v.trigger_id == 'new' for v in result.snapshots[0].voices)
+    retired = [a for a in result.actions if isinstance(a, VoiceRetirement)]
+    assert len(retired) == 2
+    assert all(a.tick == 1 for a in retired)
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_oversized_trigger_batch_is_rejected(kind: str) -> None:
+    with pytest.raises(ValueError, match='trigger batch exceeds maximum_voices'):
+        prepare(
+            kind,
+            [{'name': 'a'}, {'name': 'b'}],
+            [
+                Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60),
+            ],
+            {'voice_policy': {'maximum_voices': 1}},
+        )
 
 
 def prepare(

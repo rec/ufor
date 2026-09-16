@@ -80,6 +80,10 @@ def prepare(
     groups = {g.name: g for g in instrument.groups}
     slices = {s.name: s for s in instrument.slices}
     selections = {s.name: s for s in instrument.instrument.selections}
+    playback_modes = {
+        s.name: s.playback.mode or instrument.instrument.playback.mode
+        for s in instrument.slots
+    }
 
     def selected_slots(
         part: Identifier,
@@ -154,6 +158,7 @@ def prepare(
         part: Identifier,
         trigger_id: Identifier | None,
         key: int,
+        pitch_hz: float | None = None,
     ) -> None:
         for voice in list(voices):
             rules = [
@@ -181,27 +186,28 @@ def prepare(
                 raise ValueError(
                     'combined fade and envelope-release chokes are unsupported'
                 )
+        policy = instrument.instrument.voice_policy
+        if policy is not None and any(
+            s.trigger == enums.TriggerKind.start for s in slots
+        ):
+            if len(slots) > policy.maximum_voices:
+                raise ValueError('trigger batch exceeds maximum_voices')
+            if policy.same_key != enums.SameKey.stack:
+                for voice in [v for v in voices if v.part == part and v.key == key]:
+                    action = (
+                        'release'
+                        if policy.same_key == enums.SameKey.release
+                        else 'stop'
+                    )
+                    retire(voice, event, RetirementCause.same_key, action)
+            while len(voices) + len(slots) > policy.maximum_voices:
+                action = (
+                    'release'
+                    if policy.overflow == enums.VoiceOverflow.release_oldest
+                    else 'stop'
+                )
+                retire(voices[0], event, RetirementCause.voice_limit, action)
         for slot in slots:
-            if slot.trigger == enums.TriggerKind.start:
-                policy = instrument.instrument.voice_policy
-                if policy is not None:
-                    same_key = [v for v in voices if v.part == part and v.key == key]
-                    if policy.same_key != enums.SameKey.stack:
-                        action = (
-                            'release'
-                            if policy.same_key == enums.SameKey.release
-                            else 'stop'
-                        )
-                        for voice in same_key:
-                            retire(voice, event, RetirementCause.same_key, action)
-                    while len(voices) >= policy.maximum_voices:
-                        voice = voices[0]
-                        action = (
-                            'release'
-                            if policy.overflow == enums.VoiceOverflow.release_oldest
-                            else 'stop'
-                        )
-                        retire(voice, event, RetirementCause.voice_limit, action)
             voice_id = (
                 f'voice-{part}-{trigger_id}-{slot.name}'
                 if trigger_id is not None
@@ -230,7 +236,7 @@ def prepare(
                     trigger_id=trigger_id,
                     template=slot.name,
                     key=key,
-                    pitch_hz=(event.pitch_hz if isinstance(event, Trigger) else None),
+                    pitch_hz=event.pitch_hz if isinstance(event, Trigger) else pitch_hz,
                     slice=slot.slice,
                     start_frame=sample_slice.start_frame + slot.alignment_frames,
                     alignment_frames=slot.alignment_frames,
@@ -333,8 +339,14 @@ def prepare(
                                     trigger.part,
                                     trigger.trigger_id,
                                     trigger.key,
+                                    trigger.pitch_hz,
                                 )
                                 for voice in list(start_voices(trigger)):
+                                    if (
+                                        playback_modes[voice.template]
+                                        == enums.PlaybackMode.one_shot
+                                    ):
+                                        continue
                                     retire(
                                         voice,
                                         event,
@@ -376,6 +388,7 @@ def prepare(
                         trigger.part,
                         trigger.trigger_id,
                         trigger.key,
+                        trigger.pitch_hz,
                     )
                 pressed = sustain.get(
                     trigger.part,
@@ -399,8 +412,14 @@ def prepare(
                             trigger.part,
                             trigger.trigger_id,
                             trigger.key,
+                            trigger.pitch_hz,
                         )
                         for voice in list(start_voices(trigger)):
+                            if (
+                                playback_modes[voice.template]
+                                == enums.PlaybackMode.one_shot
+                            ):
+                                continue
                             retire(
                                 voice,
                                 event,
