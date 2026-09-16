@@ -463,8 +463,13 @@ the hidden ordering requirement. Tests that import the codec early can mask it.
 
 ## Naming and API clarity
 
-These are review candidates, not a request for blanket renaming. A standard-library
-collision is not inherently a bug when the domain meaning is conventional.
+**Resolved:** the approved naming cutover is applied to code, schema, tests,
+examples and documentation without aliases. See [the API map](../doc/api-map.md)
+for the canonical names and ownership. Port selections use `part`; Target.name
+retains its wider owner namespace with explicit documentation. Trace types are
+SampleTrace/SynthTrace, and synth snapshots use LifecycleSnapshot directly.
+The historical `recs` wire marker remains intentional; SFZ identifies Ufor.
+The table below records the original review candidates.
 
 | Priority | Name and location | Problem and suggested direction |
 | --- | --- | --- |
@@ -489,6 +494,10 @@ collision is not inherently a bug when the domain meaning is conventional.
 
 ### 29. Shared instrument concepts are owned by the samples package
 
+**Resolved:** the API map identifies the common declarations and their sample
+and synth consumers, distinguishes sample-only traversal, and explains the
+historical namespace. No module move is needed to establish that contract.
+
 **P3, design concern.** [synth.py imports](../ufor/synth.py#L15),
 [instrument_trace.py:9](../ufor/instrument_trace.py#L9).
 
@@ -501,6 +510,10 @@ change; keep slices and sample traversal in the samples package.
 
 ### 30. Sample and synth lifecycle algorithms are duplicated
 
+**Resolved:** both preparers run the same portable lifecycle cases in addition
+to the shared policy regressions. Their sample/oscillator-specific preparation
+paths remain separate; an additional configurable engine is not required.
+
 **P2, maintenance concern with existing shared defects.**
 [sample preparer](../ufor/samples/trace.py#L71),
 [synth preparer](../ufor/synth_trace.py#L60).
@@ -512,6 +525,10 @@ classes alone do not ensure shared behavior. Establish common lifecycle
 conformance cases for both before deciding how much implementation to share.
 
 ### 31. Module boundaries make related features hard to discover
+
+**Resolved:** the API map documents module ownership and entry points for every
+area identified here, including the distinctions between event/sample playback,
+recording/score references, light effects, and pure SFZ conversion.
 
 **P3, design concern.** `effects.py` contains light-only effect definitions despite
 its generic name; light behavior is spread across `effects`, `lights`,
@@ -526,6 +543,9 @@ boundaries, not merely file size, and update consumers in one coherent cutover.
 
 ### 32. Related control and envelope concepts need a single comparison guide
 
+**Resolved:** control-guide.md compares activation, clocks, endpoints, units and
+ownership, and explains hold versus step without merging distinct contracts.
+
 **P2, documentation/API concern.**
 [automation.py](../ufor/automation.py), [envelope.py](../ufor/envelope.py),
 [modulation.py](../ufor/modulation.py), [binding.py](../ufor/binding.py).
@@ -538,6 +558,10 @@ features, but the API does not present a clear decision guide. Document their
 differences and shared rules before considering consolidation.
 
 ### 33. Current implementation claims conflict across documents
+
+**Resolved:** capabilities.md is the shared capability matrix. README and format
+documents now distinguish pure preparation, composition limitations, accepted
+video definitions, host rendering and nonresumable instrument snapshots.
 
 **P2, confirmed.** [sample-performance.md](../doc/sample-performance.md#L19)
 describes semantic preparation as implemented, while
@@ -553,6 +577,8 @@ documents to it and keep deferred behavior out of claims of complete preparation
 
 ### 34. The documented schema-generation entry point does not exist
 
+**Resolved:** musical and recording format documents name codec.score_schema.
+
 **P2, confirmed.** [musical-format.md:138](../doc/musical-format.md#L138)
 names `ufor.codec.document_schema`; the actual function is
 [`score_schema`](../ufor/codec.py#L73). Correct the reference. The existing test
@@ -560,6 +586,11 @@ comparing the checked-in schema with generated output is useful and should remai
 the issue is the public regeneration instruction, not absence of a schema test.
 
 ### 35. Validation rules are stronger than the generated schema communicates
+
+**Resolved:** validation.md distinguishes structural schema checks from semantic
+rules, documents Unicode property-based identifiers as approved, and links the
+normative domain rules. validation.json supplies portable rejected cases and
+Unicode boundaries, consumed by tests.
 
 **P2, portability concern.** [base.Identifier](../ufor/base.py#L15),
 [selector validators](../ufor/selector.py), and cross-field validators throughout.
@@ -573,6 +604,10 @@ normative rules, and add language-neutral rejected cases. Also decide whether
 Unicode lowercase/digit behavior is intentional for portable identifiers.
 
 ### 36. Current tests do not cover several semantic boundaries above
+
+**Resolved:** the earlier fixes include inheritance, shuffle, lifecycle and
+serialized-settings regression tests. New portable selection vectors and shared
+sample/synth lifecycle cases pin exact draw sequences and action ordering.
 
 **P2, targeted coverage concern.** [sample tests](../test/test_samples.py),
 [synth tests](../test/test_synth.py), [composition tests](../test/test_composition.py).

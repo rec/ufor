@@ -21,8 +21,9 @@ Today, Ufor covers:
 - Light animation descriptions, arbitrary component counts, layouts and wiring,
   with exact composition and shared parameter controls.
 
-The larger ambition includes fixture control, control voltages and other timed
-data. Video is outside the scope.
+Ufor also defines fixture cues/patches, slideshow images and finite video clips,
+and broadcast programmes. Device output, video decoding, and playback belong to
+hosts. Control voltages remain a broader ambition.
 
 The Python library provides frozen Pydantic models, validation, TOML interchange,
 JSON Schema and reference calculations. An explicit library reader loads configured local files; applications supply devices
@@ -37,6 +38,8 @@ The implemented [score composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
 See [user libraries](doc/library.md) for configuration, selection and host integration.
 See [editing and validation boundaries](doc/validation.md) before mutating model collections.
+See the [API map](doc/api-map.md), [capability matrix](doc/capabilities.md), and
+[control comparison](doc/control-guide.md) for ownership and implementation limits.
 Explore the [schema](schema/scores.json) and [conformance cases](conformance/).
 See [scalar automation](doc/automation-format.md) for editable curves and examples.
 

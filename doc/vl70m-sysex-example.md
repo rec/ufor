@@ -115,9 +115,9 @@ Keep three reusable descriptions distinct from the application's device setup:
    mappings. None are invented from the opaque 155 bytes in this example.
    Unknown parameters are not exposed as `ParameterExport` declarations.
 
-A future patch score could name the MIDI description using `ScoreVersion` and
+A future patch score could name the MIDI description using `ScoreReference` and
 locate its original asset. It would describe saved instrument state, not a timed
-performance sequence. The current `InstrumentScore` describes sample instruments;
+performance sequence. The current `SampleInstrumentScore` describes sample instruments;
 forcing a VL70m patch into its sample slots would give those fields the wrong
 meaning. A new patch/MIDI score kind needs a separate implementation decision.
 No TOML examples here pretend such a kind is already accepted by the codec.

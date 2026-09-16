@@ -1,7 +1,7 @@
 """Scala scale text conversion. File discovery and encoding belong to the host."""
 
 from .expression import evaluate
-from .number import uncents
+from .number import ratio_to_cents
 from .tuning import RatioTable
 
 
@@ -17,7 +17,7 @@ def parse_scala(text: str, name: str = '') -> RatioTable:
         values=['1', *entries[:-1]],
         repeat_ratio=entries[-1],
         name=name,
-        desc=description,
+        description=description,
     )
 
 
@@ -29,7 +29,7 @@ def scala_text(table: RatioTable) -> str:
         [
             f'! {table.name}',
             '!',
-            table.desc or 'Untitled',
+            table.description or 'Untitled',
             str(len(entries)),
             '!',
             *entries,
@@ -47,5 +47,5 @@ def _scala_pitch(expression: str) -> str:
     value = evaluate(expression)
     # Scala accepts fractions of integers. Non-rational powers use cents.
     if isinstance(value, float):
-        return f'{uncents(value):.12f}'
+        return f'{ratio_to_cents(value):.12f}'
     return str(value)

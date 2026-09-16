@@ -4,12 +4,12 @@ import pytest
 
 from ufor.events import ControlChange, MidiEvent, Release, Trigger
 from ufor.playback import SequenceSelection, plan_playback, state_at
-from ufor.sequence import Sequence
+from ufor.sequence import EventSequence
 from ufor.time import TickRange
 
 
-def sequence() -> Sequence:
-    return Sequence(
+def sequence() -> EventSequence:
+    return EventSequence(
         timebase='clock',
         end=12,
         events=[
@@ -117,7 +117,9 @@ def test_note_at_end_is_excluded_and_release_at_start_is_ordered_after_retrigger
 def test_invalid_note_ownership_is_rejected(
     event: Trigger | Release | ControlChange,
 ) -> None:
-    source = Sequence(timebase='clock', end=5, events=[*sequence().events[:3], event])
+    source = EventSequence(
+        timebase='clock', end=5, events=[*sequence().events[:3], event]
+    )
     with pytest.raises(ValueError):
         plan_playback(
             source, SequenceSelection(name='bad', interval=TickRange(start=0, end=5))
@@ -125,7 +127,7 @@ def test_invalid_note_ownership_is_rejected(
 
 
 def test_empty_sequence_and_invalid_selection() -> None:
-    source = Sequence(timebase='clock', start=-10, end=10)
+    source = EventSequence(timebase='clock', start=-10, end=10)
     loop = plan_playback(
         source, SequenceSelection(name='silence', interval=TickRange(start=-5, end=5))
     )[0]
@@ -144,7 +146,7 @@ def test_portable_loop_example() -> None:
 
     case = json.loads(Path('conformance/sequence-playback.json').read_text())
     loops = plan_playback(
-        Sequence.model_validate(case['sequence']),
+        EventSequence.model_validate(case['sequence']),
         SequenceSelection.model_validate(case['selection']),
     )
     assert [
@@ -160,7 +162,7 @@ def test_portable_loop_example() -> None:
 
 
 def test_reused_ids_and_independent_parts_keep_distinct_ownership() -> None:
-    source = Sequence(
+    source = EventSequence(
         timebase='clock',
         end=5,
         events=[
@@ -178,7 +180,7 @@ def test_reused_ids_and_independent_parts_keep_distinct_ownership() -> None:
 
 
 def test_control_snapshot_does_not_carry_later_changes_into_next_loop() -> None:
-    source = Sequence(
+    source = EventSequence(
         timebase='clock',
         end=5,
         events=[

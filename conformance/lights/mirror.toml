@@ -65,7 +65,7 @@ controls = []
 effect = "reverse"
 
 [body.operation.source]
-name = "ripples"
+part = "ripples"
 output = "light"
 
 [[body.parts]]

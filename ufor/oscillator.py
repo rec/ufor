@@ -29,10 +29,15 @@ class Shape(Model):
 
 class Oscillator(Shape):
     key_scale_note: int = 64
-    key_scale: float = 0
+    key_scale_db_per_12_steps: float = 0
 
     def gain(self, note_number: int) -> float:
-        return 10 ** (self.key_scale * (note_number - self.key_scale_note) / 12 / 20)
+        return 10 ** (
+            self.key_scale_db_per_12_steps
+            * (note_number - self.key_scale_note)
+            / 12
+            / 20
+        )
 
 
 def shape_value(waveform: Waveform, phase: Fraction, duty_cycle: Fraction) -> float:

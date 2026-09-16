@@ -12,7 +12,7 @@ from .events import ControlChange, PerformanceEvent, Trigger
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
 from .oscillator import Oscillator
 from .samples import enums
-from .samples.controls import Control
+from .samples.controls import ControlDeclaration
 from .samples.playback import Mapping
 from .samples.processing import ChannelRoute, EventBinding, SoundSettings
 from .samples.selection import Articulations, Choke, Sustain, VoicePolicy
@@ -58,7 +58,7 @@ class SynthVoice(SoundSettings):
 class SynthInstrument(Model):
     """Synth voice templates and their shared performance declarations."""
 
-    controls: dict[base.Identifier, Control] = Field(default_factory=dict)
+    controls: dict[base.Identifier, ControlDeclaration] = Field(default_factory=dict)
     voice_policy: VoicePolicy | None = None
     sustain: Sustain | None = None
     articulations: Articulations | None = None
@@ -92,7 +92,7 @@ class SynthInstrument(Model):
                         <= source.maximum
                     ):
                         raise ValueError(
-                            'Key source domain must cover the voice mapping'
+                            'NoteKey source domain must cover the voice mapping'
                         )
             if any(p.scope != control.Scope.voice for p in voice.modulation.parameters):
                 raise ValueError('Synth voice parameters must have voice scope')
@@ -118,7 +118,7 @@ class SynthInstrument(Model):
                     )
         return self
 
-    def require_control(self, name: str) -> Control:
+    def require_control(self, name: str) -> ControlDeclaration:
         if name not in self.controls:
             raise ValueError(f'Unknown control: {name}')
         return self.controls[name]

@@ -4,15 +4,15 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, StrictInt, model_validator
 
-from ..base import Identifier, Model, Number, Seconds
+from ..base import FiniteScalar, Identifier, Model, Seconds
 from . import enums
 
 
 class Crossfade(Model):
-    input: enums.Input
+    input: enums.CrossfadeInput
     direction: enums.FadeDirection
-    start: StrictInt | Number
-    end: StrictInt | Number
+    start: StrictInt | FiniteScalar
+    end: StrictInt | FiniteScalar
     curve: enums.FadeCurve = enums.FadeCurve.linear
 
     @model_validator(mode='after')
@@ -25,11 +25,11 @@ class Crossfade(Model):
 
 
 class KeyCrossfade(Crossfade):
-    input: Literal[enums.Input.key, enums.Input.velocity]
+    input: Literal[enums.CrossfadeInput.key, enums.CrossfadeInput.velocity]
 
 
 class ControlCrossfade(Crossfade):
-    input: Literal[enums.Input.control]
+    input: Literal[enums.CrossfadeInput.control]
     control: Identifier
 
     scope: Literal['part', 'instrument', 'trigger'] = 'part'
@@ -37,12 +37,12 @@ class ControlCrossfade(Crossfade):
     smoothing_seconds: Seconds = 0.005
 
 
-def validate_input_value(source: enums.Input, value: int | float) -> None:
-    if source == enums.Input.key:
+def validate_input_value(source: enums.CrossfadeInput, value: int | float) -> None:
+    if source == enums.CrossfadeInput.key:
         if not isinstance(value, int) or isinstance(value, bool):
-            raise ValueError('Key input points must be integers')
+            raise ValueError('NoteKey input points must be integers')
         return
-    low, high = (-1, 1) if source == enums.Input.control else (0, 1)
+    low, high = (-1, 1) if source == enums.CrossfadeInput.control else (0, 1)
     if not low <= value <= high:
         raise ValueError(f'{source} input must be in [{low}, {high}]')
 

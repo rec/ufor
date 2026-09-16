@@ -14,7 +14,7 @@ from .light_animation import AnimationScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
 from .preset import PresetScore
 from .recording import RecordingScore
-from .samples.instrument import InstrumentScore
+from .samples.instrument import SampleInstrumentScore
 from .score_types import ScoreValue
 from .sequence import SequenceScore
 from .slideshow import SlideshowScore
@@ -36,7 +36,7 @@ def parse_score(
     | ScaleScore
     | OscillatorScore
     | EnvelopeScore
-    | InstrumentScore
+    | SampleInstrumentScore
     | LFOScore
     | AnimationScore
     | SynthInstrumentScore
@@ -58,7 +58,7 @@ def score_toml(
     | ScaleScore
     | OscillatorScore
     | EnvelopeScore
-    | InstrumentScore
+    | SampleInstrumentScore
     | LFOScore
     | AnimationScore
     | SynthInstrumentScore

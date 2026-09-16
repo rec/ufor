@@ -36,14 +36,10 @@ Action = Annotated[
 ]
 
 
-class TraceSnapshot(LifecycleSnapshot):
-    pass
-
-
-class SemanticTrace(Model):
+class SynthTrace(Model):
     seed: int = Field(strict=True, ge=0, lt=2**64)
     actions: list[Action] = Field(default_factory=list)
-    snapshots: list[TraceSnapshot] = Field(default_factory=list)
+    snapshots: list[LifecycleSnapshot] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def ordered_actions(self) -> Self:
@@ -59,7 +55,7 @@ class SemanticTrace(Model):
 
 def prepare(
     instrument: SynthInstrument, events: list[PerformanceEvent], seed: int
-) -> SemanticTrace:
+) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
     if instrument.articulations is not None:
@@ -379,11 +375,11 @@ def prepare(
                 )
             )
             start_voices(selected, event, event.part, event.trigger_id, event.key)
-    return SemanticTrace(
+    return SynthTrace(
         seed=seed,
         actions=actions,
         snapshots=[
-            TraceSnapshot(
+            LifecycleSnapshot(
                 tick=events[-1].tick if events else 0,
                 ordinal=events[-1].ordinal if events else 0,
                 voices=voices,

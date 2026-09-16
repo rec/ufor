@@ -53,14 +53,14 @@ effect = "mix"
 weight = 1.0
 
 [body.operation.sources.source]
-name = "left"
+part = "left"
 output = "light"
 
 [[body.operation.sources]]
 weight = 1.0
 
 [body.operation.sources.source]
-name = "right"
+part = "right"
 output = "light"
 
 [[body.parts]]

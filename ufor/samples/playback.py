@@ -9,10 +9,10 @@ from . import enums
 
 
 class Mapping(base.Model):
-    lowest_key: base.Key
-    highest_key: base.Key
+    lowest_key: base.NoteKey
+    highest_key: base.NoteKey
     reference_pitch_hz: base.Frequency | None = None
-    event_key: base.Key | None = None
+    event_key: base.NoteKey | None = None
     minimum_velocity: base.UnitInterval = 0.0
     maximum_velocity: base.UnitInterval = 1.0
     pitch_tracking: StrictBool = True

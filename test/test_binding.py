@@ -153,14 +153,14 @@ def test_binding_maps_table_values_and_describes_streams() -> None:
                         'rate': 48000,
                     }
                 ],
-                'channels': [
-                    {'logical': 'main', 'native': 'out_1_2', 'direction': 'output'}
+                'stream_mappings': [
+                    {'stream': 'main', 'native': 'out_1_2', 'direction': 'output'}
                 ],
                 'parameters': [mapping.model_dump()],
             },
         }
     )
-    assert binding.body.channels[0].native == 'out_1_2'
+    assert binding.body.stream_mappings[0].native == 'out_1_2'
 
 
 def test_piecewise_mapping_covers_domain_and_interpolates() -> None:

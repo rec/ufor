@@ -22,8 +22,9 @@ meaning of composition:
   time stretching and other origin mappings remain later implementations.
 - Reproducible offline evaluation over finite requested intervals. Reject
   unresolved randomness and external live inputs for this profile. Existing
-  random/shuffle selection needs the separately planned algorithm, seed and
-  action traces before execution.
+  random/shuffle selection is implemented in the standalone sample preparer,
+  but Composition still rejects these sets in its own offline profile. See
+  [capabilities](capabilities.md) for the distinction.
 - Each input receives at most one connection or one public forwarding binding.
   Outputs can fan out. Required inputs must be supplied; implicit silence or
   empty-event defaults are not supplied. Arbitrary event merging is deferred
@@ -125,7 +126,7 @@ end of a sequence.
 | Current structure | Replacement |
 | --- | --- |
 | `arrangement.SourceSpec` record/file/memory alternatives | Parts with direct score references |
-| `ClipSpec.source` ID | `{ part, port }`, retaining frame placement and gains |
+| `Clip.source` ID | `{ part, port }`, retaining frame placement and gains |
 | Parent `RecordSelector` | Select recording streams when authoring exported ports; parent uses the public input or output |
 | Raw audio-file source | A recording definition describing its media and channels |
 | Process-local memory source | Host realization of a declared source, not a portable memory key |
@@ -200,13 +201,13 @@ all formerly `id`-named fields in Ufor now use `name`. Existing descriptive name
 on sample slots become titles too. Capture identifiers such as `source_id` and
 `trigger_id` retain their distinct operational meanings.
 
-An arrangement contains `parts`. A `Part` has a `name`, a `score` (`ScoreVersion`,
+An arrangement contains `parts`. A `Part` has a `name`, a `score` (`ScoreReference`,
 with a relative path and optional SHA-256), and parameter settings. Public
 configuration declarations use `ParameterExport`; internal modulation declarations
 remain `Parameter`.
 
 Replace `ports` with separate `inputs` and `outputs`, removing `direction`.
-`InputSelection` is `{ name, input }`; `OutputSelection` is `{ name, output }`.
+`InputSelection` is `{ part, input }`; `OutputSelection` is `{ part, output }`.
 These names select a part and one of its declared inputs or outputs. Inputs and
 outputs may use the same name because their selections are distinct. File
 render destinations select an `output`. Parameter targets use `{ name, parameter }`.

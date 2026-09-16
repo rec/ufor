@@ -2,8 +2,9 @@
 
 The initial common format supports arrangements, recording descriptions, and
 ordered event sequences. TOML is the score syntax; `format = "recs"`,
-`version = 3`, `kind`, `id`, and `name` form its common envelope. The model's
-`document_schema()` function generates JSON Schema for all three kinds.
+`version = 3`, `kind`, `name`, and `title` form its common envelope.
+`ufor.codec.score_schema()` generates structural JSON Schema for all supported
+score kinds; [semantic validation](validation.md) adds the cross-field rules.
 The [arrangement format](arrangement-format.md) describes audio editing.
 
 `recording.toml` is the content index used by session browsing, checking,

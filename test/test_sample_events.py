@@ -1,13 +1,13 @@
 import pytest
 
 from ufor.events import ControlChange, Trigger
-from ufor.samples.instrument import Instrument, SampleInstrument
+from ufor.samples.instrument import SampleInstrument, SampleSettings
 
 
 @pytest.mark.parametrize('name', ['Pressure', '1-pressure', 'pressure.value'])
 def test_control_declarations_use_the_shared_event_identifier_rules(name: str) -> None:
     with pytest.raises(ValueError):
-        Instrument.model_validate({'controls': {name: {}}})
+        SampleSettings.model_validate({'controls': {name: {}}})
 
 
 @pytest.mark.parametrize(
@@ -27,7 +27,7 @@ def test_events_use_the_instruments_declared_control_domains(
     instrument = SampleInstrument.model_validate(
         {
             'slices': [{'name': 'pad', 'asset': 'pad', 'end_frame': 48000}],
-            'instrument': {
+            'settings': {
                 'controls': {
                     'pressure': {},
                     'bend': {'polarity': 'bipolar'},

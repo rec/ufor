@@ -11,7 +11,7 @@ from pydantic import BeforeValidator, ConfigDict, Field, model_validator
 
 from .accidentals import AccidentalNames, Accidentals
 from .base import Model
-from .number import NoteNumber, Number
+from .number import NoteNumber, PitchNumber
 
 INTERVALS = [int(i) for i in '2212221']
 
@@ -94,7 +94,7 @@ class Scale(Model):
         raise ValueError(f'Bad number {s=}')
 
     def frequency(
-        self, tuning: Callable[[int], Number], note_number: NoteNumber
+        self, tuning: Callable[[int], PitchNumber], note_number: NoteNumber
     ) -> float:
         return float(tuning(self.tuning_number(note_number)))
 

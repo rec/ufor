@@ -17,7 +17,7 @@ from ufor.interface import (
     OutputSelection,
     ParameterExport,
     Part,
-    ScoreVersion,
+    ScoreReference,
 )
 from ufor.lfo import LFO, Reset
 from ufor.time import Rate, Timebase
@@ -49,11 +49,11 @@ def score(
 
 
 def selection(name: str = 'child') -> OutputSelection:
-    return OutputSelection(name=name, output='light')
+    return OutputSelection(part=name, output='light')
 
 
 def part(name: str = 'child') -> Part:
-    return Part(name=name, score=ScoreVersion(path=f'{name}.toml'))
+    return Part(name=name, score=ScoreReference(path=f'{name}.toml'))
 
 
 @pytest.mark.parametrize(

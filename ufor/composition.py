@@ -24,7 +24,7 @@ from .interface import (
     OutputSelection,
     ParameterExport,
     Part,
-    ScoreVersion,
+    ScoreReference,
     SequenceBinding,
     StreamBinding,
 )
@@ -33,7 +33,7 @@ from .lights import LightType
 from .modulation import Unit
 from .recording import AudioStream, RecordingScore
 from .samples.enums import SelectionMode
-from .samples.instrument import InstrumentScore
+from .samples.instrument import SampleInstrumentScore
 from .score_types import ScoreValue
 from .sequence import SequenceScore
 from .streams import AudioType
@@ -111,13 +111,13 @@ class Composition:
                     )
                 }
             )
-        elif isinstance(score, (InstrumentScore, AnimationScore)):
+        elif isinstance(score, (SampleInstrumentScore, AnimationScore)):
             internal = next(
                 (
                     p
                     for p in (
-                        score.body.instrument.modulation.parameters
-                        if isinstance(score, InstrumentScore)
+                        score.body.settings.modulation.parameters
+                        if isinstance(score, SampleInstrumentScore)
                         else [
                             *score.body.modulation.parameters,
                             *score.body.renderer_parameters,
@@ -171,7 +171,7 @@ class Composition:
         score = self.scores[self.parts[part].score].score
         binding = port.binding
         if isinstance(binding, OutputSelection):
-            child = self.parts[part].children[binding.name]
+            child = self.parts[part].children[binding.part]
             start, end = self.extent(child, binding.output)
             rate = self.rate(part, port.stream.timebase) / self.rate(
                 child, self.output(child, binding.output).stream.timebase
@@ -188,7 +188,7 @@ class Composition:
             )
         if isinstance(score, AnimationScore):
             extents = [
-                self.extent(self.parts[part].children[s.name], s.output)
+                self.extent(self.parts[part].children[s.part], s.output)
                 for s in light_animation.sources(score.body.operation)
             ]
             ends = [e for _, e in extents if e is not None]
@@ -239,7 +239,7 @@ class Composition:
         ):
             return list(score.body.events)
         if isinstance(port.binding, OutputSelection):
-            child = self.parts[part].children[port.binding.name]
+            child = self.parts[part].children[port.binding.part]
             events = self.events(child, port.binding.output)
             if events is None:
                 return None
@@ -273,14 +273,15 @@ class Composition:
         deliveries: list[EventDelivery] = []
         for (path, port_name), (_, stop) in windows.items():
             score = self.scores[self.parts[path].score].score
-            if not isinstance(score, (InstrumentScore, SynthInstrumentScore)):
+            if not isinstance(score, (SampleInstrumentScore, SynthInstrumentScore)):
                 continue
-            if isinstance(score, InstrumentScore) and any(
+            if isinstance(score, SampleInstrumentScore) and any(
                 s.mode in (SelectionMode.random, SelectionMode.shuffle)
-                for s in score.body.instrument.selections
+                for s in score.body.settings.selections
             ):
                 raise ValueError(
-                    f'{path}: deterministic selection execution is not defined'
+                    f'{path}: random/shuffle selection is unsupported by Composition; '
+                    'use standalone sample preparation'
                 )
             output = self.output(path, port_name)
             for port in score.inputs:
@@ -316,10 +317,10 @@ class Composition:
         part = self.parts[parent]
         score = self.scores[part.score].score
         assert isinstance(score, ArrangementScore)
-        address = InputSelection(name=child_part, input=port_name)
+        address = InputSelection(part=child_part, input=port_name)
         for edge in score.body.connections:
             if edge.destination == address:
-                return part.children[edge.source.name], edge.source.output
+                return part.children[edge.source.part], edge.source.output
         for port in score.inputs:
             if port.binding == address:
                 return self._input_source(parent, port.name)
@@ -357,7 +358,7 @@ class Composition:
         )
         binding = port.binding
         if isinstance(binding, OutputSelection):
-            child = self.parts[path].children[binding.name]
+            child = self.parts[path].children[binding.part]
             ratio = self.rate(
                 child, self.output(child, binding.output).stream.timebase
             ) / self.rate(path, port.stream.timebase)
@@ -377,7 +378,7 @@ class Composition:
                     hi = min(end, int((cue.start + cue.duration) * rate))
                     if lo < hi:
                         self._request(
-                            self.parts[path].children[cue.source.name],
+                            self.parts[path].children[cue.source.part],
                             cue.source.output,
                             0,
                             hi - int(cue.start * rate),
@@ -386,7 +387,7 @@ class Composition:
             else:
                 for selection in light_animation.sources(operation):
                     self._request(
-                        self.parts[path].children[selection.name],
+                        self.parts[path].children[selection.part],
                         selection.output,
                         0,
                         end,
@@ -406,14 +407,14 @@ class Composition:
                 hi = min(end, clip.timeline_start + clip.source_end - clip.source_start)
                 if lo < hi:
                     self._request(
-                        self.parts[path].children[clip.source.name],
+                        self.parts[path].children[clip.source.part],
                         clip.source.output,
                         clip.source_start + lo - clip.timeline_start,
                         clip.source_start + hi - clip.timeline_start,
                         requests,
                     )
             for clip in score.body.control_clips:
-                source = self.parts[path].children[clip.source.name]
+                source = self.parts[path].children[clip.source.part]
                 source_port = self.output(source, clip.source.output)
                 source_rate = self.rate(source, source_port.stream.timebase)
                 timeline_rate = self.rate(path, score.body.timebase)
@@ -451,7 +452,7 @@ class Composition:
         ]
         if isinstance(port.binding, InputSelection):
             self._deliver(
-                self.parts[target].children[port.binding.name],
+                self.parts[target].children[port.binding.part],
                 port.binding.input,
                 converted,
                 rate,
@@ -460,7 +461,7 @@ class Composition:
             )
             return
         score = self.scores[self.parts[target].score].score
-        if not isinstance(score, (InstrumentScore, SynthInstrumentScore)):
+        if not isinstance(score, (SampleInstrumentScore, SynthInstrumentScore)):
             raise ValueError(f'{target}: no performance consumer')
         for event in converted:
             if event.tick < 0:
@@ -479,7 +480,7 @@ class Composition:
                     <= s.mapping.maximum_velocity
                     for s in (
                         score.body.slots
-                        if isinstance(score, InstrumentScore)
+                        if isinstance(score, SampleInstrumentScore)
                         else score.body.voices
                     )
                 )
@@ -492,7 +493,7 @@ class Composition:
         self, identity: str, stack: list[str], pins: dict[str, str]
     ) -> None:
         if identity in stack:
-            raise ValueError(f'ScoreVersion cycle: {stack + [identity]}')
+            raise ValueError(f'ScoreReference cycle: {stack + [identity]}')
         if identity not in self.scores:
             raise ValueError(f'Missing score: {identity}')
         record = self.scores[identity]
@@ -502,12 +503,12 @@ class Composition:
         for child_part in score.body.parts:
             child = self._child(identity, child_part)
             reference = child_part.score
-            if isinstance(reference, ScoreVersion) and reference.sha256 is not None:
+            if isinstance(reference, ScoreReference) and reference.sha256 is not None:
                 if child in pins and pins[child] != reference.sha256:
                     raise ValueError(f'Contradictory score pins: {child}')
                 pins[child] = reference.sha256
                 if self.scores[child].sha256 != reference.sha256:
-                    raise ValueError(f'ScoreVersion digest mismatch: {child}')
+                    raise ValueError(f'ScoreReference digest mismatch: {child}')
             self._check_definitions(child, stack + [identity], pins)
 
     def _instantiate(self, identity: str, path: str, values: dict[str, float]) -> None:
@@ -539,7 +540,7 @@ class Composition:
         )
 
     def _child(self, identity: str, part: Part) -> str:
-        if isinstance(part.score, ScoreVersion):
+        if isinstance(part.score, ScoreReference):
             child = self.scores[identity].paths.get(part.score.key)
             if child is None or child not in self.scores:
                 raise ValueError(
@@ -604,7 +605,7 @@ class Composition:
             if isinstance(score, AnimationScore):
                 selected = {}
                 for selection in light_animation.sources(score.body.operation):
-                    child = part.children[selection.name]
+                    child = part.children[selection.part]
                     output = self.output(child, selection.output)
                     if not isinstance(output.stream, LightType):
                         raise ValueError('light operation requires a light source')
@@ -620,7 +621,7 @@ class Composition:
                     rate = self.rate(path, score.outputs[0].stream.timebase)
                     for cue in score.body.operation.cues:
                         low, high = self.extent(
-                            part.children[cue.source.name], cue.source.output
+                            part.children[cue.source.part], cue.source.output
                         )
                         if low > 0 or high is not None and cue.duration * rate > high:
                             raise ValueError('cue duration exceeds its source extent')
@@ -630,22 +631,22 @@ class Composition:
             supplied = {c.destination for c in score.body.connections}
             for port in score.inputs:
                 if isinstance(port.binding, InputSelection):
-                    child = part.children[port.binding.name]
+                    child = part.children[port.binding.part]
                     supplied.add(port.binding)
                     self._compatible(
                         path, port.name, child, port.binding.input, 'input'
                     )
             for port in score.outputs:
                 if isinstance(port.binding, OutputSelection):
-                    child = part.children[port.binding.name]
+                    child = part.children[port.binding.part]
                     self._compatible(
                         child, port.binding.output, path, port.name, 'output'
                     )
             for edge in score.body.connections:
                 self._compatible(
-                    part.children[edge.source.name],
+                    part.children[edge.source.part],
                     edge.source.output,
-                    part.children[edge.destination.name],
+                    part.children[edge.destination.part],
                     edge.destination.input,
                 )
             for child_part, child in part.children.items():
@@ -653,14 +654,14 @@ class Composition:
                 if isinstance(child_doc, InterfaceScore):
                     for port in child_doc.inputs:
                         if (
-                            InputSelection(name=child_part, input=port.name)
+                            InputSelection(part=child_part, input=port.name)
                             not in supplied
                         ):
                             raise ValueError(
                                 f'{child}.{port.name}: required input is not supplied'
                             )
             for edge in score.body.connections:
-                source = part.children[edge.source.name]
+                source = part.children[edge.source.part]
                 if not isinstance(
                     self.output(source, edge.source.output).stream, EventType
                 ):
@@ -668,7 +669,7 @@ class Composition:
                 events = self.events(source, edge.source.output)
                 if events is not None:
                     self._deliver(
-                        part.children[edge.destination.name],
+                        part.children[edge.destination.part],
                         edge.destination.input,
                         events,
                         self.rate(
@@ -680,7 +681,7 @@ class Composition:
                     )
             tracks = {t.name: t.stream for t in score.body.tracks}
             for clip in score.body.clips:
-                child = part.children[clip.source.name]
+                child = part.children[clip.source.part]
                 port = self.output(child, clip.source.output)
                 stream = tracks[clip.track]
                 if (
@@ -699,7 +700,7 @@ class Composition:
                     raise ValueError(f'{path}/{clip.name}: clip exceeds source extent')
             targets: set[tuple[str, object]] = set()
             for clip in score.body.control_clips:
-                source = part.children[clip.source.name]
+                source = part.children[clip.source.part]
                 source_score = self.scores[self.parts[source].score].score
                 port = self.output(source, clip.source.output)
                 if (

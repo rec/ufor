@@ -17,8 +17,10 @@ and monotone piecewise tables. Discrete parameters use an explicit enum table.
 Ratio zero maps to an explicit native mute (`null` from `map_parameter`), never a
 fictitious finite dB value. `map_enum_parameter` maps discrete values.
 
-Bindings also declare stream capability summaries, their logical-to-native channel
-maps, and incoming physical controls. Controls retain protocol field, source and
+Bindings also declare stream capability summaries, their logical-to-native stream
+maps in `stream_mappings`, and incoming physical controls. `StreamMapping.stream`
+names a declared stream; `native` names the adapter endpoint. These mappings do
+not select individual channels. Controls retain protocol field, source and
 target units, conversion, scope, and reset semantics. This is portable adapter
 metadata; a host alone resolves an actual MIDI, audio, or network endpoint.
 

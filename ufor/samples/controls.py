@@ -8,7 +8,7 @@ from ..base import Bipolar, Model
 from ..control import Polarity
 
 
-class Control(Model):
+class ControlDeclaration(Model):
     polarity: Polarity = Polarity.unipolar
     default: Bipolar = 0.0
 

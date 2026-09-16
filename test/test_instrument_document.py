@@ -9,14 +9,14 @@ from pydantic import ValidationError
 from ufor import envelope, sfz
 from ufor.base import Model
 from ufor.codec import parse_score, score_schema, score_toml
-from ufor.interface import ScoreVersion
+from ufor.interface import ScoreReference
 from ufor.library import Entry, Library
 from ufor.preset import PresetScore
 from ufor.samples import playback, processing, selection
-from ufor.samples.controls import Control
+from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import (
-    Instrument,
-    InstrumentScore,
+    SampleInstrumentScore,
+    SampleSettings,
     effective_selection,
     effective_settings,
 )
@@ -27,7 +27,7 @@ from ufor.time import Rate, Timebase
 def test_sfz_conformance_requires_only_text_and_supplied_asset_facts() -> None:
     source = sfz.parse(Path('conformance/instrument.sfz').read_text())
     assert sfz.sample_paths(source) == ['audio/glass.wav']
-    result = sfz.compile(
+    result = sfz.compile_instrument(
         source,
         name='glass',
         title='Glass',
@@ -46,7 +46,7 @@ def test_sfz_conformance_requires_only_text_and_supplied_asset_facts() -> None:
         output_channels=['left', 'right'],
     )
     assert result.complete
-    expected = InstrumentScore.model_validate(fixture())
+    expected = SampleInstrumentScore.model_validate(fixture())
     assert result.instrument.model_dump(
         mode='json', exclude_none=True
     ) == expected.model_dump(mode='json', exclude_none=True)
@@ -55,7 +55,7 @@ def test_sfz_conformance_requires_only_text_and_supplied_asset_facts() -> None:
 
 def test_sfz_random_range_round_trips_without_selection() -> None:
     source = sfz.parse('<region> sample=audio/glass.wav key=60 lorand=0.25 hirand=0.5')
-    result = sfz.compile(
+    result = sfz.compile_instrument(
         source,
         name='glass',
         title='Glass',
@@ -85,9 +85,12 @@ def test_sfz_random_range_round_trips_without_selection() -> None:
 
 
 def test_native_instrument_round_trips_through_the_common_codec() -> None:
-    document = InstrumentScore.model_validate(fixture())
+    document = SampleInstrumentScore.model_validate(fixture())
     assert parse_score(score_toml(document)) == document
-    assert InstrumentScore.model_validate_json(document.model_dump_json()) == document
+    assert (
+        SampleInstrumentScore.model_validate_json(document.model_dump_json())
+        == document
+    )
     assert json.loads(Path('schema/scores.json').read_text()) == score_schema()
     assert document.body.slots[0].envelope.segments[1].duration == Fraction(1, 100)
     assert document.assets[0].audio.timebase == 'native-44100'
@@ -97,19 +100,19 @@ def test_native_instrument_round_trips_through_the_common_codec() -> None:
 
 def test_voice_policy_round_trips_through_toml() -> None:
     raw = fixture()
-    raw['body']['instrument']['voice_policy'] = {
+    raw['body']['settings']['voice_policy'] = {
         'maximum_voices': 16,
         'same_key': 'release',
         'overflow': 'replace_oldest',
     }
-    document = InstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
     assert parse_score(score_toml(document)) == document
 
 
 def test_instrument_score_tags_use_the_library_contract() -> None:
     raw = fixture()
     raw['tags'] = ['#sample', '#sample']
-    document = InstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
     assert document.tags == ['#sample']
     library = Library(
         [
@@ -125,7 +128,7 @@ def test_instrument_score_tags_use_the_library_contract() -> None:
     assert library.resolve('#sample').resolved.tags == ['#sample']
     raw['tags'] = ['sample']
     with pytest.raises(ValueError, match='tags require #'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
 
 
 @pytest.mark.parametrize('boundary', ['json', 'toml', 'library', 'preset'])
@@ -137,14 +140,14 @@ def test_group_processing_survives_interchange(boundary: str, override: bool) ->
     raw['body']['slots'][0]['group'] = 'quiet'
     if override:
         raw['body']['slots'][0]['processing'] = {'volume_db': 0}
-    document = InstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
     if boundary == 'json':
-        restored = InstrumentScore.model_validate_json(document.model_dump_json())
+        restored = SampleInstrumentScore.model_validate_json(document.model_dump_json())
     elif boundary == 'toml':
         restored = parse_score(score_toml(document))
     else:
         preset = PresetScore(
-            name='preset', title='Preset', score=ScoreVersion(path='glass.toml')
+            name='preset', title='Preset', score=ScoreReference(path='glass.toml')
         )
         library = Library(
             [
@@ -159,7 +162,7 @@ def test_group_processing_survives_interchange(boundary: str, override: bool) ->
         restored = library.resolve(
             'preset' if boundary == 'preset' else 'glass'
         ).resolved
-    assert isinstance(restored, InstrumentScore)
+    assert isinstance(restored, SampleInstrumentScore)
     assert effective_settings(
         restored.body.slots[0], restored.body.groups[0]
     ).processing.volume_db == (0 if override else -6)
@@ -173,7 +176,7 @@ def test_documented_native_example_is_complete() -> None:
         .split('```', 1)[0]
     )
     document = parse_score(text)
-    assert isinstance(document, InstrumentScore)
+    assert isinstance(document, SampleInstrumentScore)
     assert parse_score(score_toml(document)) == document
 
 
@@ -184,7 +187,7 @@ def test_group_selection_and_empty_envelope_survive_toml(
     selection_value: str | bool | None, expected: str | None
 ) -> None:
     raw = fixture()
-    raw['body']['instrument']['selections'] = [
+    raw['body']['settings']['selections'] = [
         {'name': n, 'mode': 'cycle'} for n in ('takes', 'other')
     ]
     raw['body']['groups'] = [
@@ -197,12 +200,12 @@ def test_group_selection_and_empty_envelope_survive_toml(
     raw['body']['slots'][0].update(
         group='group', selection=selection_value, envelope=None
     )
-    document = InstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
     for restored in (
         parse_score(score_toml(document)),
-        InstrumentScore.model_validate_json(document.model_dump_json()),
+        SampleInstrumentScore.model_validate_json(document.model_dump_json()),
     ):
-        assert isinstance(restored, InstrumentScore)
+        assert isinstance(restored, SampleInstrumentScore)
         slot, group = restored.body.slots[0], restored.body.groups[0]
         assert effective_selection(slot, group) == expected
         assert effective_settings(slot, group).envelope is None
@@ -211,22 +214,22 @@ def test_group_selection_and_empty_envelope_survive_toml(
 @pytest.mark.parametrize('version', [True, 2.0, '2', 1])
 def test_instrument_version_requires_integer_one(version: object) -> None:
     with pytest.raises(ValidationError):
-        InstrumentScore.model_validate(fixture() | {'version': version})
+        SampleInstrumentScore.model_validate(fixture() | {'version': version})
 
 
 def test_whole_envelope_overrides_and_playback_inheritance_round_trip() -> None:
     raw = fixture()
-    raw['body']['instrument']['playback'] = {
+    raw['body']['settings']['playback'] = {
         'direction': 'backward',
         'mode': 'one_shot',
     }
-    raw['body']['instrument']['envelope'] = envelope.Envelope(
+    raw['body']['settings']['envelope'] = envelope.Envelope(
         segments=[envelope.Segment(duration=1, target=1)],
         release=[envelope.Segment(duration=1, target=0)],
     ).model_dump(mode='json')
     raw['body']['slots'][0]['playback'] = {}
     del raw['body']['slots'][0]['envelope']
-    document = InstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
     restored = parse_score(score_toml(document))
     assert restored == document
     assert restored.body.slots[0].envelope is None
@@ -236,9 +239,9 @@ def test_whole_envelope_overrides_and_playback_inheritance_round_trip() -> None:
         segments=[envelope.Segment(duration=0, target=1)],
         release=[envelope.Segment(duration=0, target=0)],
     ).model_dump(mode='json')
-    document = InstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
     assert document.body.slots[0].envelope.release[0].duration == 0
-    assert document.body.instrument.envelope.release[0].duration == 1
+    assert document.body.settings.envelope.release[0].duration == 1
 
 
 @pytest.mark.parametrize(
@@ -289,7 +292,7 @@ def test_instrument_references_are_validated_before_loading(
     )
     item.update(changes)
     with pytest.raises(ValidationError, match=message):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
 
 
 @pytest.mark.parametrize('section', ['assets', 'timebases', 'slices', 'slots'])
@@ -300,26 +303,26 @@ def test_native_identifiers_are_unique(section: str) -> None:
     )
     values.append(deepcopy(values[0]))
     with pytest.raises(ValidationError, match='duplicate'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
 
 
 def test_channels_and_ports_are_not_implicit() -> None:
     raw = fixture()
     raw['outputs'].append(raw['outputs'][0])
     with pytest.raises(ValidationError, match='duplicate'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
     raw = fixture()
     raw['assets'][0]['audio']['timebase'] = 'missing'
     with pytest.raises(ValidationError, match='[Uu]nknown.*timebase'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
     raw = fixture()
     raw['outputs'][0]['stream']['timebase'] = 'missing'
     with pytest.raises(ValidationError, match='[Uu]nknown.*timebase'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
     raw = fixture()
     raw['body']['slots'][0]['channels'].append(raw['body']['slots'][0]['channels'][0])
     with pytest.raises(ValidationError, match='duplicate channel route'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
 
 
 def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
@@ -330,15 +333,15 @@ def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
         'end_frame': 1000,
         'crossfade_frames': 10,
     }
-    InstrumentScore.model_validate(raw)
-    raw['body']['instrument']['playback'] = {'direction': 'mirror'}
+    SampleInstrumentScore.model_validate(raw)
+    raw['body']['settings']['playback'] = {'direction': 'mirror'}
     with pytest.raises(ValidationError, match='mirror loops'):
-        InstrumentScore.model_validate(raw)
-    raw['body']['instrument']['playback'] = {'mode': 'one_shot'}
+        SampleInstrumentScore.model_validate(raw)
+    raw['body']['settings']['playback'] = {'mode': 'one_shot'}
     with pytest.raises(ValidationError, match='while_held'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
     raw['body']['slots'][0]['playback'] = {'direction': 'forward', 'mode': 'while_held'}
-    InstrumentScore.model_validate(raw)
+    SampleInstrumentScore.model_validate(raw)
 
 
 @pytest.mark.parametrize(
@@ -359,9 +362,9 @@ def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
         (playback.Loop, {'start_frame': 0, 'end_frame': 1}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 1}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 5}),
-        (Control, {'default': -0.1}),
-        (Control, {'default': float('inf')}),
-        (Control, {'polarity': 'bipolar', 'default': -1.01}),
+        (ControlDeclaration, {'default': -0.1}),
+        (ControlDeclaration, {'default': float('inf')}),
+        (ControlDeclaration, {'polarity': 'bipolar', 'default': -1.01}),
         (
             processing.EqualizerBand,
             {'name': 'tone', 'frequency_hz': 100, 'gain_db': 0, 'resonance': 0},
@@ -371,10 +374,10 @@ def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
         (selection.Sustain, {'control': 'sustain', 'threshold': 0}),
         (selection.Articulations, {'ids': ['a', 'a'], 'default': 'a'}),
         (selection.Articulations, {'ids': ['a'], 'default': 'b'}),
-        (Instrument, {'controls': {'expression': {'default': 1.1}}}),
-        (Instrument, {'sustain': {'control': 'missing'}}),
+        (SampleSettings, {'controls': {'expression': {'default': 1.1}}}),
+        (SampleSettings, {'sustain': {'control': 'missing'}}),
         (
-            Instrument,
+            SampleSettings,
             {
                 'controls': {'sustain': {'polarity': 'bipolar'}},
                 'sustain': {'control': 'sustain'},
@@ -390,14 +393,14 @@ def test_invalid_musical_settings_are_rejected(
 
 
 def test_declarations_are_frozen_with_independent_defaults() -> None:
-    first, second = Instrument(), Instrument()
+    first, second = SampleSettings(), SampleSettings()
     with pytest.raises(ValidationError, match='frozen'):
         first.sustain = None
     first.processing.equalizer.append(
         processing.EqualizerBand(name='tone', frequency_hz=100, gain_db=0, resonance=1)
     )
     assert second.processing.equalizer == []
-    assert Instrument().processing.equalizer == []
+    assert SampleSettings().processing.equalizer == []
     choke = selection.Choke.model_validate({'group': 'hats', 'mode': 'release'})
     assert selection.Choke.model_validate_json(choke.model_dump_json()) == choke
 
@@ -407,7 +410,7 @@ def test_sfz_reports_general_envelopes_and_custom_channel_maps_as_unsupported() 
     raw['body']['slots'][0]['envelope']['segments'][1]['curve'] = 2
     raw['body']['slots'][0]['channels'][0]['gain'] = 0.125
     raw['body']['slots'][0]['processing']['pan'] = 0
-    result = sfz.write(InstrumentScore.model_validate(raw))
+    result = sfz.write(SampleInstrumentScore.model_validate(raw))
     assert not result.complete
     assert [x.location.path for x in result.unimplemented] == [
         'body.slots[0].channels',
@@ -420,7 +423,7 @@ def test_sfz_rejects_velocity_gain_outside_its_representable_domain() -> None:
     settings = raw['body']['slots'][0]
     settings['modulation']['parameters'][0]['maximum'] = 2
     settings['modulation']['routes'][0]['points'][-1]['amount'] = 2
-    result = sfz.write(InstrumentScore.model_validate(raw))
+    result = sfz.write(SampleInstrumentScore.model_validate(raw))
     assert not result.complete
     assert result.unimplemented[0].location.path == 'body.slots[0].modulation.routes[0]'
     assert 'amp_velcurve_127=2' not in result.contents
@@ -445,13 +448,13 @@ def test_spatial_controls_reject_inapplicable_channel_layouts(
             {'input': 'mono', 'output': 'mono', 'gain': 1}
         ]
     with pytest.raises(ValidationError, match='native layout and stereo output'):
-        InstrumentScore.model_validate(raw)
+        SampleInstrumentScore.model_validate(raw)
 
 
 def test_sfz_generator_diagnostics_use_dictionary_paths() -> None:
     raw = fixture()
     raw['body']['slots'][0]['lfos'] = {'vibrato': {'rate': 5}}
-    result = sfz.write(InstrumentScore.model_validate(raw))
+    result = sfz.write(SampleInstrumentScore.model_validate(raw))
     assert not result.complete
     assert result.unimplemented[0].location.path == 'body.slots[0].lfos.vibrato'
 
@@ -462,7 +465,7 @@ def test_sfz_export_resolves_group_processing() -> None:
     settings['volume_db'] = -6
     raw['body']['groups'] = [{'name': 'quiet', 'processing': settings}]
     raw['body']['slots'][0]['group'] = 'quiet'
-    result = sfz.write(InstrumentScore.model_validate(raw))
+    result = sfz.write(SampleInstrumentScore.model_validate(raw))
     assert result.complete
     assert 'volume=-6' in result.contents
 
@@ -476,7 +479,7 @@ def test_sfz_export_resolves_group_processing() -> None:
             [{'name': 'tone', 'response': 'lowpass', 'cutoff_hz': 1000}],
             'body.slots[0].processing.filters[0]',
         ),
-        ('voice_policy', {'maximum_voices': 4}, 'body.instrument.voice_policy'),
+        ('voice_policy', {'maximum_voices': 4}, 'body.settings.voice_policy'),
     ],
 )
 def test_sfz_reports_unrepresentable_native_features(
@@ -484,12 +487,12 @@ def test_sfz_reports_unrepresentable_native_features(
 ) -> None:
     raw = fixture()
     if field == 'voice_policy':
-        raw['body']['instrument'][field] = value
+        raw['body']['settings'][field] = value
     elif field == 'filters':
         raw['body']['slots'][0]['processing'][field] = value
     else:
         raw['body']['slots'][0][field] = value
-    result = sfz.write(InstrumentScore.model_validate(raw))
+    result = sfz.write(SampleInstrumentScore.model_validate(raw))
     assert not result.complete
     assert path in [i.location.path for i in result.unimplemented]
 

@@ -51,7 +51,7 @@
         "loop": null
       }
     ],
-    "instrument": {
+    "settings": {
       "processing": {
         "volume_db": 0.0,
         "tuning_cents": 0.0,

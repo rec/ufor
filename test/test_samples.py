@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
@@ -5,8 +8,8 @@ from ufor import modulation
 from ufor.events import ControlChange, Release, Trigger
 from ufor.samples import crossfade, playback, processing, selection, trace
 from ufor.samples.instrument import (
-    Instrument,
     SampleInstrument,
+    SampleSettings,
     effective_selection,
     effective_settings,
 )
@@ -98,8 +101,10 @@ def test_articulation_ranges_use_declared_control_domains() -> None:
         },
     }
     with pytest.raises(ValidationError, match='must be in'):
-        Instrument.model_validate(raw)
-    Instrument.model_validate({**raw, 'controls': {'style': {'polarity': 'bipolar'}}})
+        SampleSettings.model_validate(raw)
+    SampleSettings.model_validate(
+        {**raw, 'controls': {'style': {'polarity': 'bipolar'}}}
+    )
 
 
 @pytest.mark.parametrize(
@@ -114,7 +119,7 @@ def test_voice_policy_round_trips(raw: dict[str, object]) -> None:
     policy = selection.VoicePolicy.model_validate(raw)
     assert selection.VoicePolicy.model_validate_json(policy.model_dump_json()) == policy
     assert policy.model_dump(mode='json', exclude_unset=True) == raw
-    assert Instrument.model_validate({'voice_policy': raw}).voice_policy == policy
+    assert SampleSettings.model_validate({'voice_policy': raw}).voice_policy == policy
 
 
 @pytest.mark.parametrize(
@@ -131,6 +136,27 @@ def test_voice_policy_round_trips(raw: dict[str, object]) -> None:
 def test_voice_policy_rejects_invalid_values(raw: dict[str, object]) -> None:
     with pytest.raises(ValidationError):
         selection.VoicePolicy.model_validate(raw)
+
+
+@pytest.mark.parametrize('mode', ['random', 'shuffle'])
+def test_selection_matches_portable_draw_vectors(mode: str) -> None:
+    case = json.loads(
+        (Path(__file__).parents[1] / 'conformance/selection.json').read_text()
+    )
+    state = selection.SelectionState(seed=case['seed'])
+    definition = selection.Selection(name=case['selection'], mode=mode)
+    choices = []
+    for _ in case['choices'][mode]:
+        choice, state = selection.choose(
+            definition,
+            state,
+            case['part'],
+            case['trigger'],
+            case['key'],
+            case['candidates'],
+        )
+        choices.append(choice)
+    assert choices == case['choices'][mode]
 
 
 def test_random_selection_is_reproducible_and_part_local() -> None:
@@ -306,7 +332,7 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
         channels=[processing.ChannelRoute(input='mono', output='left', gain=1)],
         settings=settings,
     )
-    snapshot = trace.TraceSnapshot(
+    snapshot = trace.SampleSnapshot(
         tick=0,
         ordinal=0,
         selection=selection.SelectionState(seed=42),
@@ -320,10 +346,10 @@ def test_semantic_trace_round_trips_resolved_voice_actions_and_snapshots() -> No
             )
         ],
     )
-    value = trace.SemanticTrace(seed=42, actions=[action], snapshots=[snapshot])
-    assert trace.SemanticTrace.model_validate_json(value.model_dump_json()) == value
+    value = trace.SampleTrace(seed=42, actions=[action], snapshots=[snapshot])
+    assert trace.SampleTrace.model_validate_json(value.model_dump_json()) == value
     with pytest.raises(ValidationError, match='ordered'):
-        trace.SemanticTrace(
+        trace.SampleTrace(
             seed=42, actions=[action, action.model_copy(update={'tick': -1})]
         )
 
@@ -664,7 +690,7 @@ def document(
     return {
         'kind': 'sample_instrument',
         'slices': [{'name': 'glass', 'asset': 'glass', 'end_frame': 48000}],
-        'instrument': instrument or {},
+        'settings': instrument or {},
         'slots': [
             {
                 'name': 'glass',

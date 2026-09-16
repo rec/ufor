@@ -10,7 +10,7 @@ from .interface import EventType, InterfaceScore, SequenceBinding
 from .time import Timebase
 
 
-class Sequence(Model):
+class EventSequence(Model):
     timebase: Identifier
     start: int = Field(default=0, strict=True)
     end: int = Field(strict=True)
@@ -32,7 +32,7 @@ class Sequence(Model):
 class SequenceScore(InterfaceScore):
     kind: Literal['sequence'] = 'sequence'
     timebases: list[Timebase] = Field(min_length=1)
-    body: Sequence
+    body: EventSequence
 
     @model_validator(mode='after')
     def clock_reference(self) -> Self:

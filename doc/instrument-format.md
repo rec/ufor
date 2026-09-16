@@ -6,9 +6,9 @@ alongside recordings, sequences, arrangements, tunings, scales, oscillators,
 envelopes, and LFOs. The defining modules are `ufor.samples.*` and `ufor.sfz`.
 Recs owns file access and asset inspection; it no longer owns parallel models.
 
-This is a format and scalar-control implementation. Prepared voice settings,
-selection/gate/retirement state machines, and audio generation remain future
-work. There is no sampler, waveform renderer, scheduler, or plugin host.
+This includes format validation, scalar controls, and pure sample/synth lifecycle
+preparation. Traces require the original definition; audio generation and host
+scheduling remain separate work. See the [capability matrix](capabilities.md).
 
 ## Performance input
 
@@ -134,14 +134,14 @@ combined pan/balance bounds; the generic evaluator still checks actual results.
 
 ## Native instrument score
 
-`InstrumentScore` uses the common header and `kind = "instrument"`.
+`SampleInstrumentScore` uses the common header and `kind = "instrument"`.
 `body.kind = "sample_instrument"` identifies the specialized musical body.
 There is one native format; the old `format_version` score is removed.
 
 | Owner | Fields |
 | --- | --- |
 | Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |
-| Body | `instrument` defaults and optional voice policy, named `slices`, optional non-nested slot `groups`, nonempty `slots` |
+| Body | `settings` defaults and optional voice policy, named `slices`, optional non-nested slot `groups`, nonempty `slots` |
 | Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
 | Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, optional group, sound settings, selection/take/microphone/choke/articulation/crossfade declarations, trigger kind, metadata |
@@ -190,9 +190,9 @@ frames = 44100
 [body]
 kind = "sample_instrument"
 
-[body.instrument]
+[body.settings]
 
-[body.instrument.voice_policy]
+[body.settings.voice_policy]
 maximum_voices = 16
 same_key = "release"
 overflow = "release_oldest"
@@ -454,9 +454,9 @@ part of the instrument format.
 
 `ufor.sfz.parse(text)` produces parsed regions and diagnostics.
 `sample_paths(source)` lists safe relative sample references.
-`compile(source, id=..., name=..., assets=..., output_timebase=...,
+`compile_instrument(source, name=..., title=..., assets=..., output_timebase=...,
 output_channels=...)` accepts `ufor.samples.metadata.AudioMetadata` facts
-supplied by the caller and produces an `InstrumentScore` where possible.
+supplied by the caller and produces a `SampleInstrumentScore` where possible.
 All of these operations are pure. Unsupported opcodes retain source locations;
 missing or malformed required data fails explicitly.
 
@@ -470,7 +470,7 @@ export. Imported channel maps are identity or the standard mono-to-stereo law.
 `ufor.sfz.write(score)` returns text and diagnostics without opening files.
 Unsafe sample syntax, custom channel maps, named controls/generators, selections,
 nonrepresentable routes/envelopes and other losses are reported. Diagnostics
-use native `body.slots[...]` / `body.instrument...` paths. A partial export must
+use native `body.slots[...]` / `body.settings...` paths. A partial export must
 not be treated as complete. Recs' metadata comment namespace remains understood.
 
 `recs.recsam.sfz.read(path)` is the application adapter. It checks resolved path
@@ -506,17 +506,18 @@ overlap/release rules from Recsam for the future player.
 
 ## Preparation boundary
 
-Preparing efficient lookups, resolving effective voice settings, enforcing voice
-limits and trigger lifetimes, and producing event-to-action traces remain
-future work. Dependencies on other instrument scores, multiple audio output
-ports, linked microphones, and generic graphs need their own settled models.
-This extraction does not add speculative fields for those unimplemented features.
+The pure preparers resolve slot/group settings, enforce logical voice limits and
+trigger lifetimes, and produce ordered action traces. Definitions remain required
+for final playback and DSP decisions. Linked microphones have take/alignment
+metadata and shared selection; media alignment and rendering belong to hosts.
+Articulation execution, audio exhaustion, and generic DSP graphs remain outside
+the supported preparer profile. See [capabilities](capabilities.md).
 
 ## Performance and voice state decisions
 
 These state-machine rules retain the useful existing instrument semantics.
-Their implementation and portable action traces remain a later preparation
-milestone, separate from this completed format extraction:
+The supported lifecycle subset is implemented and regression-tested; the table
+also records future player obligations such as articulation and audio completion:
 
 | Input/cause | Required behavior |
 | --- | --- |
@@ -536,16 +537,14 @@ Legato is a host performance policy that may omit a trigger; it is not inferred
 by an envelope from another key's activity. Pitch changes do not mutate a
 trigger's selection key or select another sample retrospectively.
 
-The declared voice policy handles capacity pressure deterministically. A future
-action-trace profile must preserve its same-key, choke, oldest-voice, and trigger
-ordinal rules without depending on audio block size.
+The declared voice policy handles capacity pressure deterministically. Current
+action traces preserve same-key, choke, oldest-voice, and trigger ordinal rules
+without depending on audio block size; oversized trigger batches are rejected.
 
 Selection state belongs to named sets and resets from the explicit performance
 seed at performance start. The pure portable selector covers cycle, random, and
-shuffle modes; later preparation must use it rather than silently converting a
-mode to cycle.
-Linked microphone take groups remain a later extension requiring one shared
-take-selection identity, rather than independent random selection per mic.
+shuffle modes, and the sample preparer uses that selector. Linked microphone
+take groups share one take-selection identity across microphone slots.
 
 ## Additional work beyond the prompt
 

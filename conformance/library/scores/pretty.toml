@@ -57,7 +57,7 @@ effect = "gain"
 amount = 1.0
 
 [body.operation.source]
-name = "source"
+part = "source"
 output = "light"
 
 [[body.parts]]

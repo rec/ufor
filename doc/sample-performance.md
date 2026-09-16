@@ -18,7 +18,7 @@ preparation logic, not audio rendering or voice scheduling.
 
 ## Semantic trace
 
-`ufor.samples.trace.SemanticTrace` records reference lifecycle decisions against
+`ufor.samples.trace.SampleTrace` records reference lifecycle decisions against
 the original instrument definition. Consumers require both the trace and that
 definition. It records the explicit performance seed, actions ordered by
 `(tick, ordinal)`, and optional observational snapshots. Snapshots describe the
@@ -94,9 +94,10 @@ instrument clears all sequence state; ordinary release events do not reset it.
 It contains independent `SelectionSequence` values keyed by part, set ID,
 trigger kind, trigger key, and ordered eligible slot IDs. The sequence records
 its counter, the remaining shuffle bag, and the previous choice. A performance
-start creates fresh state from its seed. A snapshot serializes that state; a
-seek restores an earlier snapshot and replays later ordered triggers, or replays
-from the seed when no snapshot is available. Controls, releases, inactive sets,
+start creates fresh state from its seed. SelectionState can be serialized and
+supplied to subsequent selector calls. An instrument snapshot includes that state
+for observation, but is not resumable; instrument seeking replays from the seed
+and original event history. Controls, releases, inactive sets,
 audio block boundaries, and unrelated state partitions do not advance a
 sequence.
 
@@ -411,3 +412,10 @@ without generating release or sustain samples.
 Future execution conformance must cover out-of-order releases of repeated keys, zero-velocity
 starts and sustain releases, independent parts, sustain deferral, exhausted
 voices, ignored duplicate releases, and nonrecursive tails.
+
+Portable selection vectors in [selection.json](../conformance/selection.json)
+pin multi-draw random progression and three shuffle bags. Common sample/synth
+[lifecycle cases](../conformance/instrument-lifecycle.json) pin action ordering,
+layered replacement and cross-part choke isolation. Both preparers consume the
+same lifecycle cases in tests; sample-specific inheritance and serialized synth
+settings retain their dedicated regression tests.

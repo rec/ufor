@@ -92,14 +92,14 @@ effect = "place"
 lights = ["light_0", "light_1", "light_2", "light_3", "light_4", "light_5"]
 
 [body.operation.placements.source]
-name = "ripples"
+part = "ripples"
 output = "light"
 
 [[body.operation.placements]]
 lights = ["light_6", "light_7", "light_8", "light_9", "light_10", "light_11"]
 
 [body.operation.placements.source]
-name = "mirror"
+part = "mirror"
 output = "light"
 
 [[body.parts]]

@@ -56,8 +56,8 @@ score = { path = "instruments/piano.toml" }
 parameters = { level_db = -6.0 }
 
 [[body.connections]]
-source = { name = "notes", output = "performance" }
-destination = { name = "piano", input = "performance" }
+source = { part = "notes", output = "performance" }
+destination = { part = "piano", input = "performance" }
 
 [[body.tracks]]
 name = "mix"
@@ -65,7 +65,7 @@ stream = { timebase = "audio", channels = ["left", "right"] }
 
 [[body.clips]]
 name = "rehearsal"
-source = { name = "rehearsal", output = "desk" }
+source = { part = "rehearsal", output = "desk" }
 track = "mix"
 source_start = 0
 source_end = 480000
@@ -73,7 +73,7 @@ timeline_start = 0
 
 [[body.clips]]
 name = "drums"
-source = { name = "drums", output = "main" }
+source = { part = "drums", output = "main" }
 track = "mix"
 source_start = 0
 source_end = 480000
@@ -81,7 +81,7 @@ timeline_start = 0
 
 [[body.clips]]
 name = "piano"
-source = { name = "piano", output = "audio" }
+source = { part = "piano", output = "audio" }
 track = "mix"
 source_start = 0
 source_end = 480000

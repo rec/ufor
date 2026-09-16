@@ -81,7 +81,7 @@ a device; a browseable score such as a tuning is not necessarily playable by Lyt
 Selectors use literal library/name/tag/address matching, with no quoting,
 escaping or patterns. An omitted library searches every registered root; never
 prefer the current library or choose the first match. Extensionless addresses
-can be ambiguous. Authored parts use `ScoreVersion(selector=...)`; its existing
+can be ambiguous. Authored parts use `ScoreReference(selector=...)`; its existing
 relative `path` form still resolves from the referring file within the library.
 Optional hashes verify exact file bytes without selecting a fallback.
 

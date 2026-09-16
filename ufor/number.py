@@ -4,14 +4,14 @@ from typing import TypeAlias
 
 type NoteNumber = int  # May be negative
 if False:
-    type Number = float | int | Fraction
+    type PitchNumber = float | int | Fraction
 else:
-    Number: TypeAlias = float | int | Fraction
+    PitchNumber: TypeAlias = float | int | Fraction
 
 
-def cents(f: Number) -> float:
+def cents_to_ratio(f: PitchNumber) -> float:
     return math.exp2(float(f) / 1200)
 
 
-def uncents(c: Number) -> float:
+def ratio_to_cents(c: PitchNumber) -> float:
     return math.log2(float(c)) * 1200

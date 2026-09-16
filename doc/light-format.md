@@ -115,8 +115,8 @@ from right to left. The score still describes the same left and right positions.
 
 `AnimationScore` has one light output, one logical clock, no external inputs,
 and an `Animation` body. The body contains an operation and named `Part`s.
-Parts use existing `ScoreVersion(path, sha256=None)` values. References are
-existing `OutputSelection(name, output)` values. No Python import paths occur
+Parts use existing `ScoreReference(path, sha256=None)` values. References are
+existing `OutputSelection(part, output)` values. No Python import paths occur
 in a score. The common `Composition` resolver checks supplied score records,
 optional hashes, cycles, parameter exports and light output compatibility.
 

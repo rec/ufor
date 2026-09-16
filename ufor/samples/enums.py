@@ -55,7 +55,7 @@ class KeyBehavior(StrEnum):
     momentary = auto()
 
 
-class Input(StrEnum):
+class CrossfadeInput(StrEnum):
     key = auto()
     velocity = auto()
     control = auto()

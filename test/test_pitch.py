@@ -85,13 +85,13 @@ def test_tuning_anchors_ratios_but_does_not_transpose_absolute_tables() -> None:
     absolute = Tuning(
         source=FrequencyTable(values=['440'], first_note=69),
         root_frequency='100',
-        detune=1200,
+        detune_cents=1200,
     )
     assert absolute(69) == 880
 
 
 def test_computed_limit_is_a_maximum_denominator() -> None:
-    computed = Computed(limit=5)
+    computed = Computed(denominator_limit=5)
     assert computed(4) == Fraction(5, 4)
     assert computed.as_ratios()(16) == Fraction(5, 2)
 
@@ -135,7 +135,9 @@ def test_scala_preserves_fractions_and_converts_decimal_cents() -> None:
         ),
         ScaleScore(name='scale', title='Notes', body=Scale()),
         OscillatorScore(
-            name='oscillator', title='Triangle', body=Oscillator(key_scale=6)
+            name='oscillator',
+            title='Triangle',
+            body=Oscillator(key_scale_db_per_12_steps=6),
         ),
     ],
 )
@@ -146,7 +148,7 @@ def test_musical_documents_round_trip_through_common_codec(
 
 
 def test_oscillator_gain_uses_decibels_per_twelve_note_steps() -> None:
-    oscillator = Oscillator(key_scale=20, key_scale_note=60)
+    oscillator = Oscillator(key_scale_db_per_12_steps=20, key_scale_note=60)
     assert oscillator.gain(60) == 1
     assert oscillator.gain(72) == 10
     assert oscillator.gain(48) == 0.1

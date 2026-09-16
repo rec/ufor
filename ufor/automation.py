@@ -8,7 +8,7 @@ from typing import Literal, Self
 
 from pydantic import Field, StrictBool, model_validator
 
-from .base import Identifier, Model, Number, unique
+from .base import FiniteScalar, Identifier, Model, unique
 from .control import Scope
 from .interface import ControlBinding, ControlType, InterfaceScore, Output
 from .modulation import Operation, Target, Unit
@@ -43,7 +43,7 @@ class ArrangementGainTarget(Model):
 
 class Knot(Model):
     tick: int = Field(strict=True)
-    value: Number | StrictBool
+    value: FiniteScalar | StrictBool
 
 
 class TimelineCurve(Model):
@@ -67,7 +67,7 @@ class Automation(Model):
     scope: Scope
     quantity: Quantity
     unit: Unit
-    default: Number | StrictBool
+    default: FiniteScalar | StrictBool
     curves: list[TimelineCurve] = Field(default_factory=list)
 
     @model_validator(mode='after')

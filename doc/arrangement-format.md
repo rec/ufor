@@ -39,7 +39,7 @@ source_end = 48000
 timeline_start = 0
 
 [body.clips.source]
-name = "take"
+part = "take"
 output = "audio"
 
 [[body.parts]]
@@ -91,7 +91,7 @@ placement are rejected. Nested arrangement outputs retain their native frame
 coordinates. Unsupported instrument realization fails during preparation.
 
 `control_clips` place reusable automation-score outputs. Each has a name, source
-`{ name, output }`, native source interval, and timeline start. The source score
+`{ part, output }`, native source interval, and timeline start. The source score
 names either a local target part and public parameter or one local clip, bus, or
 route gain. Ufor resolves the target's unit, scope, range, and exact clock
 conversion before a host begins work. A control clip has speed one in this

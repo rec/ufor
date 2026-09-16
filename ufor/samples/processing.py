@@ -7,18 +7,18 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from .. import control, modulation
-from ..base import Frequency, Identifier, Model, Number, Positive, unique
+from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
 from ..lfo import LFO
 from ..modulation import Modulation
 from . import enums
-from .controls import Control
+from .controls import ControlDeclaration
 
 
 class EqualizerBand(Model):
     name: Identifier
     frequency_hz: Frequency
-    gain_db: Number
+    gain_db: FiniteScalar
     resonance: Positive
 
 
@@ -52,18 +52,18 @@ class ResonantFilter(Model):
 
 
 class BiquadCoefficients(Model):
-    b0: Number
-    b1: Number
-    b2: Number
-    a1: Number
-    a2: Number
+    b0: FiniteScalar
+    b1: FiniteScalar
+    b2: FiniteScalar
+    a1: FiniteScalar
+    a2: FiniteScalar
 
 
 class Processing(Model):
-    volume_db: Number = 0.0
-    tuning_cents: Number = 0.0
-    pan: Number = 0.0
-    stereo_balance: Number = 0.0
+    volume_db: FiniteScalar = 0.0
+    tuning_cents: FiniteScalar = 0.0
+    pan: FiniteScalar = 0.0
+    stereo_balance: FiniteScalar = 0.0
     equalizer: list[EqualizerBand] = Field(default_factory=list)
     filters: list[ResonantFilter] = Field(default_factory=list)
 
@@ -111,7 +111,7 @@ def biquad_coefficients(filter: ResonantFilter, rate_hz: float) -> BiquadCoeffic
 class ChannelRoute(Model):
     input: str = Field(min_length=1)
     output: str = Field(min_length=1)
-    gain: Number
+    gain: FiniteScalar
 
 
 class EventBinding(Model):
@@ -161,17 +161,19 @@ class SoundSettings(Model):
             source = sources[binding.name]
             if isinstance(binding, EventBinding):
                 if source.scope != 'voice':
-                    raise ValueError('Key and velocity bindings require voice scope')
+                    raise ValueError(
+                        'NoteKey and velocity bindings require voice scope'
+                    )
                 if binding.kind == 'key':
                     if any(v != int(v) for v in (source.minimum, source.maximum)):
-                        raise ValueError('Key source bounds must be integers')
+                        raise ValueError('NoteKey source bounds must be integers')
                     if any(
                         p.input != int(p.input)
                         for r in self.modulation.routes
                         if r.source == source.name
                         for p in r.points
                     ):
-                        raise ValueError('Key mapping inputs must be integers')
+                        raise ValueError('NoteKey mapping inputs must be integers')
                 elif (source.minimum, source.maximum) != (0, 1):
                     raise ValueError('Velocity source domain must be [0, 1]')
             elif isinstance(binding, GeneratorBinding):
@@ -231,7 +233,7 @@ class SoundSettings(Model):
                     )
         return self
 
-    def validate_controls(self, controls: dict[str, Control]) -> None:
+    def validate_controls(self, controls: dict[str, ControlDeclaration]) -> None:
         sources = {s.name: s for s in self.modulation.sources}
         for binding in self.bindings:
             if isinstance(binding, ControlBinding):
@@ -245,7 +247,7 @@ class SoundSettings(Model):
                     1,
                 ):
                     raise ValueError(
-                        'Control source must match its declared domain '
+                        'ControlDeclaration source must match its declared domain '
                         'and control scope'
                     )
 
