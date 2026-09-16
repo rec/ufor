@@ -138,6 +138,116 @@ def test_oversized_trigger_batch_is_rejected(kind: str) -> None:
         )
 
 
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_preparation_rejects_unimplemented_articulations(kind: str) -> None:
+    with pytest.raises(ValueError, match='articulation preparation is unsupported'):
+        prepare(
+            kind,
+            [{'name': 'voice'}],
+            [],
+            {'articulations': {'ids': ['normal'], 'default': 'normal'}},
+        )
+
+
+def test_synth_action_serialization_preserves_voice_settings() -> None:
+    result = prepare(
+        'synth',
+        [
+            {
+                'name': 'voice',
+                'minimum_hold_seconds': '1/4',
+                'synchronize_oscillator': True,
+            }
+        ],
+        [
+            Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60),
+        ],
+    )
+    restored = synth_trace.SemanticTrace.model_validate_json(result.model_dump_json())
+    assert restored == result
+    assert restored.actions[0].settings.minimum_hold_seconds == 0.25
+    assert restored.actions[0].settings.synchronize_oscillator
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_voice_ids_distinguish_component_boundaries_and_reused_onsets(
+    kind: str,
+) -> None:
+    result = prepare(
+        kind,
+        [{'name': 'voice'}],
+        [
+            Trigger(tick=0, ordinal=0, part='a-b', trigger_id='c', key=60),
+            Trigger(tick=1, ordinal=1, part='a', trigger_id='b-c', key=60),
+            Release(tick=2, ordinal=2, part='a-b', trigger_id='c'),
+            Trigger(tick=3, ordinal=3, part='a-b', trigger_id='c', key=60),
+            Release(tick=4, ordinal=4, part='a-b', trigger_id='c'),
+        ],
+    )
+    starts = [a for a in result.actions if a.kind == 'voice_start']
+    assert len({a.voice_id for a in starts}) == 3
+    retired = [a.voice_id for a in result.actions if isinstance(a, VoiceRetirement)]
+    assert retired == [starts[0].voice_id, starts[2].voice_id]
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_active_trigger_identity_cannot_be_reused(kind: str) -> None:
+    with pytest.raises(ValueError, match='trigger ID is still active'):
+        prepare(
+            kind,
+            [{'name': 'voice'}],
+            [
+                Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60),
+                Trigger(tick=1, ordinal=1, part='part', trigger_id='note', key=60),
+            ],
+        )
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+@pytest.mark.parametrize('control,value', [('unknown', 1), ('pedal', -1)])
+def test_preparation_validates_control_changes(
+    kind: str, control: str, value: float
+) -> None:
+    with pytest.raises(ValueError):
+        prepare(
+            kind,
+            [{'name': 'voice'}],
+            [
+                ControlChange(
+                    tick=0,
+                    ordinal=0,
+                    scope='part',
+                    part='part',
+                    control=control,
+                    value=value,
+                ),
+            ],
+            {'controls': {'pedal': {}}},
+        )
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_snapshot_uses_processed_event_order(kind: str) -> None:
+    result = prepare(
+        kind,
+        [{'name': 'voice'}],
+        [
+            Release(tick=10, ordinal=1, part='part', trigger_id='note'),
+            Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60),
+        ],
+    )
+    assert result.snapshots[0].tick == 10
+    assert result.snapshots[0].ordinal == 1
+    assert not result.snapshots[0].voices
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_preparation_rejects_duplicate_event_coordinates(kind: str) -> None:
+    event = Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60)
+    with pytest.raises(ValueError, match='duplicate event coordinate'):
+        prepare(kind, [{'name': 'voice'}], [event, event])
+
+
 def prepare(
     kind: str,
     templates: list[dict[str, object]],
