@@ -8286,6 +8286,10 @@
               "$ref": "#/$defs/Envelope"
             },
             {
+              "const": false,
+              "type": "boolean"
+            },
+            {
               "type": "null"
             }
           ],
@@ -8415,6 +8419,10 @@
           "anyOf": [
             {
               "type": "string"
+            },
+            {
+              "const": false,
+              "type": "boolean"
             },
             {
               "type": "null"

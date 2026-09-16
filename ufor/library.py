@@ -272,7 +272,7 @@ def normalize_references(value: object, names: dict[str, str]) -> object:
     if isinstance(value, BaseModel):
         return {
             n: normalize_references(getattr(value, n), names)
-            for n in type(value).model_fields
+            for n in value.model_dump()
         }
     if isinstance(value, list):
         return [normalize_references(v, names) for v in value]
