@@ -113,7 +113,7 @@ def choose(
         choice = ordered[sequence.counter % len(ordered)]
         next_sequence = sequence.model_copy(update={'counter': sequence.counter + 1})
     elif selection.mode == enums.SelectionMode.random:
-        choice = ordered[_index(state.seed, sequence, len(ordered), 0)]
+        choice = ordered[_index(state.seed, sequence, len(ordered), sequence.counter)]
         next_sequence = sequence.model_copy(update={'counter': sequence.counter + 1})
     else:
         remaining = sequence.remaining
@@ -160,6 +160,7 @@ def _shuffle(
     seed: int, sequence: SelectionSequence, counter: int
 ) -> tuple[list[str], int]:
     candidates = sequence.candidates.copy()
+    start = 0
     if len(candidates) > 1 and sequence.previous is not None:
         first_candidates = [c for c in candidates if c != sequence.previous]
         first = first_candidates[
@@ -168,8 +169,9 @@ def _shuffle(
         candidates.remove(first)
         candidates.insert(0, first)
         counter += 1
-    for index in range(len(candidates) - 1, 0, -1):
-        swap = _index(seed, sequence, index + 1, counter)
+        start = 1
+    for index in range(len(candidates) - 1, start, -1):
+        swap = start + _index(seed, sequence, index - start + 1, counter)
         candidates[index], candidates[swap] = candidates[swap], candidates[index]
         counter += 1
     return candidates, counter

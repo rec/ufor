@@ -41,6 +41,9 @@ through TOML, JSON, library loading, and presets, including explicit neutral val
 
 ### 2. Random selection always uses the same draw for a state partition
 
+**Resolved:** random draws use the persisted advancing counter. Regression
+coverage checks progression and reproducible replay of the same state partition.
+
 **P1, confirmed.** [selection.py:115](../ufor/samples/selection.py#L115).
 
 The random branch increments `sequence.counter` but calls `_index(..., 0)`.
@@ -50,6 +53,9 @@ select the same candidate forever. Use the advancing state in the draw and add
 a portable multi-draw case. Determinism alone does not test random progression.
 
 ### 3. Shuffle refill can immediately repeat the preceding choice
+
+**Resolved:** refills protect the first nonrepeating choice and shuffle only
+the remaining positions. Regression coverage checks 32 seeds.
 
 **P1, confirmed.** [selection.py:159](../ufor/samples/selection.py#L159),
 [sample-performance.md:91](../doc/sample-performance.md#L91).
