@@ -73,18 +73,18 @@ asset = "asset-1"
 start_frame = 10
 end_frame = 1000
 
-[body.instrument]
+[body.settings]
 bindings = []
 selections = []
 
-[body.instrument.processing]
+[body.settings.processing]
 volume_db = 0.0
 tuning_cents = 0.0
 pan = 0.0
 stereo_balance = 0.0
 equalizer = []
 
-[body.instrument.envelope]
+[body.settings.envelope]
 clock = "seconds"
 scope = "voice"
 polarity = "unipolar"
@@ -92,44 +92,44 @@ initial = 0.0
 hold = true
 retrigger = "current"
 
-[[body.instrument.envelope.segments]]
+[[body.settings.envelope.segments]]
 duration = "0"
 target = 1.0
 curve = 0.0
 
-[[body.instrument.envelope.release]]
+[[body.settings.envelope.release]]
 duration = "0"
 target = 0.0
 curve = 0.0
 
-[body.instrument.envelopes]
+[body.settings.envelopes]
 
-[body.instrument.lfos]
+[body.settings.lfos]
 
-[body.instrument.modulation]
+[body.settings.modulation]
 sources = []
 routes = []
 
-[[body.instrument.modulation.parameters]]
+[[body.settings.modulation.parameters]]
 unit = "db"
 scope = "voice"
 minimum = -60.0
 maximum = 6.0
 default = 0.0
 
-[body.instrument.modulation.parameters.target]
+[body.settings.modulation.parameters.target]
 name = "processing"
 parameter = "volume_db"
 
-[body.instrument.playback]
+[body.settings.playback]
 direction = "forward"
 mode = "while_held"
 
-[body.instrument.sustain]
+[body.settings.sustain]
 control = "sustain"
 threshold = 0.5
 
-[body.instrument.controls.sustain]
+[body.settings.controls.sustain]
 polarity = "unipolar"
 default = 0.0
 

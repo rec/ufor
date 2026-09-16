@@ -17,10 +17,10 @@ from ufor.interface import (
     OutputSelection,
     ParameterExport,
     Part,
-    ScoreVersion,
+    ScoreReference,
 )
 from ufor.modulation import Target, Unit
-from ufor.samples.instrument import InstrumentScore
+from ufor.samples.instrument import SampleInstrumentScore
 from ufor.sequence import SequenceScore
 from ufor.synth import SynthInstrumentScore
 from ufor.time import Rate, Timebase
@@ -29,7 +29,7 @@ from ufor.time import Rate, Timebase
 def scores() -> dict[str, ScoreRecord]:
     piano = json.loads(Path('conformance/instrument.json').read_text())
     output = next(p for p in piano['outputs'])['stream']
-    piano['body']['instrument']['modulation']['parameters'] = [
+    piano['body']['settings']['modulation']['parameters'] = [
         {
             'target': {'name': 'processing', 'parameter': 'volume_db'},
             'unit': 'db',
@@ -108,15 +108,15 @@ def scores() -> dict[str, ScoreRecord]:
                 ],
                 'connections': [
                     {
-                        'source': {'name': 'notes', 'output': 'notes'},
-                        'destination': {'name': 'piano', 'input': 'performance'},
+                        'source': {'part': 'notes', 'output': 'notes'},
+                        'destination': {'part': 'piano', 'input': 'performance'},
                     }
                 ],
                 'tracks': [{'name': 'mix', 'stream': output}],
                 'clips': [
                     {
                         'name': 'piano',
-                        'source': {'name': 'piano', 'output': 'audio'},
+                        'source': {'part': 'piano', 'output': 'audio'},
                         'track': 'mix',
                         'source_start': 0,
                         'source_end': 96000,
@@ -158,9 +158,9 @@ def scores() -> dict[str, ScoreRecord]:
         parameters=[ParameterExport(name='brightness', binding=target)],
         body=light_animation.Animation(
             operation=light_animation.Gain(
-                source=OutputSelection(name='solid', output='light')
+                source=OutputSelection(part='solid', output='light')
             ),
-            parts=[Part(name='solid', score=ScoreVersion(path='solid.toml'))],
+            parts=[Part(name='solid', score=ScoreReference(path='solid.toml'))],
             modulation=modulation.Modulation(
                 parameters=[
                     modulation.Parameter(
@@ -211,7 +211,7 @@ def scores() -> dict[str, ScoreRecord]:
             score=mix, paths={'notes.toml': 'notes', 'piano.toml': 'piano'}
         ),
         'notes': ScoreRecord(score=notes),
-        'piano': ScoreRecord(score=InstrumentScore.model_validate(piano)),
+        'piano': ScoreRecord(score=SampleInstrumentScore.model_validate(piano)),
         'light': ScoreRecord(score=light, paths={'solid.toml': 'solid'}),
         'solid': ScoreRecord(score=light_source),
         'fade': ScoreRecord(score=fade),
@@ -287,7 +287,7 @@ def test_arrangement_requests_reusable_control_with_audio_and_events() -> None:
     raw['body']['clips'].append(
         {
             'name': 'recorded-take',
-            'source': {'name': 'take', 'output': 'desk'},
+            'source': {'part': 'take', 'output': 'desk'},
             'track': 'mix',
             'source_start': 0,
             'source_end': 96000,
@@ -297,7 +297,7 @@ def test_arrangement_requests_reusable_control_with_audio_and_events() -> None:
     raw['body']['control_clips'] = [
         {
             'name': 'light-fade',
-            'source': {'name': 'fade', 'output': 'control'},
+            'source': {'part': 'fade', 'output': 'control'},
             'source_start': control_case['source_interval'][0],
             'source_end': control_case['source_interval'][1],
             'timeline_start': control_case['timeline_start'],
@@ -345,14 +345,14 @@ def test_control_clips_reject_ambiguous_or_unrepresentable_mappings(
     ]
     clip = {
         'name': 'light-fade',
-        'source': {'name': 'fade', 'output': 'control'},
+        'source': {'part': 'fade', 'output': 'control'},
         'source_start': 0,
         'source_end': 2000,
         'timeline_start': 0,
     }
     raw['body']['control_clips'] = [clip]
     if change == 'wrong-source':
-        clip['source'] = {'name': 'notes', 'output': 'notes'}
+        clip['source'] = {'part': 'notes', 'output': 'notes'}
     elif change == 'unknown-target':
         auto = values['fade'].score.model_copy(
             update={
@@ -393,7 +393,7 @@ def test_cropped_nested_instances_replay_their_own_histories() -> None:
     raw['body']['clips'] = [
         {
             'name': n,
-            'source': {'name': n, 'output': 'main'},
+            'source': {'part': n, 'output': 'main'},
             'track': 'mix',
             'source_start': 48000,
             'source_end': 96000,
@@ -577,15 +577,15 @@ def test_event_fanout_keeps_receivers_independent() -> None:
     )
     raw['body']['connections'].append(
         {
-            'source': {'name': 'notes', 'output': 'notes'},
-            'destination': {'name': 'second', 'input': 'performance'},
+            'source': {'part': 'notes', 'output': 'notes'},
+            'destination': {'part': 'second', 'input': 'performance'},
         }
     )
     raw['body']['clips'].append(
         dict(
             raw['body']['clips'][0],
             name='second',
-            source={'name': 'second', 'output': 'audio'},
+            source={'part': 'second', 'output': 'audio'},
         )
     )
     values['mix'] = values['mix'].model_copy(
@@ -606,7 +606,7 @@ def test_forwarded_input_and_output_can_share_a_name() -> None:
     piano = values['piano'].score
     raw = piano.model_dump()
     raw['inputs'][0]['name'] = 'audio'
-    values['piano'] = ScoreRecord(score=InstrumentScore.model_validate(raw))
+    values['piano'] = ScoreRecord(score=SampleInstrumentScore.model_validate(raw))
     wrapper = ArrangementScore.model_validate(
         {
             'name': 'wrapper',
@@ -618,14 +618,14 @@ def test_forwarded_input_and_output_can_share_a_name() -> None:
                 {
                     'name': 'audio',
                     'stream': piano.inputs[0].stream,
-                    'binding': {'name': 'inside', 'input': 'audio'},
+                    'binding': {'part': 'inside', 'input': 'audio'},
                 }
             ],
             'outputs': [
                 {
                     'name': 'audio',
                     'stream': piano.outputs[0].stream,
-                    'binding': {'name': 'inside', 'output': 'audio'},
+                    'binding': {'part': 'inside', 'output': 'audio'},
                 }
             ],
             'body': {
@@ -650,11 +650,11 @@ def test_forwarded_input_and_output_can_share_a_name() -> None:
 
 
 def test_score_version_accepts_an_optional_hash_but_not_old_selections() -> None:
-    from ufor.interface import InputSelection, OutputSelection, ScoreVersion
+    from ufor.interface import InputSelection, OutputSelection, ScoreReference
 
-    assert ScoreVersion(path='piano.toml').sha256 is None
-    assert ScoreVersion(path='piano.toml', sha256='a' * 64).sha256 == 'a' * 64
+    assert ScoreReference(path='piano.toml').sha256 is None
+    assert ScoreReference(path='piano.toml', sha256='a' * 64).sha256 == 'a' * 64
     with pytest.raises(ValueError):
-        InputSelection.model_validate({'name': 'piano', 'output': 'audio'})
+        InputSelection.model_validate({'part': 'piano', 'output': 'audio'})
     with pytest.raises(ValueError):
         OutputSelection.model_validate({'node': 'piano', 'port': 'audio'})

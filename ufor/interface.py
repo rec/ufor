@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from .score_types import ScoreValue
 
 
-class ScoreVersion(Model):
+class ScoreReference(Model):
     path: str | None = Field(default=None, min_length=1)
     selector: str | None = None
     sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
@@ -49,7 +49,7 @@ class ScoreVersion(Model):
     @model_validator(mode='after')
     def one_selection(self) -> Self:
         if (self.path is None) == (self.selector is None):
-            raise ValueError('ScoreVersion requires exactly one path or selector')
+            raise ValueError('ScoreReference requires exactly one path or selector')
         return self
 
     @property
@@ -58,18 +58,18 @@ class ScoreVersion(Model):
 
 
 class OutputSelection(Model):
-    name: Identifier
+    part: Identifier
     output: Identifier
 
 
 class InputSelection(Model):
-    name: Identifier
+    part: Identifier
     input: Identifier
 
 
 class Part(RecursiveModel):
     name: Identifier
-    score: 'ScoreVersion | ScoreValue'
+    score: 'ScoreReference | ScoreValue'
     parameters: dict[Identifier, float] = Field(default_factory=dict)
 
 

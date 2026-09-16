@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from ufor import library_files
 from ufor.codec import parse_score, score_toml
-from ufor.interface import ScoreVersion
+from ufor.interface import ScoreReference
 from ufor.library import State
 from ufor.musical import OscillatorScore
 from ufor.oscillator import Oscillator
@@ -67,7 +67,7 @@ def test_quotes_and_backslashes_do_not_hide_delimiters() -> None:
 )
 def test_score_version_has_exactly_one_selection(values: dict[str, str]) -> None:
     with pytest.raises(ValueError):
-        ScoreVersion.model_validate(values)
+        ScoreReference.model_validate(values)
 
 
 def test_selector_versions_and_metadata_round_trip() -> None:
@@ -75,12 +75,12 @@ def test_selector_versions_and_metadata_round_trip() -> None:
         name='quiet frogs',
         title='Quiet frogs',
         tags=['#frogs', '#frogs'],
-        score=ScoreVersion(selector='my library: pretty score #lake'),
+        score=ScoreReference(selector='my library: pretty score #lake'),
     )
     assert preset.tags == ['#frogs']
     assert preset.score.selector == 'my library:pretty score#lake'
     assert parse_score(score_toml(preset)) == preset
-    assert ScoreVersion(path='a.toml').key != ScoreVersion(selector='a.toml').key
+    assert ScoreReference(path='a.toml').key != ScoreReference(selector='a.toml').key
 
 
 @pytest.mark.parametrize('name', ['a:b', 'a#b', 'a/b', 'a.*b', ' a', 'a '])
@@ -151,7 +151,7 @@ def test_cycle_rejects_the_closing_score_and_blocks_dependents(tmp_path: Path) -
     for name, target in [('a', 'b'), ('b', 'c'), ('c', 'a')]:
         save(
             tmp_path / f'scores/{name}.toml',
-            PresetScore(name=name, title=name, score=ScoreVersion(selector=target)),
+            PresetScore(name=name, title=name, score=ScoreReference(selector=target)),
         )
     save(tmp_path / 'scores/good.toml', oscillator('good'))
     result = library_files.read_library(config)
@@ -180,13 +180,13 @@ def test_forward_references_and_nonplayable_presets(tmp_path: Path) -> None:
             name='first',
             title='First',
             tags=['#preset'],
-            score=ScoreVersion(selector='second'),
+            score=ScoreReference(selector='second'),
         ),
     )
     save(
         tmp_path / 'scores/b.toml',
         PresetScore(
-            name='second', title='Second', score=ScoreVersion(path='nested/osc.toml')
+            name='second', title='Second', score=ScoreReference(path='nested/osc.toml')
         ),
     )
     save(tmp_path / 'scores/nested/osc.toml', oscillator('original'))
@@ -210,7 +210,7 @@ def test_ambiguity_does_not_fall_back_after_a_body_is_rejected(tmp_path: Path) -
     (tmp_path / 'scores/bad.toml').write_text(tomlkit.dumps(invalid))
     save(
         tmp_path / 'scores/ref.toml',
-        PresetScore(name='ref', title='Ref', score=ScoreVersion(selector='same')),
+        PresetScore(name='ref', title='Ref', score=ScoreReference(selector='same')),
     )
     result = library_files.read_library(config)
     assert len(result.find('same')) == 1
@@ -296,7 +296,7 @@ def test_hashes_apply_to_exact_selected_file_bytes(tmp_path: Path) -> None:
         PresetScore(
             name='pinned',
             title='Pinned',
-            score=ScoreVersion(selector='triangle', sha256=pin),
+            score=ScoreReference(selector='triangle', sha256=pin),
         ),
     )
     assert library_files.read_library(config).resolve('pinned').state == State.ready
@@ -334,7 +334,7 @@ def test_relative_references_cannot_escape_the_library(tmp_path: Path) -> None:
     save(
         tmp_path / 'scores/preset.toml',
         PresetScore(
-            name='escape', title='Escape', score=ScoreVersion(path='../outside.toml')
+            name='escape', title='Escape', score=ScoreReference(path='../outside.toml')
         ),
     )
     result = library_files.read_library(config)
@@ -394,18 +394,20 @@ def test_cross_library_cycles_and_unqualified_ambiguity(tmp_path: Path) -> None:
     )
     save(
         tmp_path / 'scores/a.toml',
-        PresetScore(name='a', title='A', score=ScoreVersion(selector='second:b')),
+        PresetScore(name='a', title='A', score=ScoreReference(selector='second:b')),
     )
     save(
         tmp_path / 'other/b.toml',
-        PresetScore(name='b', title='B', score=ScoreVersion(selector='first:a')),
+        PresetScore(name='b', title='B', score=ScoreReference(selector='first:a')),
     )
     save(tmp_path / 'scores/one.toml', oscillator())
     save(tmp_path / 'other/two.toml', oscillator())
     save(
         tmp_path / 'scores/ambiguous.toml',
         PresetScore(
-            name='ambiguous', title='Ambiguous', score=ScoreVersion(selector='triangle')
+            name='ambiguous',
+            title='Ambiguous',
+            score=ScoreReference(selector='triangle'),
         ),
     )
     result = library_files.read_library(config)
@@ -427,7 +429,7 @@ def test_self_reference_and_missing_dependency(
     config = setup_library(tmp_path)
     save(
         tmp_path / 'scores/self.toml',
-        PresetScore(name='self', title='Self', score=ScoreVersion(selector=selector)),
+        PresetScore(name='self', title='Self', score=ScoreReference(selector=selector)),
     )
     result = library_files.read_library(config)
     assert result.entries['local:/self.toml'].state == State.rejected

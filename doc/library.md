@@ -70,7 +70,7 @@ to explain failures. Entries are keyed by `library:/address.toml`.
 ## TOML scores and presets
 
 Ordinary scores have `name`, required descriptive `title`, and optional `tags`.
-A composition selects its parts through `ScoreVersion`:
+A composition selects its parts through `ScoreReference`:
 
 ```toml
 [[body.parts]]
@@ -98,7 +98,7 @@ The preset supplies its own metadata, including tags. An empty preset can name
 an existing tuning or other score without public parameters. Browsing a tuning
 does not make it a playable composition part.
 
-`ScoreVersion` accepts exactly one `selector` or relative `path`, plus optional
+`ScoreReference` accepts exactly one `selector` or relative `path`, plus optional
 `sha256` of the selected file's exact bytes. Relative paths resolve from the
 referring file and cannot escape the root. A hash mismatch is an error, never a
 hint to search for another file.

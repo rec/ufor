@@ -1,0 +1,18 @@
+{
+  "identifiers": {
+    "valid": ["piano", "é2", "a²", "α_1", "part-one"],
+    "invalid": ["", "Upper", "2part", "a.b", "a b", "é", "aⅣ"]
+  },
+  "rejected": [
+    {"model": "ScoreReference", "rule": "choose exactly one reference", "value": {"path": "score.toml", "selector": "#piano"}},
+    {"model": "ScoreReference", "rule": "references use relative POSIX paths", "value": {"path": "/score.toml"}},
+    {"model": "Scale", "rule": "intervals cannot be truncated", "value": {"intervals": [1.9]}},
+    {"model": "Scale", "rule": "boolean is not a pitch interval", "value": {"intervals": [true]}},
+    {"model": "StartRule", "rule": "cue windows require cue starts", "value": {"kind": "at", "tick": 0, "deadline": 5}},
+    {"model": "ChannelEncoding", "rule": "slots must be distinct", "value": {"parameter": "pan", "slots": [1, 1], "minimum": 0, "maximum": 1}},
+    {"model": "ParameterMapping", "rule": "piecewise points cover both input endpoints", "value": {"parameter": "level", "native_id": "level", "unit": "ratio", "conversion": "piecewise", "input_min": 0, "input_max": 1, "output_min": 0, "output_max": 1, "points": [{"input": 0.2, "output": 0}, {"input": 1, "output": 1}]}},
+    {"model": "Transition", "rule": "cuts have no duration", "value": {"outgoing": "one", "incoming": "two", "duration": 1}},
+    {"model": "CaptionTrack", "rule": "embedded language matches track", "value": {"language": "en", "captions": [{"start": 0, "end": 1, "language": "fr", "text": "Bonjour"}]}},
+    {"model": "SampleInstrument", "rule": "selection reference must exist", "value": {"settings": {}, "slices": [{"name": "sample", "asset": "sample", "end_frame": 48000}], "slots": [{"name": "note", "slice": "sample", "mapping": {"lowest_key": 0, "highest_key": 127, "pitch_tracking": false}, "channels": [{"input": "mono", "output": "mono", "gain": 1}], "selection": "missing"}]}}
+  ]
+}

@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 
 from .base import Model
 from .composition import Composition, ScoreRecord
-from .interface import InterfaceScore, ScoreVersion
+from .interface import InterfaceScore, ScoreReference
 from .preset import PresetScore
 from .score import Score
 from .score_types import ScoreValue
@@ -129,7 +129,9 @@ class Library:
                         reference.sha256 is not None
                         and reference.sha256 != target.sha256
                     ):
-                        raise ValueError(f'ScoreVersion digest mismatch: {target.key}')
+                        raise ValueError(
+                            f'ScoreReference digest mismatch: {target.key}'
+                        )
                     dependencies[reference.key] = target.key
                 except ValueError as error:
                     self._fail(key, 'reference', str(error), field=field)
@@ -250,8 +252,8 @@ class Library:
         )
 
 
-def references(value: object, field: str = '') -> Iterator[tuple[str, ScoreVersion]]:
-    if isinstance(value, ScoreVersion):
+def references(value: object, field: str = '') -> Iterator[tuple[str, ScoreReference]]:
+    if isinstance(value, ScoreReference):
         yield field, value
     elif isinstance(value, BaseModel):
         for name in type(value).model_fields:
@@ -267,7 +269,7 @@ def references(value: object, field: str = '') -> Iterator[tuple[str, ScoreVersi
 
 
 def normalize_references(value: object, names: dict[str, str]) -> object:
-    if isinstance(value, ScoreVersion):
+    if isinstance(value, ScoreReference):
         return {'path': names[value.key], 'sha256': value.sha256}
     if isinstance(value, BaseModel):
         return {

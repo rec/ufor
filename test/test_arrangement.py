@@ -56,7 +56,7 @@ def arrangement_data() -> dict[str, object]:
             'clips': [
                 {
                     'name': 'clip',
-                    'source': {'name': 'source', 'output': 'audio'},
+                    'source': {'part': 'source', 'output': 'audio'},
                     'track': 'track',
                     'source_start': 0,
                     'source_end': 48000,
@@ -71,7 +71,7 @@ def arrangement_data() -> dict[str, object]:
 @pytest.mark.parametrize(
     'area, field, value',
     [
-        ('clips', 'source', {'name': 'missing', 'output': 'audio'}),
+        ('clips', 'source', {'part': 'missing', 'output': 'audio'}),
         ('clips', 'track', 'missing'),
         ('routes', 'source', 'missing'),
         ('routes', 'destination', 'missing'),
@@ -120,7 +120,7 @@ def test_arrangement_orders_dependent_buses_and_checks_control_clips() -> None:
     data['body']['control_clips'] = [
         {
             'name': 'fade',
-            'source': {'name': 'missing', 'output': 'control'},
+            'source': {'part': 'missing', 'output': 'control'},
             'source_start': 0,
             'source_end': 1,
             'timeline_start': 0,

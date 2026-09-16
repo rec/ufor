@@ -25,7 +25,7 @@ from ..interface import (
 from ..streams import AudioType
 from ..time import Timebase
 from . import enums
-from .controls import Control
+from .controls import ControlDeclaration
 from .crossfade import ControlCrossfade, LayerCrossfade
 from .playback import Mapping, Playback, Slice, SlotPlayback
 from .processing import ChannelRoute, EventBinding, SoundSettings, spatial_bounds
@@ -40,7 +40,7 @@ from .selection import (
 from .variation import Variation
 
 
-class Instrument(SoundSettings):
+class SampleSettings(SoundSettings):
     envelope: Envelope = Envelope(
         segments=[Segment(duration=0, target=1)],
         release=[Segment(duration=0, target=0)],
@@ -50,7 +50,7 @@ class Instrument(SoundSettings):
     voice_policy: VoicePolicy | None = None
     sustain: Sustain | None = None
     articulations: Articulations | None = None
-    controls: dict[base.Identifier, Control] = Field(default_factory=dict)
+    controls: dict[base.Identifier, ControlDeclaration] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:
@@ -75,7 +75,7 @@ class Instrument(SoundSettings):
                 declared.validate_value(switch.maximum_value)
         return self
 
-    def require_control(self, name: str) -> Control:
+    def require_control(self, name: str) -> ControlDeclaration:
         if name not in self.controls:
             raise ValueError(f'Unknown control: {name}')
         return self.controls[name]
@@ -163,9 +163,9 @@ class SampleSlot(SoundSettings):
                 raise ValueError(f'Slot LFO {name} must have voice scope')
         for fade in self.crossfades:
             bounds = None
-            if fade.input == enums.Input.key:
+            if fade.input == enums.CrossfadeInput.key:
                 bounds = self.mapping.lowest_key, self.mapping.highest_key
-            elif fade.input == enums.Input.velocity:
+            elif fade.input == enums.CrossfadeInput.velocity:
                 bounds = self.mapping.minimum_velocity, self.mapping.maximum_velocity
             if (
                 bounds is not None
@@ -214,11 +214,11 @@ def effective_selection(slot: SampleSlot, group: SlotGroup | None) -> Identifier
 
 
 class SampleInstrument(Model):
-    """Instrument body. Slice frames belong to each referenced native asset."""
+    """Sample instrument body. Slice frames belong to each referenced native asset."""
 
     kind: Literal['sample_instrument'] = 'sample_instrument'
     slices: list[Slice] = Field(min_length=1)
-    instrument: Instrument
+    settings: SampleSettings
     groups: list[SlotGroup] = Field(default_factory=list)
     slots: list[SampleSlot] = Field(min_length=1)
 
@@ -228,21 +228,21 @@ class SampleInstrument(Model):
         unique((s.name for s in self.slices), 'slice ID')
         unique((g.name for g in self.groups), 'slot group ID')
         slices = {s.name: s for s in self.slices}
-        selections = {s.name for s in self.instrument.selections}
+        selections = {s.name for s in self.settings.selections}
         slot_groups = {g.name: g for g in self.groups}
         choke_groups = {s.choke_group for s in self.slots if s.choke_group is not None}
         articulations = (
-            set(self.instrument.articulations.ids)
-            if self.instrument.articulations
+            set(self.settings.articulations.ids)
+            if self.settings.articulations
             else set()
         )
         sustain_keys: dict[tuple[str, enums.TriggerKind], int] = {}
         microphone_sets: dict[tuple[str, enums.TriggerKind], set[str]] = {}
         linked_takes: dict[tuple[str, enums.TriggerKind, str], list[str]] = {}
         take_modes: dict[tuple[str, enums.TriggerKind], set[bool]] = {}
-        self.instrument.validate_controls(self.instrument.controls)
+        self.settings.validate_controls(self.settings.controls)
         for group in self.groups:
-            group.validate_controls(self.instrument.controls)
+            group.validate_controls(self.settings.controls)
             if group.selection is not None and group.selection not in selections:
                 raise ValueError(
                     f'Slot group {group.name}: unknown selection {group.selection}'
@@ -255,8 +255,8 @@ class SampleInstrument(Model):
                 raise ValueError(f'Slot {slot.name}: unknown group {slot.group}')
             group = slot_groups.get(slot.group) if slot.group is not None else None
             effective = effective_settings(slot, group)
-            effective.validate_controls(self.instrument.controls)
-            for sound_settings in (self.instrument, effective):
+            effective.validate_controls(self.settings.controls)
+            for sound_settings in (self.settings, effective):
                 sources = {s.name: s for s in sound_settings.modulation.sources}
                 for binding in sound_settings.bindings:
                     if isinstance(binding, EventBinding) and binding.kind == 'key':
@@ -268,11 +268,11 @@ class SampleInstrument(Model):
                             <= source.maximum
                         ):
                             raise ValueError(
-                                'Key source domain must cover the slot mapping'
+                                'NoteKey source domain must cover the slot mapping'
                             )
             for fade in slot.crossfades:
                 if isinstance(fade, ControlCrossfade):
-                    declared = self.instrument.require_control(fade.control)
+                    declared = self.settings.require_control(fade.control)
                     declared.validate_value(fade.start)
                     declared.validate_value(fade.end)
             if any(
@@ -284,7 +284,7 @@ class SampleInstrument(Model):
             ):
                 raise ValueError('Slot parameters must have voice scope')
             for target in ('pan', 'stereo_balance'):
-                instrument_bounds = spatial_bounds(self.instrument, target)
+                instrument_bounds = spatial_bounds(self.settings, target)
                 slot_bounds = spatial_bounds(effective, target)
                 low = instrument_bounds[0] + slot_bounds[0]
                 high = instrument_bounds[1] + slot_bounds[1]
@@ -322,12 +322,12 @@ class SampleInstrument(Model):
             mode = (
                 slot.playback.mode
                 if slot.playback.mode is not None
-                else self.instrument.playback.mode
+                else self.settings.playback.mode
             )
             direction = (
                 slot.playback.direction
                 if slot.playback.direction is not None
-                else self.instrument.playback.direction
+                else self.settings.playback.direction
             )
             if (
                 slot.trigger != enums.TriggerKind.start
@@ -348,7 +348,7 @@ class SampleInstrument(Model):
                 enums.TriggerKind.sustain_press,
                 enums.TriggerKind.sustain_release,
             ):
-                if self.instrument.sustain is None:
+                if self.settings.sustain is None:
                     raise ValueError(
                         f'Slot {slot.name}: sustain triggers require a sustain control'
                     )
@@ -382,16 +382,16 @@ class SampleInstrument(Model):
         """Check declared control domains; lifecycle ownership belongs to the player."""
         if isinstance(event, Trigger):
             for name, value in event.controls.items():
-                self.instrument.require_control(name).validate_value(value)
+                self.settings.require_control(name).validate_value(value)
         elif isinstance(event, ControlChange):
-            self.instrument.require_control(event.control).validate_value(event.value)
+            self.settings.require_control(event.control).validate_value(event.value)
 
 
 class AudioAsset(Asset):
     audio: AudioDescription
 
 
-class InstrumentScore(InterfaceScore):
+class SampleInstrumentScore(InterfaceScore):
     kind: Literal['instrument'] = 'instrument'
     description: str | None = None
     timebases: list[Timebase] = Field(min_length=1)
@@ -456,7 +456,7 @@ class InstrumentScore(InterfaceScore):
                         for r in s.modulation.routes
                     )
                     for s in (
-                        self.body.instrument,
+                        self.body.settings,
                         effective_settings(slot, groups.get(slot.group)),
                     )
                 )

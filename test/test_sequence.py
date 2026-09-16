@@ -2,11 +2,11 @@ import pytest
 from pydantic import ValidationError
 
 from ufor.events import MidiEvent
-from ufor.sequence import Sequence
+from ufor.sequence import EventSequence
 
 
 def test_sequence_extent_is_independent_of_event_count() -> None:
-    sequence = Sequence(timebase='clock', end=48000, events=[])
+    sequence = EventSequence(timebase='clock', end=48000, events=[])
     assert sequence.end == 48000
 
 
@@ -28,4 +28,4 @@ def test_sequence_rejects_ambiguous_order_or_out_of_range_events(
     events: list[MidiEvent],
 ) -> None:
     with pytest.raises(ValidationError):
-        Sequence(timebase='clock', end=2, events=events)
+        EventSequence(timebase='clock', end=2, events=events)

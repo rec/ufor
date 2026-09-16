@@ -1,0 +1,36 @@
+{
+  "seed": 42,
+  "part": "piano",
+  "selection": "takes",
+  "trigger": "start",
+  "key": 60,
+  "candidates": [
+    "take-a",
+    "take-b",
+    "take-c"
+  ],
+  "choices": {
+    "random": [
+      "take-a",
+      "take-a",
+      "take-a",
+      "take-c",
+      "take-a",
+      "take-b",
+      "take-c",
+      "take-b",
+      "take-a"
+    ],
+    "shuffle": [
+      "take-b",
+      "take-c",
+      "take-a",
+      "take-b",
+      "take-a",
+      "take-c",
+      "take-b",
+      "take-c",
+      "take-a"
+    ]
+  }
+}

@@ -1,0 +1,44 @@
+{
+  "description": "Common sample/synth lifecycle projections. Templates use full MIDI key range, mono routing and no pitch tracking unless overridden; sample templates reference a 48000-frame slice, synth templates use a default oscillator. Seed is 42. Compare the listed action fields and final active voice IDs.",
+  "action_fields": ["kind", "tick", "voice_id", "part", "template", "pitch_hz", "action", "cause", "fade_seconds"],
+  "cases": [
+    {
+      "name": "same-key replacement preserves every new layer",
+      "settings": {"voice_policy": {"maximum_voices": 2, "same_key": "replace"}},
+      "templates": [{"name": "first"}, {"name": "second"}],
+      "events": [
+        {"kind": "trigger", "tick": 0, "ordinal": 0, "part": "piano", "trigger_id": "one", "key": 60, "pitch_hz": 440},
+        {"kind": "trigger", "tick": 1, "ordinal": 1, "part": "piano", "trigger_id": "two", "key": 60, "pitch_hz": 450}
+      ],
+      "actions": [
+        {"kind": "voice_start", "tick": 0, "voice_id": "voice-0", "part": "piano", "template": "first", "pitch_hz": 440},
+        {"kind": "voice_start", "tick": 0, "voice_id": "voice-1", "part": "piano", "template": "second", "pitch_hz": 440},
+        {"kind": "voice_retirement", "tick": 1, "voice_id": "voice-0", "action": "stop", "cause": "same_key"},
+        {"kind": "voice_retirement", "tick": 1, "voice_id": "voice-1", "action": "stop", "cause": "same_key"},
+        {"kind": "voice_start", "tick": 1, "voice_id": "voice-2", "part": "piano", "template": "first", "pitch_hz": 450},
+        {"kind": "voice_start", "tick": 1, "voice_id": "voice-3", "part": "piano", "template": "second", "pitch_hz": 450}
+      ],
+      "active_voice_ids": ["voice-2", "voice-3"]
+    },
+    {
+      "name": "fade choke keeps the other part alive",
+      "settings": {},
+      "templates": [
+        {"name": "held", "choke_group": "held", "mapping": {"lowest_key": 60, "highest_key": 60, "pitch_tracking": false}},
+        {"name": "choker", "chokes": [{"group": "held", "mode": "fade", "fade_seconds": 0.25}], "mapping": {"lowest_key": 61, "highest_key": 61, "pitch_tracking": false}}
+      ],
+      "events": [
+        {"kind": "trigger", "tick": 0, "ordinal": 0, "part": "left", "trigger_id": "one", "key": 60},
+        {"kind": "trigger", "tick": 1, "ordinal": 1, "part": "right", "trigger_id": "two", "key": 60},
+        {"kind": "trigger", "tick": 2, "ordinal": 2, "part": "left", "trigger_id": "three", "key": 61}
+      ],
+      "actions": [
+        {"kind": "voice_start", "tick": 0, "voice_id": "voice-0", "part": "left", "template": "held"},
+        {"kind": "voice_start", "tick": 1, "voice_id": "voice-1", "part": "right", "template": "held"},
+        {"kind": "voice_retirement", "tick": 2, "voice_id": "voice-0", "action": "fade", "cause": "choke", "fade_seconds": 0.25},
+        {"kind": "voice_start", "tick": 2, "voice_id": "voice-2", "part": "left", "template": "choker"}
+      ],
+      "active_voice_ids": ["voice-1", "voice-2"]
+    }
+  ]
+}

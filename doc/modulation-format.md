@@ -45,7 +45,7 @@ using its original time to compute interrupted values and subsequent progress.
 Evaluation frequency and host block size cannot move an event or boundary.
 
 `scope` is `voice` by default or `instrument`. The owner allocates state for
-each instance, separately from the immutable definition. A shared instrument
+each instance, separately from the validated definition. A shared instrument
 LFO has one state per instrument instance; all joining voices observe that
 state. A voice source has state per voice, including separately layered voices.
 Two uses of a score never share state merely because their definition IDs
@@ -300,7 +300,9 @@ Shared performance events and typed modulation routes are now implemented.
 The native instrument and SFZ cutover is implemented in
 [the instrument format](instrument-format.md). Sample settings use these exact
 envelope/LFO definitions and the shared route evaluator; the old Recsam models
-are removed. Prepared voice state and audio generation remain deferred.
+are removed. Pure instrument lifecycle preparation is implemented; final DSP and
+audio generation remain host work. See [capabilities](capabilities.md) and the
+[control comparison](control-guide.md) for the supported boundaries.
 
 ## Additional work beyond the prompt
 

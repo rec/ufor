@@ -1,4 +1,8 @@
+import json
+from pathlib import Path
+
 import pytest
+from pydantic import TypeAdapter
 
 from ufor import synth_trace
 from ufor.events import ControlChange, PerformanceEvent, Release, Trigger
@@ -6,6 +10,27 @@ from ufor.instrument_trace import VoiceRetirement
 from ufor.samples import trace
 from ufor.samples.instrument import SampleInstrument
 from ufor.synth import SynthInstrument
+
+CASES = json.loads(
+    (Path(__file__).parents[1] / 'conformance/instrument-lifecycle.json').read_text()
+)
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+@pytest.mark.parametrize('case', CASES['cases'], ids=lambda c: c['name'])
+def test_shared_lifecycle_conformance(kind: str, case: dict[str, object]) -> None:
+    events = TypeAdapter(list[PerformanceEvent]).validate_python(case['events'])
+    result = prepare(kind, case['templates'], events, case['settings'])
+    actions = [
+        {
+            k: v
+            for k, v in a.model_dump(mode='json', exclude_none=True).items()
+            if k in CASES['action_fields']
+        }
+        for a in result.actions
+    ]
+    assert actions == case['actions']
+    assert [v.voice_id for v in result.snapshots[-1].voices] == case['active_voice_ids']
 
 
 @pytest.mark.parametrize('kind', ['sample', 'synth'])
@@ -163,7 +188,7 @@ def test_synth_action_serialization_preserves_voice_settings() -> None:
             Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=60),
         ],
     )
-    restored = synth_trace.SemanticTrace.model_validate_json(result.model_dump_json())
+    restored = synth_trace.SynthTrace.model_validate_json(result.model_dump_json())
     assert restored == result
     assert restored.actions[0].settings.minimum_hold_seconds == 0.25
     assert restored.actions[0].settings.synchronize_oscillator
@@ -253,7 +278,7 @@ def prepare(
     templates: list[dict[str, object]],
     events: list[PerformanceEvent],
     settings: dict[str, object] | None = None,
-) -> trace.SemanticTrace | synth_trace.SemanticTrace:
+) -> trace.SampleTrace | synth_trace.SynthTrace:
     values = [
         {
             'mapping': {'lowest_key': 0, 'highest_key': 127, 'pitch_tracking': False},
@@ -272,7 +297,7 @@ def prepare(
         return synth_trace.prepare(instrument, events, seed=42)
     instrument = SampleInstrument.model_validate(
         {
-            'instrument': settings or {},
+            'settings': settings or {},
             'slices': [{'name': 'sample', 'asset': 'sample', 'end_frame': 48000}],
             'slots': [{'slice': 'sample', **v} for v in values],
         }

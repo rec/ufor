@@ -19,7 +19,7 @@ score = { path = "instruments/piano.toml" }
 parameters = { level_db = -6.0 }
 ```
 
-A `ScoreVersion` contains exactly one relative `path` or library `selector`
+A `ScoreReference` contains exactly one relative `path` or library `selector`
 and, when pinned, a `sha256` of the selected file bytes. See
 [user libraries](library.md) for selector resolution and recoverable loading. Static references such as tunings use the same reference structure
 without creating a running part. The dependency graph is derived from these
@@ -70,16 +70,16 @@ separate instrument/voice scope system. Internal modulation keeps its own rules.
 
 ## 3. What connects to what?
 
-An output selection is `{ name, output }`; an input selection is `{ name, input }`.
-The name selects a part; the other field selects one of that part's named outputs
+An output selection is `{ part, output }`; an input selection is `{ part, input }`.
+The part field selects a child; the other field selects one of that part's named outputs
 or inputs. Connections join outputs to inputs;
 clips read windows from outputs and place them on tracks. These operations
 share addresses but have different timing behavior.
 
 ```toml
 [[body.connections]]
-source = { name = "notes", output = "performance" }
-destination = { name = "piano", input = "performance" }
+source = { part = "notes", output = "performance" }
+destination = { part = "piano", input = "performance" }
 ```
 
 Connections must match the producer's and consumer's resolved contracts. Audio

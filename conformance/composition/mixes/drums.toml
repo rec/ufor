@@ -67,5 +67,5 @@ timeline_start = 0
 gain = 1.0
 
 [body.clips.source]
-name = "take"
+part = "take"
 output = "desk"

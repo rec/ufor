@@ -31,10 +31,10 @@ def unique(values: Iterable[Hashable], label: str) -> None:
 Identifier = Annotated[str, AfterValidator(identifier)]
 
 Text = Annotated[str, Field(min_length=1)]
-Key = Annotated[int, Field(strict=True)]
+NoteKey = Annotated[int, Field(strict=True)]
 Bipolar = Annotated[float, Field(strict=True, ge=-1, le=1)]
 Frame = Annotated[int, Field(strict=True, ge=0)]
-Number = Annotated[float, Field(strict=True)]
+FiniteScalar = Annotated[float, Field(strict=True, allow_inf_nan=False)]
 Seconds = Annotated[float, Field(strict=True, ge=0)]
 Frequency = Annotated[float, Field(strict=True, gt=0)]
 PositiveSeconds = Annotated[float, Field(strict=True, gt=0)]
