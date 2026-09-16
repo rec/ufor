@@ -7,7 +7,7 @@ from contextlib import suppress
 from itertools import batched, chain
 from typing import Annotated, Self
 
-from pydantic import BeforeValidator, Field, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, model_validator
 
 from .accidentals import AccidentalNames, Accidentals
 from .base import Model
@@ -22,16 +22,13 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
     for c in it:
         if isinstance(c, str) and c.isspace():
             continue
-        if isinstance(c, bool) or not isinstance(c, (int, str)):
-            errors.append(f'{c=} must be an integer')
-            continue
         try:
             i = int(c)
         except ValueError:
             errors.append(f'{c=} is not a number')
         else:
-            if i <= 0:
-                errors.append(f'{c=} must be positive')
+            if i < 0:
+                errors.append(f'{c=} is less than 0')
             else:
                 intervals.append(i)
     if not intervals:
@@ -53,6 +50,8 @@ class Scale(Model):
     custom tunings, different note names and intervals.
     """
 
+    model_config = ConfigDict(extra='ignore')
+
     note_names: str = string.ascii_uppercase
     root: str = 'C'
     begin: str = 'A'
@@ -72,16 +71,6 @@ class Scale(Model):
         b, r, e = (self.note_names.index(i) for i in (self.begin, self.root, self.end))
         if not b <= r <= e:
             raise ValueError('begin, root, and end must be ordered in note_names')
-        if len(set(self.note_names)) != len(self.note_names):
-            raise ValueError('note_names must be unique')
-        if any(len(getattr(self, f)) != 1 for f in fields):
-            raise ValueError('begin, root, and end must each be one character')
-        if self.notes is not None:
-            _, errors = self._to_notes(self.notes)
-            if errors:
-                raise ValueError(f'Unknown notes: {errors}')
-            if not self.note_numbers:
-                raise ValueError('notes must select at least one note')
         return self
 
     # Implements Scale.to_name
