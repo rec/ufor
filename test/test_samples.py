@@ -150,6 +150,7 @@ def test_random_selection_is_reproducible_and_part_local() -> None:
         )
         replayed.append(choice)
     assert replayed == choices
+    assert len(set(choices)) > 1
     other, _ = selection.choose(
         takes, selection.SelectionState(seed=42), 'drums', 'start', 60, ['take-a']
     )
@@ -164,9 +165,10 @@ def test_random_selection_is_reproducible_and_part_local() -> None:
     assert restored == replay_state
 
 
-def test_shuffle_selection_visits_every_candidate_before_refilling() -> None:
+@pytest.mark.parametrize('seed', range(32))
+def test_shuffle_selection_visits_every_candidate_before_refilling(seed: int) -> None:
     takes = selection.Selection(name='takes', mode='shuffle')
-    state = selection.SelectionState(seed=42)
+    state = selection.SelectionState(seed=seed)
     choices = []
     for _ in range(6):
         choice, state = selection.choose(
