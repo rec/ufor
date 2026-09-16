@@ -394,14 +394,12 @@ class AudioAsset(Asset):
 class InstrumentScore(InterfaceScore):
     kind: Literal['instrument'] = 'instrument'
     description: str | None = None
-    tags: list[Text] = Field(default_factory=list)
     timebases: list[Timebase] = Field(min_length=1)
     assets: list[AudioAsset] = Field(min_length=1)
     body: SampleInstrument
 
     @model_validator(mode='after')
     def asset_references(self) -> Self:
-        unique(self.tags, 'tag')
         unique((t.name for t in self.timebases), 'timebase name')
         unique((a.name for a in self.assets), 'asset ID')
         clocks = {t.name for t in self.timebases}

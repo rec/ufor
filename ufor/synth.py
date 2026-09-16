@@ -6,7 +6,7 @@ from typing import Literal, Self
 from pydantic import Field, model_validator
 
 from . import base, control
-from .base import Identifier, Model, Text, unique
+from .base import Identifier, Model, unique
 from .envelope import Envelope, Segment
 from .events import ControlChange, PerformanceEvent, Trigger
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
@@ -134,7 +134,6 @@ class SynthInstrument(Model):
 class SynthInstrumentScore(InterfaceScore):
     kind: Literal['synth_instrument'] = 'synth_instrument'
     description: str | None = None
-    tags: list[Text] = Field(default_factory=list)
     timebases: list[Timebase] = Field(min_length=1)
     body: SynthInstrument
 
@@ -142,7 +141,6 @@ class SynthInstrumentScore(InterfaceScore):
     def public_ports(self) -> Self:
         if self.parameters:
             raise ValueError('synth public parameter exports are unsupported')
-        unique(self.tags, 'tag')
         audio = [p for p in self.outputs if isinstance(p.binding, AudioBinding)]
         performance = [
             p for p in self.inputs if isinstance(p.binding, PerformanceBinding)

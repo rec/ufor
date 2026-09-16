@@ -67,7 +67,9 @@ def score_toml(
     | PresetScore,
 ) -> str:
     validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
-    return tomlkit.dumps(validated.model_dump(mode='json', exclude_none=True))
+    data = validated.model_dump(mode='json', exclude_none=True)
+    _check_toml_arrays(data)
+    return tomlkit.dumps(data)
 
 
 def score_schema() -> dict[str, object]:
@@ -96,3 +98,16 @@ ScoreValue = Annotated[
 ]
 
 Part.model_rebuild(_types_namespace={'ScoreValue': ScoreValue})
+
+
+def _check_toml_arrays(value: object) -> None:
+    if isinstance(value, list):
+        if any(v is None for v in value):
+            raise ValueError(
+                'TOML cannot represent null array arguments; use JSON to preserve them'
+            )
+        for item in value:
+            _check_toml_arrays(item)
+    elif isinstance(value, dict):
+        for item in value.values():
+            _check_toml_arrays(item)
