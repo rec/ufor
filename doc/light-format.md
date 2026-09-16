@@ -204,3 +204,25 @@ Tests establish interchange, validation and these mathematical semantics. They
 do not establish cross-language equivalence for Lyte's stochastic simulations.
 That requires renderer-generated reference frames, specified RNG behavior and
 numerical tolerances in the Lyte port. See [port-lyte.md](port-lyte.md).
+
+## Audio analysis controls
+
+`effect = "audio_spectrum"` requires the host to supply
+`ufor.audio_features.AudioFeatures.spectrum` for each logical frame. A score
+contains no file path or audio-device selector. Missing observations must be
+reported by the consumer; they are not implicit silence. Other effects do not
+require audio observations.
+
+All AudioFeatures values are finite and normalized to [0, 1]. The nonempty
+spectrum is ordered from low to high frequency. Band edges and envelope/onset
+analysis are host policies; these observations do not claim analyzer equivalence.
+The other observations are level, bass, mid, treble, onset and beat strength.
+
+AudioSpectrum linearly resamples spectrum bins onto normalized light indexes
+(the sole light samples the midpoint). Levels start at zero and approach
+`bin * gain` each tick by `1 - exp(-smoothing / fps)`. After smoothing, levels
+are clipped to [0, 1]. The byte RGB palette has at least two equally spaced
+stops, interpolated linearly along those same light indexes and divided by 255.
+Multiply palette colors by clipped levels. A smoothing value of zero holds the
+initial zero levels. File decoding, window timing, EOF and feature delivery
+remain explicit runtime responsibilities.
