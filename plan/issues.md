@@ -18,6 +18,11 @@ maintenance concerns. Resolve correctness before undertaking naming changes.
 
 ### 1. Slot-group inheritance does not survive normalization and serialization
 
+**Resolved:** omitted categories and explicit processing overrides survive
+JSON, TOML, library normalization, and presets. `selection = false` disables
+selection; omitted/null selection inherits. Explicit null envelope overrides use
+`envelope = false` in TOML. Regression tests cover neutral and disabled overrides.
+
 **P1, confirmed.** [instrument.py:159](../ufor/samples/instrument.py#L159)
 and [codec.py:69](../ufor/codec.py#L69).
 

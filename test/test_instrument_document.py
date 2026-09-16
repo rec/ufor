@@ -9,9 +9,17 @@ from pydantic import ValidationError
 from ufor import envelope, sfz
 from ufor.base import Model
 from ufor.codec import parse_score, score_schema, score_toml
+from ufor.interface import ScoreVersion
+from ufor.library import Entry, Library
+from ufor.preset import PresetScore
 from ufor.samples import playback, processing, selection
 from ufor.samples.controls import Control
-from ufor.samples.instrument import Instrument, InstrumentScore
+from ufor.samples.instrument import (
+    Instrument,
+    InstrumentScore,
+    effective_selection,
+    effective_settings,
+)
 from ufor.samples.metadata import AudioMetadata
 from ufor.time import Rate, Timebase
 
@@ -98,6 +106,43 @@ def test_voice_policy_round_trips_through_toml() -> None:
     assert parse_score(score_toml(document)) == document
 
 
+@pytest.mark.parametrize('boundary', ['json', 'toml', 'library', 'preset'])
+@pytest.mark.parametrize('override', [False, True])
+def test_group_processing_survives_interchange(boundary: str, override: bool) -> None:
+    raw = fixture()
+    raw['body']['groups'] = [{'name': 'quiet', 'processing': {'volume_db': -6}}]
+    raw['body']['slots'][0].pop('processing', None)
+    raw['body']['slots'][0]['group'] = 'quiet'
+    if override:
+        raw['body']['slots'][0]['processing'] = {'volume_db': 0}
+    document = InstrumentScore.model_validate(raw)
+    if boundary == 'json':
+        restored = InstrumentScore.model_validate_json(document.model_dump_json())
+    elif boundary == 'toml':
+        restored = parse_score(score_toml(document))
+    else:
+        preset = PresetScore(
+            name='preset', title='Preset', score=ScoreVersion(path='glass.toml')
+        )
+        library = Library(
+            [
+                Entry(
+                    library='test', address='/glass.toml', name='glass', score=document
+                ),
+                Entry(
+                    library='test', address='/preset.toml', name='preset', score=preset
+                ),
+            ]
+        )
+        restored = library.resolve(
+            'preset' if boundary == 'preset' else 'glass'
+        ).resolved
+    assert isinstance(restored, InstrumentScore)
+    assert effective_settings(
+        restored.body.slots[0], restored.body.groups[0]
+    ).processing.volume_db == (0 if override else -6)
+
+
 def test_documented_native_example_is_complete() -> None:
     text = (
         Path('doc/instrument-format.md')
@@ -108,6 +153,37 @@ def test_documented_native_example_is_complete() -> None:
     document = parse_score(text)
     assert isinstance(document, InstrumentScore)
     assert parse_score(score_toml(document)) == document
+
+
+@pytest.mark.parametrize(
+    'selection_value,expected', [(None, 'takes'), (False, None), ('other', 'other')]
+)
+def test_group_selection_and_empty_envelope_survive_toml(
+    selection_value: str | bool | None, expected: str | None
+) -> None:
+    raw = fixture()
+    raw['body']['instrument']['selections'] = [
+        {'name': n, 'mode': 'cycle'} for n in ('takes', 'other')
+    ]
+    raw['body']['groups'] = [
+        {
+            'name': 'group',
+            'selection': 'takes',
+            'envelope': raw['body']['slots'][0]['envelope'],
+        }
+    ]
+    raw['body']['slots'][0].update(
+        group='group', selection=selection_value, envelope=None
+    )
+    document = InstrumentScore.model_validate(raw)
+    for restored in (
+        parse_score(score_toml(document)),
+        InstrumentScore.model_validate_json(document.model_dump_json()),
+    ):
+        assert isinstance(restored, InstrumentScore)
+        slot, group = restored.body.slots[0], restored.body.groups[0]
+        assert effective_selection(slot, group) == expected
+        assert effective_settings(slot, group).envelope is None
 
 
 @pytest.mark.parametrize('version', [True, 2.0, '2', 1])
