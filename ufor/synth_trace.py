@@ -112,7 +112,9 @@ def prepare(
         part: Identifier,
         trigger_id: Identifier | None,
         key: int,
+        pitch_hz: float | None = None,
     ) -> None:
+        pitch_hz = event.pitch_hz if isinstance(event, Trigger) else pitch_hz
         for voice in list(voices):
             rules = [
                 c
@@ -139,27 +141,28 @@ def prepare(
                 raise ValueError(
                     'combined fade and envelope-release chokes are unsupported'
                 )
+        policy = instrument.voice_policy
+        if policy is not None and any(
+            s.trigger == enums.TriggerKind.start for s in selected
+        ):
+            if len(selected) > policy.maximum_voices:
+                raise ValueError('trigger batch exceeds maximum_voices')
+            if policy.same_key != enums.SameKey.stack:
+                for voice in [v for v in voices if v.part == part and v.key == key]:
+                    action = (
+                        'release'
+                        if policy.same_key == enums.SameKey.release
+                        else 'stop'
+                    )
+                    retire(voice, event, RetirementCause.same_key, action)
+            while len(voices) + len(selected) > policy.maximum_voices:
+                action = (
+                    'release'
+                    if policy.overflow == enums.VoiceOverflow.release_oldest
+                    else 'stop'
+                )
+                retire(voices[0], event, RetirementCause.voice_limit, action)
         for template in selected:
-            if template.trigger == enums.TriggerKind.start:
-                policy = instrument.voice_policy
-                if policy is not None:
-                    same_key = [v for v in voices if v.part == part and v.key == key]
-                    if policy.same_key != enums.SameKey.stack:
-                        action = (
-                            'release'
-                            if policy.same_key == enums.SameKey.release
-                            else 'stop'
-                        )
-                        for voice in same_key:
-                            retire(voice, event, RetirementCause.same_key, action)
-                    while len(voices) >= policy.maximum_voices:
-                        voice = voices[0]
-                        action = (
-                            'release'
-                            if policy.overflow == enums.VoiceOverflow.release_oldest
-                            else 'stop'
-                        )
-                        retire(voice, event, RetirementCause.voice_limit, action)
             voice_id = (
                 f'voice-{part}-{trigger_id}-{template.name}'
                 if trigger_id is not None
@@ -177,8 +180,8 @@ def prepare(
                     template=template.name,
                     key=key,
                     pitch_hz=(
-                        event.pitch_hz + template.frequency_offset_hz
-                        if isinstance(event, Trigger) and event.pitch_hz is not None
+                        pitch_hz + template.frequency_offset_hz
+                        if pitch_hz is not None
                         else None
                     ),
                     oscillator=template.oscillator,
@@ -273,6 +276,7 @@ def prepare(
                                     trigger.part,
                                     trigger.trigger_id,
                                     trigger.key,
+                                    trigger.pitch_hz,
                                 )
                                 for voice in list(start_template_voices(trigger)):
                                     retire(
@@ -312,6 +316,7 @@ def prepare(
                         trigger.part,
                         trigger.trigger_id,
                         trigger.key,
+                        trigger.pitch_hz,
                     )
                 pressed = sustain.get(
                     trigger.part,
@@ -331,6 +336,7 @@ def prepare(
                             trigger.part,
                             trigger.trigger_id,
                             trigger.key,
+                            trigger.pitch_hz,
                         )
                         for voice in list(start_template_voices(trigger)):
                             retire(
