@@ -534,7 +534,7 @@
         },
         "connections": {
           "items": {
-            "$ref": "#/$defs/Connection"
+            "$ref": "#/$defs/ufor__interface__Connection"
           },
           "title": "Connections",
           "type": "array"
@@ -2626,23 +2626,6 @@
       "title": "ConfettiWithDecay",
       "type": "object"
     },
-    "Connection": {
-      "additionalProperties": false,
-      "properties": {
-        "source": {
-          "$ref": "#/$defs/OutputSelection"
-        },
-        "destination": {
-          "$ref": "#/$defs/InputSelection"
-        }
-      },
-      "required": [
-        "source",
-        "destination"
-      ],
-      "title": "Connection",
-      "type": "object"
-    },
     "Control": {
       "additionalProperties": false,
       "description": "A free-running control in seconds from this score's activation.",
@@ -3804,6 +3787,185 @@
         }
       },
       "title": "ExponentialFade",
+      "type": "object"
+    },
+    "FM": {
+      "additionalProperties": false,
+      "properties": {
+        "operators": {
+          "items": {
+            "$ref": "#/$defs/Operator"
+          },
+          "maxItems": 2,
+          "minItems": 2,
+          "title": "Operators",
+          "type": "array"
+        },
+        "connection": {
+          "$ref": "#/$defs/ufor__fm__Connection"
+        },
+        "feedback": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Feedback",
+          "type": "number"
+        },
+        "carrier_level": {
+          "default": 1,
+          "minimum": 0,
+          "title": "Carrier Level",
+          "type": "number"
+        }
+      },
+      "required": [
+        "operators",
+        "connection"
+      ],
+      "title": "FM",
+      "type": "object"
+    },
+    "FMVoice": {
+      "additionalProperties": false,
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": []
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "envelopes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Envelope"
+          },
+          "title": "Envelopes",
+          "type": "object"
+        },
+        "lfos": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LFO"
+          },
+          "title": "Lfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
+                "envelope": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "lfo": "#/$defs/GeneratorBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/Mapping"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelRoute"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "frequency_offset_hz": {
+          "default": 0,
+          "title": "Frequency Offset Hz",
+          "type": "number"
+        },
+        "minimum_hold_seconds": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Minimum Hold Seconds",
+          "type": "string"
+        },
+        "trigger": {
+          "$ref": "#/$defs/TriggerKind",
+          "default": "start"
+        },
+        "choke_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choke Group"
+        },
+        "chokes": {
+          "items": {
+            "$ref": "#/$defs/Choke"
+          },
+          "title": "Chokes",
+          "type": "array"
+        },
+        "articulations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Articulations",
+          "type": "array"
+        },
+        "fm": {
+          "$ref": "#/$defs/FM"
+        }
+      },
+      "required": [
+        "name",
+        "mapping",
+        "channels",
+        "fm"
+      ],
+      "title": "FMVoice",
       "type": "object"
     },
     "Fade": {
@@ -5928,6 +6090,63 @@
       ],
       "title": "Operation",
       "type": "string"
+    },
+    "Operator": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "ratio": {
+          "default": 1,
+          "exclusiveMinimum": 0,
+          "title": "Ratio",
+          "type": "number"
+        },
+        "tuning_cents": {
+          "default": 0,
+          "title": "Tuning Cents",
+          "type": "number"
+        },
+        "phase_cycles": {
+          "default": 0,
+          "exclusiveMaximum": 1,
+          "minimum": 0,
+          "title": "Phase Cycles",
+          "type": "number"
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "clock": "seconds",
+            "scope": "voice",
+            "polarity": "unipolar",
+            "initial": 0.0,
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 0.0
+              }
+            ],
+            "hold": true,
+            "retrigger": "current"
+          }
+        }
+      },
+      "required": [
+        "name"
+      ],
+      "title": "Operator",
+      "type": "object"
     },
     "OscDecodeError": {
       "additionalProperties": false,
@@ -9959,7 +10178,14 @@
         },
         "voices": {
           "items": {
-            "$ref": "#/$defs/SynthVoice"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/SynthVoice"
+              },
+              {
+                "$ref": "#/$defs/FMVoice"
+              }
+            ]
           },
           "minItems": 1,
           "title": "Voices",
@@ -10065,7 +10291,6 @@
     },
     "SynthVoice": {
       "additionalProperties": false,
-      "description": "One mapped oscillator voice template.",
       "properties": {
         "processing": {
           "$ref": "#/$defs/Processing",
@@ -10167,18 +10392,10 @@
           "title": "Channels",
           "type": "array"
         },
-        "oscillator": {
-          "$ref": "#/$defs/Oscillator"
-        },
         "frequency_offset_hz": {
           "default": 0,
           "title": "Frequency Offset Hz",
           "type": "number"
-        },
-        "synchronize_oscillator": {
-          "default": false,
-          "title": "Synchronize Oscillator",
-          "type": "boolean"
         },
         "minimum_hold_seconds": {
           "default": "0",
@@ -10216,6 +10433,14 @@
           },
           "title": "Articulations",
           "type": "array"
+        },
+        "oscillator": {
+          "$ref": "#/$defs/Oscillator"
+        },
+        "synchronize_oscillator": {
+          "default": false,
+          "title": "Synchronize Oscillator",
+          "type": "boolean"
         }
       },
       "required": [
@@ -10705,7 +10930,8 @@
         "normalized",
         "volts",
         "seconds",
-        "beats"
+        "beats",
+        "radians"
       ],
       "title": "Unit",
       "type": "string"
@@ -10986,6 +11212,48 @@
         }
       },
       "title": "Transition",
+      "type": "object"
+    },
+    "ufor__fm__Connection": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "index": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Index",
+          "type": "number"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "title": "Connection",
+      "type": "object"
+    },
+    "ufor__interface__Connection": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "destination": {
+          "$ref": "#/$defs/InputSelection"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "title": "Connection",
       "type": "object"
     },
     "ufor__interface__ControlBinding": {
