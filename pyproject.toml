@@ -9,7 +9,7 @@ requires-python = ">=3.13"
 dependencies = ["pydantic>=2.13.4", "tomlkit>=0.15.1"]
 
 [dependency-groups]
-dev = ["pytest", "ruff", "ty", "pyupgrade"]
+dev = ["pytest", "pytest-xdist", "ruff", "ty", "pyupgrade"]
 
 [build-system]
 requires = ["hatchling"]
