@@ -23,3 +23,4 @@ quote-style = "single"
 
 [tool.pytest.ini_options]
 testpaths = ["test"]
+addopts = "-n auto --dist=worksteal"
