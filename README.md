@@ -51,7 +51,7 @@ For development, use Python 3.13+:
 
 ```sh
 uv sync
-uv run pytest
+uv run pytest -n auto --dist=worksteal
 ```
 
 Extracted from Recs, Tuney and Lyte. MIT licensed.
