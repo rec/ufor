@@ -10,7 +10,7 @@ from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
 from ..lfo import LFO
-from ..modulation import Modulation
+from ..modulation import Modulation, Target, Unit
 from . import enums
 from .controls import ControlDeclaration
 
@@ -198,7 +198,7 @@ class SoundSettings(Model):
                         'Generator source scope and domain must match its definition'
                     )
         for parameter in self.modulation.parameters:
-            unit, default = parameter_definition(self, parameter.target)
+            unit, default = self.parameter_definition(parameter.target)
             if parameter.unit != unit or parameter.default != default:
                 raise ValueError(
                     'Parameter unit and default must match the bound setting'
@@ -232,6 +232,10 @@ class SoundSettings(Model):
                         'Envelope durations are latched from key or velocity'
                     )
         return self
+
+    def parameter_definition(self, target: Target) -> tuple[Unit, float]:
+        """Resolve processing targets with source-specific extension support."""
+        return parameter_definition(self, target)
 
     def validate_controls(self, controls: dict[str, ControlDeclaration]) -> None:
         sources = {s.name: s for s in self.modulation.sources}

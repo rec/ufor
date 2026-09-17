@@ -21,6 +21,7 @@ class Unit(StrEnum):
     volts = auto()
     seconds = auto()
     beats = auto()
+    radians = auto()
 
 
 class Operation(StrEnum):

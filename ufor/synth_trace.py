@@ -22,13 +22,22 @@ from .instrument_trace import (
 from .oscillator import Oscillator
 from .samples import enums
 from .samples.processing import ChannelRoute
-from .synth import SynthInstrument, SynthVoice
+from .synth import FMVoice, SynthInstrument, SynthVoice
 
 
 class VoiceStart(LifecycleVoiceStart):
-    oscillator: Oscillator
+    oscillator: Oscillator | None = None
     channels: list[ChannelRoute]
-    settings: SynthVoice
+    settings: SynthVoice | FMVoice
+
+    @model_validator(mode='after')
+    def source_matches_settings(self) -> Self:
+        expected = (
+            self.settings.oscillator if isinstance(self.settings, SynthVoice) else None
+        )
+        if self.oscillator != expected:
+            raise ValueError('Voice start oscillator must match its source settings')
+        return self
 
 
 Action = Annotated[
@@ -71,7 +80,7 @@ def prepare(
 
     def selected_voices(
         kind: enums.TriggerKind, key: int, velocity: float
-    ) -> list[SynthVoice]:
+    ) -> list[SynthVoice | FMVoice]:
         return [
             voice
             for voice in instrument.voices
@@ -110,7 +119,7 @@ def prepare(
         voices.remove(voice)
 
     def start_voices(
-        selected: list[SynthVoice],
+        selected: list[SynthVoice | FMVoice],
         event: PerformanceEvent,
         part: Identifier,
         trigger_id: Identifier | None,
@@ -183,7 +192,9 @@ def prepare(
                         if pitch_hz is not None
                         else None
                     ),
-                    oscillator=template.oscillator,
+                    oscillator=template.oscillator
+                    if isinstance(template, SynthVoice)
+                    else None,
                     channels=template.channels,
                     settings=template,
                 )

@@ -5,10 +5,11 @@ from typing import Literal, Self
 
 from pydantic import Field, model_validator
 
-from . import base, control
+from . import base, control, modulation
 from .base import Identifier, Model, unique
 from .envelope import Envelope, Segment
 from .events import ControlChange, PerformanceEvent, Trigger
+from .fm import FM
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
 from .number import cents_to_ratio
 from .oscillator import Oscillator
@@ -21,24 +22,18 @@ from .streams import AudioType
 from .time import Timebase
 
 
-class SynthVoice(SoundSettings):
-    """One mapped oscillator voice template."""
+class VoiceTemplate(SoundSettings):
+    """Shared mapped synth lifecycle and channel settings."""
 
     name: Identifier
     mapping: Mapping
     channels: list[ChannelRoute] = Field(min_length=1)
-    oscillator: Oscillator
     frequency_offset_hz: float = 0
-    synchronize_oscillator: bool = False
     minimum_hold_seconds: control.Rational = Field(default=Fraction(0), ge=0)
     trigger: enums.TriggerKind = enums.TriggerKind.start
     choke_group: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)
     articulations: list[Identifier] = Field(default_factory=list)
-    envelope: Envelope = Envelope(
-        segments=[Segment(duration=0, target=1)],
-        release=[Segment(duration=0, target=0)],
-    )
 
     @model_validator(mode='after')
     def voice_values(self) -> Self:
@@ -56,6 +51,56 @@ class SynthVoice(SoundSettings):
         return self
 
 
+class SynthVoice(VoiceTemplate):
+    oscillator: Oscillator
+    synchronize_oscillator: bool = False
+    envelope: Envelope = Envelope(
+        segments=[Segment(duration=0, target=1)],
+        release=[Segment(duration=0, target=0)],
+    )
+
+
+class FMVoice(VoiceTemplate):
+    fm: FM
+
+    @model_validator(mode='after')
+    def fm_profile(self) -> Self:
+        if self.envelope is not None:
+            raise ValueError(
+                'FM uses operator envelopes, not a second amplitude envelope'
+            )
+        for p in self.modulation.parameters:
+            if p.target.name == 'fm' or p.target.name.startswith('operator-'):
+                if p.target.parameter == 'ratio' and p.minimum <= 0:
+                    raise ValueError('FM ratios require a positive domain')
+                if (
+                    p.target.parameter in ('index', 'feedback', 'carrier_level')
+                    and p.minimum < 0
+                ):
+                    raise ValueError(
+                        'FM levels and indices require nonnegative domains'
+                    )
+        return self
+
+    def parameter_definition(
+        self, target: modulation.Target
+    ) -> tuple[modulation.Unit, float]:
+        if target.name == 'fm':
+            if target.parameter == 'index':
+                return modulation.Unit.radians, self.fm.connection.index
+            if target.parameter == 'feedback':
+                return modulation.Unit.radians, self.fm.feedback
+            if target.parameter == 'carrier_level':
+                return modulation.Unit.ratio, self.fm.carrier_level
+        for o in self.fm.operators:
+            if target.name == f'operator-{o.name}':
+                if target.parameter == 'ratio':
+                    return modulation.Unit.ratio, o.ratio
+                if target.parameter == 'tuning_cents':
+                    return modulation.Unit.cents, o.tuning_cents
+        return super().parameter_definition(target)
+
+
 class SynthInstrument(Model):
     """Synth voice templates and their shared performance declarations."""
 
@@ -63,7 +108,7 @@ class SynthInstrument(Model):
     voice_policy: VoicePolicy | None = None
     sustain: Sustain | None = None
     articulations: Articulations | None = None
-    voices: list[SynthVoice] = Field(min_length=1)
+    voices: list[SynthVoice | FMVoice] = Field(min_length=1)
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:
