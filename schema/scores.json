@@ -5972,6 +5972,166 @@
       "title": "Modulation",
       "type": "object"
     },
+    "NoiseVoice": {
+      "additionalProperties": false,
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": []
+          }
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "clock": "seconds",
+            "scope": "voice",
+            "polarity": "unipolar",
+            "initial": 0.0,
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0",
+                "target": 0.0
+              }
+            ],
+            "hold": true,
+            "retrigger": "current"
+          }
+        },
+        "envelopes": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Envelope"
+          },
+          "title": "Envelopes",
+          "type": "object"
+        },
+        "lfos": {
+          "additionalProperties": {
+            "$ref": "#/$defs/LFO"
+          },
+          "title": "Lfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
+                "envelope": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "lfo": "#/$defs/GeneratorBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/Mapping"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelRoute"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "frequency_offset_hz": {
+          "default": 0,
+          "title": "Frequency Offset Hz",
+          "type": "number"
+        },
+        "minimum_hold_seconds": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Minimum Hold Seconds",
+          "type": "string"
+        },
+        "trigger": {
+          "$ref": "#/$defs/TriggerKind",
+          "default": "start"
+        },
+        "choke_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choke Group"
+        },
+        "chokes": {
+          "items": {
+            "$ref": "#/$defs/Choke"
+          },
+          "title": "Chokes",
+          "type": "array"
+        },
+        "articulations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Articulations",
+          "type": "array"
+        },
+        "noise": {
+          "const": "white",
+          "title": "Noise",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "mapping",
+        "channels",
+        "noise"
+      ],
+      "title": "NoiseVoice",
+      "type": "object"
+    },
     "NormalizeMode": {
       "enum": [
         "none",
@@ -10184,6 +10344,9 @@
               },
               {
                 "$ref": "#/$defs/FMVoice"
+              },
+              {
+                "$ref": "#/$defs/NoiseVoice"
               }
             ]
           },
