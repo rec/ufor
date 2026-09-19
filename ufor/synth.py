@@ -60,6 +60,31 @@ class SynthVoice(VoiceTemplate):
     )
 
 
+class NoiseVoice(VoiceTemplate):
+    noise: Literal['white']
+    envelope: Envelope = Envelope(
+        segments=[Segment(duration=0, target=1)],
+        release=[Segment(duration=0, target=0)],
+    )
+
+    @model_validator(mode='after')
+    def noise_profile(self) -> Self:
+        if (
+            self.mapping.pitch_tracking
+            or self.frequency_offset_hz
+            or self.processing.tuning_cents
+        ):
+            raise ValueError(
+                'Noise does not support pitch tracking, offsets, or tuning'
+            )
+        if any(
+            p.target.name == 'processing' and p.target.parameter == 'tuning_cents'
+            for p in self.modulation.parameters
+        ):
+            raise ValueError('Noise does not support tuning modulation')
+        return self
+
+
 class FMVoice(VoiceTemplate):
     fm: FM
 
@@ -108,7 +133,7 @@ class SynthInstrument(Model):
     voice_policy: VoicePolicy | None = None
     sustain: Sustain | None = None
     articulations: Articulations | None = None
-    voices: list[SynthVoice | FMVoice] = Field(min_length=1)
+    voices: list[SynthVoice | FMVoice | NoiseVoice] = Field(min_length=1)
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:
