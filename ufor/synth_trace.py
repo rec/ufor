@@ -19,22 +19,31 @@ from .instrument_trace import (
 from .instrument_trace import (
     VoiceStart as LifecycleVoiceStart,
 )
+from .noise import stream_key
 from .oscillator import Oscillator
 from .samples import enums
 from .samples.processing import ChannelRoute
-from .synth import FMVoice, SynthInstrument, SynthVoice
+from .synth import FMVoice, NoiseVoice, SynthInstrument, SynthVoice
 
 
 class VoiceStart(LifecycleVoiceStart):
     oscillator: Oscillator | None = None
     channels: list[ChannelRoute]
-    settings: SynthVoice | FMVoice
+    settings: SynthVoice | FMVoice | NoiseVoice
+
+    noise_key: int | None = Field(
+        default=None, strict=True, ge=0, lt=2**64, exclude_if=lambda v: v is None
+    )
 
     @model_validator(mode='after')
     def source_matches_settings(self) -> Self:
         expected = (
             self.settings.oscillator if isinstance(self.settings, SynthVoice) else None
         )
+        if isinstance(self.settings, NoiseVoice) != (self.noise_key is not None):
+            raise ValueError(
+                'Noise starts require a stream key; other sources forbid it'
+            )
         if self.oscillator != expected:
             raise ValueError('Voice start oscillator must match its source settings')
         return self
@@ -80,7 +89,7 @@ def prepare(
 
     def selected_voices(
         kind: enums.TriggerKind, key: int, velocity: float
-    ) -> list[SynthVoice | FMVoice]:
+    ) -> list[SynthVoice | FMVoice | NoiseVoice]:
         return [
             voice
             for voice in instrument.voices
@@ -119,7 +128,7 @@ def prepare(
         voices.remove(voice)
 
     def start_voices(
-        selected: list[SynthVoice | FMVoice],
+        selected: list[SynthVoice | FMVoice | NoiseVoice],
         event: PerformanceEvent,
         part: Identifier,
         trigger_id: Identifier | None,
@@ -197,6 +206,9 @@ def prepare(
                     else None,
                     channels=template.channels,
                     settings=template,
+                    noise_key=stream_key(seed, voice_id)
+                    if isinstance(template, NoiseVoice)
+                    else None,
                 )
             )
             voices.append(
