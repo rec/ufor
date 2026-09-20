@@ -168,6 +168,7 @@ class UnfinishedFile(Model):
 
 class Recording(Model):
     state: Literal['sealed', 'open']
+    project_name: str | None = None
     started_at: str | None = None
     ended_at: str | None = None
     observed_duration_seconds: float | None = Field(default=None, ge=0)

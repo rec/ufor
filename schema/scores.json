@@ -8260,6 +8260,18 @@
           "title": "State",
           "type": "string"
         },
+        "project_name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Name"
+        },
         "started_at": {
           "anyOf": [
             {

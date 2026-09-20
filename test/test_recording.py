@@ -62,6 +62,15 @@ def test_recording_round_trip_preserves_gaps_and_native_counts() -> None:
     assert sum(f.count for f in stream.fragments) == 48000
 
 
+def test_recording_round_trip_preserves_project_name() -> None:
+    value = recording()
+    value = value.model_copy(
+        update={'body': value.body.model_copy(update={'project_name': 'x18-show'})}
+    )
+
+    assert parse_score(score_toml(value)).body.project_name == 'x18-show'
+
+
 def test_recording_rejects_unknown_assets() -> None:
     data = recording().model_dump()
     data['assets'] = data['assets'][:1]
