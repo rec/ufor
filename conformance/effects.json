@@ -1,0 +1,74 @@
+{
+  "graph": {
+    "scope": "host",
+    "owner": "live-input",
+    "inputs": [
+      {
+        "name": "main",
+        "channels": ["left", "right"],
+        "source": {"kind": "main"}
+      },
+      {
+        "name": "modulator",
+        "channels": ["left", "right"],
+        "source": {"kind": "host", "stream": "modulator"}
+      }
+    ],
+    "processors": [
+      {"kind": "gain", "name": "trim", "gain_db": -6.0},
+      {"kind": "multiply", "name": "ring"}
+    ],
+    "connections": [
+      {
+        "processor": "trim",
+        "port": "input",
+        "source": {"kind": "input", "input": "main"}
+      },
+      {
+        "processor": "ring",
+        "port": "carrier",
+        "source": {"kind": "processor", "processor": "trim"}
+      },
+      {
+        "processor": "ring",
+        "port": "modulator",
+        "source": {"kind": "input", "input": "modulator"}
+      }
+    ],
+    "output": {"kind": "processor", "processor": "ring"},
+    "maximum_block_frames": 256
+  },
+  "order": ["trim", "ring"],
+  "output_channels": ["left", "right"],
+  "batch": {
+    "actions": [
+      {
+        "kind": "parameter",
+        "tick": 1024,
+        "ordinal": 7,
+        "processor": "trim",
+        "parameter": "gain_db",
+        "value": -3.0,
+        "duration_frames": 64
+      },
+      {
+        "kind": "bypass",
+        "tick": 1024,
+        "ordinal": 8,
+        "processor": "ring",
+        "bypassed": true
+      }
+    ]
+  },
+  "grain_windows": [
+    {"index": 0, "frames": 4, "value": 0.0},
+    {"index": 1, "frames": 4, "value": 0.5},
+    {"index": 2, "frames": 4, "value": 1.0},
+    {"index": 3, "frames": 4, "value": 0.5}
+  ],
+  "grain_scheduler": {
+    "density_hz": 12000.0,
+    "sample_rate": 48000,
+    "launches": [false, false, false, true, false, false, false, true]
+  }
+}
