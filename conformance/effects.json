@@ -5,41 +5,77 @@
     "inputs": [
       {
         "name": "main",
-        "channels": ["left", "right"],
-        "source": {"kind": "main"}
+        "channels": [
+          "left",
+          "right"
+        ],
+        "source": {
+          "kind": "main"
+        }
       },
       {
         "name": "modulator",
-        "channels": ["left", "right"],
-        "source": {"kind": "host", "stream": "modulator"}
+        "channels": [
+          "left",
+          "right"
+        ],
+        "source": {
+          "kind": "host",
+          "stream": "modulator"
+        }
       }
     ],
     "processors": [
-      {"kind": "gain", "name": "trim", "gain_db": -6.0},
-      {"kind": "multiply", "name": "ring"}
+      {
+        "kind": "gain",
+        "name": "trim",
+        "gain_db": -6.0
+      },
+      {
+        "kind": "multiply",
+        "name": "ring"
+      }
     ],
     "connections": [
       {
         "processor": "trim",
         "port": "input",
-        "source": {"kind": "input", "input": "main"}
+        "source": {
+          "kind": "input",
+          "input": "main"
+        }
       },
       {
         "processor": "ring",
         "port": "carrier",
-        "source": {"kind": "processor", "processor": "trim"}
+        "source": {
+          "kind": "processor",
+          "processor": "trim"
+        }
       },
       {
         "processor": "ring",
         "port": "modulator",
-        "source": {"kind": "input", "input": "modulator"}
+        "source": {
+          "kind": "input",
+          "input": "modulator"
+        }
       }
     ],
-    "output": {"kind": "processor", "processor": "ring"},
+    "output": {
+      "kind": "processor",
+      "processor": "ring"
+    },
     "maximum_block_frames": 256
   },
-  "order": ["trim", "ring"],
-  "output_channels": ["left", "right"],
+  "order": [
+    "trim",
+    "ring"
+  ],
+  "output_channels": [
+    "left",
+    "right"
+  ],
   "batch": {
     "actions": [
       {
@@ -61,14 +97,61 @@
     ]
   },
   "grain_windows": [
-    {"index": 0, "frames": 4, "value": 0.0},
-    {"index": 1, "frames": 4, "value": 0.5},
-    {"index": 2, "frames": 4, "value": 1.0},
-    {"index": 3, "frames": 4, "value": 0.5}
+    {
+      "index": 0,
+      "frames": 4,
+      "value": 0.0
+    },
+    {
+      "index": 1,
+      "frames": 4,
+      "value": 0.5
+    },
+    {
+      "index": 2,
+      "frames": 4,
+      "value": 1.0
+    },
+    {
+      "index": 3,
+      "frames": 4,
+      "value": 0.5
+    }
   ],
   "grain_scheduler": {
     "density_hz": 12000.0,
     "sample_rate": 48000,
-    "launches": [false, false, false, true, false, false, false, true]
-  }
+    "launches": [
+      false,
+      false,
+      false,
+      true,
+      false,
+      false,
+      false,
+      true
+    ]
+  },
+  "grain_jitter": [
+    {
+      "counter": 0,
+      "value": 0.7666216164272852
+    },
+    {
+      "counter": 1,
+      "value": 0.1331231503445618
+    },
+    {
+      "counter": 2,
+      "value": 0.18237946839615882
+    },
+    {
+      "counter": 17,
+      "value": 0.0040423796433759485
+    },
+    {
+      "counter": 4294967296,
+      "value": 0.532603514678172
+    }
+  ]
 }

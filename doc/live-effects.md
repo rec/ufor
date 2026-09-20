@@ -79,6 +79,13 @@ internally delayed actions, active grains, random state, and capacity reservatio
 Unconsumed transport batches return to the caller before snapshot and are
 resubmitted after restore. The graph/asset digest and capacities must match.
 
+Granular position jitter uses the launch counter as a SplitMix64 input. Add the
+golden-ratio increment, apply the standard two xor-shift/multiply mixes and final
+xor shift with wrapping unsigned 64-bit arithmetic, then convert the upper 53
+bits to `[0, 1)` and linearly map that value to `[-1, 1)`. The counter advances
+for every scheduled launch, including launches skipped for unavailable history
+or a full grain pool.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native

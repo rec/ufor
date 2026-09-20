@@ -453,6 +453,18 @@ def grain_launches(
     return launch, phase - 1 if launch else phase
 
 
+def grain_jitter(counter: int) -> float:
+    """Map a launch counter to a deterministic offset in [-1, 1)."""
+    if counter < 0:
+        raise ValueError('grain jitter counter must be nonnegative')
+    mask = (1 << 64) - 1
+    value = (counter + 0x9E3779B97F4A7C15) & mask
+    value = ((value ^ (value >> 30)) * 0xBF58476D1CE4E5B9) & mask
+    value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & mask
+    value ^= value >> 31
+    return 2 * ((value >> 11) / 2**53) - 1
+
+
 def _ancestors(name: str, dependencies: dict[str, set[str]]) -> set[str]:
     result = {name}
     pending = [name]
