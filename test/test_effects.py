@@ -82,6 +82,11 @@ def test_grain_scheduler_conformance() -> None:
     assert phase == 0
 
 
+@pytest.mark.parametrize('case', DATA['grain_jitter'])
+def test_grain_jitter_conformance(case: dict[str, object]) -> None:
+    assert audio_effects.grain_jitter(case['counter']) == case['value']
+
+
 def test_parameter_validation() -> None:
     graph = audio_effects.EffectGraph.model_validate(DATA['graph'])
     invalid = audio_effects.ParameterAction(
