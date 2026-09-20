@@ -2,7 +2,7 @@
 
 Ufor defines light animation scores, component contracts, geometry, composition
 and scalar controls. Lyte supplies effect generation and device playback. This
-implementation adds `kind = "animation"` to the existing version 3 score format;
+implementation includes `kind = "animation"` in the version 4 score format;
 the historical `format = "recs"` header is unchanged.
 
 ## Components and interpretation
@@ -74,7 +74,7 @@ host configuration. Wiring alone never converts components or invents geometry.
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "animation"
 name = "white_pair"
 title = "Warm and cool white"

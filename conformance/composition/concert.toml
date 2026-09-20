@@ -1,5 +1,5 @@
 format = "recs"
-version = 3
+version = 4
 kind = "arrangement"
 name = "concert"
 title = "Rehearsal with drums and piano"

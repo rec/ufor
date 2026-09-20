@@ -1,5 +1,5 @@
 format = "recs"
-version = 3
+version = 4
 name = "glass"
 title = "Glass"
 kind = "instrument"
@@ -54,10 +54,9 @@ parameter = "volume_db"
 
 [[assets]]
 name = "asset-1"
-path = "audio/glass.wav"
 encoding = "WAV/PCM_16"
-byte_length = 88244
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+location = { kind = "relative_file", path = "audio/glass.wav" }
+content = { byte_length = 88244, sha256 = "0000000000000000000000000000000000000000000000000000000000000000" }
 
 [assets.audio]
 timebase = "native-44100"

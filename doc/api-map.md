@@ -7,7 +7,8 @@ historical wire format, not the producer; SFZ output identifies Ufor.
 
 | Task | Defining modules and entry points |
 | --- | --- |
-| Read, write, or describe a score | `codec.parse_score`, `score_toml`, `score_schema`; `score_types.ScoreValue` lists the supported kinds |
+| Read, write, migrate, or describe a score | `codec.parse_score`, `score_toml`, `migrate_score_v3`, `score_schema`; `score_types.ScoreValue` lists the supported kinds |
+| Describe asset acquisition | `assets.Asset`, `ContentIdentity`, and the six location models; `PythonProviderLocation.delivery` distinguishes complete buffers, borrowed callbacks, and client-owned pull buffers |
 | Reference and connect scores | `interface.ScoreReference`, `Part`, `InputSelection`, `OutputSelection`; port selections use `part` and `input` or `output` |
 | Resolve compositions | `composition.Composition`; `library` resolves selectors and presets; `library_files` supplies explicit local file access |
 | Select library records | `selector` defines literal selectors; `references.RecordSelector` selects recording streams, not score definitions |
@@ -71,3 +72,10 @@ sample `Instrument` becomes `SampleSettings` and `body.instrument` becomes
 `body.settings`; selection `name` becomes `part`; binding `channels` becomes
 `stream_mappings`, whose `logical` field becomes `stream`. The common score
 header, discriminators, and media payload formats are unchanged.
+
+Ufor owns asset declarations and validation only. A host maps volumes, downloads
+and verifies finite URLs, resolves pinned Git blobs, opens streams, and imports
+trusted Python providers. Callback providers lend read-only arrays until the
+callback returns; client-buffer providers fill writable arrays owned by the
+consumer. Neither protocol is implemented by Ufor core, and NumPy is not a Ufor
+dependency.

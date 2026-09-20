@@ -1,5 +1,5 @@
 format = "recs"
-version = 3
+version = 4
 kind = "binding"
 name = "vl70m"
 title = "VL70m SysEx librarian binding"

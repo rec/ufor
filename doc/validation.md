@@ -41,6 +41,35 @@ and reference-dependent checks are also normative. Implementations must apply
 them after structural validation; schema defaults do not resolve inherited
 settings or normalize selectors by themselves.
 
+Assets use one discriminated `location` object. The source determines which
+facts are legal:
+
+| Location | Required content identity | Audio extent | Access |
+| --- | --- | --- | --- |
+| `relative_file`, `volume_file`, `download`, `git_file` | Byte length and SHA-256 | Required for audio | Finite random access after resolution |
+| `stream` | Forbidden | Optional | Sequential unless the host reports seeking |
+| Python `buffer` provider | Forbidden | Required | Random access in the returned array |
+| Python `callback` provider | Forbidden | Optional | Provider-owned sequential push |
+| Python `client_buffer` provider | Forbidden | Optional | Client-owned sequential pull |
+
+Relative and volume/Git member paths are portable POSIX paths below their
+declared root. Downloads require an absolute credential-free HTTPS URL and no
+fragment. Git locations require an absolute supported repository URI, a full
+lowercase object ID, and a portable blob path. Stream URLs are absolute and
+credential-free. Provider modules are dotted Python names, functions are Python
+identifiers, and arguments contain recursive finite JSON values only.
+
+Validation grants no authority to read a volume, open a network connection,
+contact Git, import Python, or decode media. Hosts resolve those declarations
+under explicit policy and compare observed facts with the score before use.
+Ufor performs no acquisition while parsing, validating, or generating schema.
+
+Score version 4 introduces structured locations. `codec.migrate_score_v3`
+accepts a decoded version 3 score, converts its relative `path`, `byte_length`,
+and `sha256` asset fields to `location` and `content`, advances the version, and
+validates the result. It does not mutate the supplied dictionary or overwrite a
+file. Version 4 models do not accept the removed fields.
+
 Identifiers deliberately preserve Unicode. For each code point, the first must
 have the Unicode Lowercase property; remaining code points must have Lowercase,
 Numeric_Type Decimal or Digit, or be ASCII `-` or `_`. This matches Python's

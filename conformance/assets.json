@@ -1,0 +1,73 @@
+{
+  "valid": [
+    {
+      "name": "relative",
+      "location": {"kind": "relative_file", "path": "audio/take.wav"},
+      "encoding": "wav",
+      "content": {"byte_length": 44, "sha256": "0000000000000000000000000000000000000000000000000000000000000000"}
+    },
+    {
+      "name": "volume",
+      "location": {"kind": "volume_file", "volume_id": "archive-1", "volume_name": "Archive", "path": "takes/take.wav"},
+      "encoding": "wav",
+      "content": {"byte_length": 44, "sha256": "1111111111111111111111111111111111111111111111111111111111111111"}
+    },
+    {
+      "name": "download",
+      "location": {"kind": "download", "url": "https://audio.example/take.flac"},
+      "encoding": "flac",
+      "content": {"byte_length": 44, "sha256": "2222222222222222222222222222222222222222222222222222222222222222"}
+    },
+    {
+      "name": "git",
+      "location": {"kind": "git_file", "repository": "git://git.example/audio.git", "commit": "3333333333333333333333333333333333333333", "path": "takes/take.wav"},
+      "encoding": "wav",
+      "content": {"byte_length": 44, "sha256": "3333333333333333333333333333333333333333333333333333333333333333"}
+    },
+    {
+      "name": "radio",
+      "location": {"kind": "stream", "url": "https://radio.example/live", "transport": "icecast"},
+      "encoding": "audio/mpeg"
+    },
+    {
+      "name": "generated",
+      "location": {"kind": "python_provider", "module": "show_audio.generators", "function": "tone", "delivery": "buffer", "arguments": {"frequency_hz": 440.0}},
+      "encoding": "float32"
+    },
+    {
+      "name": "input",
+      "location": {"kind": "python_provider", "module": "show_audio.inputs", "function": "stage_feed", "delivery": "callback", "arguments": {"device": "stage-left"}},
+      "encoding": "float32"
+    },
+    {
+      "name": "pull",
+      "location": {"kind": "python_provider", "module": "show_audio.generators", "function": "feed", "delivery": "client_buffer"},
+      "encoding": "float64"
+    }
+  ],
+  "invalid": [
+    {
+      "name": "escape",
+      "location": {"kind": "relative_file", "path": "../take.wav"},
+      "encoding": "wav",
+      "content": {"byte_length": 44, "sha256": "0000000000000000000000000000000000000000000000000000000000000000"}
+    },
+    {
+      "name": "symbolic",
+      "location": {"kind": "git_file", "repository": "git://git.example/audio.git", "commit": "main", "path": "take.wav"},
+      "encoding": "wav",
+      "content": {"byte_length": 44, "sha256": "0000000000000000000000000000000000000000000000000000000000000000"}
+    },
+    {
+      "name": "unverified",
+      "location": {"kind": "download", "url": "https://audio.example/take.wav"},
+      "encoding": "wav"
+    },
+    {
+      "name": "false-identity",
+      "location": {"kind": "stream", "url": "https://radio.example/live", "transport": "icecast"},
+      "encoding": "audio/mpeg",
+      "content": {"byte_length": 44, "sha256": "0000000000000000000000000000000000000000000000000000000000000000"}
+    }
+  ]
+}
