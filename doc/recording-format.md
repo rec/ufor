@@ -33,6 +33,7 @@ sealed merely because their declarations are stable.
 | `assets` | Sealed payloads: local ID, structured finite location, encoding, and byte length/SHA-256 content identity |
 | `timebases` | Named physical clocks with exact positive rational ticks per second |
 | `body.state` | `sealed` requires an end timestamp and no unfinished files; otherwise `open` |
+| `body.project_name` | Optional project that owned the recording session; retained when its directory is moved or renamed |
 | `body.started_at`, `ended_at` | Observed session wall-clock timestamps; not sample alignment |
 | `body.observed_duration_seconds` | Optional operational elapsed time, never an event count |
 | `body.journal` | Asset ID of the preserved capture journal |
