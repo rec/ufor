@@ -1,6 +1,6 @@
 # Score composition implementation plan
 
-Status: implemented for score version 3. The [simplified design](composition-design.md)
+Status: implemented for score version 4. The [simplified design](composition-design.md)
 and [worked example](composition-example.md) are accepted by the codec. Ufor owns
 pure resolution and performance-delivery traces; Recs owns nested audio rendering.
 Traces establish delivery and instance isolation, not sample selection or voice
@@ -145,7 +145,7 @@ recipes still produce arrangements; `CompositionEdit` is not an execution graph.
 
 1. Implement score-reference values, instance records, public declarations
    with bindings, and audio/native-event contracts. Establish the score-version
-   policy before changing accepted wire data. The implementation uses version 3,
+   policy before changing accepted wire data. The implementation uses version 4,
    rejects earlier versions and includes a schema and portable composition fixture.
 2. Add pure recursive validation over host-supplied definitions. Cover missing
    and private ports, invalid bindings/defaults, duplicate IDs, aliases and cycles,

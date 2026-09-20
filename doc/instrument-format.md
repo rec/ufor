@@ -142,14 +142,17 @@ There is one native format; the old `format_version` score is removed.
 | --- | --- |
 | Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |
 | Body | `settings` defaults and optional voice policy, named `slices`, optional non-nested slot `groups`, nonempty `slots` |
-| Audio asset | Common ID/path/encoding/byte length/SHA-256 plus `audio` description with native timebase, frames, and channel names |
+| Audio asset | Common ID, structured location, encoding, optional content identity, plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
 | Slot | ID, slice ID, mapping, explicit channel routes, playback overrides, optional group, sound settings, selection/take/microphone/choke/articulation/crossfade declarations, trigger kind, metadata |
 
-All references are checked without opening files. Slices must be nonempty and
-contained in the asset; loops remain in absolute native asset-frame coordinates
-within the slice. Asset paths cannot be absolute, URLs, or contain `..`.
-The application checks symlinks, hashes, actual decoding, and file availability.
+All references are checked without acquiring assets. Slices must be nonempty and
+contained in finite, seekable audio; loops remain in absolute native asset-frame
+coordinates within the slice. Relative, volume, download, Git, and complete
+Python-buffer locations can satisfy that contract. Live URLs and Python callback
+or client-buffer streams cannot back sample slices even when they declare a
+finite frame count. The host checks policy, containment after symlink resolution,
+content hashes, actual decoding, and file availability.
 
 This complete example uses synthetic asset metadata for illustration. Its zero
 hash is not a claim about an existing file. Real scores require measured
@@ -157,7 +160,7 @@ asset facts, as supplied by Recs' importer.
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "instrument"
 name = "glass"
 title = "Glass"
@@ -177,10 +180,9 @@ numerator = 48000
 
 [[assets]]
 name = "glass"
-path = "audio/glass.wav"
 encoding = "WAV/PCM_16"
-byte_length = 88244
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+location = { kind = "relative_file", path = "audio/glass.wav" }
+content = { byte_length = 88244, sha256 = "0000000000000000000000000000000000000000000000000000000000000000" }
 
 [assets.audio]
 timebase = "native"

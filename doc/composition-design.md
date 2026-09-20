@@ -1,6 +1,6 @@
 # Score composition design
 
-Status: implemented for the initial offline profile in score version 3.
+Status: implemented for the initial offline profile in score version 4.
 Ufor resolves interfaces and
 event histories; Recs renders nested recording arrangements. Sampler execution
 remains deferred.

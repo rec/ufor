@@ -24,7 +24,7 @@ and range. The drums arrangement's internal structure remains private.
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "arrangement"
 name = "concert"
 title = "Rehearsal with drums and piano"

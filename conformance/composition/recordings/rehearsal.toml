@@ -1,5 +1,5 @@
 format = "recs"
-version = 3
+version = 4
 name = "rehearsal"
 title = "Rehearsal"
 parameters = []
@@ -29,10 +29,9 @@ stream = "desk"
 
 [[assets]]
 name = "take"
-path = "take.wav"
 encoding = "WAV/FLOAT"
-byte_length = 3840044
-sha256 = "0000000000000000000000000000000000000000000000000000000000000000"
+location = { kind = "relative_file", path = "take.wav" }
+content = { byte_length = 3840044, sha256 = "0000000000000000000000000000000000000000000000000000000000000000" }
 
 [body]
 state = "sealed"

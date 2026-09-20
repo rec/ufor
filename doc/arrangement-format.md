@@ -8,7 +8,7 @@ the generated media and operational journal.
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "arrangement"
 name = "speech-edit"
 title = "Speech edit"
@@ -89,6 +89,13 @@ variant. The resolver follows recording continuations, verifies selected assets,
 and retains native gaps and offsets. Open recordings and unresolved historical
 placement are rejected. Nested arrangement outputs retain their native frame
 coordinates. Unsupported instrument realization fails during preparation.
+
+Asset locations are resolved by the host before arrangement output begins. A
+clip with a nonzero source start requires finite seekable media, as do reverse,
+mirror, and looping playback. A forward-only live source may feed a live input
+from its opening point, but unresolved URL and Python streams are rejected for
+offline rendering. Reusing one live asset requires independent sessions or an
+explicit host fan-out; two parts do not implicitly share one advancing stream.
 
 `control_clips` place reusable automation-score outputs. Each has a name, source
 `{ part, output }`, native source interval, and timeline start. The source score

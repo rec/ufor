@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor.assets import Asset
+from ufor.assets import Asset, ContentIdentity, RelativeFileLocation
 from ufor.codec import parse_score, score_toml
 from ufor.recording import (
     AudioFragment,
@@ -23,7 +23,10 @@ def recording() -> RecordingScore:
         title='Session',
         assets=[
             Asset(
-                name=i, path=f'{i}.wav', encoding='wav', byte_length=1, sha256='0' * 64
+                name=i,
+                location=RelativeFileLocation(path=f'{i}.wav'),
+                encoding='wav',
+                content=ContentIdentity(byte_length=1, sha256='0' * 64),
             )
             for i in ('journal', 'take')
         ],

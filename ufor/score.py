@@ -10,7 +10,7 @@ from .selector import ScoreName, Tags
 
 class Score(Model):
     format: Literal['recs'] = 'recs'
-    version: Literal[3] = 3
+    version: Literal[4] = 4
     name: ScoreName
     title: str = Field(min_length=1)
     tags: Tags = Field(default_factory=list)
@@ -19,5 +19,5 @@ class Score(Model):
     @classmethod
     def integer_version(cls, value: object) -> object:
         if not isinstance(value, int) or isinstance(value, bool):
-            raise ValueError('version must be integer 3')
+            raise ValueError('version must be integer 4')
         return value

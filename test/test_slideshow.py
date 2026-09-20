@@ -33,17 +33,21 @@ def test_still_show_requires_accessibility_and_replayable_decisions() -> None:
             'assets': [
                 {
                     'name': 'first',
-                    'path': 'photos/first.jpg',
+                    'location': {
+                        'kind': 'relative_file',
+                        'path': 'photos/first.jpg',
+                    },
                     'encoding': 'jpeg',
-                    'byte_length': 1,
-                    'sha256': '0' * 64,
+                    'content': {'byte_length': 1, 'sha256': '0' * 64},
                 },
                 {
                     'name': 'last',
-                    'path': 'photos/last.jpg',
+                    'location': {
+                        'kind': 'relative_file',
+                        'path': 'photos/last.jpg',
+                    },
                     'encoding': 'jpeg',
-                    'byte_length': 1,
-                    'sha256': '1' * 64,
+                    'content': {'byte_length': 1, 'sha256': '1' * 64},
                 },
             ],
             'items': [
@@ -88,17 +92,15 @@ def test_video_accompaniment_and_captions_are_portable_timeline_data() -> None:
                 'assets': [
                     {
                         'name': 'video',
-                        'path': 'film.mov',
+                        'location': {'kind': 'relative_file', 'path': 'film.mov'},
                         'encoding': 'mov',
-                        'byte_length': 1,
-                        'sha256': '0' * 64,
+                        'content': {'byte_length': 1, 'sha256': '0' * 64},
                     },
                     {
                         'name': 'audio',
-                        'path': 'music.flac',
+                        'location': {'kind': 'relative_file', 'path': 'music.flac'},
                         'encoding': 'flac',
-                        'byte_length': 1,
-                        'sha256': '1' * 64,
+                        'content': {'byte_length': 1, 'sha256': '1' * 64},
                     },
                 ],
                 'items': [
@@ -145,10 +147,9 @@ def test_inherited_advance_is_distinct_from_explicit_automatic() -> None:
         'assets': [
             {
                 'name': 'photo',
-                'path': 'photo.jpg',
+                'location': {'kind': 'relative_file', 'path': 'photo.jpg'},
                 'encoding': 'jpeg',
-                'byte_length': 1,
-                'sha256': '0' * 64,
+                'content': {'byte_length': 1, 'sha256': '0' * 64},
             }
         ],
         'default_advance': 'cue',

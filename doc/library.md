@@ -83,7 +83,7 @@ A preset changes public parameter defaults, retaining the selected behavior:
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "preset"
 name = "quiet frogs"
 title = "Quiet frogs by the lake"
@@ -110,6 +110,7 @@ A file defines exactly one local subclass of a concrete Ufor score model:
 ```python
 from ufor.musical import OscillatorScore
 from ufor.oscillator import Oscillator
+
 
 class Tone(OscillatorScore):
     name: str = 'triangle tone'
@@ -162,3 +163,10 @@ and address to resolve relative media assets, and its `python_class` for an
 inherited Python implementation. The preset's own class, metadata and file hash
 remain attached to the preset entry. Ufor leaves device access, playback and the
 Lyte port to their hosts.
+
+The content origin is not an asset location. `ScoreReference.path` locates a
+definition inside the library graph; an asset's discriminated `location`
+describes how a host obtains media. Relative asset locations resolve from the
+ultimate definition's content origin. Volume IDs, URLs, Git repositories, and
+Python provider references remain explicit and are never rewritten from a score
+reference or selector.

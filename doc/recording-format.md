@@ -2,7 +2,7 @@
 
 The initial common format supports arrangements, recording descriptions, and
 ordered event sequences. TOML is the score syntax; `format = "recs"`,
-`version = 3`, `kind`, `name`, and `title` form its common envelope.
+`version = 4`, `kind`, `name`, and `title` form its common envelope.
 `ufor.codec.score_schema()` generates structural JSON Schema for all supported
 score kinds; [semantic validation](validation.md) adds the cross-field rules.
 The [arrangement format](arrangement-format.md) describes audio editing.
@@ -20,11 +20,17 @@ journal and media available; the recorder reports the error, and the next
 recovery scan reports the missing score even if the journal has a footer.
 `recs record check` performs the fuller payload verification described below.
 
+Finalized recordings use finite `relative_file`, `volume_file`, `download`, or
+`git_file` locations with verified content identity. Capturing a URL or Python
+stream writes a finite asset; the live location is not the recording payload.
+Open callback and client-buffer providers therefore never make a recording
+sealed merely because their declarations are stable.
+
 ## Recording fields
 
 | Field | Meaning |
 | --- | --- |
-| `assets` | Sealed payloads: local ID, path relative to the score directory, encoding, byte length, SHA-256 |
+| `assets` | Sealed payloads: local ID, structured finite location, encoding, and byte length/SHA-256 content identity |
 | `timebases` | Named physical clocks with exact positive rational ticks per second |
 | `body.state` | `sealed` requires an end timestamp and no unfinished files; otherwise `open` |
 | `body.started_at`, `ended_at` | Observed session wall-clock timestamps; not sample alignment |
@@ -90,7 +96,7 @@ outputs instead contain the actual version 3 journal snapshot and its hash.
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "recording"
 name = "example-session"
 title = "Empty capture"
@@ -98,10 +104,9 @@ timebases = []
 
 [[assets]]
 name = "journal"
-path = "journal.jsonl"
 encoding = "recs-session-v3"
-byte_length = 0
-sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+location = { kind = "relative_file", path = "journal.jsonl" }
+content = { byte_length = 0, sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855" }
 
 [body]
 state = "sealed"
@@ -135,7 +140,7 @@ preroll controls and overlapping triggers with distinct identities.
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "sequence"
 name = "key-example"
 title = "One key gesture"

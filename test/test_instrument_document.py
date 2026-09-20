@@ -8,7 +8,7 @@ from pydantic import ValidationError
 
 from ufor import envelope, sfz
 from ufor.base import Model
-from ufor.codec import parse_score, score_schema, score_toml
+from ufor.codec import migrate_score_v3, parse_score, score_schema, score_toml
 from ufor.interface import ScoreReference
 from ufor.library import Entry, Library
 from ufor.preset import PresetScore
@@ -96,6 +96,21 @@ def test_native_instrument_round_trips_through_the_common_codec() -> None:
     assert document.assets[0].audio.timebase == 'native-44100'
     assert document.outputs[0].stream.timebase == 'output'
     assert document.body.slices[0].end_frame == 1000
+
+
+def test_version_three_assets_migrate_without_compatibility_fields() -> None:
+    current = fixture()
+    previous = deepcopy(current)
+    previous['version'] = 3
+    asset = previous['assets'][0]
+    asset['path'] = asset.pop('location')['path']
+    content = asset.pop('content')
+    asset.update(content)
+
+    assert migrate_score_v3(previous) == SampleInstrumentScore.model_validate(current)
+    assert previous['version'] == 3
+    with pytest.raises(ValidationError):
+        SampleInstrumentScore.model_validate(previous)
 
 
 def test_voice_policy_round_trips_through_toml() -> None:
@@ -211,8 +226,8 @@ def test_group_selection_and_empty_envelope_survive_toml(
         assert effective_settings(slot, group).envelope is None
 
 
-@pytest.mark.parametrize('version', [True, 2.0, '2', 1])
-def test_instrument_version_requires_integer_one(version: object) -> None:
+@pytest.mark.parametrize('version', [True, 3, 4.0, '4', 1])
+def test_instrument_version_requires_integer_four(version: object) -> None:
     with pytest.raises(ValidationError):
         SampleInstrumentScore.model_validate(fixture() | {'version': version})
 
@@ -274,11 +289,32 @@ def test_whole_envelope_overrides_and_playback_inheritance_round_trip() -> None:
             {'channels': [{'input': 'mono', 'output': 'absent', 'gain': 1}]},
             'Unknown channel',
         ),
-        ('asset', {'path': '../glass.wav'}, 'document directory'),
-        ('asset', {'path': 'audio/../glass.wav'}, 'document directory'),
-        ('asset', {'path': '/glass.wav'}, 'document directory'),
-        ('asset', {'path': 'https://example.org/glass.wav'}, 'document directory'),
-        ('asset', {'sha256': 'unknown'}, 'pattern'),
+        (
+            'asset',
+            {'location': {'kind': 'relative_file', 'path': '../glass.wav'}},
+            'declared root',
+        ),
+        (
+            'asset',
+            {'location': {'kind': 'relative_file', 'path': 'audio/../glass.wav'}},
+            'declared root',
+        ),
+        (
+            'asset',
+            {'location': {'kind': 'relative_file', 'path': '/glass.wav'}},
+            'declared root',
+        ),
+        (
+            'asset',
+            {
+                'location': {
+                    'kind': 'relative_file',
+                    'path': 'https://example.org/glass.wav',
+                }
+            },
+            'declared root',
+        ),
+        ('asset', {'content': {'byte_length': 88244, 'sha256': 'unknown'}}, 'pattern'),
     ],
 )
 def test_instrument_references_are_validated_before_loading(
@@ -322,6 +358,40 @@ def test_channels_and_ports_are_not_implicit() -> None:
     raw = fixture()
     raw['body']['slots'][0]['channels'].append(raw['body']['slots'][0]['channels'][0])
     with pytest.raises(ValidationError, match='duplicate channel route'):
+        SampleInstrumentScore.model_validate(raw)
+
+
+def test_sample_instruments_accept_finite_buffer_providers() -> None:
+    raw = fixture()
+    asset = raw['assets'][0]
+    asset['location'] = {
+        'kind': 'python_provider',
+        'module': 'show_audio.generators',
+        'function': 'glass',
+        'delivery': 'buffer',
+    }
+    del asset['content']
+    assert SampleInstrumentScore.model_validate(raw).assets[0].audio.frames == 44100
+
+
+def test_finite_audio_sources_require_frames() -> None:
+    raw = fixture()
+    del raw['assets'][0]['audio']['frames']
+    with pytest.raises(ValidationError, match='finite audio extent'):
+        SampleInstrumentScore.model_validate(raw)
+
+
+def test_sample_instruments_reject_callback_sources() -> None:
+    raw = fixture()
+    asset = raw['assets'][0]
+    asset['location'] = {
+        'kind': 'python_provider',
+        'module': 'show_audio.inputs',
+        'function': 'stage_feed',
+        'delivery': 'callback',
+    }
+    del asset['content']
+    with pytest.raises(ValidationError, match='finite, seekable'):
         SampleInstrumentScore.model_validate(raw)
 
 
@@ -500,7 +570,7 @@ def test_sfz_reports_unrepresentable_native_features(
 @pytest.mark.parametrize('sample', ['../outside.wav', '/outside.wav', 'C:/outside.wav'])
 def test_sfz_paths_are_validated_before_requesting_asset_facts(sample: str) -> None:
     source = sfz.parse(f'<region> sample={sample}')
-    with pytest.raises(ValueError, match='document directory'):
+    with pytest.raises(ValueError, match='declared root'):
         sfz.sample_paths(source)
 
 

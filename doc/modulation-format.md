@@ -7,7 +7,7 @@ MIDI pedals, allocate voices, or implement a sampler. Existing Recsam and Tuney
 engines are not changed by adding this profile.
 
 `envelope` and `lfo` are common score kinds, using the existing `format =
-"recs"`, `version = 3`, `name`, `title`, and `body` fields. Both round-trip through
+"recs"`, `version = 4`, `name`, `title`, and `body` fields. Both round-trip through
 the common TOML codec. The generated schema and
 [conformance/modulation.json](../conformance/modulation.json) accompany the
 Python reference in `ufor.envelope` and `ufor.lfo`.
@@ -77,7 +77,7 @@ hold 1/10 second, decay 1/4 second to 0.6, then sustain and release:
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 name = "soft-amplitude"
 title = "Soft amplitude"
 kind = "envelope"

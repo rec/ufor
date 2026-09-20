@@ -182,7 +182,7 @@ parameters. It is not a recursive merge of arbitrary TOML tables:
 
 ```toml
 format = "recs"
-version = 3
+version = 4
 kind = "preset"
 name = "quiet frogs"
 title = "Quiet frogs by the lake"

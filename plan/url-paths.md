@@ -1,8 +1,8 @@
 # Asset locations: files, URLs, streams, and providers
 
-Status: proposed architecture. This plan replaces the assumption that every
-asset is a sealed file below the score directory. It does not implement network,
-Git, volume, or Python-provider I/O in Ufor.
+Status: implemented in the version 4 format models, validation, schema, and
+conformance data. Network, Git, volume, and Python-provider I/O remain host work
+and are intentionally not implemented in Ufor.
 
 ## Goal
 
@@ -32,8 +32,8 @@ Replace `Asset.path: str` with one required discriminated
 `Asset.location: AssetLocation`. Use one structured representation in Python,
 JSON, and TOML. Do not retain a second shorthand string form.
 
-This is a wire-format change. Introduce it in the next score version and migrate
-existing `path = "audio/take.wav"` values to:
+This is the version 4 wire-format change. Migrate existing
+`path = "audio/take.wav"` values to:
 
 ```toml
 [assets.location]
@@ -581,7 +581,7 @@ Python-looking name as a new location. Old scores permitted relative files only.
 
 ## Implementation stages
 
-### 1. Definition cutover
+### 1. Definition cutover (implemented)
 
 - Add the location variants and recursive JSON value validation to
   `ufor.assets`.
@@ -594,7 +594,7 @@ Acceptance: each location round-trips through JSON and TOML; invalid mixed field
 unsafe paths, relative URLs, symbolic Git revisions, malformed provider names,
 and source/facts contradictions are rejected.
 
-### 2. Local and volume host resolution
+### 2. Local and volume host resolution (host work)
 
 - Port the current relative-file resolution to the new model.
 - Define the host volume registry and exact missing/ambiguous/mismatch errors.
@@ -605,7 +605,7 @@ Acceptance: moving the package preserves relative files; changing a mount point
 preserves a volume asset; a same-named wrong volume is rejected; symlink escapes
 and hash mismatches fail.
 
-### 3. Downloads and Git
+### 3. Downloads and Git (host work)
 
 - Add bounded verified caches keyed by content SHA-256.
 - Add explicit download and Git resolver adapters under host policy.
@@ -616,7 +616,7 @@ Acceptance: cached offline replay is byte-identical; redirects and repository
 aliases cannot bypass policy; moving a tag or branch is irrelevant because only
 full commits are accepted; wrong bytes fail before decoding.
 
-### 4. Streaming URLs
+### 4. Streaming URLs (host work)
 
 - Define transport-adapter capability reports and discontinuity observations.
 - Permit only forward live-input use in the first implementation.
@@ -627,7 +627,7 @@ Acceptance: HLS-over-HTTPS is distinguishable from finite HTTPS download;
 dropouts become explicit recording gaps; reconnect policy is visible; no live
 stream is described as sealed or deterministic.
 
-### 5. Python providers
+### 5. Python providers (host work)
 
 - Define provider request types in the host/provider package.
 - Implement opt-in module/function resolution and JSON arguments.
@@ -645,7 +645,7 @@ frames; borrowed callback arrays are never retained; client-buffer providers can
 repeatedly fill the same array without changing its identity; exceptions close
 the provider once; Ufor imports without NumPy installed.
 
-### 6. Consumer capability validation
+### 6. Consumer capability validation (partly implemented)
 
 - State finite/seekable/live requirements for sample instruments, arrangement
   clips, reverse/loop playback, offline composition, and recording.
@@ -681,7 +681,7 @@ second long where audio output is actually compared.
 
 ## Documentation updates
 
-When implementing, update:
+The format implementation updates:
 
 - `doc/validation.md` with the source/facts matrix and policy boundary;
 - `doc/instrument-format.md` with finite/seekable sample requirements;

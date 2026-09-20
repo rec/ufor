@@ -444,8 +444,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -628,8 +628,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -749,33 +749,61 @@
           "title": "Name",
           "type": "string"
         },
-        "path": {
-          "minLength": 1,
-          "title": "Path",
-          "type": "string"
+        "location": {
+          "discriminator": {
+            "mapping": {
+              "download": "#/$defs/DownloadLocation",
+              "git_file": "#/$defs/GitFileLocation",
+              "python_provider": "#/$defs/PythonProviderLocation",
+              "relative_file": "#/$defs/RelativeFileLocation",
+              "stream": "#/$defs/StreamLocation",
+              "volume_file": "#/$defs/VolumeFileLocation"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RelativeFileLocation"
+            },
+            {
+              "$ref": "#/$defs/VolumeFileLocation"
+            },
+            {
+              "$ref": "#/$defs/DownloadLocation"
+            },
+            {
+              "$ref": "#/$defs/GitFileLocation"
+            },
+            {
+              "$ref": "#/$defs/StreamLocation"
+            },
+            {
+              "$ref": "#/$defs/PythonProviderLocation"
+            }
+          ],
+          "title": "Location"
         },
         "encoding": {
           "minLength": 1,
           "title": "Encoding",
           "type": "string"
         },
-        "byte_length": {
-          "minimum": 0,
-          "title": "Byte Length",
-          "type": "integer"
-        },
-        "sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Sha256",
-          "type": "string"
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
         "name",
-        "path",
-        "encoding",
-        "byte_length",
-        "sha256"
+        "location",
+        "encoding"
       ],
       "title": "Asset",
       "type": "object"
@@ -787,25 +815,55 @@
           "title": "Name",
           "type": "string"
         },
-        "path": {
-          "minLength": 1,
-          "title": "Path",
-          "type": "string"
+        "location": {
+          "discriminator": {
+            "mapping": {
+              "download": "#/$defs/DownloadLocation",
+              "git_file": "#/$defs/GitFileLocation",
+              "python_provider": "#/$defs/PythonProviderLocation",
+              "relative_file": "#/$defs/RelativeFileLocation",
+              "stream": "#/$defs/StreamLocation",
+              "volume_file": "#/$defs/VolumeFileLocation"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/RelativeFileLocation"
+            },
+            {
+              "$ref": "#/$defs/VolumeFileLocation"
+            },
+            {
+              "$ref": "#/$defs/DownloadLocation"
+            },
+            {
+              "$ref": "#/$defs/GitFileLocation"
+            },
+            {
+              "$ref": "#/$defs/StreamLocation"
+            },
+            {
+              "$ref": "#/$defs/PythonProviderLocation"
+            }
+          ],
+          "title": "Location"
         },
         "encoding": {
           "minLength": 1,
           "title": "Encoding",
           "type": "string"
         },
-        "byte_length": {
-          "minimum": 0,
-          "title": "Byte Length",
-          "type": "integer"
-        },
-        "sha256": {
-          "pattern": "^[0-9a-f]{64}$",
-          "title": "Sha256",
-          "type": "string"
+        "content": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ContentIdentity"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "audio": {
           "$ref": "#/$defs/AudioDescription"
@@ -813,10 +871,8 @@
       },
       "required": [
         "name",
-        "path",
+        "location",
         "encoding",
-        "byte_length",
-        "sha256",
         "audio"
       ],
       "title": "AudioAsset",
@@ -851,15 +907,22 @@
           "type": "array"
         },
         "frames": {
-          "minimum": 0,
-          "title": "Frames",
-          "type": "integer"
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Frames"
         }
       },
       "required": [
         "timebase",
-        "channels",
-        "frames"
+        "channels"
       ],
       "title": "AudioDescription",
       "type": "object"
@@ -1241,8 +1304,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -1403,8 +1466,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -1490,8 +1553,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -2626,6 +2689,27 @@
       "title": "ConfettiWithDecay",
       "type": "object"
     },
+    "ContentIdentity": {
+      "additionalProperties": false,
+      "properties": {
+        "byte_length": {
+          "minimum": 0,
+          "title": "Byte Length",
+          "type": "integer"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "byte_length",
+        "sha256"
+      ],
+      "title": "ContentIdentity",
+      "type": "object"
+    },
     "Control": {
       "additionalProperties": false,
       "description": "A free-running control in seconds from this score's activation.",
@@ -3133,6 +3217,27 @@
       "title": "DirectorySelection",
       "type": "object"
     },
+    "DownloadLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "download",
+          "default": "download",
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url"
+      ],
+      "title": "DownloadLocation",
+      "type": "object"
+    },
     "EndKind": {
       "enum": [
         "duration",
@@ -3312,8 +3417,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -4442,8 +4547,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -4659,6 +4764,39 @@
         "reference"
       ],
       "title": "GeneratorBinding",
+      "type": "object"
+    },
+    "GitFileLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "git_file",
+          "default": "git_file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "repository": {
+          "minLength": 1,
+          "title": "Repository",
+          "type": "string"
+        },
+        "commit": {
+          "pattern": "^(?:[0-9a-f]{40}|[0-9a-f]{64})$",
+          "title": "Commit",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "repository",
+        "commit",
+        "path"
+      ],
+      "title": "GitFileLocation",
       "type": "object"
     },
     "GreyCode": {
@@ -5017,6 +5155,37 @@
       "title": "IntervalPattern",
       "type": "object"
     },
+    "JsonValue": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "KeyBehavior": {
       "enum": [
         "latched",
@@ -5266,8 +5435,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -6493,8 +6662,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -7312,8 +7481,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -7494,6 +7663,50 @@
         }
       },
       "title": "Pulse",
+      "type": "object"
+    },
+    "PythonProviderLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "python_provider",
+          "default": "python_provider",
+          "title": "Kind",
+          "type": "string"
+        },
+        "module": {
+          "minLength": 1,
+          "title": "Module",
+          "type": "string"
+        },
+        "function": {
+          "minLength": 1,
+          "title": "Function",
+          "type": "string"
+        },
+        "delivery": {
+          "enum": [
+            "buffer",
+            "callback",
+            "client_buffer"
+          ],
+          "title": "Delivery",
+          "type": "string"
+        },
+        "arguments": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "title": "Arguments",
+          "type": "object"
+        }
+      },
+      "required": [
+        "module",
+        "function",
+        "delivery"
+      ],
+      "title": "PythonProviderLocation",
       "type": "object"
     },
     "Quantity": {
@@ -8168,8 +8381,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -8241,6 +8454,27 @@
         "body"
       ],
       "title": "RecordingScore",
+      "type": "object"
+    },
+    "RelativeFileLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "relative_file",
+          "default": "relative_file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "RelativeFileLocation",
       "type": "object"
     },
     "Release": {
@@ -8579,8 +8813,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -9156,8 +9390,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -9459,8 +9693,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -9791,8 +10025,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -10220,6 +10454,32 @@
       "title": "StreamContract",
       "type": "object"
     },
+    "StreamLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "stream",
+          "default": "stream",
+          "title": "Kind",
+          "type": "string"
+        },
+        "url": {
+          "minLength": 1,
+          "title": "Url",
+          "type": "string"
+        },
+        "transport": {
+          "title": "Transport",
+          "type": "string"
+        }
+      },
+      "required": [
+        "url",
+        "transport"
+      ],
+      "title": "StreamLocation",
+      "type": "object"
+    },
     "StreamMapping": {
       "additionalProperties": false,
       "properties": {
@@ -10371,8 +10631,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -10879,8 +11139,8 @@
           "type": "string"
         },
         "version": {
-          "const": 3,
-          "default": 3,
+          "const": 4,
+          "default": 4,
           "title": "Version",
           "type": "integer"
         },
@@ -11198,6 +11458,46 @@
         "maximum_voices"
       ],
       "title": "VoicePolicy",
+      "type": "object"
+    },
+    "VolumeFileLocation": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "volume_file",
+          "default": "volume_file",
+          "title": "Kind",
+          "type": "string"
+        },
+        "volume_id": {
+          "minLength": 1,
+          "title": "Volume Id",
+          "type": "string"
+        },
+        "volume_name": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Volume Name"
+        },
+        "path": {
+          "minLength": 1,
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "volume_id",
+        "path"
+      ],
+      "title": "VolumeFileLocation",
       "type": "object"
     },
     "Wave": {

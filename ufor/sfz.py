@@ -10,7 +10,7 @@ from typing import Annotated, Literal
 from pydantic import Field, ValidationError
 
 from . import base, envelope, modulation
-from .assets import Asset, AudioDescription
+from .assets import AudioDescription, ContentIdentity, RelativeFileLocation
 from .control import Clock, Scope
 from .interface import AudioBinding, EventType, Input, Output, PerformanceBinding
 from .samples import controls, crossfade, enums, playback, processing, selection
@@ -132,7 +132,7 @@ def sample_paths(source: SfzSource) -> list[str]:
             PurePosixPath(region.default_path.replace('\\', '/'))
             / samples[-1].replace('\\', '/')
         )
-        Asset.portable_path(path)
+        RelativeFileLocation(path=path)
         if path not in result:
             result.append(path)
     return result
@@ -171,10 +171,11 @@ def compile_instrument(
         native_assets.append(
             AudioAsset(
                 name=asset_ids[path],
-                path=path,
+                location=RelativeFileLocation(path=path),
                 encoding=metadata.encoding,
-                byte_length=metadata.byte_length,
-                sha256=metadata.sha256,
+                content=ContentIdentity(
+                    byte_length=metadata.byte_length, sha256=metadata.sha256
+                ),
                 audio=AudioDescription(
                     timebase=clock.name, channels=channels, frames=metadata.frames
                 ),
@@ -436,7 +437,15 @@ def _region(
     path = f'body.slots[{index}]'
     sample_slice = next(s for s in document.body.slices if s.name == slot.slice)
     asset = next(a for a in document.assets if a.name == sample_slice.asset)
-    sample = asset.path
+    if not isinstance(asset.location, RelativeFileLocation):
+        _issue(
+            issues,
+            f'{path}.sample',
+            asset.location,
+            'SFZ export requires a relative-file sample location',
+        )
+        return None
+    sample = asset.location.path
     try:
         expected_channels = _channel_routes(
             len(asset.audio.channels),
