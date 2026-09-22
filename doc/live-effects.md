@@ -49,8 +49,16 @@ History uses absolute frame coordinates and linear interpolation. A launch is
 skipped unless the complete interpolation footprint is in valid retained input.
 Skipped launches still advance scheduler and random state. Jitter uses the
 noise-v1 SplitMix64 stream with a processor-instance key. Freeze latches the
-valid interval and crossfades its circular boundary over 64 frames. Implementors
-must retain samples used by active grains across unfreeze without allocation.
+valid interval and replays it circularly. For `N` valid frames, let
+`X = min(freeze_crossfade_frames, floor((N - 1) / 2))` and `P = N - X`. Map a
+requested source position to `q` in `[0, P)` with modulo `P`. At an integer
+offset `i < X`, the loop value is the linear blend from frozen frame `P + i` to
+frozen frame `i` with weight `i / X`; at other offsets it is frozen frame `i`.
+Linearly interpolate between adjacent loop values, wrapping the upper value from
+`P` to zero. Thus a full history uses the declared 64-frame overlap, while a
+startup freeze uses only available recorded frames and never exposes initialized
+but unavailable storage. Implementors must retain samples used by active grains
+across unfreeze without allocation.
 
 ## Actions and timing
 
