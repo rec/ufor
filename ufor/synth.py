@@ -9,7 +9,7 @@ from . import base, control, modulation
 from .base import Identifier, Model, unique
 from .envelope import Envelope, Segment
 from .events import ControlChange, PerformanceEvent, Trigger
-from .fm import FM
+from .fm import FM, FourOperatorFM
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
 from .number import cents_to_ratio
 from .oscillator import Oscillator
@@ -86,7 +86,7 @@ class NoiseVoice(VoiceTemplate):
 
 
 class FMVoice(VoiceTemplate):
-    fm: FM
+    fm: FM | FourOperatorFM
 
     @model_validator(mode='after')
     def fm_profile(self) -> Self:
@@ -110,6 +110,20 @@ class FMVoice(VoiceTemplate):
     def parameter_definition(
         self, target: modulation.Target
     ) -> tuple[modulation.Unit, float]:
+        if isinstance(self.fm, FourOperatorFM):
+            if target.name == 'fm' and target.parameter == 'carrier_level':
+                return modulation.Unit.ratio, self.fm.carrier_level
+            for operator in self.fm.operators:
+                if target.name == f'operator-{operator.name}':
+                    if target.parameter == 'ratio':
+                        return modulation.Unit.ratio, operator.ratio
+                    if target.parameter == 'tuning_cents':
+                        return modulation.Unit.cents, operator.tuning_cents
+            for edge in self.fm.edges:
+                if target.name == f'edge-{edge.source}-{edge.destination}':
+                    if target.parameter == 'index':
+                        return modulation.Unit.radians, edge.index
+            return super().parameter_definition(target)
         if target.name == 'fm':
             if target.parameter == 'index':
                 return modulation.Unit.radians, self.fm.connection.index

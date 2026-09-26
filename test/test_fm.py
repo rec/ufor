@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from ufor import synth_trace
 from ufor.codec import parse_score, score_toml
 from ufor.events import Release, Trigger
-from ufor.fm import FM, Connection, Operator
+from ufor.fm import FM, Connection, FMEdge, FourOperatorFM, Operator
 from ufor.synth import FMVoice, SynthInstrument, SynthInstrumentScore
 
 
@@ -103,6 +103,29 @@ def test_fm_rejects_invalid_connections(source: str, destination: str) -> None:
         FM(
             operators=[Operator(name='a'), Operator(name='b')],
             connection=Connection(source=source, destination=destination),
+        )
+
+
+def test_four_operator_fm_accepts_delayed_cycles_and_rejects_current_cycles() -> None:
+    operators = [Operator(name=name) for name in ('a', 'b', 'c', 'd')]
+    profile = FourOperatorFM(
+        operators=operators,
+        carrier='d',
+        edges=[
+            FMEdge(source='a', destination='b', index=1),
+            FMEdge(source='b', destination='d', index=1),
+            FMEdge(source='d', destination='a', index=1, delayed=True),
+        ],
+    )
+    assert profile.carrier == 'd'
+    with pytest.raises(ValidationError, match='acyclic'):
+        FourOperatorFM(
+            operators=operators,
+            carrier='d',
+            edges=[
+                FMEdge(source='a', destination='b'),
+                FMEdge(source='b', destination='a'),
+            ],
         )
 
 
