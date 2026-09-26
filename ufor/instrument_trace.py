@@ -66,6 +66,19 @@ class ControlObservation(TraceAction):
     trigger_id: Identifier | None = None
 
 
+class LFOObservation(TraceAction):
+    kind: Literal['lfo'] = 'lfo'
+    name: Identifier
+    action: Literal['reset', 'rate']
+    rate: float | None = Field(default=None, ge=0)
+
+    @model_validator(mode='after')
+    def rate_payload(self) -> Self:
+        if (self.action == 'rate') != (self.rate is not None):
+            raise ValueError('only LFO rate changes require a rate')
+        return self
+
+
 class Diagnostic(TraceAction):
     kind: Literal['diagnostic'] = 'diagnostic'
     code: Identifier

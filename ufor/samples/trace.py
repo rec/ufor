@@ -5,12 +5,13 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from ..base import Identifier, Model, unique
-from ..events import ControlChange, PerformanceEvent, Release, Trigger
+from ..events import ControlChange, LFOChange, PerformanceEvent, Release, Trigger
 from ..instrument_trace import (
     ActiveTrigger,
     ActiveVoice,
     ControlObservation,
     Diagnostic,
+    LFOObservation,
     LifecycleSnapshot,
     RetirementCause,
     TriggerContext,
@@ -43,7 +44,12 @@ class VoiceStart(LifecycleVoiceStart):
 
 
 Action = Annotated[
-    VoiceStart | VoiceRetirement | TriggerContext | ControlObservation | Diagnostic,
+    VoiceStart
+    | VoiceRetirement
+    | TriggerContext
+    | ControlObservation
+    | LFOObservation
+    | Diagnostic,
     Field(discriminator='kind'),
 ]
 
@@ -295,7 +301,17 @@ def prepare(
 
     for event in events:
         instrument.validate_event(event)
-        if isinstance(event, ControlChange):
+        if isinstance(event, LFOChange):
+            actions.append(
+                LFOObservation(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    name=event.name,
+                    action=event.action,
+                    rate=event.rate,
+                )
+            )
+        elif isinstance(event, ControlChange):
             actions.append(
                 ControlObservation(
                     tick=event.tick,

@@ -147,11 +147,33 @@ class ControlChange(Event):
         return self
 
 
+class LFOChange(Event):
+    """Change one instrument-scoped named LFO at an exact performance tick."""
+
+    kind: Literal['lfo_change'] = 'lfo_change'
+    name: Identifier
+    action: Literal['reset', 'rate']
+    rate: float | None = Field(default=None, ge=0)
+
+    @model_validator(mode='after')
+    def rate_payload(self) -> Self:
+        if (self.action == 'rate') != (self.rate is not None):
+            raise ValueError('only LFO rate changes require a rate')
+        return self
+
+
 PerformanceEvent = Annotated[
-    Trigger | Release | ControlChange, Field(discriminator='kind')
+    Trigger | Release | ControlChange | LFOChange, Field(discriminator='kind')
 ]
 StoredEvent = Annotated[
-    MidiEvent | UmpEvent | OscEvent | KeyEvent | Trigger | Release | ControlChange,
+    MidiEvent
+    | UmpEvent
+    | OscEvent
+    | KeyEvent
+    | Trigger
+    | Release
+    | ControlChange
+    | LFOChange,
     Field(discriminator='kind'),
 ]
 

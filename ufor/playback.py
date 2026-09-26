@@ -154,6 +154,8 @@ def _append_event(
     events: list[PerformanceEvent], event: PerformanceEvent, tick: int, prefix: str
 ) -> None:
     updates: dict[str, object] = {'tick': tick, 'ordinal': len(events)}
-    if isinstance(event, (Trigger, Release)) or event.scope == 'trigger':
+    if isinstance(event, (Trigger, Release)) or (
+        isinstance(event, ControlChange) and event.scope == 'trigger'
+    ):
         updates['trigger_id'] = prefix + str(event.trigger_id)
     events.append(event.model_copy(update=updates))
