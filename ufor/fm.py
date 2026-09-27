@@ -7,6 +7,7 @@ from pydantic import Field, model_validator
 from . import control
 from .base import Identifier, Model, unique
 from .envelope import Envelope, Segment
+from .oscillator import Waveform
 
 
 class Operator(Model):
@@ -14,6 +15,7 @@ class Operator(Model):
     ratio: float = Field(default=1, gt=0)
     tuning_cents: float = 0
     phase_cycles: float = Field(default=0, ge=0, lt=1)
+    waveform: Waveform = Waveform.sine
     envelope: Envelope = Envelope(
         segments=[Segment(duration=0, target=1)],
         release=[Segment(duration=0, target=0)],

@@ -6,7 +6,11 @@ prepared start carries FM settings and a null oscillator. This is a distinct
 source definition, not a new oscillator waveform. Mixed source scores are
 portable; an engine may reject unsupported source profiles during preparation.
 
-`FM.operators` contains two through six uniquely named sine operators. `edges`
+`FM.operators` contains two through six uniquely named operators. An operator's
+latched `waveform` is `sine` by default. At phase `p` in [0, 1), sine is
+`sin(2*pi*p)`; square is +1 for `p < 1/2` and -1 otherwise; triangle is
+`4*p - 1` for `p < 1/2` and `3 - 4*p` otherwise. These are output values before
+the operator envelope. `edges`
 carry nonnegative phase-modulation indices from a source operator to a
 destination operator. An edge with `delayed: true` reads its source output from
 the preceding sample; all other edges read the current sample and must form an
@@ -17,7 +21,7 @@ initial phases are cycles in [0, 1).
 At output frame n, render before advancing either phase:
 
 ```
-output_i[n] = envelope_i[n] * sin(2*pi*phase_i[n]
+output_i[n] = envelope_i[n] * waveform_i(phase_i[n]
               + sum(current_edge_index[n] * output_source[n])
               + sum(delayed_edge_index[n] * output_source[n-1]))
 c[n] = carrier_level[n] * output_carrier[n]
