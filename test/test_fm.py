@@ -5,6 +5,7 @@ from ufor import synth_trace
 from ufor.codec import parse_score, score_toml
 from ufor.events import Release, Trigger
 from ufor.fm import FM, FMEdge, Operator
+from ufor.oscillator import Waveform
 from ufor.synth import FMVoice, SynthInstrument, SynthInstrumentScore
 
 
@@ -97,6 +98,16 @@ def test_fm_score_round_trips_through_common_codec() -> None:
         }
     )
     assert parse_score(score_toml(score)) == score
+
+
+def test_operator_waveform_defaults_to_sine_and_round_trips() -> None:
+    default = Operator(name='default')
+    triangle = Operator(name='triangle', waveform=Waveform.triangle)
+    square = Operator(name='square', waveform=Waveform.square)
+
+    assert default.waveform == Waveform.sine
+    assert Operator.model_validate(triangle.model_dump()) == triangle
+    assert Operator.model_validate(square.model_dump()) == square
 
 
 @pytest.mark.parametrize('source,destination', [('a', 'missing')])
