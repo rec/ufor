@@ -1,4 +1,4 @@
-"""Portable two-operator phase-modulation definitions; no audio rendering."""
+"""Portable graph phase-modulation definitions; no audio rendering."""
 
 from typing import Self
 
@@ -35,56 +35,31 @@ class Operator(Model):
         return self
 
 
-class Connection(Model):
-    source: Identifier
-    destination: Identifier
-    index: float = Field(default=0, ge=0)
-
-
-class FM(Model):
-    operators: list[Operator] = Field(min_length=2, max_length=2)
-    connection: Connection
-    feedback: float = Field(default=0, ge=0)
-    carrier_level: float = Field(default=1, ge=0)
-
-    @model_validator(mode='after')
-    def topology(self) -> Self:
-        unique((o.name for o in self.operators), 'FM operator')
-        c = self.connection
-        if c.source == c.destination or {c.source, c.destination} != {
-            o.name for o in self.operators
-        }:
-            raise ValueError('FM requires one connection between its two operators')
-        return self
-
-
 class FMEdge(Model):
+    name: Identifier | None = None
     source: Identifier
     destination: Identifier
     index: float = Field(default=0, ge=0)
     delayed: bool = False
 
 
-class FourOperatorFM(Model):
-    """Four sine operators with acyclic phase modulation and delayed feedback."""
+class FM(Model):
+    """A bounded phase-modulation graph with delayed feedback edges."""
 
-    operators: list[Operator] = Field(min_length=4, max_length=4)
+    operators: list[Operator] = Field(min_length=2, max_length=6)
     edges: list[FMEdge] = Field(default_factory=list)
     carrier: Identifier
     carrier_level: float = Field(default=1, ge=0)
 
     @model_validator(mode='after')
     def topology(self) -> Self:
+        unique((o.name for o in self.operators), 'FM operator')
         names = {o.name for o in self.operators}
-        if len(names) != len(self.operators):
-            raise ValueError('FM operator names must be unique')
         if self.carrier not in names:
             raise ValueError('FM carrier must name an operator')
-        edges = {(e.source, e.destination, e.delayed) for e in self.edges}
-        if len(edges) != len(self.edges):
-            raise ValueError('FM edges must be unique')
         if any(e.source not in names or e.destination not in names for e in self.edges):
             raise ValueError('FM edge endpoint must name an operator')
+        unique((edge_target_name(e) for e in self.edges), 'FM edge target')
         current = [(e.source, e.destination) for e in self.edges if not e.delayed]
         pending = {name: 0 for name in names}
         successors = {name: [] for name in names}
@@ -103,3 +78,8 @@ class FourOperatorFM(Model):
         if visited != len(names):
             raise ValueError('current-sample FM edges must be acyclic')
         return self
+
+
+def edge_target_name(edge: FMEdge) -> Identifier:
+    """Return the unambiguous modulation target name for an FM edge."""
+    return edge.name or f'{edge.source}-{edge.destination}'

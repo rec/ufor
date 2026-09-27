@@ -534,7 +534,7 @@
         },
         "connections": {
           "items": {
-            "$ref": "#/$defs/ufor__interface__Connection"
+            "$ref": "#/$defs/Connection"
           },
           "title": "Connections",
           "type": "array"
@@ -3896,24 +3896,27 @@
     },
     "FM": {
       "additionalProperties": false,
+      "description": "A bounded phase-modulation graph with delayed feedback edges.",
       "properties": {
         "operators": {
           "items": {
             "$ref": "#/$defs/Operator"
           },
-          "maxItems": 2,
+          "maxItems": 6,
           "minItems": 2,
           "title": "Operators",
           "type": "array"
         },
-        "connection": {
-          "$ref": "#/$defs/ufor__fm__Connection"
+        "edges": {
+          "items": {
+            "$ref": "#/$defs/FMEdge"
+          },
+          "title": "Edges",
+          "type": "array"
         },
-        "feedback": {
-          "default": 0,
-          "minimum": 0,
-          "title": "Feedback",
-          "type": "number"
+        "carrier": {
+          "title": "Carrier",
+          "type": "string"
         },
         "carrier_level": {
           "default": 1,
@@ -3924,9 +3927,51 @@
       },
       "required": [
         "operators",
-        "connection"
+        "carrier"
       ],
       "title": "FM",
+      "type": "object"
+    },
+    "FMEdge": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "index": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Index",
+          "type": "number"
+        },
+        "delayed": {
+          "default": false,
+          "title": "Delayed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "title": "FMEdge",
       "type": "object"
     },
     "FMVoice": {
@@ -11689,32 +11734,7 @@
       "title": "Transition",
       "type": "object"
     },
-    "ufor__fm__Connection": {
-      "additionalProperties": false,
-      "properties": {
-        "source": {
-          "title": "Source",
-          "type": "string"
-        },
-        "destination": {
-          "title": "Destination",
-          "type": "string"
-        },
-        "index": {
-          "default": 0,
-          "minimum": 0,
-          "title": "Index",
-          "type": "number"
-        }
-      },
-      "required": [
-        "source",
-        "destination"
-      ],
-      "title": "Connection",
-      "type": "object"
-    },
-    "ufor__interface__Connection": {
+    "Connection": {
       "additionalProperties": false,
       "properties": {
         "source": {
