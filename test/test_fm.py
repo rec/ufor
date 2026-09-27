@@ -4,7 +4,7 @@ from pydantic import ValidationError
 from ufor import synth_trace
 from ufor.codec import parse_score, score_toml
 from ufor.events import Release, Trigger
-from ufor.fm import FM, Connection, FMEdge, FourOperatorFM, Operator
+from ufor.fm import FM, FMEdge, Operator
 from ufor.synth import FMVoice, SynthInstrument, SynthInstrumentScore
 
 
@@ -16,16 +16,18 @@ def voice() -> FMVoice:
             'channels': [{'input': 'mono', 'output': 'mono', 'gain': 1}],
             'fm': {
                 'operators': [{'name': 'modulator', 'ratio': 2}, {'name': 'carrier'}],
-                'connection': {
-                    'source': 'modulator',
-                    'destination': 'carrier',
-                    'index': 3,
-                },
+                'edges': [
+                    {'source': 'modulator', 'destination': 'carrier', 'index': 3}
+                ],
+                'carrier': 'carrier',
             },
             'modulation': {
                 'parameters': [
                     {
-                        'target': {'name': 'fm', 'parameter': 'index'},
+                        'target': {
+                            'name': 'edge-modulator-carrier',
+                            'parameter': 'index',
+                        },
                         'unit': 'radians',
                         'scope': 'voice',
                         'minimum': 0,
@@ -97,18 +99,19 @@ def test_fm_score_round_trips_through_common_codec() -> None:
     assert parse_score(score_toml(score)) == score
 
 
-@pytest.mark.parametrize('source,destination', [('a', 'a'), ('a', 'missing')])
-def test_fm_rejects_invalid_connections(source: str, destination: str) -> None:
-    with pytest.raises(ValidationError, match='connection'):
+@pytest.mark.parametrize('source,destination', [('a', 'missing')])
+def test_fm_rejects_invalid_edges(source: str, destination: str) -> None:
+    with pytest.raises(ValidationError, match='endpoint'):
         FM(
             operators=[Operator(name='a'), Operator(name='b')],
-            connection=Connection(source=source, destination=destination),
+            carrier='b',
+            edges=[FMEdge(source=source, destination=destination)],
         )
 
 
-def test_four_operator_fm_accepts_delayed_cycles_and_rejects_current_cycles() -> None:
+def test_fm_accepts_delayed_cycles_and_rejects_current_cycles() -> None:
     operators = [Operator(name=name) for name in ('a', 'b', 'c', 'd')]
-    profile = FourOperatorFM(
+    profile = FM(
         operators=operators,
         carrier='d',
         edges=[
@@ -119,7 +122,7 @@ def test_four_operator_fm_accepts_delayed_cycles_and_rejects_current_cycles() ->
     )
     assert profile.carrier == 'd'
     with pytest.raises(ValidationError, match='acyclic'):
-        FourOperatorFM(
+        FM(
             operators=operators,
             carrier='d',
             edges=[
@@ -129,11 +132,33 @@ def test_four_operator_fm_accepts_delayed_cycles_and_rejects_current_cycles() ->
         )
 
 
+def test_fm_requires_names_only_for_ambiguous_edge_targets() -> None:
+    operators = [Operator(name=name) for name in ('a', 'b', 'c')]
+    with pytest.raises(ValidationError, match='edge target'):
+        FM(
+            operators=operators,
+            carrier='c',
+            edges=[
+                FMEdge(source='a', destination='b'),
+                FMEdge(source='a', destination='b', delayed=True),
+            ],
+        )
+    profile = FM(
+        operators=operators,
+        carrier='c',
+        edges=[
+            FMEdge(source='a', destination='b'),
+            FMEdge(name='feedback', source='a', destination='b', delayed=True),
+        ],
+    )
+    assert profile.edges[1].name == 'feedback'
+
+
 @pytest.mark.parametrize(
     'parameter,unit,minimum',
     [
         ('index', 'ratio', 0),
-        ('feedback', 'radians', -1),
+        ('index', 'radians', -1),
         ('unknown', 'ratio', 0),
     ],
 )
@@ -141,9 +166,10 @@ def test_fm_rejects_invalid_parameter_domains(
     parameter: str, unit: str, minimum: float
 ) -> None:
     raw = voice().model_dump()
+    target_name = 'edge-modulator-carrier' if parameter == 'index' else 'fm'
     raw['modulation']['parameters'] = [
         {
-            'target': {'name': 'fm', 'parameter': parameter},
+            'target': {'name': target_name, 'parameter': parameter},
             'unit': unit,
             'scope': 'voice',
             'minimum': minimum,

@@ -9,7 +9,7 @@ from . import base, control, modulation
 from .base import Identifier, Model, unique
 from .envelope import Envelope, Segment
 from .events import ControlChange, PerformanceEvent, Trigger
-from .fm import FM, FourOperatorFM
+from .fm import FM, edge_target_name
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
 from .number import cents_to_ratio
 from .oscillator import Oscillator
@@ -86,7 +86,7 @@ class NoiseVoice(VoiceTemplate):
 
 
 class FMVoice(VoiceTemplate):
-    fm: FM | FourOperatorFM
+    fm: FM
 
     @model_validator(mode='after')
     def fm_profile(self) -> Self:
@@ -95,7 +95,9 @@ class FMVoice(VoiceTemplate):
                 'FM uses operator envelopes, not a second amplitude envelope'
             )
         for p in self.modulation.parameters:
-            if p.target.name == 'fm' or p.target.name.startswith('operator-'):
+            if p.target.name == 'fm' or p.target.name.startswith(
+                ('operator-', 'edge-')
+            ):
                 if p.target.parameter == 'ratio' and p.minimum <= 0:
                     raise ValueError('FM ratios require a positive domain')
                 if (
@@ -110,33 +112,20 @@ class FMVoice(VoiceTemplate):
     def parameter_definition(
         self, target: modulation.Target
     ) -> tuple[modulation.Unit, float]:
-        if isinstance(self.fm, FourOperatorFM):
-            if target.name == 'fm' and target.parameter == 'carrier_level':
-                return modulation.Unit.ratio, self.fm.carrier_level
-            for operator in self.fm.operators:
-                if target.name == f'operator-{operator.name}':
-                    if target.parameter == 'ratio':
-                        return modulation.Unit.ratio, operator.ratio
-                    if target.parameter == 'tuning_cents':
-                        return modulation.Unit.cents, operator.tuning_cents
-            for edge in self.fm.edges:
-                if target.name == f'edge-{edge.source}-{edge.destination}':
-                    if target.parameter == 'index':
-                        return modulation.Unit.radians, edge.index
-            return super().parameter_definition(target)
-        if target.name == 'fm':
-            if target.parameter == 'index':
-                return modulation.Unit.radians, self.fm.connection.index
-            if target.parameter == 'feedback':
-                return modulation.Unit.radians, self.fm.feedback
-            if target.parameter == 'carrier_level':
-                return modulation.Unit.ratio, self.fm.carrier_level
+        if target.name == 'fm' and target.parameter == 'carrier_level':
+            return modulation.Unit.ratio, self.fm.carrier_level
         for o in self.fm.operators:
             if target.name == f'operator-{o.name}':
                 if target.parameter == 'ratio':
                     return modulation.Unit.ratio, o.ratio
                 if target.parameter == 'tuning_cents':
                     return modulation.Unit.cents, o.tuning_cents
+        for edge in self.fm.edges:
+            if (
+                target.name == f'edge-{edge_target_name(edge)}'
+                and target.parameter == 'index'
+            ):
+                return modulation.Unit.radians, edge.index
         return super().parameter_definition(target)
 
 
