@@ -148,11 +148,11 @@ initial = 0.0
 repeat = true
 
 [[body.controls.curve.segments]]
-duration = "1"
+duration = "1 s"
 curve = 0.0
 to = 1.0
 
 [[body.controls.curve.segments]]
-duration = "1"
+duration = "1 s"
 curve = 0.0
 to = 0.0

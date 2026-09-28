@@ -140,8 +140,8 @@ def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> N
     definition = envelope.Envelope.model_validate(
         {
             'clock': 'beats',
-            'segments': [{'duration': '1/3', 'to': 1}],
-            'release': [{'duration': '1/8', 'to': 0}],
+            'segments': [{'duration': '1/3 s', 'to': 1}],
+            'release': [{'duration': '1/8 s', 'to': 0}],
         }
     )
     raw = {

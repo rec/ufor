@@ -6259,14 +6259,14 @@
             "segments": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 0.0
               }
             ],
@@ -6553,14 +6553,14 @@
             "segments": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 0.0
               }
             ],
@@ -9037,14 +9037,14 @@
             "segments": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 0.0
               }
             ],
@@ -10853,14 +10853,14 @@
             "segments": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
-                "duration": "0",
+                "duration": "0 s",
                 "to": 0.0
               }
             ],

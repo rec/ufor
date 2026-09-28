@@ -90,25 +90,25 @@ hold = true
 retrigger = "current"
 
 [[body.segments]]
-duration = "1/10"
+duration = "1/10 s"
 to = 0.0
 
 [[body.segments]]
-duration = "1/2"
+duration = "1/2 s"
 to = 1.0
 curve = 5.0
 
 [[body.segments]]
-duration = "1/10"
+duration = "1/10 s"
 to = 1.0
 
 [[body.segments]]
-duration = "1/4"
+duration = "1/4 s"
 to = 0.6
 curve = -5.0
 
 [[body.release]]
-duration = "1/2"
+duration = "1/2 s"
 to = 0.0
 curve = -5.0
 ```
