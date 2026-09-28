@@ -9,7 +9,7 @@ from typing import Annotated, Literal
 
 from pydantic import Field, ValidationError
 
-from . import base, envelope, modulation
+from . import base, envelope, modulation, segments
 from .assets import AudioDescription, ContentIdentity, RelativeFileLocation
 from .control import Clock, Scope
 from .interface import AudioBinding, EventType, Input, Output, PerformanceBinding
@@ -300,15 +300,15 @@ def amplitude_envelope(values: dict[str, str]) -> envelope.Envelope:
     sustain = _number(values.get('ampeg_sustain', '100'), 'ampeg_sustain') / 100
     return envelope.Envelope(
         segments=[
-            envelope.Segment(duration=d, target=t, curve=c)
+            segments.Segment(duration=d, to=t, curve=c)
             for d, t, c in zip(
                 durations, [0, 1, 1, sustain], [0, 0, 0, -5], strict=True
             )
         ],
         release=[
-            envelope.Segment(
+            segments.Segment(
                 duration=Fraction(values.get('ampeg_release', '0.001')),
-                target=0,
+                to=0,
                 curve=-5,
             )
         ],
@@ -816,9 +816,9 @@ def _envelope_opcodes(
     )
     if representable:
         representable = (
-            [s.target for s in segments[:3]] == [0, 1, 1]
+            [s.to for s in segments[:3]] == [0, 1, 1]
             and [s.curve for s in segments] == [0, 0, 0, -5]
-            and value.release[0].target == 0
+            and value.release[0].to == 0
             and value.release[0].curve == -5
         )
     if not representable:
@@ -837,7 +837,7 @@ def _envelope_opcodes(
             strict=True,
         )
     )
-    values['ampeg_sustain'] = segments[-1].target * 100
+    values['ampeg_sustain'] = segments[-1].to * 100
     values['ampeg_release'] = float(value.release[0].duration)
     return [Opcode(name=n, value=_number_text(v)) for n, v in values.items()]
 

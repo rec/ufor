@@ -10,18 +10,13 @@ from pydantic import Field, model_validator
 from . import control
 from .base import Model
 from .score import Score
+from .segments import Segment
 
 
 class Retrigger(StrEnum):
     reset = auto()
     current = auto()
     ignore = auto()
-
-
-class Segment(Model):
-    duration: control.Rational = Field(ge=0)
-    target: float
-    curve: float = 0
 
 
 class Curve(Model):
@@ -50,12 +45,11 @@ class Envelope(Model):
 
     @model_validator(mode='after')
     def levels_match_polarity(self) -> Self:
-        if any(not -1 <= s.target <= 1 for s in [*self.segments, *self.release]):
+        if any(not -1 <= s.to <= 1 for s in [*self.segments, *self.release]):
             raise ValueError('triggered envelope levels must be in [-1, 1]')
         if (
             self.polarity == control.Polarity.unipolar
-            and min(self.initial, *(s.target for s in [*self.segments, *self.release]))
-            < 0
+            and min(self.initial, *(s.to for s in [*self.segments, *self.release])) < 0
         ):
             raise ValueError('unipolar envelope levels must be in [0, 1]')
         return self
@@ -92,11 +86,11 @@ def curve_at(curve: Curve, at: Fraction) -> float:
     value = curve.initial
     for segment in curve.segments:
         if at < segment.duration:
-            return value + (segment.target - value) * curve_progress(
+            return value + (segment.to - value) * curve_progress(
                 float(at / segment.duration), segment.curve
             )
         at -= segment.duration
-        value = segment.target
+        value = segment.to
     return value
 
 
@@ -116,10 +110,10 @@ def envelope_at(
     for index, segment in enumerate(segments):
         if remaining < segment.duration:
             progress = float(remaining / segment.duration)
-            value += (segment.target - value) * curve_progress(progress, segment.curve)
+            value += (segment.to - value) * curve_progress(progress, segment.curve)
             return EnvelopeValue(value=value, status='running', segment=index)
         remaining -= segment.duration
-        value = segment.target
+        value = segment.to
     status = 'held' if state.phase == 'on' and envelope.hold else 'complete'
     return EnvelopeValue(value=value, status=status)
 

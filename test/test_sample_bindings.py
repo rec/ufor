@@ -4,7 +4,7 @@ from fractions import Fraction
 import pytest
 from pydantic import ValidationError
 
-from ufor import envelope, modulation
+from ufor import envelope, modulation, segments
 from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import SampleInstrument
 from ufor.samples.processing import SoundSettings
@@ -29,8 +29,8 @@ def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) 
     elif kind == 'envelope':
         raw['envelopes'] = {
             'motion': envelope.Envelope(
-                segments=[envelope.Segment(duration=1, target=1)],
-                release=[envelope.Segment(duration=1, target=0)],
+                segments=[segments.Segment(duration=1, to=1)],
+                release=[segments.Segment(duration=1, to=0)],
             ).model_dump()
         }
         raw['lfos'] = {}
@@ -87,8 +87,8 @@ def test_generator_definitions_are_never_duplicated_between_scopes() -> None:
     raw = lfo_settings()
     raw['envelopes'] = {
         'motion': {
-            'segments': [{'duration': 0, 'target': 1}],
-            'release': [{'duration': 0, 'target': 0}],
+            'segments': [{'duration': 0, 'to': 1}],
+            'release': [{'duration': 0, 'to': 0}],
         }
     }
     with pytest.raises(ValidationError, match='duplicate source ID'):
@@ -140,8 +140,8 @@ def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> N
     definition = envelope.Envelope.model_validate(
         {
             'clock': 'beats',
-            'segments': [{'duration': '1/3', 'target': 1}],
-            'release': [{'duration': '1/8', 'target': 0}],
+            'segments': [{'duration': '1/3', 'to': 1}],
+            'release': [{'duration': '1/8', 'to': 0}],
         }
     )
     raw = {
@@ -209,8 +209,8 @@ def test_spatial_bounds_include_both_scopes_and_delayed_lfo_neutral() -> None:
 def test_slot_generators_require_voice_scope(generator: str) -> None:
     value = (
         {
-            'segments': [{'duration': 0, 'target': 1}],
-            'release': [{'duration': 0, 'target': 0}],
+            'segments': [{'duration': 0, 'to': 1}],
+            'release': [{'duration': 0, 'to': 0}],
         }
         if generator == 'envelopes'
         else {'rate': 1}

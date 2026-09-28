@@ -149,10 +149,10 @@ repeat = true
 
 [[body.controls.curve.segments]]
 duration = "1"
-target = 1.0
 curve = 0.0
+to = 1.0
 
 [[body.controls.curve.segments]]
 duration = "1"
-target = 0.0
 curve = 0.0
+to = 0.0

@@ -7,7 +7,7 @@ from pydantic import Field, model_validator
 
 from . import base, control, modulation
 from .base import Identifier, Model, unique
-from .envelope import Envelope, Segment
+from .envelope import Envelope
 from .events import ControlChange, PerformanceEvent, Trigger
 from .fm import FM, edge_target_name
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
@@ -18,6 +18,7 @@ from .samples.controls import ControlDeclaration
 from .samples.playback import Mapping
 from .samples.processing import ChannelRoute, EventBinding, SoundSettings
 from .samples.selection import Articulations, Choke, Sustain, VoicePolicy
+from .segments import Segment
 from .streams import AudioType
 from .time import Timebase
 
@@ -55,16 +56,16 @@ class SynthVoice(VoiceTemplate):
     oscillator: Oscillator
     synchronize_oscillator: bool = False
     envelope: Envelope = Envelope(
-        segments=[Segment(duration=0, target=1)],
-        release=[Segment(duration=0, target=0)],
+        segments=[Segment(duration=0, to=1)],
+        release=[Segment(duration=0, to=0)],
     )
 
 
 class NoiseVoice(VoiceTemplate):
     noise: Literal['white']
     envelope: Envelope = Envelope(
-        segments=[Segment(duration=0, target=1)],
-        release=[Segment(duration=0, target=0)],
+        segments=[Segment(duration=0, to=1)],
+        release=[Segment(duration=0, to=0)],
     )
 
     @model_validator(mode='after')
