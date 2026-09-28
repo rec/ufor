@@ -19,6 +19,7 @@ from .base import (
     UnitInterval,
     unique,
 )
+from .oscillator import Waveform
 from .samples.processing import ResonantFilter
 
 BYPASS_FADE_FRAMES = 64
@@ -123,6 +124,34 @@ class TapDelay(Model):
         return self
 
 
+class ModulatedDelay(Model):
+    """One bounded moving integer-frame read for chorus and flanger sounds."""
+
+    kind: Literal['modulated_delay'] = 'modulated_delay'
+    name: Identifier
+    base_delay_seconds: PositiveSeconds
+    depth_seconds: Seconds = 0.0
+    maximum_delay_seconds: PositiveSeconds
+    rate_hz: Frequency
+    waveform: Waveform = Waveform.sine
+    channel_phase_offsets: list[UnitInterval] = Field(default_factory=list)
+    feedback: float = Field(default=0.0, ge=0, lt=1)
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def bounded_delay(self) -> Self:
+        if self.base_delay_seconds <= self.depth_seconds:
+            raise ValueError('modulated delay must retain a positive minimum delay')
+        if self.base_delay_seconds + self.depth_seconds > self.maximum_delay_seconds:
+            raise ValueError('modulated delay exceeds its prepared maximum delay')
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('modulated delay state_floor must be below tail_threshold')
+        return self
+
+
 class Filter(Model):
     kind: Literal['filter'] = 'filter'
     name: Identifier
@@ -178,7 +207,7 @@ class Granulator(Model):
 
 
 Processor = Annotated[
-    Gain | SoftClip | TapDelay | Filter | Multiply | Granulator,
+    Gain | SoftClip | TapDelay | ModulatedDelay | Filter | Multiply | Granulator,
     Field(discriminator='kind'),
 ]
 
@@ -449,6 +478,31 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         if parameter == 'delay_seconds':
             if not 0 < value <= processor.maximum_delay_seconds:
                 raise ValueError('delay_seconds must be within the prepared maximum')
+            return
+        if parameter == 'feedback':
+            if not 0 <= value < 1:
+                raise ValueError('feedback must be in [0, 1)')
+            return
+    if isinstance(processor, ModulatedDelay):
+        if parameter == 'base_delay_seconds':
+            if (
+                not processor.depth_seconds
+                < value
+                <= (processor.maximum_delay_seconds - processor.depth_seconds)
+            ):
+                raise ValueError(
+                    'base_delay_seconds must retain the prepared delay span'
+                )
+            return
+        if parameter == 'depth_seconds':
+            if 0 <= value < processor.base_delay_seconds and (
+                processor.base_delay_seconds + value <= processor.maximum_delay_seconds
+            ):
+                return
+            raise ValueError('depth_seconds must retain the prepared delay span')
+        if parameter == 'rate_hz':
+            if value < 0:
+                raise ValueError('rate_hz must be nonnegative')
             return
         if parameter == 'feedback':
             if not 0 <= value < 1:
