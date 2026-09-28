@@ -135,3 +135,34 @@ def test_tap_delay_has_bounded_feedback_and_automation() -> None:
         audio_effects.TapDelay(
             name='echo', delay_seconds=0.6, maximum_delay_seconds=0.5
         )
+
+
+def test_modulated_delay_bounds_chorus_and_flanger_reads() -> None:
+    delay = audio_effects.ModulatedDelay(
+        name='movement',
+        base_delay_seconds=0.02,
+        depth_seconds=0.01,
+        maximum_delay_seconds=0.04,
+        rate_hz=0.8,
+        channel_phase_offsets=[0, 0.5],
+    )
+
+    audio_effects.validate_parameter(delay, 'base_delay_seconds', 0.025)
+    audio_effects.validate_parameter(delay, 'depth_seconds', 0.015)
+    audio_effects.validate_parameter(delay, 'rate_hz', 0)
+    with pytest.raises(ValueError, match='positive minimum'):
+        audio_effects.ModulatedDelay(
+            name='movement',
+            base_delay_seconds=0.01,
+            depth_seconds=0.01,
+            maximum_delay_seconds=0.04,
+            rate_hz=0.8,
+        )
+    with pytest.raises(ValueError, match='prepared maximum'):
+        audio_effects.ModulatedDelay(
+            name='movement',
+            base_delay_seconds=0.03,
+            depth_seconds=0.02,
+            maximum_delay_seconds=0.04,
+            rate_hz=0.8,
+        )
