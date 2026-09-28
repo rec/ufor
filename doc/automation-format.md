@@ -20,7 +20,7 @@ score = parse_score(Path('examples/automation/frequency.toml').read_text())
 assert isinstance(score, AutomationScore)
 assert evaluate(score, 2000) == 660.0
 edited = score.model_dump()
-edited['body']['curves'][0]['knots'][1]['value'] = 1760.0
+edited['body']['curves'][0]['segments'][0]['to'] = 1760.0
 updated = AutomationScore.model_validate(edited)
 Path('edited-sweep.toml').write_text(score_toml(updated))
 ```
@@ -44,7 +44,8 @@ not infer voice identity or resolve a target against a graph.
 Each score has one named physical timebase with an exact rational rate and one
 `control` output. The output declares the curve's quantity, unit, scope, and
 timebase, and must exactly match the body. Curve ticks are strict signed integers
-in that timebase. A curve names its unit and contains strictly increasing knots.
+in that timebase. A curve names its unit and has a start tick, initial value, and
+ordered segments.
 It has at least one knot; a score can have no curves, in which case it evaluates
 to its base value.
 

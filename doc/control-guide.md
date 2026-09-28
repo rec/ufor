@@ -5,7 +5,7 @@ different operations; none is a replacement for all the others.
 
 | Model | Driver and clock | Lifetime and boundaries | Units and owner |
 | --- | --- | --- | --- |
-| `automation.TimelineCurve` | Knots at strict integer ticks in its score timebase | Inactive before the first knot; holds the last value afterward; `hold`, linear, or equal-power interpolation | Declared unit; combines through its containing `Automation`, with a target, scope, default and explicit writer operations |
+| `automation.TimelineCurve` | A start tick, initial value, and segments in its score timebase | Inactive before its start; holds the final value afterward; `hold`, linear, or equal-power interpolation | Declared unit; combines through its containing `Automation`, with a target, scope, default and explicit writer operations |
 | `envelope.Curve` | Elapsed rational seconds from activation | Runs autonomously; holds its final level or repeats its positive-length period | General scalar, including unbounded gain; caller owns activation |
 | `envelope.Envelope` | Trigger/release events on rational seconds or beats | Trigger segments, optional hold, then release from the current level; explicit retrigger policy | Unipolar or bipolar normalized signal, with declared instrument/part/voice scope |
 | `lfo.LFO` | Elapsed seconds or beats and ordered rate/reset events | Repeats waveform; reset policy controls phase, and phase integrates the event history | Normalized waveform with declared scope; host supplies the clock |

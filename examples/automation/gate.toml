@@ -27,4 +27,6 @@ parameter = "enabled"
 name = "switch"
 unit = "logical"
 interpolation = "hold"
-knots = [{ tick = 1000, value = true }, { tick = 3000, value = false }]
+at = 1000
+initial = true
+segments = [{ duration = 2000, to = false }]

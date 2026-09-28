@@ -766,8 +766,9 @@ class Composition:
                     clip.source_end - clip.source_start, timeline_rate / source_rate
                 )
                 for curve in source_score.body.curves:
-                    for knot in curve.knots:
-                        value = evaluate_automation(source_score, knot.tick)
+                    tick = curve.at
+                    for segment in [None, *curve.segments]:
+                        value = evaluate_automation(source_score, tick)
                         if contract is not None and (
                             isinstance(value, bool)
                             or not contract.minimum <= value <= contract.maximum
@@ -776,6 +777,8 @@ class Composition:
                                 f'{path}/{clip.name}: automation value exceeds '
                                 'target range'
                             )
+                        if segment is not None:
+                            tick += int(segment.duration)
 
 
 def exact_tick(tick: int, ratio: Fraction) -> int:
