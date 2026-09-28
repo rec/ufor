@@ -22,8 +22,8 @@ class Case(Model):
 def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
     contour = envelope.Envelope.model_validate(
         {
-            'segments': [{'duration': '2', 'target': 1}],
-            'release': [{'duration': '1', 'target': 0}],
+            'segments': [{'duration': '2', 'to': 1}],
+            'release': [{'duration': '1', 'to': 0}],
         }
     )
     state = envelope.initial_envelope(contour, Fraction(0))
@@ -71,7 +71,7 @@ def test_duplicate_declarations_are_rejected(field: str) -> None:
     'changes',
     [
         {'source': 'missing'},
-        {'target': {'name': 'voice', 'parameter': 'missing'}},
+        {'to': {'name': 'voice', 'parameter': 'missing'}},
         {'unit': 'cents'},
         {'points': [{'input': 0, 'amount': 0}, {'input': 0, 'amount': 1}]},
         {'points': [{'input': 0, 'amount': 0}, {'input': 2, 'amount': 1}]},

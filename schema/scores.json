@@ -6286,14 +6286,14 @@
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 1.0
+                "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 0.0
+                "to": 0.0
               }
             ],
             "hold": true,
@@ -6580,14 +6580,14 @@
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 1.0
+                "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 0.0
+                "to": 0.0
               }
             ],
             "hold": true,
@@ -9064,14 +9064,14 @@
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 1.0
+                "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 0.0
+                "to": 0.0
               }
             ],
             "hold": true,
@@ -9762,8 +9762,8 @@
           "title": "Duration",
           "type": "string"
         },
-        "target": {
-          "title": "Target",
+        "to": {
+          "title": "To",
           "type": "number"
         },
         "curve": {
@@ -9774,7 +9774,7 @@
       },
       "required": [
         "duration",
-        "target"
+        "to"
       ],
       "title": "Segment",
       "type": "object"
@@ -10873,14 +10873,14 @@
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 1.0
+                "to": 1.0
               }
             ],
             "release": [
               {
                 "curve": 0.0,
                 "duration": "0",
-                "target": 0.0
+                "to": 0.0
               }
             ],
             "hold": true,

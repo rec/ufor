@@ -14,7 +14,7 @@ from pydantic import (
 from .. import base, control
 from ..assets import Asset, AudioDescription, finite_audio_required
 from ..base import Identifier, Model, Text, unique
-from ..envelope import Envelope, Segment
+from ..envelope import Envelope
 from ..events import ControlChange, PerformanceEvent, Trigger
 from ..interface import (
     AudioBinding,
@@ -22,6 +22,7 @@ from ..interface import (
     InterfaceScore,
     PerformanceBinding,
 )
+from ..segments import Segment
 from ..streams import AudioType
 from ..time import Timebase
 from . import enums
@@ -42,8 +43,8 @@ from .variation import Variation
 
 class SampleSettings(SoundSettings):
     envelope: Envelope = Envelope(
-        segments=[Segment(duration=0, target=1)],
-        release=[Segment(duration=0, target=0)],
+        segments=[Segment(duration=0, to=1)],
+        release=[Segment(duration=0, to=0)],
     )
     playback: Playback = Playback()
     selections: list[Selection] = Field(default_factory=list)

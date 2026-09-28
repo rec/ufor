@@ -91,25 +91,25 @@ retrigger = "current"
 
 [[body.segments]]
 duration = "1/10"
-target = 0.0
+to = 0.0
 
 [[body.segments]]
 duration = "1/2"
-target = 1.0
+to = 1.0
 curve = 5.0
 
 [[body.segments]]
 duration = "1/10"
-target = 1.0
+to = 1.0
 
 [[body.segments]]
 duration = "1/4"
-target = 0.6
+to = 0.6
 curve = -5.0
 
 [[body.release]]
 duration = "1/2"
-target = 0.0
+to = 0.0
 curve = -5.0
 ```
 

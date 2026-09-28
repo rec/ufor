@@ -6,7 +6,15 @@ from typing import get_args
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from ufor import effects, envelope, light_animation, light_math, lights, modulation
+from ufor import (
+    effects,
+    envelope,
+    light_animation,
+    light_math,
+    lights,
+    modulation,
+    segments,
+)
 from ufor.base import Model
 from ufor.codec import parse_score, score_toml
 from ufor.composition import Composition, ScoreRecord
@@ -237,14 +245,14 @@ def test_cues_start_local_clocks_and_do_not_require_inactive_frames() -> None:
 
 def test_shared_curves_allow_repeating_gain_above_one() -> None:
     curve = envelope.Curve(
-        initial=0, segments=[envelope.Segment(duration=1, target=2)], repeat=True
+        initial=0, segments=[segments.Segment(duration=1, to=2)], repeat=True
     )
     assert envelope.curve_at(curve, Fraction(1, 2)) == 1
     assert envelope.curve_at(curve, Fraction(1)) == 0
     assert envelope.curve_at(curve, Fraction(7, 4)) == 1.5
     with pytest.raises(ValidationError, match='levels'):
         envelope.Envelope(
-            segments=curve.segments, release=[envelope.Segment(duration=1, target=0)]
+            segments=curve.segments, release=[segments.Segment(duration=1, to=0)]
         )
 
 

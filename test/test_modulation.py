@@ -7,7 +7,7 @@ import pytest
 import tomlkit
 from pydantic import ValidationError
 
-from ufor import envelope, lfo
+from ufor import envelope, lfo, segments
 from ufor.base import Model
 from ufor.codec import parse_score, score_toml
 from ufor.oscillator import Waveform, shape_value
@@ -102,8 +102,8 @@ def test_release_interrupts_every_stage_without_restarting() -> None:
 
 def test_curved_release_reaches_exact_zero() -> None:
     definition = envelope.Envelope(
-        segments=[envelope.Segment(duration=Fraction(0), target=1)],
-        release=[envelope.Segment(duration=Fraction(1), target=0, curve=-5)],
+        segments=[segments.Segment(duration=Fraction(0), to=1)],
+        release=[segments.Segment(duration=Fraction(1), to=0, curve=-5)],
     )
     state = envelope.initial_envelope(definition, Fraction(0))
     for ordinal, action in enumerate(['trigger', 'release']):
@@ -178,8 +178,8 @@ def test_beat_controls_follow_supplied_tempo_positions_without_reset() -> None:
     definition = envelope.Envelope.model_validate(
         {
             'clock': 'beats',
-            'segments': [{'duration': '4', 'target': 1}],
-            'release': [{'duration': '0', 'target': 0}],
+            'segments': [{'duration': '4', 'to': 1}],
+            'release': [{'duration': '0', 'to': 0}],
         }
     )
     oscillator = lfo.LFO.model_validate({'clock': 'beats', 'rate': '1/4'})
