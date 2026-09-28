@@ -22,8 +22,8 @@ class Case(Model):
 def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
     contour = envelope.Envelope.model_validate(
         {
-            'segments': [{'duration': '2', 'to': 1}],
-            'release': [{'duration': '1', 'to': 0}],
+            'segments': [{'duration': '2 s', 'to': 1}],
+            'release': [{'duration': '1 s', 'to': 0}],
         }
     )
     state = envelope.initial_envelope(contour, Fraction(0))

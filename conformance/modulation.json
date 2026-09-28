@@ -7,17 +7,17 @@
       "definition": {
         "segments": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 0.5
           },
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 0.25
           }
         ]
@@ -65,25 +65,25 @@
       "definition": {
         "segments": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 0
           },
           {
-            "duration": "2",
+            "duration": "2 s",
             "to": 1
           },
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 1
           },
           {
-            "duration": "2",
+            "duration": "2 s",
             "to": 0.5
           }
         ],
         "release": [
           {
-            "duration": "2",
+            "duration": "2 s",
             "to": 0
           }
         ]
@@ -171,13 +171,13 @@
       "definition": {
         "segments": [
           {
-            "duration": "2",
+            "duration": "2 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 0
           }
         ]
@@ -219,13 +219,13 @@
       "definition": {
         "segments": [
           {
-            "duration": "2",
+            "duration": "2 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 0
           }
         ],
@@ -273,13 +273,13 @@
       "definition": {
         "segments": [
           {
-            "duration": "2",
+            "duration": "2 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 0
           }
         ],
@@ -317,13 +317,13 @@
       "definition": {
         "segments": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ],
@@ -375,17 +375,17 @@
       "definition": {
         "segments": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 1
           },
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0.5
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -415,17 +415,17 @@
       "definition": {
         "segments": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 1
           },
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0.5
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -458,17 +458,17 @@
         "hold": false,
         "segments": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 1
           },
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": -0.5
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -510,17 +510,17 @@
         "clock": "beats",
         "segments": [
           {
-            "duration": "1/3",
+            "duration": "1/3 s",
             "to": 1
           },
           {
-            "duration": "1/3",
+            "duration": "1/3 s",
             "to": 0.5
           }
         ],
         "release": [
           {
-            "duration": "1/3",
+            "duration": "1/3 s",
             "to": 0
           }
         ]
@@ -894,7 +894,7 @@
         "segments": [],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -905,13 +905,13 @@
       "body": {
         "segments": [
           {
-            "duration": "-1",
+            "duration": "-1 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -928,7 +928,7 @@
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -939,13 +939,13 @@
       "body": {
         "segments": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": -1
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ]
@@ -956,13 +956,13 @@
       "body": {
         "segments": [
           {
-            "duration": "1",
+            "duration": "1 s",
             "to": 1
           }
         ],
         "release": [
           {
-            "duration": "0",
+            "duration": "0 s",
             "to": 0
           }
         ],

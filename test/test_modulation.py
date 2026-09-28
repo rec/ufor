@@ -178,8 +178,8 @@ def test_beat_controls_follow_supplied_tempo_positions_without_reset() -> None:
     definition = envelope.Envelope.model_validate(
         {
             'clock': 'beats',
-            'segments': [{'duration': '4', 'to': 1}],
-            'release': [{'duration': '0', 'to': 0}],
+            'segments': [{'duration': '4 s', 'to': 1}],
+            'release': [{'duration': '0 s', 'to': 0}],
         }
     )
     oscillator = lfo.LFO.model_validate({'clock': 'beats', 'rate': '1/4'})
