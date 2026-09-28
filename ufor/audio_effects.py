@@ -93,6 +93,14 @@ class Gain(Model):
     bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
 
 
+class SoftClip(Model):
+    kind: Literal['soft_clip'] = 'soft_clip'
+    name: Identifier
+    drive: Positive = 1.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+
+
 class Filter(Model):
     kind: Literal['filter'] = 'filter'
     name: Identifier
@@ -148,7 +156,7 @@ class Granulator(Model):
 
 
 Processor = Annotated[
-    Gain | Filter | Multiply | Granulator, Field(discriminator='kind')
+    Gain | SoftClip | Filter | Multiply | Granulator, Field(discriminator='kind')
 ]
 
 
@@ -409,6 +417,10 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
             raise ValueError('mix must be in [0, 1]')
         return
     if isinstance(processor, Gain) and parameter == 'gain_db':
+        return
+    if isinstance(processor, SoftClip) and parameter == 'drive':
+        if value <= 0:
+            raise ValueError('drive must be positive')
         return
     if isinstance(processor, Granulator):
         if parameter in {'duration_seconds', 'density_hz', 'playback_ratio'}:

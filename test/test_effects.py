@@ -113,3 +113,8 @@ def test_granulator_requires_its_read_history() -> None:
             history_seconds=0.44,
             maximum_grains=8,
         )
+
+
+def test_soft_clip_requires_positive_drive() -> None:
+    with pytest.raises(ValidationError, match='greater than 0'):
+        audio_effects.SoftClip(name='clip', drive=0)
