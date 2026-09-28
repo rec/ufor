@@ -101,6 +101,28 @@ class SoftClip(Model):
     bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
 
 
+class TapDelay(Model):
+    """One integer-frame delayed read with bounded feedback and no hidden tail."""
+
+    kind: Literal['tap_delay'] = 'tap_delay'
+    name: Identifier
+    delay_seconds: PositiveSeconds
+    maximum_delay_seconds: PositiveSeconds
+    feedback: float = Field(default=0.0, ge=0, lt=1)
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def bounded_delay(self) -> Self:
+        if self.delay_seconds > self.maximum_delay_seconds:
+            raise ValueError('tap delay exceeds its prepared maximum delay')
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('tap delay state_floor must be below tail_threshold')
+        return self
+
+
 class Filter(Model):
     kind: Literal['filter'] = 'filter'
     name: Identifier
@@ -156,7 +178,8 @@ class Granulator(Model):
 
 
 Processor = Annotated[
-    Gain | SoftClip | Filter | Multiply | Granulator, Field(discriminator='kind')
+    Gain | SoftClip | TapDelay | Filter | Multiply | Granulator,
+    Field(discriminator='kind'),
 ]
 
 
@@ -422,6 +445,15 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         if value <= 0:
             raise ValueError('drive must be positive')
         return
+    if isinstance(processor, TapDelay):
+        if parameter == 'delay_seconds':
+            if not 0 < value <= processor.maximum_delay_seconds:
+                raise ValueError('delay_seconds must be within the prepared maximum')
+            return
+        if parameter == 'feedback':
+            if not 0 <= value < 1:
+                raise ValueError('feedback must be in [0, 1)')
+            return
     if isinstance(processor, Granulator):
         if parameter in {'duration_seconds', 'density_hz', 'playback_ratio'}:
             if value <= 0:

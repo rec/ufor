@@ -118,3 +118,20 @@ def test_granulator_requires_its_read_history() -> None:
 def test_soft_clip_requires_positive_drive() -> None:
     with pytest.raises(ValidationError, match='greater than 0'):
         audio_effects.SoftClip(name='clip', drive=0)
+
+
+def test_tap_delay_has_bounded_feedback_and_automation() -> None:
+    delay = audio_effects.TapDelay(
+        name='echo', delay_seconds=0.125, maximum_delay_seconds=0.5, feedback=0.75
+    )
+
+    audio_effects.validate_parameter(delay, 'delay_seconds', 0.5)
+    audio_effects.validate_parameter(delay, 'feedback', 0.0)
+    with pytest.raises(ValueError, match='prepared maximum'):
+        audio_effects.validate_parameter(delay, 'delay_seconds', 0.6)
+    with pytest.raises(ValueError, match='feedback'):
+        audio_effects.validate_parameter(delay, 'feedback', 1.0)
+    with pytest.raises(ValidationError, match='prepared maximum'):
+        audio_effects.TapDelay(
+            name='echo', delay_seconds=0.6, maximum_delay_seconds=0.5
+        )
