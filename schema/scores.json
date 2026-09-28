@@ -2689,6 +2689,23 @@
       "title": "ConfettiWithDecay",
       "type": "object"
     },
+    "Connection": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "$ref": "#/$defs/OutputSelection"
+        },
+        "destination": {
+          "$ref": "#/$defs/InputSelection"
+        }
+      },
+      "required": [
+        "source",
+        "destination"
+      ],
+      "title": "Connection",
+      "type": "object"
+    },
     "ContentIdentity": {
       "additionalProperties": false,
       "properties": {
@@ -3610,6 +3627,7 @@
               "mapping": {
                 "control_change": "#/$defs/ControlChange",
                 "key": "#/$defs/KeyEvent",
+                "lfo_change": "#/$defs/LFOChange",
                 "midi": "#/$defs/MidiEvent",
                 "osc": "#/$defs/OscEvent",
                 "release": "#/$defs/Release",
@@ -3639,6 +3657,9 @@
               },
               {
                 "$ref": "#/$defs/ControlChange"
+              },
+              {
+                "$ref": "#/$defs/LFOChange"
               }
             ]
           },
@@ -5470,6 +5491,60 @@
       "title": "LFO",
       "type": "object"
     },
+    "LFOChange": {
+      "additionalProperties": false,
+      "description": "Change one instrument-scoped named LFO at an exact performance tick.",
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "lfo_change",
+          "default": "lfo_change",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "reset",
+            "rate"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rate"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "name",
+        "action"
+      ],
+      "title": "LFOChange",
+      "type": "object"
+    },
     "LFOScore": {
       "additionalProperties": false,
       "properties": {
@@ -6489,6 +6564,10 @@
           "minimum": 0,
           "title": "Phase Cycles",
           "type": "number"
+        },
+        "waveform": {
+          "$ref": "#/$defs/Waveform",
+          "default": "sine"
         },
         "envelope": {
           "$ref": "#/$defs/Envelope",
@@ -11732,23 +11811,6 @@
         }
       },
       "title": "Transition",
-      "type": "object"
-    },
-    "Connection": {
-      "additionalProperties": false,
-      "properties": {
-        "source": {
-          "$ref": "#/$defs/OutputSelection"
-        },
-        "destination": {
-          "$ref": "#/$defs/InputSelection"
-        }
-      },
-      "required": [
-        "source",
-        "destination"
-      ],
-      "title": "Connection",
       "type": "object"
     },
     "ufor__interface__ControlBinding": {

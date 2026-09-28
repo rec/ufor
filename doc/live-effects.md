@@ -6,8 +6,8 @@ master, or host attachment and has named audio inputs, processor nodes, explicit
 connections, and one public output. Serial chains normalize into this graph form.
 
 Every processor has a stable local ID. Audio input ports are fixed by processor
-type and are distinct from scalar modulation. Gain, resonant filter, and
-granulator processors have `input`; multiplication has equal-layout `carrier`
+type and are distinct from scalar modulation. Gain, soft clip, resonant filter,
+and granulator processors have `input`; multiplication has equal-layout `carrier`
 and `modulator` ports. Connections may fan out, but a port has one source and
 implicit mixing is forbidden. Preparation validates all references, layouts,
 required ports, whole-program cycles, and reachability before establishing a
@@ -36,6 +36,11 @@ value. Retiring a tail also uses a 64-frame linear fade. Processor-mode resonant
 filters use the existing filter definitions, a `1e-12` tail threshold, and may
 trim only their designated decaying integrator state below `1e-30`. These values
 are portable profile constants, not host preferences.
+
+Soft clip is stateless and has neither latency nor a tail. For finite input `x`
+and positive `drive` `d`, its wet output is `tanh(d*x) / tanh(d)`. It does not
+oversample, normalize blocks, or claim analogue emulation. `drive` is a positive
+automatable parameter; mix and bypass follow the common processor rules.
 
 The initial granulator uses a periodic Hann window
 `0.5 - 0.5*cos(2*pi*i/N)` for frame `i` of an `N`-frame grain. A grain requires at
