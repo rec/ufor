@@ -2,7 +2,6 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from itertools import pairwise
 from math import fsum, prod
 from typing import Literal, Self
 
@@ -12,6 +11,7 @@ from .base import FiniteScalar, Identifier, Model, unique
 from .control import Scope
 from .interface import ControlBinding, ControlType, InterfaceScore, Output
 from .modulation import Operation, Target, Unit
+from .segments import Segment
 from .time import Timebase
 
 
@@ -41,22 +41,19 @@ class ArrangementGainTarget(Model):
         return self
 
 
-class Knot(Model):
-    tick: int = Field(strict=True)
-    value: FiniteScalar | StrictBool
-
-
 class TimelineCurve(Model):
     name: Identifier
     unit: Unit
     interpolation: Interpolation = Interpolation.linear
-    knots: list[Knot] = Field(min_length=1)
+    at: int = Field(strict=True)
+    initial: FiniteScalar | StrictBool
+    segments: list[Segment] = Field(default_factory=list)
     operation: Operation | None = None
 
     @model_validator(mode='after')
-    def ordered(self) -> Self:
-        if any(a.tick >= b.tick for a, b in pairwise(self.knots)):
-            raise ValueError('curve ticks must be strictly increasing')
+    def tick_segments(self) -> Self:
+        if any(segment.duration.denominator != 1 for segment in self.segments):
+            raise ValueError('timeline segment durations must be integer ticks')
         return self
 
 
@@ -105,10 +102,10 @@ class Automation(Model):
                 raise ValueError(
                     'equal-power interpolation requires a direct gain curve'
                 )
-            for knot in curve.knots:
+            for value in [curve.initial, *(segment.to for segment in curve.segments)]:
                 if curve.operation is None:
-                    check_value(self.quantity, knot.value)
-                elif isinstance(knot.value, bool):
+                    check_value(self.quantity, value)
+                elif isinstance(value, bool):
                     raise ValueError('arithmetic contributions must be numeric')
         return self
 
@@ -153,7 +150,7 @@ def evaluate(
     additions: list[float] = []
     multipliers: list[float] = []
     for curve in sorted(body.curves, key=lambda c: c.name):
-        if tick < curve.knots[0].tick:
+        if tick < curve.at:
             continue
         value = curve_value(curve, tick)
         if curve.operation is None:
@@ -171,20 +168,26 @@ def evaluate(
 
 def curve_value(curve: TimelineCurve, tick: int) -> float | bool:
     """Read an active curve; callers handle its pre-start base value."""
-    if tick < curve.knots[0].tick:
+    if tick < curve.at:
         raise ValueError('curve has not started')
-    for first, second in pairwise(curve.knots):
-        if tick < second.tick:
+    value = curve.initial
+    elapsed = Fraction(tick - curve.at)
+    for segment in curve.segments:
+        if elapsed < segment.duration:
             if curve.interpolation == Interpolation.hold:
-                return first.value
-            progress = Fraction(tick - first.tick, second.tick - first.tick)
+                return value
+            progress = elapsed / segment.duration
             if curve.interpolation == Interpolation.equal_power:
                 return (
-                    (1 - float(progress)) * float(first.value) ** 2
-                    + float(progress) * float(second.value) ** 2
+                    (1 - float(progress)) * float(value) ** 2
+                    + float(progress) * float(segment.to) ** 2
                 ) ** 0.5
-            return (1 - float(progress)) * first.value + float(progress) * second.value
-    return curve.knots[-1].value
+            return (1 - float(progress)) * float(value) + float(progress) * float(
+                segment.to
+            )
+        elapsed -= segment.duration
+        value = segment.to
+    return value
 
 
 def check_value(quantity: Quantity, value: float | bool) -> None:

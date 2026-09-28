@@ -27,4 +27,6 @@ parameter = "cutoff"
 name = "sweep"
 unit = "hz"
 interpolation = "linear"
-knots = [{ tick = 1000, value = 440.0 }, { tick = 3000, value = 880.0 }]
+at = 1000
+initial = 440.0
+segments = [{ duration = 2000, to = 880.0 }]

@@ -5,7 +5,7 @@ import pytest
 
 from ufor import light_animation, lights, modulation
 from ufor.arrangement import ArrangementScore
-from ufor.automation import Automation, AutomationScore, Knot, TimelineCurve
+from ufor.automation import Automation, AutomationScore, TimelineCurve
 from ufor.codec import parse_score, score_toml
 from ufor.composition import Composition, ScoreRecord
 from ufor.control import Scope
@@ -21,6 +21,7 @@ from ufor.interface import (
 )
 from ufor.modulation import Target, Unit
 from ufor.samples.instrument import SampleInstrumentScore
+from ufor.segments import Segment
 from ufor.sequence import SequenceScore
 from ufor.synth import SynthInstrumentScore
 from ufor.time import Rate, Timebase
@@ -201,7 +202,9 @@ def scores() -> dict[str, ScoreRecord]:
                 TimelineCurve(
                     name='fade',
                     unit=Unit.ratio,
-                    knots=[Knot(tick=0, value=0), Knot(tick=2000, value=1)],
+                    at=0,
+                    initial=0,
+                    segments=[Segment(duration=2000, to=1)],
                 )
             ],
         ),

@@ -5403,32 +5403,6 @@
       "title": "KeySwitch",
       "type": "object"
     },
-    "Knot": {
-      "additionalProperties": false,
-      "properties": {
-        "tick": {
-          "title": "Tick",
-          "type": "integer"
-        },
-        "value": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "boolean"
-            }
-          ],
-          "title": "Value"
-        }
-      },
-      "required": [
-        "tick",
-        "value"
-      ],
-      "title": "Knot",
-      "type": "object"
-    },
     "LFO": {
       "additionalProperties": false,
       "properties": {
@@ -9763,8 +9737,15 @@
           "type": "string"
         },
         "to": {
-          "title": "To",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "To"
         },
         "curve": {
           "default": 0,
@@ -11087,12 +11068,26 @@
           "$ref": "#/$defs/ufor__automation__Interpolation",
           "default": "linear"
         },
-        "knots": {
+        "at": {
+          "title": "At",
+          "type": "integer"
+        },
+        "initial": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "Initial"
+        },
+        "segments": {
           "items": {
-            "$ref": "#/$defs/Knot"
+            "$ref": "#/$defs/Segment"
           },
-          "minItems": 1,
-          "title": "Knots",
+          "title": "Segments",
           "type": "array"
         },
         "operation": {
@@ -11110,7 +11105,8 @@
       "required": [
         "name",
         "unit",
-        "knots"
+        "at",
+        "initial"
       ],
       "title": "TimelineCurve",
       "type": "object"

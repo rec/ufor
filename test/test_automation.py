@@ -32,7 +32,7 @@ def test_portable_cases(case: dict[str, object]) -> None:
 def test_edit_and_round_trip(name: str) -> None:
     data = example(name).model_dump()
     data['title'] = 'Edited'
-    data['body']['curves'][0]['knots'][0]['tick'] = 500
+    data['body']['curves'][0]['at'] = 500
     edited = AutomationScore.model_validate(data)
     assert parse_score(score_toml(edited)) == edited
 
@@ -69,10 +69,9 @@ def test_reject_incompatible_defaults_and_units(
         ('gate', 'interpolation', 'linear'),
         ('gate', 'operation', 'multiply'),
         ('frequency', 'unit', 'ratio'),
-        ('gain', 'knots', [{'tick': 0, 'value': 1}, {'tick': 0, 'value': 2}]),
-        ('gain', 'knots', [{'tick': True, 'value': 1}]),
-        ('gain', 'knots', [{'tick': 0, 'value': False}]),
-        ('gate', 'knots', [{'tick': 0, 'value': 1}]),
+        ('gain', 'at', True),
+        ('gain', 'initial', False),
+        ('gate', 'initial', 1),
     ],
 )
 def test_reject_invalid_curves(name: str, field: str, value: object) -> None:
@@ -96,13 +95,15 @@ def test_explicit_combination_uses_base_then_add_then_multiply() -> None:
             'name': 'transpose',
             'unit': 'ratio',
             'operation': 'multiply',
-            'knots': [{'tick': 2000, 'value': 2}],
+            'at': 2000,
+            'initial': 2,
         },
         {
             'name': 'offset',
             'unit': 'hz',
             'operation': 'add',
-            'knots': [{'tick': 2000, 'value': -10}],
+            'at': 2000,
+            'initial': -10,
         },
     ]
     score = AutomationScore.model_validate(data)
@@ -120,7 +121,8 @@ def test_combined_values_cannot_leave_quantity_domain() -> None:
             'name': 'offset',
             'unit': 'hz',
             'operation': 'add',
-            'knots': [{'tick': 0, 'value': -220}],
+            'at': 0,
+            'initial': -220,
         }
     ]
     with pytest.raises(ValueError, match='positive'):
@@ -134,10 +136,9 @@ def test_override_is_validated_even_when_a_curve_replaces_it() -> None:
 
 def test_large_native_ticks_keep_exact_interpolation_positions() -> None:
     data = example('gain').model_dump()
-    data['body']['curves'][0]['knots'] = [
-        {'tick': 10**18, 'value': 0},
-        {'tick': 10**18 + 2, 'value': 1},
-    ]
+    data['body']['curves'][0].update(
+        at=10**18, initial=0, segments=[{'duration': 2, 'to': 1}]
+    )
     assert evaluate(AutomationScore.model_validate(data), 10**18 + 1) == 0.5
 
 
@@ -149,10 +150,9 @@ def test_equal_power_gain_curve_and_arrangement_target_round_trip() -> None:
         'destination': 'master',
     }
     data['body']['curves'][0]['interpolation'] = 'equal_power'
-    data['body']['curves'][0]['knots'] = [
-        {'tick': 0, 'value': 0},
-        {'tick': 4, 'value': 1},
-    ]
+    data['body']['curves'][0].update(
+        at=0, initial=0, segments=[{'duration': 4, 'to': 1}]
+    )
     score = AutomationScore.model_validate(data)
     assert evaluate(score, 2) == pytest.approx(2**-0.5)
     assert parse_score(score_toml(score)) == score
