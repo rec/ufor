@@ -245,6 +245,9 @@ Cooperating processes must use the same capacity. Remote Git acquisition now
 requires host-provided quota-limited transport storage; automated provisioning
 and GC for that storage, pressure collection, capture reservations, and
 blocking-root explanations remain.
+Recs now requires object, staging, and free-space budgets in its explicit
+offline edit and package-export asset policy. Its Git transport repository
+still requires an external hard quota.
 The proposed policy keys are `maximum_object_bytes`,
 `maximum_staging_bytes`, `maximum_transport_bytes`, and
 `minimum_free_space`; size values use positive integer `B`, `KiB`, `MiB`, or
