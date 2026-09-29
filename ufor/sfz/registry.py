@@ -1,0 +1,697 @@
+"""SFZ v1/v2 support catalog and diagnostics.
+
+Opcode names and versions follow sfzformat.com at source revision
+2f933f593895f92dcc2fc78a1ca4110158250272 (CC0-1.0).
+"""
+
+import re
+from enum import StrEnum, auto
+
+
+class Support(StrEnum):
+    supported = auto()
+    asset_metadata = auto()
+    new_model = auto()
+    controller_binding = auto()
+    ambiguous = auto()
+    vendor_extension = auto()
+
+
+def opcode_support(name: str) -> tuple[Support, str | None, str | None]:
+    """Classify a concrete opcode and return support, version, and category."""
+    canonical = OPCODE_ALIASES.get(name, name)
+    entry = STANDARD_OPCODES.get(name)
+    if entry is None:
+        entry = next(
+            (STANDARD_OPCODES[k] for k, p in TEMPLATES.items() if p.fullmatch(name)),
+            None,
+        )
+    version, category = entry if entry is not None else (None, None)
+    if (
+        canonical in PARSABLE_OPCODES
+        or name == 'amp_velcurve_N'
+        or AMP_VELOCITY_CURVE.fullmatch(canonical)
+    ):
+        if canonical in ASSET_OPCODES:
+            return Support.asset_metadata, version, category
+        if canonical in AMBIGUOUS_OPCODES:
+            return Support.ambiguous, version, category
+        return Support.supported, version, category
+    if entry is None:
+        return Support.vendor_extension, None, None
+    if name in ASSET_OPCODES:
+        return Support.asset_metadata, version, category
+    if name in AMBIGUOUS_OPCODES:
+        return Support.ambiguous, version, category
+    if category in ('Effects', 'Performance Parameters/EQ', 'Wavetable Oscillator') or (
+        category is not None and category.startswith('Performance Parameters/Filter')
+    ):
+        return Support.new_model, version, category
+    if (
+        category == 'Region Logic/MIDI Conditions'
+        or category == 'Curves'
+        or name in ('note_offset', 'octave_offset')
+        or 'cc' in name
+        or any(word in name for word in ('chanaft', 'polyaft', 'bend', 'sw_', 'prog'))
+    ):
+        return Support.controller_binding, version, category
+    return Support.new_model, version, category
+
+
+def header_support(name: str) -> Support:
+    """Classify a standard header or a vendor extension."""
+    return HEADERS.get(name, Support.vendor_extension)
+
+
+def diagnostic_reason(name: str, *, header: bool = False) -> str:
+    """Explain an unsupported construct using the same registry as the table."""
+    if header and name == 'curve':
+        return 'SFZ curve header requires curve-table support'
+    if header and name == 'effect':
+        return 'SFZ effect header requires effect routing support'
+    if header and name == 'sample':
+        return 'SFZ sample header requires sample-definition support'
+    status = header_support(name) if header else opcode_support(name)[0]
+    if status == Support.controller_binding:
+        return 'SFZ construct requires an external controller binding'
+    if status == Support.ambiguous:
+        return 'SFZ construct requires an explicit player semantics choice'
+    if status == Support.asset_metadata:
+        return 'SFZ construct requires asset metadata or verification'
+    if status == Support.vendor_extension:
+        return 'Vendor or unrecognized SFZ extension is not implemented'
+    if header:
+        return 'SFZ header requires a native model'
+    category = opcode_support(name)[2] or ''
+    if category.startswith('Performance Parameters/Filter'):
+        return 'SFZ filter requires a native filter model'
+    if category == 'Effects':
+        return 'SFZ effect requires a native effects routing model'
+    if category == 'Wavetable Oscillator':
+        return 'SFZ oscillator requires a synthesis-source model'
+    if category == 'Performance Parameters/EQ':
+        return 'SFZ equalizer requires an exact native EQ model'
+    if name in (
+        'sync_beats',
+        'sync_offset',
+        'delay_beats',
+        'stop_beats',
+        'lobpm',
+        'hibpm',
+    ):
+        return 'SFZ beat timing requires a transport and tempo model'
+    return 'SFZ construct requires a native instrument model'
+
+
+def support_table() -> str:
+    """Generate the public support table from the runtime registry."""
+    lines = [
+        '# SFZ support',
+        '',
+        'Generated from `ufor.sfz.registry` using the '
+        '[SFZ Format catalog](https://sfzformat.com/opcodes/) at revision '
+        '`2f933f593895f92dcc2fc78a1ca4110158250272`.',
+        '',
+        '`supported` entries may have value-specific constraints. '
+        '`asset_metadata` requires measured or verified sample facts. '
+        '`ambiguous` requires an explicit player-semantics choice. '
+        'The other classifications are reported as unsupported.',
+        '',
+        '| Kind | Name | Version | Classification |',
+        '| --- | --- | --- | --- |',
+    ]
+    for name, version in STANDARD_HEADERS.items():
+        lines.append(
+            f'| Header | `<{name}>` | {version} | {header_support(name).value} |'
+        )
+    for name, (version, _) in STANDARD_OPCODES.items():
+        lines.append(
+            f'| Opcode | `{name}` | {version} | {opcode_support(name)[0].value} |'
+        )
+    return '\n'.join(lines) + '\n'
+
+
+HEADERS = {
+    'region': Support.supported,
+    'group': Support.supported,
+    'control': Support.supported,
+    'global': Support.supported,
+    'master': Support.supported,
+    'curve': Support.controller_binding,
+    'effect': Support.new_model,
+    'sample': Support.new_model,
+}
+STANDARD_HEADERS = {
+    'region': 'SFZ v1',
+    'group': 'SFZ v1',
+    'control': 'SFZ v2',
+    'global': 'SFZ v2',
+    'curve': 'SFZ v2',
+    'effect': 'SFZ v2',
+    'sample': 'SFZ v2',
+}
+PARSABLE_OPCODES = {
+    '#define',
+    'default_path',
+    'ampeg_attack',
+    'ampeg_decay',
+    'ampeg_delay',
+    'ampeg_hold',
+    'ampeg_release',
+    'ampeg_sustain',
+    'ampeg_vel2attack',
+    'ampeg_vel2decay',
+    'ampeg_vel2delay',
+    'ampeg_vel2hold',
+    'ampeg_vel2release',
+    'amp_veltrack',
+    'amp_keycenter',
+    'amp_keytrack',
+    'direction',
+    'end',
+    'group',
+    'hikey',
+    'hirand',
+    'hivel',
+    'key',
+    'lokey',
+    'lorand',
+    'loop_end',
+    'loop_mode',
+    'loop_start',
+    'lovel',
+    'off_by',
+    'off_mode',
+    'offset',
+    'pan',
+    'pitch_keycenter',
+    'pitch_keytrack',
+    'pitch_veltrack',
+    'region_label',
+    'sample',
+    'seq_length',
+    'seq_position',
+    'transpose',
+    'trigger',
+    'tune',
+    'volume',
+    'xf_keycurve',
+    'xf_velcurve',
+    'xfin_hikey',
+    'xfin_hivel',
+    'xfin_lokey',
+    'xfin_lovel',
+    'xfout_hikey',
+    'xfout_hivel',
+    'xfout_lokey',
+    'xfout_lovel',
+}
+OPCODE_ALIASES = {
+    'amp_attack': 'ampeg_attack',
+    'amp_decay': 'ampeg_decay',
+    'amp_delay': 'ampeg_delay',
+    'amp_hold': 'ampeg_hold',
+    'amp_release': 'ampeg_release',
+    'amp_sustain': 'ampeg_sustain',
+    'amp_vel2attack': 'ampeg_vel2attack',
+    'amp_vel2decay': 'ampeg_vel2decay',
+    'amp_vel2delay': 'ampeg_vel2delay',
+    'amp_vel2hold': 'ampeg_vel2hold',
+    'amp_vel2release': 'ampeg_vel2release',
+    'loopend': 'loop_end',
+    'loopmode': 'loop_mode',
+    'loopstart': 'loop_start',
+}
+ASSET_OPCODES = {
+    'sample',
+    'end',
+    'offset',
+    'loop_mode',
+    'loop_start',
+    'loop_end',
+    'md5',
+}
+AMBIGUOUS_OPCODES = {'seq_length', 'seq_position'}
+AMP_VELOCITY_CURVE = re.compile(r'amp_velcurve_(\d+)')
+STANDARD_OPCODES: dict[str, tuple[str, str]] = {
+    '#define': ('SFZ v2', 'Instrument Settings'),
+    'amp_attack': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_decay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_delay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_hold': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_keycenter': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'amp_keytrack': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'amp_random': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'amp_release': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_vel2attack': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_vel2decay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_vel2delay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_vel2hold': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_vel2release': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_vel2sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amp_velcurve_N': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'amp_veltrack': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'ampeg_attack': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_attack_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'ampeg_decay': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_decay_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'ampeg_delay': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_delay_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'ampeg_hold': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_hold_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'ampeg_release': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_release_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'ampeg_start': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_start_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'ampeg_sustain': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'ampeg_sustain_onccN': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'amplfo_delay': ('SFZ v1', 'Modulation/LFO'),
+    'amplfo_depth': ('SFZ v1', 'Modulation/LFO'),
+    'amplfo_depth_onccN': ('SFZ v2', 'Modulation/LFO'),
+    'amplfo_fade': ('SFZ v1', 'Modulation/LFO'),
+    'amplfo_freq': ('SFZ v1', 'Modulation/LFO'),
+    'apan_depth': ('SFZ v2', 'Effects'),
+    'apan_dry': ('SFZ v2', 'Effects'),
+    'apan_freq': ('SFZ v2', 'Effects'),
+    'apan_phase': ('SFZ v2', 'Effects'),
+    'apan_waveform': ('SFZ v2', 'Effects'),
+    'apan_wet': ('SFZ v2', 'Effects'),
+    'apf_1p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'bend_down': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'bend_smooth': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'bend_step': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'bend_stepdown': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'bend_stepup': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'bend_up': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'bitred': ('SFZ v2', 'Effects'),
+    'bpf_1p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'bpf_2p_sv': ('SFZ v2', 'Performance Parameters/Filter'),
+    'brf_1p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'brf_2p_sv': ('SFZ v2', 'Performance Parameters/Filter'),
+    'bus': ('SFZ v2', 'Effects'),
+    'bypass_onccN': ('SFZ v2', 'Effects'),
+    'comb': ('SFZ v2', 'Performance Parameters/Filter'),
+    'comp_attack': ('SFZ v2', 'Effects'),
+    'comp_gain': ('SFZ v2', 'Effects'),
+    'comp_ratio': ('SFZ v2', 'Effects'),
+    'comp_release': ('SFZ v2', 'Effects'),
+    'comp_stlink': ('SFZ v2', 'Effects'),
+    'comp_threshold': ('SFZ v2', 'Effects'),
+    'count': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'cutoff': ('SFZ v1', 'Performance Parameters/Filter'),
+    'cutoff_curveccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'cutoff_onccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'cutoff_random': ('SFZ v2', 'Performance Parameters/Filter'),
+    'cutoff_smoothccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'cutoff_stepccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'cutoff2': ('SFZ v2', 'Performance Parameters/Filter'),
+    'decim': ('SFZ v2', 'Effects'),
+    'default_path': ('SFZ v2', 'Instrument Settings'),
+    'delay': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'delay_beats': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'delay_cutoff': ('SFZ v2', 'Effects'),
+    'delay_damphi': ('SFZ v2', 'Effects'),
+    'delay_damplo': ('SFZ v2', 'Effects'),
+    'delay_dry': ('SFZ v2', 'Effects'),
+    'delay_feedback': ('SFZ v2', 'Effects'),
+    'delay_filter': ('SFZ v2', 'Effects'),
+    'delay_input': ('SFZ v2', 'Effects'),
+    'delay_levelc': ('SFZ v2', 'Effects'),
+    'delay_levell': ('SFZ v2', 'Effects'),
+    'delay_levelr': ('SFZ v2', 'Effects'),
+    'delay_lfofreq': ('SFZ v2', 'Effects'),
+    'delay_moddepth': ('SFZ v2', 'Effects'),
+    'delay_mode': ('SFZ v2', 'Effects'),
+    'delay_onccN': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'delay_panc': ('SFZ v2', 'Effects'),
+    'delay_panl': ('SFZ v2', 'Effects'),
+    'delay_panr': ('SFZ v2', 'Effects'),
+    'delay_random': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'delay_resonance': ('SFZ v2', 'Effects'),
+    'delay_samples': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'delay_spread': ('SFZ v2', 'Effects'),
+    'delay_syncc_onccN': ('SFZ v2', 'Effects'),
+    'delay_syncl_onccN': ('SFZ v2', 'Effects'),
+    'delay_syncr_onccN': ('SFZ v2', 'Effects'),
+    'delay_time_tap': ('SFZ v2', 'Effects'),
+    'delay_timec': ('SFZ v2', 'Effects'),
+    'delay_timel': ('SFZ v2', 'Effects'),
+    'delay_timer': ('SFZ v2', 'Effects'),
+    'delay_wet': ('SFZ v2', 'Effects'),
+    'direction': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'directtomain': ('SFZ v2', 'Effects'),
+    'disto_depth': ('SFZ v2', 'Effects'),
+    'disto_dry': ('SFZ v2', 'Effects'),
+    'disto_stages': ('SFZ v2', 'Effects'),
+    'disto_tone': ('SFZ v2', 'Effects'),
+    'disto_wet': ('SFZ v2', 'Effects'),
+    'dsp_order': ('SFZ v2', 'Effects'),
+    'effect1': ('SFZ v1', 'Effects'),
+    'effect2': ('SFZ v1', 'Effects'),
+    'effect3': ('SFZ v2', 'Effects'),
+    'effect4': ('SFZ v2', 'Effects'),
+    'egN_amplitude': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_bitred': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_curveX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_cutoff': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_cutoff2': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_decim': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_depth_lfoX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_depthadd_lfoX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_driveshape': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_eqXbw': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_eqXfreq': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_eqXgain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_freq_lfoX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_levelX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_loop': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_loop_count': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_noiselevel': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_noisestep': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_noisetone': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_pan': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_pan_curve': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_pitch': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_points': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_rectify': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_resonance': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_resonance2': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_ringmod': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_shapeX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_timeX': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_volume': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'egN_width': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'end': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'eq_bw': ('SFZ v2', 'Effects'),
+    'eq_freq': ('SFZ v2', 'Effects'),
+    'eq_gain': ('SFZ v2', 'Effects'),
+    'eq_type': ('SFZ v2', 'Effects'),
+    'eqN_bw': ('SFZ v1', 'Performance Parameters/EQ'),
+    'eqN_bw_onccX': ('SFZ v2', 'Performance Parameters/EQ'),
+    'eqN_freq': ('SFZ v1', 'Performance Parameters/EQ'),
+    'eqN_freq_onccX': ('SFZ v2', 'Performance Parameters/EQ'),
+    'eqN_gain': ('SFZ v1', 'Performance Parameters/EQ'),
+    'eqN_gain_onccX': ('SFZ v2', 'Performance Parameters/EQ'),
+    'eqN_type': ('SFZ v2', 'Performance Parameters/EQ'),
+    'fil_attack': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_decay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_delay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_depth': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_hold': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_keycenter': ('SFZ v1', 'Performance Parameters/Filter'),
+    'fil_keytrack': ('SFZ v1', 'Performance Parameters/Filter'),
+    'fil_random': ('SFZ v1', 'Performance Parameters/Filter'),
+    'fil_release': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_type': ('SFZ v1', 'Performance Parameters/Filter'),
+    'fil_vel2attack': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_vel2decay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_vel2delay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_vel2depth': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_vel2hold': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_vel2release': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_vel2sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'fil_veltrack': ('SFZ v1', 'Performance Parameters/Filter'),
+    'fil2_keycenter': ('SFZ v2', 'Performance Parameters/Filter'),
+    'fil2_keytrack': ('SFZ v2', 'Performance Parameters/Filter'),
+    'fil2_type': ('SFZ v2', 'Performance Parameters/Filter'),
+    'fil2_veltrack': ('SFZ v2', 'Performance Parameters/Filter'),
+    'fileg_attack': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_decay': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_delay': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_depth': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_hold': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_release': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_start': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fileg_sustain': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'fillfo_delay': ('SFZ v1', 'Modulation/LFO'),
+    'fillfo_depth': ('SFZ v1', 'Modulation/LFO'),
+    'fillfo_depth_onccN': ('SFZ v2', 'Modulation/LFO'),
+    'fillfo_fade': ('SFZ v1', 'Modulation/LFO'),
+    'fillfo_freq': ('SFZ v1', 'Modulation/LFO'),
+    'filter_cutoff': ('SFZ v2', 'Effects'),
+    'filter_resonance': ('SFZ v2', 'Effects'),
+    'filter_type': ('SFZ v2', 'Effects'),
+    'fxNtomain': ('SFZ v2', 'Effects'),
+    'fxNtomix': ('SFZ v2', 'Effects'),
+    'gain_onccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'gain_random': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'gate_attack': ('SFZ v2', 'Effects'),
+    'gate_onccN': ('SFZ v2', 'Effects'),
+    'gate_release': ('SFZ v2', 'Effects'),
+    'gate_stlink': ('SFZ v2', 'Effects'),
+    'gate_threshold': ('SFZ v2', 'Effects'),
+    'group': ('SFZ v1', 'Instrument Settings/Voice Lifecycle'),
+    'hibend': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'hibpm': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'hiccN': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'hichan': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'hichanaft': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'hikey': ('SFZ v1', 'Region Logic/Key Mapping'),
+    'hipolyaft': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'hiprog': ('SFZ v2', 'Region Logic/MIDI Conditions'),
+    'hirand': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'hitimer': ('SFZ v2', 'Region Logic/Internal Conditions'),
+    'hivel': ('SFZ v1', 'Region Logic/Key Mapping'),
+    'hpf_2p_sv': ('SFZ v2', 'Performance Parameters/Filter'),
+    'hpf_4p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'hpf_6p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'image': ('SFZ v2', 'Loading'),
+    'internal': ('SFZ v2', 'Effects'),
+    'key': ('SFZ v1', 'Region Logic/Key Mapping'),
+    'lfoN_amplitude': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_bitred': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_count': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_cutoff': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_cutoff2': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_decim': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_delay': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_depth_lfoX': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_depthadd_lfoX': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_drive': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_eqXbw': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_eqXfreq': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_eqXgain': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_fade': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_freq': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_freq_lfoX': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_noiselevel': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_noisestep': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_noisetone': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_pan': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_phase': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_pitch': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_resonance': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_resonance2': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_smooth': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_steps': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_stepX': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_volume': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_wave': ('SFZ v2', 'Modulation/LFO'),
+    'lfoN_width': ('SFZ v2', 'Modulation/LFO'),
+    'load_end': ('SFZ v2', 'Loading'),
+    'load_mode': ('SFZ v2', 'Loading'),
+    'load_start': ('SFZ v2', 'Loading'),
+    'lobend': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'lobpm': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'loccN': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'lochan': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'lochanaft': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'lokey': ('SFZ v1', 'Region Logic/Key Mapping'),
+    'loop_count': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'loop_crossfade': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'loop_end': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'loop_lengthccN': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'loop_mode': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'loop_start': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'loop_startccN': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'loop_tune': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'loop_type': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'lopolyaft': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'loprog': ('SFZ v2', 'Region Logic/MIDI Conditions'),
+    'lorand': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'lotimer': ('SFZ v2', 'Region Logic/Internal Conditions'),
+    'lovel': ('SFZ v1', 'Region Logic/Key Mapping'),
+    'lpf_2p_sv': ('SFZ v2', 'Performance Parameters/Filter'),
+    'lpf_4p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'lpf_6p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'md5': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'noise_filter': ('SFZ v2', 'Performance Parameters/Filter'),
+    'noise_level': ('SFZ v2', 'Performance Parameters/Filter'),
+    'noise_step': ('SFZ v2', 'Performance Parameters/Filter'),
+    'noise_stereo': ('SFZ v2', 'Performance Parameters/Filter'),
+    'noise_tone': ('SFZ v2', 'Performance Parameters/Filter'),
+    'note_offset': ('SFZ v2', 'Instrument Settings'),
+    'note_polyphony': ('SFZ v2', 'Instrument Settings/Voice Lifecycle'),
+    'note_selfmask': ('SFZ v2', 'Instrument Settings/Voice Lifecycle'),
+    'octave_offset': ('SFZ v2', 'Instrument Settings'),
+    'off_by': ('SFZ v1', 'Instrument Settings/Voice Lifecycle'),
+    'off_mode': ('SFZ v1', 'Instrument Settings/Voice Lifecycle'),
+    'offset': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'offset_onccN': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'offset_random': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'on_hiccN': ('SFZ v1', 'Region Logic/Triggers'),
+    'on_loccN': ('SFZ v1', 'Region Logic/Triggers'),
+    'oscillator': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_detune': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_mod_depth': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_mode': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_multi': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_phase': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_quality': ('SFZ v2', 'Wavetable Oscillator'),
+    'oscillator_table_size': ('SFZ v2', 'Wavetable Oscillator'),
+    'output': ('SFZ v1', 'Instrument Settings/Voice Lifecycle'),
+    'pan': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'pan_curveccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'pan_keycenter': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'pan_keytrack': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'pan_onccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'pan_smoothccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'pan_stepccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'pan_veltrack': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'phase': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'phaser_depth': ('SFZ v2', 'Effects'),
+    'phaser_feedback': ('SFZ v2', 'Effects'),
+    'phaser_freq': ('SFZ v2', 'Effects'),
+    'phaser_phase_onccN': ('SFZ v2', 'Effects'),
+    'phaser_stages': ('SFZ v2', 'Effects'),
+    'phaser_waveform': ('SFZ v2', 'Effects'),
+    'phaser_wet': ('SFZ v2', 'Effects'),
+    'pink': ('SFZ v2', 'Performance Parameters/Filter'),
+    'pitch_attack': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_curveccN': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'pitch_decay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_delay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_depth': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_hold': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_keycenter': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'pitch_keytrack': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'pitch_onccN': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'pitch_random': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'pitch_release': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_smoothccN': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'pitch_stepccN': ('SFZ v2', 'Performance Parameters/Pitch'),
+    'pitch_sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2attack': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2decay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2delay': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2depth': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2hold': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2release': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_vel2sustain': ('SFZ v2', 'Modulation/Envelope Generators'),
+    'pitch_veltrack': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'pitcheg_attack': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_decay': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_delay': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_depth': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_hold': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_release': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_start': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitcheg_sustain': ('SFZ v1', 'Modulation/Envelope Generators'),
+    'pitchlfo_delay': ('SFZ v1', 'Modulation/LFO'),
+    'pitchlfo_depth': ('SFZ v1', 'Modulation/LFO'),
+    'pitchlfo_depth_onccN': ('SFZ v2', 'Modulation/LFO'),
+    'pitchlfo_fade': ('SFZ v1', 'Modulation/LFO'),
+    'pitchlfo_freq': ('SFZ v1', 'Modulation/LFO'),
+    'pkf_2p': ('SFZ v2', 'Performance Parameters/Filter'),
+    'polyphony': ('SFZ v2', 'Instrument Settings/Voice Lifecycle'),
+    'position': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'release_key': ('SFZ v2', 'Region Logic/Triggers'),
+    'resonance': ('SFZ v1', 'Performance Parameters/Filter'),
+    'resonance_curveccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'resonance_onccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'resonance_smoothccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'resonance_stepccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'resonance2': ('SFZ v2', 'Performance Parameters/Filter'),
+    'resonance2_ccN': ('SFZ v2', 'Performance Parameters/Filter'),
+    'reverb_damp': ('SFZ v2', 'Effects'),
+    'reverb_dry': ('SFZ v2', 'Effects'),
+    'reverb_input': ('SFZ v2', 'Effects'),
+    'reverb_predelay': ('SFZ v2', 'Effects'),
+    'reverb_size': ('SFZ v2', 'Effects'),
+    'reverb_tone': ('SFZ v2', 'Effects'),
+    'reverb_type': ('SFZ v2', 'Effects'),
+    'reverb_wet': ('SFZ v2', 'Effects'),
+    'reverse_hiccN': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'reverse_loccN': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'rt_dead': ('SFZ v2', 'Instrument Settings/Voice Lifecycle'),
+    'rt_decay': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'sample': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'sample_fadeout': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'sample_quality': ('SFZ v2', 'Loading'),
+    'seq_length': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'seq_position': ('SFZ v1', 'Region Logic/Internal Conditions'),
+    'set_ccN': ('SFZ v2', 'Instrument Settings'),
+    'sostenuto_sw': ('SFZ v2', 'Region Logic/MIDI Conditions'),
+    'start_hiccN': ('SFZ v2', 'Region Logic/Triggers'),
+    'start_loccN': ('SFZ v2', 'Region Logic/Triggers'),
+    'static_cyclic_level': ('SFZ v2', 'Effects'),
+    'static_cyclic_time': ('SFZ v2', 'Effects'),
+    'static_filter': ('SFZ v2', 'Effects'),
+    'static_level': ('SFZ v2', 'Effects'),
+    'static_random_level': ('SFZ v2', 'Effects'),
+    'static_random_maxtime': ('SFZ v2', 'Effects'),
+    'static_random_mintime': ('SFZ v2', 'Effects'),
+    'static_stereo': ('SFZ v2', 'Effects'),
+    'static_tone': ('SFZ v2', 'Effects'),
+    'stop_beats': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'stop_hiccN': ('SFZ v2', 'Region Logic/Triggers'),
+    'stop_loccN': ('SFZ v2', 'Region Logic/Triggers'),
+    'strings_number': ('SFZ v2', 'Effects'),
+    'strings_wet_onccN': ('SFZ v2', 'Effects'),
+    'sustain_sw': ('SFZ v2', 'Region Logic/MIDI Conditions'),
+    'sw_default': ('SFZ v2', 'Region Logic/MIDI Conditions'),
+    'sw_down': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sw_hikey': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sw_last': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sw_lokey': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sw_previous': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sw_up': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sw_vel': ('SFZ v1', 'Region Logic/MIDI Conditions'),
+    'sync_beats': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'sync_offset': ('SFZ v1', 'Sound Source/Sample Playback'),
+    'tdfir_dry': ('SFZ v2', 'Effects'),
+    'tdfir_gain': ('SFZ v2', 'Effects'),
+    'tdfir_impulse': ('SFZ v2', 'Effects'),
+    'tdfir_wet': ('SFZ v2', 'Effects'),
+    'transpose': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'trigger': ('SFZ v1', 'Region Logic/Triggers'),
+    'tune': ('SFZ v1', 'Performance Parameters/Pitch'),
+    'type': ('SFZ v2', 'Effects'),
+    'vNNN': ('SFZ v2', 'Curves'),
+    'volume': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'volume_curveccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'volume_onccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'volume_smoothccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'volume_stepccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'waveguide': ('SFZ v2', 'Sound Source/Sample Playback'),
+    'width': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'width_curveccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'width_onccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'width_smoothccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'width_stepccN': ('SFZ v2', 'Performance Parameters/Amplifier'),
+    'xf_cccurve': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xf_keycurve': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xf_velcurve': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfin_hiccN': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfin_hikey': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfin_hivel': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfin_loccN': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfin_lokey': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfin_lovel': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfout_hiccN': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfout_hikey': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfout_hivel': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfout_loccN': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfout_lokey': ('SFZ v1', 'Performance Parameters/Amplifier'),
+    'xfout_lovel': ('SFZ v1', 'Performance Parameters/Amplifier'),
+}
+TEMPLATES = {
+    k: re.compile(
+        ''.join(r'\d+' if c in 'NX' else '.*' if c == '*' else re.escape(c) for c in k)
+    )
+    for k in STANDARD_OPCODES
+    if any(c in k for c in 'NX*')
+}

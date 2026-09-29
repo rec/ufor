@@ -21,6 +21,7 @@ from ufor.samples.instrument import (
     effective_settings,
 )
 from ufor.samples.metadata import AudioMetadata
+from ufor.sfz import registry
 from ufor.time import Rate, Timebase
 
 
@@ -287,6 +288,41 @@ def test_sfz_reports_unsupported_header_and_its_opcodes(
     assert reason in source.unimplemented[0].reason
     assert source.unimplemented[1].location.opcode == 'unsupported'
     assert source.unimplemented[1].value == '1'
+
+
+@pytest.mark.parametrize(
+    ('opcode', 'classification', 'reason'),
+    [
+        ('cutoff', registry.Support.new_model, 'filter model'),
+        ('locc7', registry.Support.controller_binding, 'controller binding'),
+        ('sync_beats', registry.Support.new_model, 'transport and tempo model'),
+        ('md5', registry.Support.asset_metadata, 'asset metadata'),
+        ('vendor_setting', registry.Support.vendor_extension, 'Vendor'),
+    ],
+)
+def test_sfz_registry_drives_unsupported_diagnostics(
+    opcode: str, classification: registry.Support, reason: str
+) -> None:
+    source = sfz.parse(f'<region> sample=a.wav {opcode}=1')
+
+    assert registry.opcode_support(opcode)[0] == classification
+    assert len(source.unimplemented) == 1
+    feature = source.unimplemented[0]
+    assert feature.location.opcode == opcode
+    assert feature.value == '1'
+    assert reason in feature.reason
+
+
+def test_sfz_registry_covers_the_pinned_standard_and_generates_its_table() -> None:
+    assert len(registry.STANDARD_OPCODES) == 453
+    assert all(
+        registry.opcode_support(n)[1] is not None for n in registry.STANDARD_OPCODES
+    )
+    assert registry.opcode_support('amp_velcurve_64')[0] == registry.Support.supported
+    assert registry.opcode_support('ampeg_attack_oncc7')[0] == (
+        registry.Support.controller_binding
+    )
+    assert Path('doc/sfz-support.md').read_text() == registry.support_table()
 
 
 def test_sfz_random_range_round_trips_without_selection() -> None:

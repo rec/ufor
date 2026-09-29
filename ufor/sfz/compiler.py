@@ -28,14 +28,13 @@ from .model import (
     _channel_routes,
 )
 from .parser import (
-    AMP_VELOCITY_CURVE,
     NOTE,
     NOTES,
-    OPCODE_ALIASES,
     _add_unimplemented,
     _sfz_issue_position,
     sample_paths,
 )
+from .registry import AMP_VELOCITY_CURVE, OPCODE_ALIASES
 
 
 def compile_instrument(
