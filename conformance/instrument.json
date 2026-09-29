@@ -720,7 +720,7 @@
           "highest_key": 69,
           "reference_pitch_hz": 440.0,
           "event_key": null,
-          "minimum_velocity": 0.0,
+          "minimum_velocity": 0.007874015748031496,
           "maximum_velocity": 1.0,
           "pitch_tracking": true
         },

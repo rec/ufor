@@ -282,7 +282,7 @@ def _slot(
         reference_pitch_hz=(
             440.0 * 2 ** ((pitch_keycenter - 69) / 12) if tracking else None
         ),
-        minimum_velocity=_velocity(values.get('lovel', '0'), 'lovel'),
+        minimum_velocity=_velocity(values.get('lovel', '1'), 'lovel'),
         maximum_velocity=_velocity(values.get('hivel', '127'), 'hivel'),
         pitch_tracking=bool(tracking),
     )
