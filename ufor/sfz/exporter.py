@@ -583,21 +583,36 @@ def _processing_opcodes(
             'An untracked SFZ region cannot retain a reference pitch as metadata',
         )
     result: list[Opcode] = []
-    if volume:
+    if not -144 <= volume <= 6:
+        _issue(
+            issues,
+            f'{path}.processing.volume_db',
+            volume,
+            'Combined volume exceeds the SFZ range [-144, 6] dB',
+        )
+    elif volume:
         result.append(Opcode(name='volume', value=_number_text(volume)))
     if instrument.invert_polarity != local.invert_polarity:
         result.append(Opcode(name='phase', value='invert'))
     if tuning:
-        transpose = round(tuning / 100)
-        if not -127 <= transpose <= 127:
+        nearest_cent = round(tuning)
+        if tuning != nearest_cent:
             _issue(
                 issues,
                 f'{path}.processing.tuning_cents',
                 tuning,
-                'Combined tuning exceeds SFZ transpose range',
+                'SFZ tuning has integral-cent resolution',
+            )
+        elif not -12800 <= nearest_cent <= 12800:
+            _issue(
+                issues,
+                f'{path}.processing.tuning_cents',
+                tuning,
+                'Combined tuning exceeds SFZ transpose and tune ranges',
             )
         else:
-            residual = tuning - 100 * transpose
+            transpose = max(-127, min(127, round(nearest_cent / 100)))
+            residual = nearest_cent - 100 * transpose
             if transpose:
                 result.append(Opcode(name='transpose', value=str(transpose)))
             if residual:
