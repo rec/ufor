@@ -227,6 +227,9 @@ def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> N
             initial=case.definition.initial,
             segments=case.definition.segments,
             release=case.definition.release,
+            polarity=case.definition.polarity,
+            hold=case.definition.hold,
+            retrigger=case.definition.retrigger,
         ),
     )
     assert parse_score(score_toml(document)) == document

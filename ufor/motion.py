@@ -1,12 +1,13 @@
 """Portable definitions for reusable control motions."""
 
 from fractions import Fraction
-from typing import Annotated, Literal
+from typing import Annotated, Literal, Self
 
-from pydantic import Field, field_validator
+from pydantic import Field, field_validator, model_validator
 
 from . import control
 from .base import FiniteScalar, Model
+from .envelope import Retrigger
 from .lfo import Reset
 from .oscillator import Waveform
 from .score import Score
@@ -36,6 +37,24 @@ class Contour(Model):
     initial: FiniteScalar = 0.0
     segments: list[Segment] = Field(min_length=1)
     release: list[Segment] = Field(default_factory=list)
+    polarity: control.Polarity = control.Polarity.unipolar
+    hold: bool = True
+    retrigger: Retrigger = Retrigger.current
+
+    @model_validator(mode='after')
+    def levels_match_polarity(self) -> Self:
+        levels = [self.initial, *(s.to for s in [*self.segments, *self.release])]
+        if any(not -1 <= value <= 1 for value in levels):
+            raise ValueError('contour levels must be in [-1, 1]')
+        if self.polarity == control.Polarity.unipolar and min(levels) < 0:
+            raise ValueError('unipolar contour levels must be in [0, 1]')
+        return self
+
+
+class MotionUse(Model):
+    scope: control.Scope = control.Scope.voice
+    clock: control.Clock = control.Clock.seconds
+    body: Annotated[Cycle | Contour, Field(discriminator='kind')]
 
 
 class MotionScore(Score):

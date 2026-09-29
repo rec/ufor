@@ -86,8 +86,7 @@
         "hold": true,
         "retrigger": "current"
       },
-      "envelopes": {},
-      "lfos": {},
+      "motions": {},
       "modulation": {
         "parameters": [],
         "sources": [],
@@ -157,8 +156,7 @@
           "hold": true,
           "retrigger": "current"
         },
-        "envelopes": {},
-        "lfos": {},
+        "motions": {},
         "modulation": {
           "parameters": [
             {

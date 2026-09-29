@@ -129,8 +129,7 @@ class SampleSlot(SoundSettings):
             for name in (
                 'processing',
                 'envelope',
-                'envelopes',
-                'lfos',
+                'motions',
                 'modulation',
                 'bindings',
                 'selection',
@@ -159,9 +158,9 @@ class SampleSlot(SoundSettings):
             ),
             'crossfade',
         )
-        for name, lfo in self.lfos.items():
-            if lfo.scope != control.Scope.voice:
-                raise ValueError(f'Slot LFO {name} must have voice scope')
+        for name, motion in self.motions.items():
+            if motion.scope != control.Scope.voice:
+                raise ValueError(f'Slot motion {name} must have voice scope')
         for fade in self.crossfades:
             bounds = None
             if fade.input == enums.CrossfadeInput.key:
@@ -195,7 +194,7 @@ class SampleSlot(SoundSettings):
 
 def effective_settings(slot: SampleSlot, group: SlotGroup | None) -> SoundSettings:
     """Resolve whole sound-setting categories from slot, group, then defaults."""
-    fields = ('processing', 'envelope', 'envelopes', 'lfos', 'modulation', 'bindings')
+    fields = ('processing', 'envelope', 'motions', 'modulation', 'bindings')
     return SoundSettings.model_validate(
         {
             name: getattr(slot, name)
@@ -276,10 +275,8 @@ class SampleInstrument(Model):
                     declared = self.settings.require_control(fade.control)
                     declared.validate_value(fade.start)
                     declared.validate_value(fade.end)
-            if any(
-                g.scope != control.Scope.voice for g in effective.envelopes.values()
-            ):
-                raise ValueError('Slot envelopes must have voice scope')
+            if any(g.scope != control.Scope.voice for g in effective.motions.values()):
+                raise ValueError('Slot motions must have voice scope')
             if any(
                 p.scope != control.Scope.voice for p in effective.modulation.parameters
             ):
