@@ -6,8 +6,13 @@ from pydantic import ValidationError
 
 import ufor.synth_trace
 from ufor.codec import parse_score, score_schema, score_toml
-from ufor.events import ControlChange, Release, Trigger
-from ufor.instrument_trace import LifecycleSnapshot, RetirementCause, VoiceRetirement
+from ufor.events import ControlChange, MotionChange, Release, Trigger
+from ufor.instrument_trace import (
+    LifecycleSnapshot,
+    MotionObservation,
+    RetirementCause,
+    VoiceRetirement,
+)
 from ufor.synth import SynthInstrumentScore
 
 
@@ -24,6 +29,29 @@ def test_synth_instrument_conformance_round_trips_through_the_common_codec() -> 
         SynthInstrumentScore.model_validate_json(document.model_dump_json()) == document
     )
     assert 'synth_instrument' in score_schema()['discriminator']['mapping']
+
+
+def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
+    document = SynthInstrumentScore.model_validate(fixture())
+    action = MotionChange(
+        tick=1,
+        ordinal=0,
+        name='swell',
+        part='main',
+        trigger_id='note-a',
+        action='pause',
+    )
+    result = ufor.synth_trace.prepare(document.body, [action], seed=0)
+    assert result.actions == [
+        MotionObservation(
+            tick=1,
+            ordinal=0,
+            name='swell',
+            part='main',
+            trigger_id='note-a',
+            action='pause',
+        )
+    ]
 
 
 def test_synth_instrument_validates_controls_and_voice_routes() -> None:

@@ -165,8 +165,26 @@ class LFOChange(Event):
         return self
 
 
+class MotionChange(Event):
+    """Control named Motions on the voices started by one trigger."""
+
+    kind: Literal['motion_change'] = 'motion_change'
+    name: Identifier
+    part: Identifier
+    trigger_id: Identifier
+    action: Literal['pause', 'resume', 'reverse', 'seek']
+    position: float | None = Field(default=None, ge=0, le=1)
+
+    @model_validator(mode='after')
+    def seek_payload(self) -> Self:
+        if (self.action == 'seek') != (self.position is not None):
+            raise ValueError('only Motion seek changes require a position')
+        return self
+
+
 PerformanceEvent = Annotated[
-    Trigger | Release | ControlChange | LFOChange, Field(discriminator='kind')
+    Trigger | Release | ControlChange | LFOChange | MotionChange,
+    Field(discriminator='kind'),
 ]
 StoredEvent = Annotated[
     MidiEvent
@@ -176,7 +194,8 @@ StoredEvent = Annotated[
     | Trigger
     | Release
     | ControlChange
-    | LFOChange,
+    | LFOChange
+    | MotionChange,
     Field(discriminator='kind'),
 ]
 

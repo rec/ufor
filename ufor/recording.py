@@ -149,6 +149,7 @@ class EventStream(Model):
             'release',
             'control_change',
             'lfo_change',
+            'motion_change',
         ]
         | None
     ) = None

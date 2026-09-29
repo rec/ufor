@@ -5,7 +5,14 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from ..base import Identifier, Model, unique
-from ..events import ControlChange, LFOChange, PerformanceEvent, Release, Trigger
+from ..events import (
+    ControlChange,
+    LFOChange,
+    MotionChange,
+    PerformanceEvent,
+    Release,
+    Trigger,
+)
 from ..instrument_trace import (
     ActiveTrigger,
     ActiveVoice,
@@ -13,6 +20,7 @@ from ..instrument_trace import (
     Diagnostic,
     LFOObservation,
     LifecycleSnapshot,
+    MotionObservation,
     RetirementCause,
     TriggerContext,
     VoiceRetirement,
@@ -49,6 +57,7 @@ Action = Annotated[
     | TriggerContext
     | ControlObservation
     | LFOObservation
+    | MotionObservation
     | Diagnostic,
     Field(discriminator='kind'),
 ]
@@ -314,6 +323,18 @@ def prepare(
                     name=event.name,
                     action=event.action,
                     rate=event.rate,
+                    position=event.position,
+                )
+            )
+        elif isinstance(event, MotionChange):
+            actions.append(
+                MotionObservation(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    name=event.name,
+                    part=event.part,
+                    trigger_id=event.trigger_id,
+                    action=event.action,
                     position=event.position,
                 )
             )
