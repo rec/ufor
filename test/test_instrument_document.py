@@ -149,6 +149,44 @@ def test_sfz_partial_pitch_tracking_uses_key_modulation() -> None:
     )
 
 
+def test_sfz_velocity_changes_envelope_attack_duration() -> None:
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav ampeg_attack=0.5 '
+        'ampeg_vel2attack=-0.4 amp_veltrack=0'
+    )
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=48_000,
+                sample_rate=48_000,
+                encoding='WAV/PCM_16',
+                byte_length=96_044,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    slot = result.instrument.body.slots[0]
+    assert slot.envelope.segments[1].duration == Fraction(1, 2)
+    at_zero = modulation.evaluate(
+        slot.modulation, {'velocity': modulation.SourceValue(value=0)}
+    )
+    at_max = modulation.evaluate(
+        slot.modulation, {'velocity': modulation.SourceValue(value=1)}
+    )
+    assert at_zero[0].value == pytest.approx(0.5)
+    assert at_max[0].value == pytest.approx(0.1)
+
+
 def test_sfz_define_expands_opcode_values_and_preserves_locations() -> None:
     source = sfz.parse(
         '#define $SAMPLE audio/glass.wav\n'
