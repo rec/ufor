@@ -68,12 +68,6 @@ configuration writer are uFor's significant I/O paths.
     diagnostic. An iterative traversal or an explicit depth limit would
     preserve graceful handling of authored data.
 
-16. **Low, risk: walk-time filesystem errors can still escape the diagnostic
-    boundary.** `root.walk(on_error=...)` reports traversal errors, but
-    `file.is_symlink()` in `score_files` is outside the per-file `try` block.
-    Permission changes or disappearing entries can raise `OSError` and abort
-    the whole read. Capture and report those as file diagnostics.
-
 ## API and project structure
 
 17. **Medium, confirmed: playback plans materialize all repetitions.**
