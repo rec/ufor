@@ -185,7 +185,19 @@ def score_files(
     ):
         for name in [*folders, *names]:
             file = directory / name
-            if file.is_symlink():
+            try:
+                symlink = file.is_symlink()
+            except OSError as error:
+                diagnostics.append(
+                    Diagnostic(
+                        library=library,
+                        address='/' + file.relative_to(root).as_posix(),
+                        code='io',
+                        message=str(error),
+                    )
+                )
+                continue
+            if symlink:
                 diagnostics.append(
                     Diagnostic(
                         library=library,

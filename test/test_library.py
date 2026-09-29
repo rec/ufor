@@ -376,6 +376,25 @@ def test_symlinks_and_unreadable_roots_do_not_stop_good_roots(tmp_path: Path) ->
     assert any(d.code == 'io' for d in result.diagnostics)
 
 
+def test_unreadable_directory_entry_does_not_stop_other_scores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = setup_library(tmp_path)
+    save(tmp_path / 'scores/good.toml', oscillator('good'))
+    save(tmp_path / 'scores/bad.toml', oscillator('bad'))
+    original = Path.is_symlink
+
+    def is_symlink(path: Path) -> bool:
+        if path.name == 'bad.toml':
+            raise PermissionError('entry denied')
+        return original(path)
+
+    monkeypatch.setattr(Path, 'is_symlink', is_symlink)
+    result = library_files.read_library(config)
+    assert [e.name for e in result.find()] == ['good']
+    assert any(d.address == '/bad.toml' and d.code == 'io' for d in result.diagnostics)
+
+
 def test_relative_references_cannot_escape_the_library(tmp_path: Path) -> None:
     config = setup_library(tmp_path)
     save(
