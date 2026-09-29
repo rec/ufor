@@ -5645,7 +5645,11 @@
         "action": {
           "enum": [
             "reset",
-            "rate"
+            "rate",
+            "pause",
+            "resume",
+            "reverse",
+            "seek"
           ],
           "title": "Action",
           "type": "string"
@@ -5662,6 +5666,20 @@
           ],
           "default": null,
           "title": "Rate"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
         }
       },
       "required": [

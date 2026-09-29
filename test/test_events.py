@@ -67,3 +67,14 @@ def test_lfo_change_sequence_declares_and_round_trips_its_output() -> None:
     )
     assert SequenceScore.model_validate_json(score.model_dump_json()) == score
     assert parse_score(score_toml(score)) == score
+
+
+def test_lfo_position_changes_validate_their_payloads() -> None:
+    change = LFOChange(
+        tick=12000, ordinal=0, name='vibrato', action='seek', position=0.75
+    )
+    assert LFOChange.model_validate_json(change.model_dump_json()) == change
+    with pytest.raises(ValueError, match='require a position'):
+        LFOChange(tick=0, ordinal=0, name='vibrato', action='seek')
+    with pytest.raises(ValueError, match='require a position'):
+        LFOChange(tick=0, ordinal=0, name='vibrato', action='pause', position=0.5)

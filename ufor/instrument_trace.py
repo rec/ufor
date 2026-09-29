@@ -69,13 +69,16 @@ class ControlObservation(TraceAction):
 class LFOObservation(TraceAction):
     kind: Literal['lfo'] = 'lfo'
     name: Identifier
-    action: Literal['reset', 'rate']
+    action: Literal['reset', 'rate', 'pause', 'resume', 'reverse', 'seek']
     rate: float | None = Field(default=None, ge=0)
+    position: float | None = Field(default=None, ge=0, le=1)
 
     @model_validator(mode='after')
     def rate_payload(self) -> Self:
         if (self.action == 'rate') != (self.rate is not None):
             raise ValueError('only LFO rate changes require a rate')
+        if (self.action == 'seek') != (self.position is not None):
+            raise ValueError('only LFO seek changes require a position')
         return self
 
 
