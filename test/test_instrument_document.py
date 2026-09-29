@@ -110,6 +110,26 @@ def test_sfz_define_rejects_undefined_and_recursive_variables(
         sfz.parse(f'{definition}<region> sample=a.wav key=$KEY')
 
 
+@pytest.mark.parametrize(
+    ('header', 'reason'),
+    [
+        ('curve', 'curve-table support'),
+        ('effect', 'effect routing support'),
+        ('sample', 'sample-definition support'),
+    ],
+)
+def test_sfz_reports_unsupported_header_and_its_opcodes(
+    header: str, reason: str
+) -> None:
+    source = sfz.parse(f'<{header}> unsupported=1\n<region> sample=a.wav')
+
+    assert len(source.unimplemented) == 2
+    assert source.unimplemented[0].location.header == header
+    assert reason in source.unimplemented[0].reason
+    assert source.unimplemented[1].location.opcode == 'unsupported'
+    assert source.unimplemented[1].value == '1'
+
+
 def test_sfz_random_range_round_trips_without_selection() -> None:
     source = sfz.parse('<region> sample=audio/glass.wav key=60 lorand=0.25 hirand=0.5')
     result = sfz.compile_instrument(

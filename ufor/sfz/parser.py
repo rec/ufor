@@ -199,7 +199,9 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
                             column=column,
                         ),
                         value=None,
-                        reason='SFZ header is not implemented',
+                        reason=UNSUPPORTED_HEADERS.get(
+                            current, 'SFZ header is not implemented'
+                        ),
                     )
                 )
                 continue
@@ -228,6 +230,11 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
             column=column,
         )
         if current not in SUPPORTED_HEADERS:
+            _add_unimplemented(
+                unimplemented,
+                item,
+                f'SFZ {current} opcode is not implemented',
+            )
             continue
         if not value and not (current == 'control' and name == 'default_path'):
             raise ValueError(f'SFZ opcode has no value: {opcode}')
@@ -336,6 +343,11 @@ def _expand_variables(value: str, variables: dict[str, str], line: int) -> str:
 
 
 SUPPORTED_HEADERS = {'control', 'global', 'master', 'group', 'region'}
+UNSUPPORTED_HEADERS = {
+    'curve': 'SFZ curve header requires curve-table support',
+    'effect': 'SFZ effect header requires effect routing support',
+    'sample': 'SFZ sample header requires sample-definition support',
+}
 SUPPORTED_OPCODES = {
     'ampeg_attack',
     'ampeg_decay',
