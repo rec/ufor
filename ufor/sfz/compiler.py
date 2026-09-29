@@ -260,19 +260,32 @@ def _slot(
     low_key = 0
     high_key = 127
     pitch_keycenter = 60
-    for item in region.opcodes:
+    last_key = -1
+    last_pitch_keycenter = -1
+    for position, item in enumerate(region.opcodes):
         opcode = OPCODE_ALIASES.get(item.opcode, item.opcode)
         value = item.value
         values[opcode] = value
         declarations[opcode] = item
         if opcode == 'key':
+            last_key = position
             low_key = high_key = pitch_keycenter = _key(value, opcode)
         elif opcode == 'lokey':
             low_key = _key(value, opcode)
         elif opcode == 'hikey':
             high_key = _key(value, opcode)
         elif opcode == 'pitch_keycenter':
+            last_pitch_keycenter = position
             pitch_keycenter = _key(value, opcode)
+
+    if last_key > last_pitch_keycenter >= 0 and _key(values['key'], 'key') != _key(
+        values['pitch_keycenter'], 'pitch_keycenter'
+    ):
+        _add_unimplemented(
+            unimplemented,
+            declarations['key'],
+            'SFZ players disagree when key follows a conflicting pitch_keycenter',
+        )
 
     if (sample := values.get('sample')) is None:
         raise ValueError(f'Region {index}: sample is required')
