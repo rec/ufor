@@ -383,6 +383,23 @@ def test_staged_reverse_markers_and_seek_do_not_undo_transitions() -> None:
     ]
 
 
+def test_unconnected_stage_completion_emits_once() -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='rise',
+            stages=[
+                Stage(
+                    name='rise',
+                    motion=Contour(segments=[Segment(duration=Fraction(1, 4), to=1)]),
+                )
+            ],
+        )
+    )
+    first = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(1, 4))
+    assert [e.port for e in first.events] == ['stage.done']
+    assert advance_motion(motion, first.state, Fraction(1)).events == []
+
+
 def test_stages_attack_sways_releases_and_emits_completion() -> None:
     motion = staged_motion()
     assert MotionUse.model_validate_json(motion.model_dump_json()) == motion

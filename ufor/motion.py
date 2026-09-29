@@ -677,7 +677,9 @@ def _next_stage_event(
             ):
                 time = state.at + abs(target - start) / position.rate
                 candidates.append((time, index, marker.name))
-        if forward and (start < 1 or (start == 1 and state.cursor_order >= 0)):
+        if forward and (
+            start < 1 or (start == 1 and 0 <= state.cursor_order < len(stage.markers))
+        ):
             candidates.append(
                 (state.at + (1 - start) / position.rate, len(stage.markers), 'done')
             )
