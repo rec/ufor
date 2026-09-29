@@ -32,8 +32,8 @@ arguments in ordinary metadata. A redacted URL is for display, not lookup.
 
 | Source | Automatic behavior | Explicit storage |
 | --- | --- | --- |
-| Relative file | Read and verify in place; no copy | Import an independent byte snapshot |
-| Volume file | Resolve approved volume and verify in place; no copy | Import an independent byte snapshot |
+| Relative file | Read and verify in place when the host trusts it to remain immutable; otherwise use a snapshot | Import an independent byte snapshot |
+| Volume file | Resolve approved volume; use a direct read only for trusted immutable files | Import an independent byte snapshot |
 | Download URL | Acquire and verify finite bytes; store if response policy permits | Retain or pin the resulting entry |
 | Git file | Acquire commit/path-selected blob and verify content | Retain or pin the resulting entry |
 | Streaming URL | Open a new live session; no automatic recording | Capture a bounded realization |
@@ -41,10 +41,14 @@ arguments in ordinary metadata. A redacted URL is for display, not lookup.
 | Python callback | Open a new session; borrowed arrays | Capture through bounded client-owned buffers |
 | Python client buffer | Open a new session; reuse client storage | Capture before reusing filled storage |
 
-Direct reads do not create payload entries, and GC must never delete external
-local or volume files. An import copies bytes, not a mutable hard link or symlink.
-Verification and use must concern the same observed bytes; hosts cannot verify a
-path and then blindly reopen a potentially changed file.
+Reccy now provides bounded stream admission, confined relative file snapshots,
+and verified direct reads through one open handle. Its file helper rejects
+traversal, symlinks, and nonregular files. Hosts still choose trusted immutable
+direct reads versus snapshots and map approved volume IDs to roots. Direct
+reads create no payload entry, and GC must never delete external files. An
+import copies bytes, not a mutable hard link or symlink. A direct read is sound
+only while the host can trust that another process will not change the open
+file's contents after verification.
 
 The existing Python provider protocol remains audio-specific. Other finite asset
 types need no provider protocol change to be cached. Future typed generators can
@@ -211,8 +215,9 @@ incomplete material with its size and available recovery action.
 
 ## Remaining operations and acceptance
 
-1. Implement local/volume verified copy and policy-gated HTTP and Git
-   acquisition. Test missing HTTP expiry, variants, `no-store`, conditional
+1. Connect local/volume root authorization and policy-gated HTTP and Git
+   acquisition to the existing verified stream/file admission. Test missing
+   HTTP expiry, variants, `no-store`, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
    interrupted transfers with controlled local fixtures.
 2. Implement deterministic materialization, derivative identity, provider
