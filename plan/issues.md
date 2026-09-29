@@ -15,16 +15,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
 
-7. **Medium, confirmed: permissive byte validity is called voice validity.**
-   `DX7Voice.valid_data` (`ufor/dx7.py:51-62`) and
-   `TX81ZVoice.valid_data` (`ufor/tx81z.py:12-23`) verify length and
-   seven-bit bytes, while decoded operator fields have narrower domains.
-   A structurally valid payload can yield an out-of-range `algorithm` or a
-   later `ValidationError` from `.operator()` after the entry has been
-   presented as valid. Either check semantic fields during validation or
-   distinguish lossless/raw acceptance from decoded-voice validity in names,
-   diagnostics, and tests.
-
 9. **Medium, risk: exact unit conversion and recursive documents have no size
    bounds.** `ufor/expression.py:10-38` accepts unbounded numeric literals
    and exponentiation; very large powers can consume excessive CPU/memory

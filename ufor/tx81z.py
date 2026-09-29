@@ -4,13 +4,13 @@ from __future__ import annotations
 
 from functools import cached_property
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationError, field_validator
 
 from .base import Model
 
 
 class TX81ZVoice(Model):
-    """One validated 93-byte TX81Z VCED voice payload."""
+    """One structurally valid raw TX81Z VCED payload; parameters may not decode."""
 
     data: bytes = Field(strict=True)
 
@@ -20,6 +20,21 @@ class TX81ZVoice(Model):
         if len(value) != 93 or any(byte >= 128 for byte in value):
             raise ValueError('TX81Z VCED data must contain 93 seven-bit bytes')
         return value
+
+    @cached_property
+    def parameter_diagnostic(self) -> str | None:
+        """Why a supported parameter cannot be decoded from the raw bytes."""
+        if not 1 <= self.algorithm <= 8:
+            return f'TX81Z algorithm {self.algorithm} is outside 1 through 8'
+        if not 0 <= self.feedback <= 7:
+            return f'TX81Z feedback {self.feedback} is outside 0 through 7'
+        for number in range(1, 5):
+            try:
+                self.operator(number)
+            except ValidationError as error:
+                field = error.errors()[0]['loc'][0]
+                return f'TX81Z operator {number} has invalid {field}'
+        return None
 
     @cached_property
     def operators(self) -> list[TX81ZOperator]:
@@ -80,7 +95,7 @@ class TX81ZOperator(Model):
 
 
 class TX81ZAdditional(Model):
-    """One validated 23-byte TX81Z ACED payload, including waveform settings."""
+    """One structurally valid raw TX81Z ACED payload, including waveforms."""
 
     data: bytes = Field(strict=True)
 
@@ -90,6 +105,17 @@ class TX81ZAdditional(Model):
         if len(value) != 23 or any(byte >= 128 for byte in value):
             raise ValueError('TX81Z ACED data must contain 23 seven-bit bytes')
         return value
+
+    @cached_property
+    def parameter_diagnostic(self) -> str | None:
+        """Why a supported operator extension cannot be decoded."""
+        for number in range(1, 5):
+            try:
+                self.operator(number)
+            except ValidationError as error:
+                field = error.errors()[0]['loc'][0]
+                return f'TX81Z additional operator {number} has invalid {field}'
+        return None
 
     @cached_property
     def operators(self) -> list[TX81ZAdditionalOperator]:
@@ -129,12 +155,12 @@ class TX81ZEntry(Model):
 
     @cached_property
     def diagnostic(self) -> str | None:
-        """Why this entry is not a supported TX81Z voice message, if applicable."""
+        """Why the message framing or checksum is invalid; not parameter validity."""
         return _diagnostic(self.data)
 
     @cached_property
     def voice(self) -> TX81ZVoice | None:
-        """Decoded VCED payload, or None for ACED and unsupported entries."""
+        """Raw VCED payload, or None for ACED and unsupported entries."""
         return (
             TX81ZVoice(data=self.data[6:-2])
             if self.diagnostic is None and self.data[3] == 3
@@ -143,7 +169,7 @@ class TX81ZEntry(Model):
 
     @cached_property
     def additional(self) -> TX81ZAdditional | None:
-        """Decoded ACED payload, or None for VCED and unsupported entries."""
+        """Raw ACED payload, or None for VCED and unsupported entries."""
         return (
             TX81ZAdditional(data=self.data[16:-2])
             if self.diagnostic is None and self.data[3] == 0x7E

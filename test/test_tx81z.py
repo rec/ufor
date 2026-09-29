@@ -81,3 +81,26 @@ def test_tx81z_payloads_reject_other_shapes() -> None:
         TX81ZVoice(data=bytes(92))
     with pytest.raises(ValidationError, match='23 seven-bit'):
         TX81ZAdditional(data=bytes(22))
+
+
+def test_tx81z_reports_invalid_parameters_without_losing_raw_payloads() -> None:
+    payload = bytearray(93)
+    payload[52] = 127
+    entry = parse_tx81z(message(bytes([3, 0, 93]), bytes(payload)))[0]
+
+    assert entry.diagnostic is None
+    assert entry.voice.data == bytes(payload)
+    assert entry.voice.parameter_diagnostic == (
+        'TX81Z algorithm 128 is outside 1 through 8'
+    )
+
+    payload[52] = 0
+    payload[0] = 127
+    assert 'operator 4 has invalid attack_rate' in (
+        TX81ZVoice(data=bytes(payload)).parameter_diagnostic or ''
+    )
+    additional = bytearray(23)
+    additional[1] = 127
+    assert 'additional operator 4 has invalid fixed_frequency_range' in (
+        TX81ZAdditional(data=bytes(additional)).parameter_diagnostic or ''
+    )

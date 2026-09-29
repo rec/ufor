@@ -129,3 +129,21 @@ def test_dx7_preserves_malformed_messages(data: bytes, diagnostic: str) -> None:
 def test_dx7_voice_rejects_non_portable_storage() -> None:
     with pytest.raises(ValidationError, match='128 or 155'):
         DX7Voice(data=b'bad')
+
+
+def test_dx7_reports_invalid_decoded_parameters_without_losing_raw_voice() -> None:
+    payload = bytearray(155)
+    payload[134] = 127
+    entry = parse_dx7(message(0, bytes(payload)))[0]
+
+    assert entry.diagnostic is None
+    assert entry.voices[0].data == bytes(payload)
+    assert entry.voices[0].parameter_diagnostic == (
+        'DX7 algorithm 128 is outside 1 through 32'
+    )
+
+    payload[134] = 0
+    payload[16] = 127
+    assert 'operator 6 has invalid output_level' in (
+        DX7Voice(data=bytes(payload)).parameter_diagnostic or ''
+    )
