@@ -53,6 +53,19 @@ def test_sfz_conformance_requires_only_text_and_supplied_asset_facts() -> None:
     assert sfz.write(result.instrument).complete
 
 
+def test_sfz_reports_missing_sample_metadata() -> None:
+    source = sfz.parse('<region> sample=audio/missing.wav')
+    with pytest.raises(ValueError, match='audio/missing.wav'):
+        sfz.compile_instrument(
+            source,
+            name='missing',
+            title='Missing',
+            assets={},
+            output_timebase=Timebase(name='output', rate=Rate(numerator=48000)),
+            output_channels=['left'],
+        )
+
+
 def test_sfz_random_range_round_trips_without_selection() -> None:
     source = sfz.parse('<region> sample=audio/glass.wav key=60 lorand=0.25 hirand=0.5')
     result = sfz.compile_instrument(

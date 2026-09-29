@@ -41,12 +41,6 @@ configuration writer are uFor's significant I/O paths.
    distinguish lossless/raw acceptance from decoded-voice validity in names,
    diagnostics, and tests.
 
-8. **Medium, confirmed: SFZ compilation reports missing supplied metadata as
-   a bare `KeyError`.** `compile_instrument` indexes `assets[path]` in
-   `ufor/sfz.py:151-158`. `sample_paths()` tells callers what to supply,
-   but an omitted path fails without the SFZ region or a useful remedy.
-   Raise a contextual user-input error listing missing sample facts.
-
 9. **Medium, risk: exact unit conversion and recursive documents have no size
    bounds.** `ufor/expression.py:10-38` accepts unbounded numeric literals
    and exponentiation; very large powers can consume excessive CPU/memory
