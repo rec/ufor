@@ -134,7 +134,7 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
     unimplemented: list[UnimplementedFeature] = []
     text = BLOCK_COMMENT.sub(_blank_comment, text)
     text = LINE_COMMENT.sub('', text)
-    text = _remove_preprocessors(text, unimplemented)
+    text, definitions = _remove_preprocessors(text, unimplemented)
 
     matches = list(TOKEN.finditer(text))
     if not matches and text.strip():
@@ -148,6 +148,8 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
     group_opcodes: list[ParsedOpcode] = []
     region_opcodes: list[ParsedOpcode] = []
     regions: list[ParsedRegion] = []
+    variables: dict[str, str] = {}
+    next_definition = 0
 
     def finish_region() -> None:
         if current == 'region':
@@ -169,6 +171,13 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
     for i, match in enumerate(matches):
         line += text[previous : match.start()].count('\n')
         previous = match.start()
+        while (
+            next_definition < len(definitions)
+            and definitions[next_definition][0] < line
+        ):
+            _, name, value = definitions[next_definition]
+            variables[name] = value
+            next_definition += 1
         column = match.start() - text.rfind('\n', 0, match.start())
         if i == 0 and text[: match.start()].strip():
             raise ValueError('Unexpected text before first SFZ header')
@@ -209,7 +218,7 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
 
         if current is None:
             raise ValueError(f'SFZ opcode outside a header: {opcode}')
-        value = text[match.end() : end].strip()
+        value = _expand_variables(text[match.end() : end].strip(), variables, line)
         name = opcode.lower()
         item = ParsedOpcode(
             header=current,
@@ -269,20 +278,30 @@ def _blank_comment(match: re.Match[str]) -> str:
     return ''.join('\n' if c == '\n' else ' ' for c in match.group())
 
 
-def _remove_preprocessors(text: str, unimplemented: list[UnimplementedFeature]) -> str:
+def _remove_preprocessors(
+    text: str, unimplemented: list[UnimplementedFeature]
+) -> tuple[str, list[tuple[int, str, str]]]:
     result: list[str] = []
+    definitions: list[tuple[int, str, str]] = []
     for line, content in enumerate(text.splitlines(keepends=True), 1):
         stripped = content.lstrip()
         if not stripped.startswith('#'):
             result.append(content)
             continue
         body = stripped[1:].strip()
-        directive, separator, value = body.partition(' ')
+        parts = body.split(maxsplit=1)
+        directive = parts[0] if parts else ''
+        value = parts[1] if len(parts) == 2 else ''
         opcode = f'#{directive}' if directive else '#'
+        if directive == 'define':
+            match = DEFINE.fullmatch(value.strip())
+            if match is None:
+                raise ValueError(f'Malformed SFZ #define on line {line}')
+            definitions.append((line, match.group(1), match.group(2)))
+            result.append('\n' if content.endswith('\n') else '')
+            continue
         if directive == 'include':
             reason = 'Vendor-specific #include preprocessing is not implemented'
-        elif directive == 'define':
-            reason = 'SFZ 2 #define preprocessing is not implemented'
         else:
             reason = 'SFZ preprocessing directive is not implemented'
         unimplemented.append(
@@ -293,12 +312,27 @@ def _remove_preprocessors(text: str, unimplemented: list[UnimplementedFeature]) 
                     line=line,
                     column=len(content) - len(stripped) + 1,
                 ),
-                value=value.strip() if separator else None,
+                value=value or None,
                 reason=reason,
             )
         )
         result.append('\n' if content.endswith('\n') else '')
-    return ''.join(result)
+    return ''.join(result), definitions
+
+
+def _expand_variables(value: str, variables: dict[str, str], line: int) -> str:
+    def expand(text: str, pending: tuple[str, ...]) -> str:
+        def replace(match: re.Match[str]) -> str:
+            name = match.group()
+            if name not in variables:
+                raise ValueError(f'Undefined SFZ variable {name} on line {line}')
+            if name in pending:
+                raise ValueError(f'Recursive SFZ variable {name} on line {line}')
+            return expand(variables[name], (*pending, name))
+
+        return VARIABLE.sub(replace, text)
+
+    return expand(value, ())
 
 
 SUPPORTED_HEADERS = {'control', 'global', 'master', 'group', 'region'}
@@ -364,5 +398,7 @@ TOKEN = re.compile(r'<([A-Za-z_][A-Za-z0-9_]*)>|([A-Za-z_][A-Za-z0-9_]*)=')
 BLOCK_COMMENT = re.compile(r'/\*.*?\*/', re.DOTALL)
 LINE_COMMENT = re.compile(r'//.*$', re.MULTILINE)
 PREPROCESSOR = re.compile(r'^\s*#', re.MULTILINE)
+DEFINE = re.compile(r'(\$[A-Za-z_][A-Za-z0-9_]*)\s+(.+)')
+VARIABLE = re.compile(r'\$[A-Za-z_][A-Za-z0-9_]*')
 AMP_VELOCITY_CURVE = re.compile(r'amp_velcurve_(\d+)')
 RECS_METADATA = re.compile(r'//\s*recs:(instrument|slot)\s+(\{.*\})')
