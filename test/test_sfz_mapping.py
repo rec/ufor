@@ -103,6 +103,16 @@ def test_sfz_phase_rejects_unknown_value() -> None:
         _compile('<region> sample=sample.wav phase=reverse')
 
 
+def test_silent_region_reports_unsupported_choke_behavior() -> None:
+    result = _compile('<region> sample=sample.wav end=-1 group=1 off_by=1')
+
+    assert result.instrument is None
+    assert not result.complete
+    assert len(result.unimplemented) == 1
+    assert result.unimplemented[0].location.opcode == 'end'
+    assert 'choke other voices' in result.unimplemented[0].reason
+
+
 def _compile(
     text: str, output_channels: list[str] | None = None
 ) -> sfz.SfzCompileResult:
