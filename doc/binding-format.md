@@ -4,6 +4,9 @@ A binding score connects one portable definition to a named host adapter. It has
 no device address, credentials, executable path, or network operation. Hosts use
 the adapter name to locate installed code and verify declared capabilities before
 any output starts.
+Protocol-to-performance event rules belong to the separate
+[performance input binding](performance-binding.md) score, not this host-adapter
+binding.
 
 The first concrete binding is [the VL70m librarian example](../examples/bindings/vl70m.toml):
 `sysexy.vl70m` identifies the existing librarian adapter and its observed bulk

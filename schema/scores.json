@@ -6218,6 +6218,41 @@
       "title": "Marker",
       "type": "object"
     },
+    "MidiController": {
+      "additionalProperties": false,
+      "properties": {
+        "number": {
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Number",
+          "type": "integer"
+        },
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "minimum": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "number",
+        "control"
+      ],
+      "title": "MidiController",
+      "type": "object"
+    },
     "MidiEvent": {
       "additionalProperties": false,
       "properties": {
@@ -6251,6 +6286,58 @@
         "data"
       ],
       "title": "MidiEvent",
+      "type": "object"
+    },
+    "MidiPerformanceInput": {
+      "additionalProperties": false,
+      "properties": {
+        "channels": {
+          "items": {
+            "maximum": 16,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "part": {
+          "title": "Part",
+          "type": "string"
+        },
+        "repeated_key_release": {
+          "enum": [
+            "oldest",
+            "newest"
+          ],
+          "title": "Repeated Key Release",
+          "type": "string"
+        },
+        "tuning": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "controllers": {
+          "items": {
+            "$ref": "#/$defs/MidiController"
+          },
+          "title": "Controllers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "channels",
+        "part",
+        "repeated_key_release"
+      ],
+      "title": "MidiPerformanceInput",
       "type": "object"
     },
     "Mix": {
@@ -7658,6 +7745,7 @@
                   "instrument": "#/$defs/SampleInstrumentScore",
                   "motion": "#/$defs/MotionScore",
                   "oscillator": "#/$defs/OscillatorScore",
+                  "performance_binding": "#/$defs/PerformanceBindingScore",
                   "preset": "#/$defs/PresetScore",
                   "recording": "#/$defs/RecordingScore",
                   "scale": "#/$defs/ScaleScore",
@@ -7677,6 +7765,9 @@
                 },
                 {
                   "$ref": "#/$defs/BindingScore"
+                },
+                {
+                  "$ref": "#/$defs/PerformanceBindingScore"
                 },
                 {
                   "$ref": "#/$defs/BroadcastScore"
@@ -7792,6 +7883,77 @@
         }
       },
       "title": "PerformanceBinding",
+      "type": "object"
+    },
+    "PerformanceBindingScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 4,
+          "default": 4,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "performance_binding",
+          "default": "performance_binding",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/PerformanceInputBinding"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "body"
+      ],
+      "title": "PerformanceBindingScore",
+      "type": "object"
+    },
+    "PerformanceInputBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "instrument": {
+          "$ref": "#/$defs/ScoreReference"
+        },
+        "midi": {
+          "items": {
+            "$ref": "#/$defs/MidiPerformanceInput"
+          },
+          "minItems": 1,
+          "title": "Midi",
+          "type": "array"
+        }
+      },
+      "required": [
+        "instrument",
+        "midi"
+      ],
+      "title": "PerformanceInputBinding",
       "type": "object"
     },
     "PixelPingPong": {
@@ -12494,6 +12656,7 @@
       "instrument": "#/$defs/SampleInstrumentScore",
       "motion": "#/$defs/MotionScore",
       "oscillator": "#/$defs/OscillatorScore",
+      "performance_binding": "#/$defs/PerformanceBindingScore",
       "preset": "#/$defs/PresetScore",
       "recording": "#/$defs/RecordingScore",
       "scale": "#/$defs/ScaleScore",
@@ -12513,6 +12676,9 @@
     },
     {
       "$ref": "#/$defs/BindingScore"
+    },
+    {
+      "$ref": "#/$defs/PerformanceBindingScore"
     },
     {
       "$ref": "#/$defs/BroadcastScore"
