@@ -41,8 +41,9 @@ and reference-dependent checks are also normative. Implementations must apply
 them after structural validation; schema defaults do not resolve inherited
 settings or normalize selectors by themselves.
 
-Assets use one discriminated `location` object. The source determines which
-facts are legal:
+`Asset` is a source declaration, not an acquired payload or a promise that the
+bytes are currently available. Assets use one discriminated `location` object.
+The source determines which facts are legal:
 
 | Location | Required content identity | Audio extent | Access |
 | --- | --- | --- | --- |
@@ -63,6 +64,8 @@ Validation grants no authority to read a volume, open a network connection,
 contact Git, import Python, or decode media. Hosts resolve those declarations
 under explicit policy and compare observed facts with the score before use.
 Ufor performs no acquisition while parsing, validating, or generating schema.
+Finite source types describe materializable output, but a Python `buffer`
+provider has no pinned byte identity until a host materializes it.
 
 Score version 4 introduces structured locations. `codec.migrate_score_v3`
 accepts a decoded version 3 score, converts its relative `path`, `byte_length`,

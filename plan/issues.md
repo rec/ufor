@@ -94,16 +94,6 @@ configuration writer are uFor's significant I/O paths.
     long-running playback; keep the pure semantic operation independent of
     dispatch.
 
-19. **Medium, risk: public asset names blur acquisition and identity.**
-    `DownloadLocation` and `GitFileLocation` in `ufor/assets.py` are source
-    declarations with pinned byte identity, while `StreamLocation` and
-    `PythonProviderLocation` have no `content`. Yet all are called `Asset`,
-    and `finite_audio_required()` sounds like an enforcement helper although
-    it only returns a Boolean. This invites a consumer to assume an asset
-    is ready to play or cache. The location plan documents the distinction;
-    make the API docs and helper name equally explicit about declaration,
-    finite output, and host acquisition.
-
 20. **Low, risk: source-format work is concentrated in one large module.**
     `ufor/sfz.py` is about 1,800 lines and contains parsing, metadata
     decoding, native compilation, diagnostics, and export. Changes to one
