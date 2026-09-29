@@ -191,6 +191,52 @@ def test_random_selection_is_reproducible_and_part_local() -> None:
     assert restored == replay_state
 
 
+def test_note_on_sequence_advances_on_unmapped_keys() -> None:
+    raw = document(
+        slot={
+            'mapping': {'lowest_key': 60, 'highest_key': 60, 'pitch_tracking': False},
+            'sequence': {'length': 2, 'position': 1},
+        }
+    )
+    events = [
+        Trigger(tick=0, ordinal=0, part='piano', trigger_id='first', key=60),
+        Trigger(tick=1, ordinal=1, part='piano', trigger_id='outside', key=61),
+        Trigger(tick=2, ordinal=2, part='piano', trigger_id='third', key=60),
+        Trigger(tick=3, ordinal=3, part='organ', trigger_id='other', key=60),
+    ]
+
+    result = trace.prepare(SampleInstrument.model_validate(raw), events, seed=42)
+
+    starts = [a.trigger_id for a in result.actions if isinstance(a, trace.VoiceStart)]
+    assert starts == [
+        'first',
+        'third',
+        'other',
+    ]
+    assert result.snapshots[0].selection.note_on_counts == {'piano': 3, 'organ': 1}
+
+
+def test_sequence_position_rejects_invalid_cycles_and_release_triggers() -> None:
+    for sequence_position in (
+        {'length': 0, 'position': 1},
+        {'length': 2, 'position': 3},
+    ):
+        with pytest.raises(ValidationError):
+            SampleInstrument.model_validate(
+                document(slot={'sequence': sequence_position})
+            )
+    with pytest.raises(ValidationError, match='requires a start trigger'):
+        SampleInstrument.model_validate(
+            document(
+                slot={
+                    'sequence': {'length': 2, 'position': 1},
+                    'trigger': 'release',
+                    'playback': {'mode': 'one_shot'},
+                }
+            )
+        )
+
+
 @pytest.mark.parametrize('seed', range(32))
 def test_shuffle_selection_visits_every_candidate_before_refilling(seed: int) -> None:
     takes = selection.Selection(name='takes', mode='shuffle')

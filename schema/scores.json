@@ -9528,6 +9528,17 @@
           "default": null,
           "title": "Selection"
         },
+        "sequence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/SequencePosition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "random_range": {
           "anyOf": [
             {
@@ -10003,6 +10014,28 @@
         }
       },
       "title": "SequenceBinding",
+      "type": "object"
+    },
+    "SequencePosition": {
+      "additionalProperties": false,
+      "description": "A position in a cycle advanced by every note-on in the part.",
+      "properties": {
+        "length": {
+          "minimum": 1,
+          "title": "Length",
+          "type": "integer"
+        },
+        "position": {
+          "minimum": 1,
+          "title": "Position",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "length",
+        "position"
+      ],
+      "title": "SequencePosition",
       "type": "object"
     },
     "SequenceScore": {

@@ -22,6 +22,19 @@ class Selection(Model):
     mode: enums.SelectionMode
 
 
+class SequencePosition(Model):
+    """A position in a cycle advanced by every note-on in the part."""
+
+    length: int = Field(strict=True, ge=1)
+    position: int = Field(strict=True, ge=1)
+
+    @model_validator(mode='after')
+    def position_in_cycle(self) -> Self:
+        if self.position > self.length:
+            raise ValueError('sequence position must not exceed its length')
+        return self
+
+
 class RandomRange(Model):
     """A half-open interval selected by one seeded draw per input event."""
 
@@ -68,9 +81,12 @@ class SelectionState(Model):
 
     seed: int = Field(strict=True, ge=0, lt=2**64)
     sequences: list[SelectionSequence] = Field(default_factory=list)
+    note_on_counts: dict[Identifier, int] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def unique_sequences(self) -> Self:
+        if any(c < 0 for c in self.note_on_counts.values()):
+            raise ValueError('note-on counts must not be negative')
         unique(
             (
                 (s.part, s.selection, s.trigger, s.key, tuple(s.candidates))

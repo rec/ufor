@@ -218,6 +218,27 @@ def _region(
     if slot.title is not None and _safe_value(slot.title):
         opcodes.insert(0, Opcode(name='region_label', value=slot.title))
     opcodes.extend(_mapping(slot.mapping))
+    if slot.sequence is not None:
+        if slot.sequence.length > 100:
+            _issue(
+                issues,
+                f'{path}.sequence',
+                slot.sequence,
+                'SFZ sequence length must not exceed 100',
+            )
+        else:
+            opcodes.extend(
+                [
+                    Opcode(name='seq_length', value=str(slot.sequence.length)),
+                    Opcode(name='seq_position', value=str(slot.sequence.position)),
+                ]
+            )
+            _issue(
+                issues,
+                f'{path}.sequence',
+                slot.sequence,
+                'SFZ players do not share one sequence counter rule',
+            )
     opcodes.extend(_random_range_opcodes(slot.random_range))
     opcodes.extend(_trigger_opcodes(slot, path, issues))
     opcodes.extend(_choking(slot, path, groups, issues))
