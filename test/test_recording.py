@@ -19,6 +19,7 @@ from ufor.recording import (
     Gap,
     Recording,
     RecordingScore,
+    UnmappedAudioFragment,
     stream_outputs,
 )
 from ufor.streams import AudioType
@@ -141,6 +142,38 @@ def test_gap_cannot_cover_recorded_audio() -> None:
     data['gaps'] = [{'start': 0, 'end': 96000, 'reason': 'unknown'}]
     with pytest.raises(ValidationError, match='overlaps'):
         AudioStream.model_validate(data)
+
+
+def test_many_alternating_audio_fragments_and_gaps_cover_extent() -> None:
+    stream = AudioStream(
+        name='desk',
+        source_id='audio:desk',
+        stream=AudioType(timebase='audio', channels=['left']),
+        end=4000,
+        fragments=[
+            AudioFragment(asset='take', start=2 * i, count=1) for i in range(2000)
+        ],
+        gaps=[
+            Gap(start=2 * i + 1, end=2 * i + 2, reason='unknown') for i in range(2000)
+        ],
+    )
+    assert stream.end == 4000
+
+
+def test_gap_cannot_overlap_unmapped_audio() -> None:
+    with pytest.raises(ValidationError, match='overlaps captured audio'):
+        AudioStream(
+            name='desk',
+            source_id='audio:desk',
+            stream=AudioType(timebase='audio', channels=['left']),
+            end=10,
+            unmapped_fragments=[
+                UnmappedAudioFragment(
+                    asset='take', count=10, journal_range={'start': 0, 'end': 10}
+                )
+            ],
+            gaps=[Gap(start=2, end=4, reason='unknown')],
+        )
 
 
 def test_unrecorded_intervals_need_explicit_gaps() -> None:
