@@ -199,14 +199,12 @@ def _slot(
         )
         return None
 
-    tracking = _number(values.get('pitch_keytrack', '100'), 'pitch_keytrack')
-    if tracking not in (0, 100):
-        _add_unimplemented(
-            unimplemented,
-            declarations['pitch_keytrack'],
-            'Partial pitch_keytrack is not implemented',
-        )
-        tracking = 100
+    tracking = _integer(
+        values.get('pitch_keytrack', '100'),
+        'pitch_keytrack',
+        minimum=-1200,
+        maximum=1200,
+    )
     mapping = playback.Mapping(
         lowest_key=low_key,
         highest_key=high_key,
@@ -246,8 +244,12 @@ def _slot(
         )
     )
     kwargs['playback'] = playback.SlotPlayback.model_validate(result)
-    if result := _processing(values, declarations, metadata.channels, unimplemented):
-        kwargs['processing'] = processing.Processing.model_validate(result)
+    processing_values = _processing(
+        values, declarations, metadata.channels, unimplemented
+    )
+    slot_processing = processing.Processing.model_validate(processing_values)
+    if processing_values:
+        kwargs['processing'] = slot_processing
     kwargs['envelope'] = amplitude_envelope(values)
     sources: list[modulation.Source] = []
     parameters: list[modulation.Parameter] = []
@@ -269,23 +271,32 @@ def _slot(
         )
         routes.append(result)
         bindings.append(processing.EventBinding(name='velocity', kind='velocity'))
-    if result := _key_amplitude_modulation(values):
-        base_volume = _number(values.get('volume', '0'), 'volume')
-        amounts = [p.amount for p in result.points]
+    key_routes = [
+        r
+        for r in (
+            _key_amplitude_modulation(values),
+            _key_pitch_modulation(tracking, pitch_keycenter),
+        )
+        if r is not None
+    ]
+    if key_routes:
         sources.append(
             modulation.Source(name='key', scope='voice', minimum=0, maximum=127)
         )
-        parameters.append(
-            modulation.Parameter(
-                target=result.target,
-                unit=modulation.Unit.db,
-                scope=Scope.voice,
-                minimum=base_volume + min(0, *amounts),
-                maximum=base_volume + max(0, *amounts),
-                default=base_volume,
+        for route in key_routes:
+            base = getattr(slot_processing, route.target.parameter)
+            amounts = [p.amount for p in route.points]
+            parameters.append(
+                modulation.Parameter(
+                    target=route.target,
+                    unit=route.unit,
+                    scope=Scope.voice,
+                    minimum=base + min(0, *amounts),
+                    maximum=base + max(0, *amounts),
+                    default=base,
+                )
             )
-        )
-        routes.append(result)
+            routes.append(route)
         bindings.append(processing.EventBinding(name='key', kind='key'))
     if routes:
         kwargs['modulation'] = modulation.Modulation(
@@ -525,6 +536,22 @@ def _key_amplitude_modulation(values: dict[str, str]) -> modulation.Route | None
         unit=modulation.Unit.db,
         points=[
             modulation.Point(input=key, amount=(key - center) * tracking)
+            for key in (0, 127)
+        ],
+    )
+
+
+def _key_pitch_modulation(tracking: int, center: int) -> modulation.Route | None:
+    if tracking in (0, 100):
+        return None
+    return modulation.Route(
+        name='key-pitch',
+        source='key',
+        target=modulation.Target(name='processing', parameter='tuning_cents'),
+        operation=modulation.Operation.add,
+        unit=modulation.Unit.cents,
+        points=[
+            modulation.Point(input=key, amount=(key - center) * (tracking - 100))
             for key in (0, 127)
         ],
     )
