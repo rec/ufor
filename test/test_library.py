@@ -168,6 +168,40 @@ def test_create_and_read_preserve_configuration_and_use_relative_roots(
     assert not (config.parent / 'unused').exists()
 
 
+def test_library_reader_enforces_file_and_byte_budgets(tmp_path: Path) -> None:
+    config = setup_library(tmp_path)
+    save(tmp_path / 'scores/a.toml', oscillator('a'))
+    save(tmp_path / 'scores/b.toml', oscillator('b'))
+    config_size = config.stat().st_size
+    score_size = (tmp_path / 'scores/a.toml').stat().st_size
+
+    count_limited = library_files.read_library(config, max_files=1)
+    assert len(count_limited.entries) == 1
+    assert any(
+        d.code == 'limit' and 'max_files' in d.message
+        for d in count_limited.diagnostics
+    )
+
+    byte_limited = library_files.read_library(
+        config, max_file_bytes=max(config_size, score_size - 1)
+    )
+    assert any(
+        d.code == 'limit' and 'max_file_bytes' in d.message
+        for d in byte_limited.diagnostics
+    )
+
+    total_limited = library_files.read_library(
+        config, max_total_bytes=config_size + score_size - 1
+    )
+    assert any(
+        d.code == 'limit' and 'max_total_bytes' in d.message
+        for d in total_limited.diagnostics
+    )
+
+    with pytest.raises(ValueError, match='configuration exceeds'):
+        library_files.read_library(config, max_file_bytes=1)
+
+
 def test_failed_config_replacement_preserves_existing_file(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

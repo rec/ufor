@@ -18,14 +18,38 @@ from .score import Score
 from .score_types import ScoreValue
 from .selector import LibraryConfig, LibraryRegistration, address
 
+MAX_LIBRARY_FILES = 10000
+MAX_LIBRARY_FILE_BYTES = 16 * 1024 * 1024
+MAX_LIBRARY_TOTAL_BYTES = 256 * 1024 * 1024
+MAX_DISCOVERY_ENTRIES = 100000
 
-def read_library(config_path: Path | None = None, max_depth: int = 128) -> Library:
+
+def read_library(
+    config_path: Path | None = None,
+    max_depth: int = 128,
+    max_files: int = MAX_LIBRARY_FILES,
+    max_file_bytes: int = MAX_LIBRARY_FILE_BYTES,
+    max_total_bytes: int = MAX_LIBRARY_TOTAL_BYTES,
+) -> Library:
+    if any(
+        type(v) is not int or v < 1
+        for v in (max_files, max_file_bytes, max_total_bytes)
+    ):
+        raise ValueError('library file and byte limits must be positive integers')
     path = configuration_path(config_path)
     if config_path is None and not path.exists():
         return Library([], max_depth=max_depth)
-    config = LibraryConfig.model_validate(tomlkit.parse(path.read_text()))
+    with path.open('rb') as stream:
+        config_bytes = stream.read(max_file_bytes + 1)
+    if len(config_bytes) > max_file_bytes:
+        raise ValueError('library configuration exceeds max_file_bytes')
+    if len(config_bytes) > max_total_bytes:
+        raise ValueError('library configuration exceeds max_total_bytes')
+    config = LibraryConfig.model_validate(tomlkit.parse(config_bytes.decode('utf-8')))
     entries = []
     diagnostics = []
+    file_count = 0
+    total_bytes = len(config_bytes)
     for registration in config.libraries:
         root = expanded_path(registration.root)
         if not root.is_absolute():
@@ -64,13 +88,38 @@ def read_library(config_path: Path | None = None, max_depth: int = 128) -> Libra
                 )
             )
             continue
-        for file in score_files(root, path, registration.name, diagnostics):
+        for file in score_files(
+            root, path, registration.name, diagnostics, max_files - file_count
+        ):
+            file_count += 1
             location = '/' + file.relative_to(root).as_posix()
             entry = None
             try:
                 address(location)
                 entry = Entry(library=registration.name, address=location)
-                contents = file.read_bytes()
+                remaining = max_total_bytes - total_bytes
+                limit = min(max_file_bytes, remaining)
+                with file.open('rb') as stream:
+                    contents = stream.read(limit + 1)
+                if len(contents) > limit:
+                    budget = (
+                        'max_file_bytes'
+                        if max_file_bytes < remaining
+                        else 'max_total_bytes'
+                    )
+                    diagnostics.append(
+                        Diagnostic(
+                            library=registration.name,
+                            address=location,
+                            code='limit',
+                            message=f'score file exceeds {budget}',
+                        )
+                    )
+                    entries.append(entry.model_copy(update={'state': State.rejected}))
+                    if budget == 'max_total_bytes':
+                        return Library(entries, diagnostics, max_depth=max_depth)
+                    continue
+                total_bytes += len(contents)
                 entry = entry.model_copy(
                     update={'sha256': sha256(contents).hexdigest()}
                 )
@@ -171,9 +220,14 @@ def _write_config(path: Path, contents: str) -> None:
 
 
 def score_files(
-    root: Path, config: Path, library: str, diagnostics: list[Diagnostic]
+    root: Path,
+    config: Path,
+    library: str,
+    diagnostics: list[Diagnostic],
+    max_files: int,
 ) -> list[Path]:
     files = []
+    visited = 0
 
     def walk_error(error: OSError) -> None:
         diagnostics.append(
@@ -183,7 +237,20 @@ def score_files(
     for directory, folders, names in root.walk(
         on_error=walk_error, follow_symlinks=False
     ):
+        folders.sort()
+        names.sort()
         for name in [*folders, *names]:
+            visited += 1
+            if visited > MAX_DISCOVERY_ENTRIES:
+                diagnostics.append(
+                    Diagnostic(
+                        library=library,
+                        address='/',
+                        code='limit',
+                        message='library discovery exceeds 100000 entries',
+                    )
+                )
+                return sorted(files, key=lambda p: p.relative_to(root).as_posix())
             file = directory / name
             try:
                 symlink = file.is_symlink()
@@ -211,6 +278,16 @@ def score_files(
                 and file.suffix in ('.toml', '.py')
                 and file.absolute() != config
             ):
+                if len(files) >= max_files:
+                    diagnostics.append(
+                        Diagnostic(
+                            library=library,
+                            address='/',
+                            code='limit',
+                            message='library exceeds max_files',
+                        )
+                    )
+                    return sorted(files, key=lambda p: p.relative_to(root).as_posix())
                 files.append(file)
     return sorted(files, key=lambda p: p.relative_to(root).as_posix())
 
