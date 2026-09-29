@@ -446,7 +446,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `volume_smoothccN` | SFZ v2 | controller_binding |
 | Opcode | `volume_stepccN` | SFZ v2 | controller_binding |
 | Opcode | `waveguide` | SFZ v2 | new_model |
-| Opcode | `width` | SFZ v1 | new_model |
+| Opcode | `width` | SFZ v1 | supported |
 | Opcode | `width_curveccN` | SFZ v2 | controller_binding |
 | Opcode | `width_onccN` | SFZ v2 | controller_binding |
 | Opcode | `width_smoothccN` | SFZ v2 | controller_binding |

@@ -331,6 +331,29 @@ def _slot(
         'mapping': mapping,
         'channels': _channel_routes(metadata.channels, output_channels),
     }
+    if 'width' in values:
+        width = _number(values['width'], 'width')
+        if not -100 <= width <= 100:
+            raise ValueError('width must be between -100 and 100')
+        if metadata.channels == 2 and width == -100:
+            pan = _number(values.get('pan', '0'), 'pan')
+            if pan:
+                _add_unimplemented(
+                    unimplemented,
+                    declarations['width'],
+                    'Stereo channel swap with pan has no exact native mapping',
+                )
+            else:
+                kwargs['channels'] = [
+                    processing.ChannelRoute(input='left', output='right', gain=1),
+                    processing.ChannelRoute(input='right', output='left', gain=1),
+                ]
+        elif metadata.channels == 2 and width != 100:
+            _add_unimplemented(
+                unimplemented,
+                declarations['width'],
+                'Intermediate SFZ stereo width has no exact native gain law',
+            )
     if 'seq_length' in values or 'seq_position' in values:
         if sequence_counter == 'reject' or values.get('trigger') not in (
             None,

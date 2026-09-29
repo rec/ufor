@@ -6,6 +6,7 @@ from ufor import sfz
 from ufor.samples.enums import ChokeMode
 from ufor.samples.instrument import SampleInstrumentScore
 from ufor.samples.metadata import AudioMetadata
+from ufor.samples.processing import ChannelRoute
 from ufor.time import Rate, Timebase
 
 
@@ -86,6 +87,45 @@ def test_sfz_sample_end_fade_round_trips() -> None:
     restored = _compile(exported.contents)
     assert restored.instrument is not None
     assert restored.instrument.body.slots[0].playback.end_fade_seconds == 0.25
+
+
+def test_sfz_full_stereo_width_swap_round_trips() -> None:
+    result = _compile(
+        '<region> sample=sample.wav width=-100',
+        output_channels=['left', 'right'],
+        sample_channels=2,
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].channels == [
+        ChannelRoute(input='left', output='right', gain=1),
+        ChannelRoute(input='right', output='left', gain=1),
+    ]
+    exported = sfz.write(result.instrument)
+    assert exported.complete
+    assert 'width=-100' in exported.contents
+    restored = _compile(
+        exported.contents, output_channels=['left', 'right'], sample_channels=2
+    )
+    assert restored.instrument is not None
+    assert (
+        restored.instrument.body.slots[0].channels
+        == result.instrument.body.slots[0].channels
+    )
+
+
+@pytest.mark.parametrize('settings', ['width=50', 'width=-100 pan=25'])
+def test_sfz_width_without_exact_channel_mapping_is_diagnosed(settings: str) -> None:
+    result = _compile(
+        f'<region> sample=sample.wav {settings}',
+        output_channels=['left', 'right'],
+        sample_channels=2,
+    )
+
+    assert not result.complete
+    assert result.instrument is not None
+    assert result.unimplemented[0].location.opcode == 'width'
 
 
 @pytest.mark.parametrize(
@@ -281,6 +321,7 @@ def _compile(
     text: str,
     output_channels: list[str] | None = None,
     sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
+    sample_channels: int = 1,
 ) -> sfz.SfzCompileResult:
     return sfz.compile_instrument(
         sfz.parse(text),
@@ -288,7 +329,7 @@ def _compile(
         title='Mapping',
         assets={
             'sample.wav': AudioMetadata(
-                channels=1,
+                channels=sample_channels,
                 frames=48000,
                 sample_rate=48000,
                 encoding='WAV/PCM_16',

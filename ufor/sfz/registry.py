@@ -205,6 +205,7 @@ PARSABLE_OPCODES = {
     'trigger',
     'tune',
     'volume',
+    'width',
     'xf_keycurve',
     'xf_velcurve',
     'xfin_hikey',

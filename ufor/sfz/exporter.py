@@ -195,7 +195,12 @@ def _region(
         )
     except ValueError:
         expected_channels = []
-    if slot.channels != expected_channels:
+    swapped_channels = [
+        processing.ChannelRoute(input='left', output='right', gain=1),
+        processing.ChannelRoute(input='right', output='left', gain=1),
+    ]
+    swapped = len(asset.audio.channels) == 2 and slot.channels == swapped_channels
+    if slot.channels != expected_channels and not swapped:
         _issue(
             issues,
             f'{path}.channels',
@@ -216,6 +221,8 @@ def _region(
         return None
 
     opcodes = [Opcode(name='sample', value=sample)]
+    if swapped:
+        opcodes.append(Opcode(name='width', value='-100'))
     if slot.title is not None and _safe_value(slot.title):
         opcodes.insert(0, Opcode(name='region_label', value=slot.title))
     opcodes.extend(_mapping(slot.mapping))
