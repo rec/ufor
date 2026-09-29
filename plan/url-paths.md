@@ -72,6 +72,10 @@ declared SHA-256, not the URL. Offline use succeeds from a verified cache even i
 the URL is unavailable. A hash mismatch is an error, never an automatic metadata
 update.
 
+Reccy's immutable HTTPS adapter implements this known-hash path with bounded
+transfer and decoded-body sizes, host-authorized redirects, and transient
+handling for `no-store` responses. Hosts still supply credential and URL policy.
+
 ## Git files
 
 Git locations separate repository transport from the selected object:

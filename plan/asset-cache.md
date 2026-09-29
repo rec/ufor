@@ -71,6 +71,12 @@ HTTP expiration does not corrupt stored bytes or require their deletion. Retenti
 is a separate policy. A mutable URL lookup without a known hash is a host import
 operation; current finite uFor assets still require `content`.
 
+Reccy now resolves known-hash HTTPS assets from the scoped store or acquires a
+bounded, verified response under host URL policy. Its immutable asset adapter
+handles gzip content decoding, redirect reauthorization, and transient
+`no-store` responses. Mutable current-URL import, response freshness metadata,
+and conditional validation remain to be implemented.
+
 Follow [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html) for response reuse:
 use `Cache-Control` precedence, `Expires`, and corrected age including `Date`,
 `Age`, and request/response timing. Default to immediate staleness without an
@@ -220,9 +226,9 @@ incomplete material with its size and available recovery action.
 
 ## Remaining operations and acceptance
 
-1. Connect local/volume root authorization and policy-gated HTTP and remote Git
-   acquisition to the existing verified stream/file admission. Test missing
-   HTTP expiry, variants, `no-store`, conditional
+1. Connect local/volume root authorization, mutable current-URL HTTP caching,
+   and remote Git acquisition to the existing verified admission. Test missing
+   HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
    interrupted transfers with controlled local fixtures.
 2. Implement deterministic materialization, derivative identity, provider
