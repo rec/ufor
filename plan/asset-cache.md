@@ -197,6 +197,7 @@ the capture result into a sealed recording score before this export can use them
 The current store supports references, pins, leases, duration/forever
 rules, newest-N per source or across all matches, download-only response
 freshness (`while_fresh`), and ordinary/pressure collection for finite entries.
+Collection now removes expired asset-pin metadata along with eligible entries.
 `CaptureStore` now applies additive duration, newest, forever, and protection
 rules to completed captures and recovery evidence. Named capture references,
 capture pins, and active record leases are roots; ordinary and pressure
@@ -287,8 +288,8 @@ abandoned one or reclaim recovery material safely.
    changes in value keys, callback buffer reuse, client-buffer short reads,
    clean stop, abort, salvage, and partial-recovery diagnostics.
 3. Extend policy and collection to derivative dependencies, capacity pressure,
-   and crash recovery. Test expiring asset pins, writer interruption, and
-   admission failure when all space is protected. Capture and recovery record
+   and crash recovery. Test writer interruption and admission failure when all
+   space is protected. Capture and recovery record
    retention, shared salvage fragments, moved references, active reader leases,
    and root rechecks are implemented.
 4. Expose host operations to resolve, import, materialize, capture, open,
