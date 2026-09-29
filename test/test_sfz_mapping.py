@@ -57,6 +57,21 @@ def test_release_sequence_requires_a_distinct_counter_rule() -> None:
     assert all('note-on triggers' in i.reason for i in result.unimplemented)
 
 
+def test_release_random_range_requires_the_original_note_on_draw() -> None:
+    result = _compile(
+        '<region> sample=sample.wav trigger=release lorand=0.25 hirand=0.5'
+    )
+
+    assert not result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].random_range is None
+    assert [i.location.opcode for i in result.unimplemented] == [
+        'lorand',
+        'hirand',
+    ]
+    assert all('note-on draw' in i.reason for i in result.unimplemented)
+
+
 @pytest.mark.parametrize('transpose', ['1.5', '128', '-128'])
 def test_transpose_requires_an_in_range_integer(transpose: str) -> None:
     with pytest.raises(ValueError, match='transpose'):
