@@ -362,10 +362,19 @@ def _slot(
                 length=length, position=position
             )
     if 'lorand' in values or 'hirand' in values:
-        kwargs['random_range'] = selection.RandomRange(
-            minimum=_number(values.get('lorand', '0'), 'lorand'),
-            maximum=_number(values.get('hirand', '1'), 'hirand'),
-        )
+        if values.get('trigger') in ('release', 'release_key'):
+            for name in ('lorand', 'hirand'):
+                if name in declarations:
+                    _add_unimplemented(
+                        unimplemented,
+                        declarations[name],
+                        'Release random eligibility requires the note-on draw',
+                    )
+        else:
+            kwargs['random_range'] = selection.RandomRange(
+                minimum=_number(values.get('lorand', '0'), 'lorand'),
+                maximum=_number(values.get('hirand', '1'), 'hirand'),
+            )
     if name := values.get('region_label'):
         kwargs['title'] = name
     result = _playback(index, values, declarations, metadata, unimplemented)
