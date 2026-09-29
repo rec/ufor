@@ -7,22 +7,13 @@ use. Priorities indicate impact, not an implementation order. These are open
 questions and defects, not promises to add host facilities to the format library.
 
 The boundary matters: uFor does not acquire network assets, run audio devices, or
-manage playback services. There is no uFor service shutdown sequence, network
-retry loop, or lock that could deadlock. Network intermittency, stream stopping,
+manage playback services. There is no uFor service shutdown sequence or network
+retry loop. The library configuration writer uses one advisory file lock;
+Python-score execution does not hold it. Network intermittency, stream stopping,
 and cache recovery are host responsibilities. The local library loader and
 configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
-
-6. **Medium, confirmed: “frozen” scores have mutable nested collections.**
-   `ufor/base.py:10-13` freezes model attributes, but fields such as
-   `AudioDescription.channels` (`ufor/assets.py:169-178`),
-   `RecordingScore.assets`, and `EventSequence.events` are lists. Callers can
-   mutate them after validation and bypass uniqueness, reference, order, or
-   content checks. Some entry points revalidate via `model_dump()`, but pure
-   readers can observe invalid state. Document the mutation boundary and
-   choose a consistent validation or immutable-snapshot strategy where the
-   public API relies on frozen models.
 
 7. **Medium, confirmed: permissive byte validity is called voice validity.**
    `DX7Voice.valid_data` (`ufor/dx7.py:51-62`) and
