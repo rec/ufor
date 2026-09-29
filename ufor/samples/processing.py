@@ -1,5 +1,6 @@
 """Sample processing declarations bound to the shared control and route models."""
 
+from enum import StrEnum, auto
 from fractions import Fraction
 from math import cos, pi, sin
 from typing import Annotated, Literal, Self
@@ -126,10 +127,16 @@ class ControlBinding(Model):
     smoothing: control.Rational = Field(default=Fraction(1, 200), ge=0)
 
 
+class ReleaseTiming(StrEnum):
+    event = auto()
+    voice = auto()
+
+
 class GeneratorBinding(Model):
     name: Identifier
     kind: Literal['motion'] = 'motion'
     reference: Identifier
+    release_timing: ReleaseTiming = ReleaseTiming.event
 
 
 class MotionEventConnection(Model):
@@ -224,6 +231,17 @@ class SoundSettings(Model):
                         f'Unknown local motion source: {binding.reference}'
                     )
                 generator = self.motions[binding.reference]
+                if (
+                    binding.release_timing == ReleaseTiming.voice
+                    and generator.body is not None
+                    and (
+                        not isinstance(generator.body, Contour)
+                        or not generator.body.release
+                    )
+                ):
+                    raise ValueError(
+                        'Voice release timing requires a releasing contour'
+                    )
                 if generator.score is not None:
                     if source.scope != generator.scope:
                         raise ValueError('Motion source scope must match its use')
