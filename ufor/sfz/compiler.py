@@ -1,0 +1,594 @@
+"""Compile parsed SFZ regions into a native sample instrument."""
+
+from fractions import Fraction
+from pathlib import PurePosixPath
+
+from .. import envelope, modulation, segments
+from ..assets import AudioDescription, ContentIdentity, RelativeFileLocation
+from ..control import Scope
+from ..interface import AudioBinding, EventType, Input, Output, PerformanceBinding
+from ..samples import controls, crossfade, enums, playback, processing, selection
+from ..samples.instrument import (
+    AudioAsset,
+    SampleInstrument,
+    SampleInstrumentScore,
+    SampleSettings,
+    SampleSlot,
+)
+from ..samples.metadata import AudioMetadata
+from ..streams import AudioType
+from ..time import Rate, Timebase
+from .model import (
+    ParsedOpcode,
+    ParsedRegion,
+    SfzCompileResult,
+    SfzSource,
+    UnimplementedFeature,
+    _channel_routes,
+)
+from .parser import (
+    AMP_VELOCITY_CURVE,
+    NOTE,
+    NOTES,
+    OPCODE_ALIASES,
+    _add_unimplemented,
+    _sfz_issue_position,
+    sample_paths,
+)
+
+
+def compile_instrument(
+    source: SfzSource,
+    *,
+    name: str,
+    title: str,
+    assets: dict[str, AudioMetadata],
+    output_timebase: Timebase,
+    output_channels: list[str],
+) -> SfzCompileResult:
+    """Build a native document from parsed text and caller-supplied asset facts."""
+    paths = sample_paths(source)
+    if missing := [p for p in paths if p not in assets]:
+        raise ValueError(f'Missing audio metadata for SFZ samples: {missing}')
+    asset_ids = {p: f'asset-{i}' for i, p in enumerate(paths, 1)}
+    native_assets: list[AudioAsset] = []
+    clocks = {output_timebase.name: output_timebase}
+    for path in paths:
+        metadata = assets[path]
+        clock = Timebase(
+            name=f'native-{metadata.sample_rate}',
+            rate=Rate(numerator=metadata.sample_rate),
+        )
+        if clock.name in clocks and clocks[clock.name] != clock:
+            raise ValueError('Output timebase conflicts with a native asset clock')
+        clocks[clock.name] = clock
+        channels = (
+            ['mono']
+            if metadata.channels == 1
+            else ['left', 'right']
+            if metadata.channels == 2
+            else [f'channel-{i}' for i in range(1, metadata.channels + 1)]
+        )
+        native_assets.append(
+            AudioAsset(
+                name=asset_ids[path],
+                location=RelativeFileLocation(path=path),
+                encoding=metadata.encoding,
+                content=ContentIdentity(
+                    byte_length=metadata.byte_length, sha256=metadata.sha256
+                ),
+                audio=AudioDescription(
+                    timebase=clock.name, channels=channels, frames=metadata.frames
+                ),
+            )
+        )
+    unimplemented = list(source.unimplemented)
+    slots: list[SampleSlot] = []
+    slices: list[playback.Slice] = []
+    for index, region in enumerate(source.regions, 1):
+        if (
+            result := _slot(
+                index, assets, asset_ids, output_channels, region, unimplemented
+            )
+        ) is not None:
+            slot, sample_slice = result
+            if metadata := source.slot_metadata.get(index):
+                slot = SampleSlot.model_validate(slot.model_dump() | metadata)
+            slots.append(slot)
+            slices.append(sample_slice)
+    document = None
+    if slots:
+        document = SampleInstrumentScore.model_validate(
+            dict(
+                name=name,
+                title=title,
+                timebases=list(clocks.values()),
+                assets=native_assets,
+                inputs=[
+                    Input(
+                        name='performance',
+                        stream=EventType(
+                            timebase=output_timebase.name,
+                            kinds=['trigger', 'release', 'control_change'],
+                        ),
+                        binding=PerformanceBinding(),
+                    )
+                ],
+                outputs=[
+                    Output(
+                        name='audio',
+                        stream=AudioType(
+                            timebase=output_timebase.name, channels=output_channels
+                        ),
+                        binding=AudioBinding(),
+                    )
+                ],
+                body=SampleInstrument(
+                    settings=SampleSettings(
+                        controls={'sustain': controls.ControlDeclaration()},
+                        sustain=selection.Sustain(control='sustain'),
+                    ),
+                    slots=slots,
+                    slices=slices,
+                ),
+            )
+            | source.instrument_metadata
+        )
+    unimplemented.sort(key=_sfz_issue_position)
+    return SfzCompileResult(instrument=document, unimplemented=unimplemented)
+
+
+def amplitude_envelope(values: dict[str, str]) -> envelope.Envelope:
+    """Translate SFZ's DAHDSR vocabulary into the one shared segment model."""
+    durations = [
+        Fraction(values.get(f'ampeg_{n}', '0'))
+        for n in ('delay', 'attack', 'hold', 'decay')
+    ]
+    sustain = _number(values.get('ampeg_sustain', '100'), 'ampeg_sustain') / 100
+    return envelope.Envelope(
+        segments=[
+            segments.Segment(duration=d, to=t, curve=c)
+            for d, t, c in zip(
+                durations, [0, 1, 1, sustain], [0, 0, 0, -5], strict=True
+            )
+        ],
+        release=[
+            segments.Segment(
+                duration=Fraction(values.get('ampeg_release', '0.001')),
+                to=0,
+                curve=-5,
+            )
+        ],
+    )
+
+
+def _slot(
+    index: int,
+    asset_metadata: dict[str, AudioMetadata],
+    asset_ids: dict[str, str],
+    output_channels: list[str],
+    region: ParsedRegion,
+    unimplemented: list[UnimplementedFeature],
+) -> tuple[SampleSlot, playback.Slice] | None:
+    values: dict[str, str] = {}
+    declarations: dict[str, ParsedOpcode] = {}
+    low_key = 0
+    high_key = 127
+    pitch_keycenter = 60
+    for item in region.opcodes:
+        opcode = OPCODE_ALIASES.get(item.opcode, item.opcode)
+        value = item.value
+        values[opcode] = value
+        declarations[opcode] = item
+        if opcode == 'key':
+            low_key = high_key = pitch_keycenter = _key(value, opcode)
+        elif opcode == 'lokey':
+            low_key = _key(value, opcode)
+        elif opcode == 'hikey':
+            high_key = _key(value, opcode)
+        elif opcode == 'pitch_keycenter':
+            pitch_keycenter = _key(value, opcode)
+
+    if (sample := values.get('sample')) is None:
+        raise ValueError(f'Region {index}: sample is required')
+    if sample.startswith('*'):
+        _add_unimplemented(
+            unimplemented,
+            declarations['sample'],
+            'Generated SFZ samples are not implemented',
+        )
+        return None
+
+    tracking = _number(values.get('pitch_keytrack', '100'), 'pitch_keytrack')
+    if tracking not in (0, 100):
+        _add_unimplemented(
+            unimplemented,
+            declarations['pitch_keytrack'],
+            'Partial pitch_keytrack is not implemented',
+        )
+        tracking = 100
+    mapping = playback.Mapping(
+        lowest_key=low_key,
+        highest_key=high_key,
+        reference_pitch_hz=(
+            440.0 * 2 ** ((pitch_keycenter - 69) / 12) if tracking else None
+        ),
+        minimum_velocity=_velocity(values.get('lovel', '0'), 'lovel'),
+        maximum_velocity=_velocity(values.get('hivel', '127'), 'hivel'),
+        pitch_tracking=bool(tracking),
+    )
+
+    sample_path = PurePosixPath(
+        region.default_path.replace('\\', '/')
+    ) / sample.replace('\\', '/')
+    metadata = asset_metadata[str(sample_path)]
+    kwargs: dict[str, object] = {
+        'name': f'region-{index}',
+        'slice': f'slice-{index}',
+        'mapping': mapping,
+        'channels': _channel_routes(metadata.channels, output_channels),
+    }
+    if 'lorand' in values or 'hirand' in values:
+        kwargs['random_range'] = selection.RandomRange(
+            minimum=_number(values.get('lorand', '0'), 'lorand'),
+            maximum=_number(values.get('hirand', '1'), 'hirand'),
+        )
+    if name := values.get('region_label'):
+        kwargs['title'] = name
+    result = _playback(index, values, declarations, metadata, unimplemented)
+    sample_slice = playback.Slice.model_validate(
+        dict(
+            name=f'slice-{index}',
+            asset=asset_ids[str(sample_path)],
+            start_frame=result.pop('start_frame', 0),
+            end_frame=result.pop('end_frame', metadata.frames),
+            loop=result.pop('loop', None),
+        )
+    )
+    kwargs['playback'] = playback.SlotPlayback.model_validate(result)
+    if result := _processing(values, declarations, metadata.channels, unimplemented):
+        kwargs['processing'] = processing.Processing.model_validate(result)
+    kwargs['envelope'] = amplitude_envelope(values)
+    if result := _velocity_modulation(values):
+        kwargs['modulation'] = modulation.Modulation(
+            sources=[
+                modulation.Source(name='velocity', scope='voice', minimum=0, maximum=1)
+            ],
+            parameters=[
+                modulation.Parameter(
+                    target=result.target,
+                    unit=modulation.Unit.ratio,
+                    scope=Scope.voice,
+                    minimum=0,
+                    maximum=1,
+                    default=1,
+                )
+            ],
+            routes=[result],
+        )
+        kwargs['bindings'] = [processing.EventBinding(name='velocity', kind='velocity')]
+    if result := _crossfades(values):
+        kwargs['crossfades'] = result
+    if result := _trigger(values, declarations, unimplemented):
+        kwargs['trigger'] = result
+    if group := _group(values.get('group')):
+        kwargs['choke_group'] = group
+    if off_by := _group(values.get('off_by')):
+        mode = values.get('off_mode', 'fast')
+        if mode not in ('fast', 'normal'):
+            raise ValueError(f'Region {index}: unsupported off_mode: {mode}')
+        kwargs['chokes'] = [
+            selection.Choke(
+                group=off_by,
+                mode=(
+                    enums.ChokeMode.immediate
+                    if mode == 'fast'
+                    else enums.ChokeMode.release
+                ),
+            )
+        ]
+    return SampleSlot.model_validate(kwargs), sample_slice
+
+
+def _playback(
+    index: int,
+    values: dict[str, str],
+    declarations: dict[str, ParsedOpcode],
+    metadata: AudioMetadata,
+    unimplemented: list[UnimplementedFeature],
+) -> dict[str, object]:
+    result: dict[str, object] = {}
+    if 'offset' in values:
+        result['start_frame'] = _integer(values['offset'], 'offset', minimum=0)
+    if 'end' in values:
+        end = _integer(values['end'], 'end', minimum=0)
+        result['end_frame'] = end + 1
+
+    if (direction := values.get('direction')) is not None:
+        if direction not in ('forward', 'reverse'):
+            raise ValueError(f'Region {index}: unsupported direction: {direction}')
+        result['direction'] = (
+            enums.Direction.forward
+            if direction == 'forward'
+            else enums.Direction.backward
+        )
+
+    mode = values.get('loop_mode')
+    embedded_loop = metadata.embedded_loop
+    if (
+        embedded_loop is not None
+        and embedded_loop.loop_type
+        and (
+            mode is None
+            or mode.startswith('loop_')
+            and ('loop_start' not in values or 'loop_end' not in values)
+        )
+    ):
+        _add_unimplemented(
+            unimplemented,
+            declarations['sample'],
+            f'WAV smpl loop type {embedded_loop.loop_type} is not implemented',
+        )
+        embedded_loop = None
+        if mode is not None:
+            mode = 'no_loop'
+
+    if mode is None:
+        if not metadata.embedded_loop_known:
+            _add_unimplemented(
+                unimplemented,
+                declarations['sample'],
+                'Embedded loop metadata cannot be read from this sample format; '
+                'set loop_mode explicitly',
+            )
+            mode = 'no_loop'
+        else:
+            mode = 'loop_continuous' if embedded_loop is not None else 'no_loop'
+    if mode not in ('no_loop', 'one_shot', 'loop_continuous', 'loop_sustain'):
+        raise ValueError(f'Region {index}: unsupported loop_mode: {mode}')
+    release_trigger = values.get('trigger') in ('release', 'release_key')
+    if release_trigger and mode == 'loop_continuous':
+        _add_unimplemented(
+            unimplemented,
+            declarations.get('loop_mode', declarations['sample']),
+            'Release-triggered loop_continuous playback is not implemented',
+        )
+        mode = 'one_shot'
+    if mode == 'one_shot' or release_trigger:
+        result['mode'] = enums.PlaybackMode.one_shot
+    elif mode.startswith('loop_'):
+        start = values.get('loop_start')
+        end = values.get('loop_end')
+        if start is None and embedded_loop is not None:
+            start = str(embedded_loop.start_frame)
+        if end is None and embedded_loop is not None:
+            end = str(embedded_loop.end_frame - 1)
+        if start is None or end is None:
+            raise ValueError(
+                f'Region {index}: loop_start and loop_end require file metadata '
+                'or explicit values'
+            )
+        result['loop'] = playback.Loop(
+            start_frame=_integer(start, 'loop_start', minimum=0),
+            end_frame=_integer(end, 'loop_end', minimum=0) + 1,
+            mode=(
+                enums.LoopMode.through_release
+                if mode == 'loop_continuous'
+                else enums.LoopMode.until_release
+            ),
+        )
+    start_frame = result.get('start_frame', 0)
+    end_frame = result.get('end_frame', metadata.frames)
+    assert isinstance(start_frame, int)
+    assert isinstance(end_frame, int)
+    if start_frame >= metadata.frames:
+        raise ValueError(f'Region {index}: offset is beyond the end of the sample')
+    if end_frame > metadata.frames:
+        raise ValueError(f'Region {index}: end is beyond the end of the sample')
+    if loop := result.get('loop'):
+        assert isinstance(loop, playback.Loop)
+        if loop.start_frame < start_frame or loop.end_frame > end_frame:
+            raise ValueError(f'Region {index}: loop is outside the playback interval')
+    return result
+
+
+def _processing(
+    values: dict[str, str],
+    declarations: dict[str, ParsedOpcode],
+    channels: int,
+    unimplemented: list[UnimplementedFeature],
+) -> dict[str, float]:
+    result: dict[str, float] = {}
+    if 'volume' in values:
+        result['volume_db'] = _number(values['volume'], 'volume')
+    tuning = _number(values.get('tune', '0'), 'tune')
+    tuning += 100 * _number(values.get('transpose', '0'), 'transpose')
+    if tuning:
+        result['tuning_cents'] = tuning
+    if 'pan' in values:
+        pan = _number(values['pan'], 'pan') / 100
+        if not -1 <= pan <= 1:
+            raise ValueError('pan must be between -100 and 100')
+        if channels == 1:
+            result['pan'] = pan
+        elif channels == 2:
+            result['stereo_balance'] = pan
+        elif pan:
+            _add_unimplemented(
+                unimplemented,
+                declarations['pan'],
+                'Panning multichannel samples is not implemented',
+            )
+    return result
+
+
+def _trigger(
+    values: dict[str, str],
+    declarations: dict[str, ParsedOpcode],
+    unimplemented: list[UnimplementedFeature],
+) -> enums.TriggerKind | None:
+    value = values.get('trigger')
+    if value in (None, 'attack'):
+        return None
+    if value == 'release':
+        return enums.TriggerKind.logical_release
+    if value == 'release_key':
+        return enums.TriggerKind.release
+    if value in ('first', 'legato'):
+        _add_unimplemented(
+            unimplemented,
+            declarations['trigger'],
+            f'trigger={value} is not implemented',
+        )
+        return None
+    raise ValueError(f'Unsupported SFZ trigger: {value}')
+
+
+def _velocity_modulation(values: dict[str, str]) -> modulation.Route | None:
+    tracking = _number(values.get('amp_veltrack', '100'), 'amp_veltrack')
+    if not -100 <= tracking <= 100:
+        raise ValueError('amp_veltrack must be between -100 and 100')
+    if tracking == 0:
+        return None
+
+    specified: dict[int, float] = {}
+    for opcode, value in values.items():
+        if match := AMP_VELOCITY_CURVE.fullmatch(opcode):
+            velocity = int(match.group(1))
+            if velocity > 127:
+                raise ValueError(f'{opcode} velocity must be between 0 and 127')
+            amount = _number(value, opcode)
+            if not 0 <= amount <= 1:
+                raise ValueError(f'{opcode} must be between 0 and 1')
+            specified[velocity] = amount
+
+    if specified:
+        specified.setdefault(0, 0.0)
+        specified.setdefault(127, 1.0)
+        curve = _interpolated_velocity_curve(specified)
+    else:
+        curve = [(v / 127) ** 2 for v in range(128)]
+
+    proportion = abs(tracking) / 100
+    gains = (
+        [1 - proportion * (1 - a) for a in curve]
+        if tracking > 0
+        else [proportion * (1 - a) for a in curve]
+    )
+    return modulation.Route(
+        name='velocity-amplitude',
+        source='velocity',
+        unit=modulation.Unit.ratio,
+        target=modulation.Target(name='processing', parameter='amplitude'),
+        operation=modulation.Operation.multiply,
+        points=[modulation.Point(input=v / 127, amount=a) for v, a in enumerate(gains)],
+    )
+
+
+def _crossfades(values: dict[str, str]) -> list[crossfade.KeyCrossfade]:
+    result: list[crossfade.KeyCrossfade] = []
+    for source, suffix in (
+        (enums.CrossfadeInput.key, 'key'),
+        (enums.CrossfadeInput.velocity, 'vel'),
+    ):
+        curve_value = values.get(f'xf_{suffix}curve', 'gain')
+        if curve_value not in ('gain', 'power'):
+            raise ValueError(f'Unsupported xf_{suffix}curve: {curve_value}')
+        curve = (
+            enums.FadeCurve.linear
+            if curve_value == 'gain'
+            else enums.FadeCurve.equal_power
+        )
+        for direction, prefix in (
+            (enums.FadeDirection.fade_in, 'xfin'),
+            (enums.FadeDirection.fade_out, 'xfout'),
+        ):
+            low = values.get(f'{prefix}_lo{suffix}')
+            high = values.get(f'{prefix}_hi{suffix}')
+            if low is None and high is None:
+                continue
+            if low is None or high is None:
+                raise ValueError(
+                    f'{prefix}_lo{suffix} and {prefix}_hi{suffix} are required together'
+                )
+            start = (
+                _key(low, f'{prefix}_lo{suffix}')
+                if source == enums.CrossfadeInput.key
+                else _velocity(low, f'{prefix}_lo{suffix}')
+            )
+            end = (
+                _key(high, f'{prefix}_hi{suffix}')
+                if source == enums.CrossfadeInput.key
+                else _velocity(high, f'{prefix}_hi{suffix}')
+            )
+            result.append(
+                crossfade.KeyCrossfade(
+                    input=source,
+                    direction=direction,
+                    start=start,
+                    end=end,
+                    curve=curve,
+                )
+            )
+    return result
+
+
+def _interpolated_velocity_curve(points: dict[int, float]) -> list[float]:
+    result = [0.0] * 128
+    ordered = sorted(points.items())
+    pairs = zip(ordered, ordered[1:], strict=False)
+    for (start, start_value), (end, end_value) in pairs:
+        for velocity in range(start, end + 1):
+            fraction = (velocity - start) / (end - start)
+            result[velocity] = start_value + fraction * (end_value - start_value)
+    return result
+
+
+def _key(value: str, opcode: str) -> int:
+    try:
+        key = int(value)
+    except ValueError:
+        if (match := NOTE.fullmatch(value)) is None:
+            raise ValueError(f'Invalid {opcode}: {value}') from None
+        name, accidental, octave = match.groups()
+        key = 12 * (int(octave) + 1) + NOTES[name.lower()]
+        key += {'': 0, '#': 1, 'b': -1}[accidental]
+    if not 0 <= key <= 127:
+        raise ValueError(f'{opcode} must be between 0 and 127')
+    return key
+
+
+def _velocity(value: str, opcode: str) -> float:
+    return _integer(value, opcode, minimum=0, maximum=127) / 127
+
+
+def _integer(
+    value: str, opcode: str, *, minimum: int, maximum: int | None = None
+) -> int:
+    try:
+        result = int(value)
+    except ValueError:
+        raise ValueError(f'{opcode} must be an integer: {value}') from None
+    if result < minimum or maximum is not None and result > maximum:
+        limit = (
+            f'{minimum} to {maximum}' if maximum is not None else f'at least {minimum}'
+        )
+        raise ValueError(f'{opcode} must be {limit}')
+    return result
+
+
+def _number(value: str, opcode: str) -> float:
+    try:
+        return float(value)
+    except ValueError:
+        raise ValueError(f'{opcode} must be numeric: {value}') from None
+
+
+def _group(value: str | None) -> str | None:
+    if value is None or value == '0':
+        return None
+    try:
+        int(value)
+    except ValueError:
+        raise ValueError(f'SFZ group must be an integer: {value}') from None
+    return f'sfz-group-{value}'

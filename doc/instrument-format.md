@@ -515,6 +515,12 @@ part of the instrument format.
 
 ## SFZ and application ownership
 
+The `ufor.sfz` package keeps the existing `parse`, `sample_paths`,
+`compile_instrument`, and `write` entry points. `parser.py` handles source text
+and metadata, `compiler.py` builds the native instrument, `exporter.py` writes
+representable SFZ, and `model.py` holds their shared result and diagnostic
+types. This split does not change the SFZ conversion rules below.
+
 `ufor.sfz.parse(text)` produces parsed regions and diagnostics.
 `sample_paths(source)` lists safe relative sample references.
 `compile_instrument(source, name=..., title=..., assets=..., output_timebase=...,
