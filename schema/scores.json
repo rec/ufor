@@ -6074,6 +6074,10 @@
           "$ref": "#/$defs/LoopMode",
           "default": "until_release"
         },
+        "direction": {
+          "$ref": "#/$defs/Direction",
+          "default": "forward"
+        },
         "crossfade_frames": {
           "default": 0,
           "minimum": 0,

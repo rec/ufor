@@ -186,6 +186,7 @@ PARSABLE_OPCODES = {
     'loop_count',
     'loop_mode',
     'loop_start',
+    'loop_type',
     'lovel',
     'off_by',
     'off_mode',

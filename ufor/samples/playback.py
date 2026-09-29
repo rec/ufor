@@ -33,6 +33,7 @@ class Loop(base.Model):
     start_frame: base.Frame
     end_frame: base.Frame
     mode: enums.LoopMode = enums.LoopMode.until_release
+    direction: enums.Direction = enums.Direction.forward
     crossfade_frames: base.Frame = 0
     repeat_count: int | None = Field(default=None, strict=True, ge=0)
 
@@ -41,6 +42,8 @@ class Loop(base.Model):
         length = self.end_frame - self.start_frame
         if length < 2:
             raise ValueError('A loop must contain at least two frames')
+        if self.direction == enums.Direction.mirror and self.crossfade_frames:
+            raise ValueError('Mirror loops cannot crossfade')
         if self.crossfade_frames and (
             self.crossfade_frames < 2 or 2 * self.crossfade_frames >= length
         ):

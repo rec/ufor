@@ -287,7 +287,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `loop_start` | SFZ v1 | asset_metadata |
 | Opcode | `loop_startccN` | SFZ v2 | controller_binding |
 | Opcode | `loop_tune` | SFZ v2 | new_model |
-| Opcode | `loop_type` | SFZ v2 | new_model |
+| Opcode | `loop_type` | SFZ v2 | supported |
 | Opcode | `lopolyaft` | SFZ v1 | controller_binding |
 | Opcode | `loprog` | SFZ v2 | controller_binding |
 | Opcode | `lorand` | SFZ v1 | supported |

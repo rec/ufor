@@ -559,6 +559,9 @@ def _playback(
     if mode == 'one_shot' or release_trigger:
         result['mode'] = enums.PlaybackMode.one_shot
     elif mode.startswith('loop_'):
+        loop_type = values.get('loop_type', 'forward')
+        if loop_type not in ('forward', 'backward', 'alternate'):
+            raise ValueError(f'Region {index}: unsupported loop_type: {loop_type}')
         start = values.get('loop_start')
         end = values.get('loop_end')
         if start is None and embedded_loop is not None:
@@ -573,6 +576,11 @@ def _playback(
         result['loop'] = playback.Loop(
             start_frame=_integer(start, 'loop_start', minimum=0),
             end_frame=_integer(end, 'loop_end', minimum=0) + 1,
+            direction={
+                'forward': enums.Direction.forward,
+                'backward': enums.Direction.backward,
+                'alternate': enums.Direction.mirror,
+            }[loop_type],
             mode=(
                 enums.LoopMode.through_release
                 if mode == 'loop_continuous'
@@ -589,6 +597,12 @@ def _playback(
             unimplemented,
             declarations['loop_count'],
             'SFZ loop_count requires an active loop',
+        )
+    if 'loop_type' in values and 'loop' not in result:
+        _add_unimplemented(
+            unimplemented,
+            declarations['loop_type'],
+            'SFZ loop_type requires an active loop',
         )
     if 'delay' in values:
         delay = _number(values['delay'], 'delay')
