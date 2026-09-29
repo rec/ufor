@@ -382,6 +382,7 @@ SUPPORTED_OPCODES = {
     'pan',
     'pitch_keycenter',
     'pitch_keytrack',
+    'pitch_veltrack',
     'region_label',
     'sample',
     'seq_length',
