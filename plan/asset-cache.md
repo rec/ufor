@@ -1,125 +1,34 @@
-# Asset cache: verified objects, captures, and retention
+# Asset cache: remaining host work
 
-Status: partially implemented in reccy, not a uFor API or score-format change.
-`reccy/runtime/assets.py` provides a generic verified finite-byte store,
-retention rules, and collection. `reccy/runtime/capture.py` provides capture
-manifests and sessions. The source acquisition and provider adapters described
-below remain design work; the implemented core does not imply that HTTP/Git
-freshness, volume resolution, or every provider protocol is supported. Keep
-those adapters in the host, outside uFor.
+The verified finite-byte store, basic retention and collection, and bounded
+capture sessions exist in `reccy/runtime/assets.py` and
+`reccy/runtime/capture.py`. This plan covers acquisition adapters, provider
+materialization, richer retention, capacity, recovery, and portable export.
+The cache is a host facility; no uFor score field or cache API is needed.
 
-## Critique of the original draft
+The same object store can hold audio, MIDI, images, SysEx, captions, and
+other finite bytes. Source location and media type do not change byte
+identity. Private cache IDs and references must never become portable
+score identities. Existing uFor locations and content identities are
+described in [validation](../doc/validation.md); remaining host resolution
+is tracked in [asset locations](url-paths.md).
 
-The first draft left these implementation-blocking problems:
+## Source identity and authorization
 
-- HTTP freshness, validity of hash-pinned bytes, and deletion deadlines were
-  conflated. Missing expiry headers and response variants were not addressed.
-- Provider keys omitted resolved timebases, dependency/environment identity, and
-  materialization settings. Pure output was confused with permanent retention.
-- Ordered additive rules had no meaningful ordering. The example used a duration
-  forbidden by its own grammar, and count-plus-age behavior was ambiguous.
-- Space-pressure eviction could bypass an unspecified expiry condition, while
-  references were only sometimes protected. Some entries had no collection rule.
-- Any active reader would block all collection. Size checks alone could accept
-  corrupted objects, and publication/collection races were unspecified.
-- Stream capture omitted borrowed-buffer handling, bounded resource use, clean
-  stopping, and an explicit way to choose a captured version for playback.
-- Derivatives unnecessarily required a separate storage implementation. CLI and
-  database choices were presented without establishing that either was needed.
+Add a versioned canonical source/request fingerprint that includes the
+location, resolved context, expected content identity, and relevant
+representation settings. Relative paths need package identity; volume
+paths need volume ID; Python requests need resolved rate and ordered
+channels. Test null, booleans, integer versus float arguments, Unicode,
+and dictionary ordering. Do not normalize URLs or provider values in ways
+that change meaning.
 
-The contracts below replace those parts of the draft.
-
-## Scope and boundaries
-
-Cover all eight source forms in [the location plan](url-paths.md): local files,
-volume files, finite URLs, Git files, streaming URLs, complete-array providers,
-callback providers, and client-buffer providers. Finite MIDI files, images,
-SysEx, captions, and arbitrary binary files use the same storage path as audio.
-MIME types and filename extensions are descriptive, not identities.
-
-No new asset location or score field is required. A host resolves declarations
-into verified objects or explicit captures. A sealed export copies content into
-a package and writes finite uFor asset declarations. Private cache references
-must never become portable score identities.
-
-Initial implementation: one private filesystem store per OS user, accessed by
-multiple cooperating host processes. Cross-user sharing, distributed eviction,
-and a cache daemon are out of scope. Use atomic filesystem manifests and a
-store-wide metadata lock initially; no database dependency is required. The
-public interface is a host library; command examples below describe operations,
-not a commitment to introduce a new executable in uFor.
-
-## Identities and records
-
-| Record | Identity and meaning |
-| --- | --- |
-| Object | SHA-256 plus byte length of an immutable stored byte sequence |
-| Entry | Opaque immutable ID for one acquisition or materialization; points to an object |
-| Capture | Opaque immutable ID for a finite session manifest and its ordered object dependencies |
-| Source key | Versioned canonical source/request fingerprint, used to group acquisitions, never proof of equal bytes |
-| Provider value key | Versioned fingerprint of the complete deterministic computation and materialization contract |
-| Reference | Unique host-local name pointing to an entry or capture; an explicit retention root |
-| Pin | Explicit retention root on an entry, capture, or object, optionally with a UTC expiry |
-| Lease | Temporary root held by a live reader or writer |
-
-Immutable entry facts include source key, object identity, creation time, media
-kind, encoding, provenance, and verified observations. Access times, HTTP
-validation state, and policy annotations are mutable side records. Capture
-manifests and their dependency lists are immutable too.
-
-A source key includes location, resolved context, expected content identity when
-present, and relevant representation settings. Relative paths need the package
-identity; volume paths need the volume ID; Python requests need resolved sample
-rate and channel layout, not just a score-local timebase name. Do not normalize
-URLs or provider values in ways that change their meaning. Canonicalization must
-be versioned and have fixtures for null, booleans, integer versus float arguments,
-Unicode, and dictionary ordering; forbid nonfinite numbers.
-
-Use a host credential-scope ID to partition acquisition metadata. A content hash
-is not authorization to access another scope's entry. Never keep raw credentials,
-cookies, signed URLs, or secret provider arguments in ordinary metadata. Where a
-secret affects lookup, use a keyed local fingerprint and resolve the actual value
-from host configuration. A redacted display URL cannot be used as a lookup key.
-Deduplication remains internal to the user's authorized store.
-
-## Objects, publication, and recovery
-
-```text
-objects/sha256/<prefix>/<digest>    immutable payloads
-entries/<id>.json                  immutable acquisition facts
-captures/<id>.json                 immutable session manifests
-state/                            access, HTTP state, references, pins, leases
-staging/                          unpublished acquisitions and recordings
-```
-
-Write into staging on the same filesystem while computing SHA-256 and length.
-For a declared finite asset, check both against `content` before publication.
-An import of an arbitrary local file computes new facts instead. Verify existing
-objects by hash before trusting or reusing them; equal length is insufficient.
-Verified open handles may be reused during a process lifetime while the store
-remains immutable. Corruption is an error: quarantine it and report affected
-roots. Captures and imports may be irreplaceable, so never silently promise
-re-acquisition after corruption.
-
-Flush payloads and required directory updates before publishing manifests. The
-metadata lock coordinates publication, lease acquisition, reference updates, and
-collection. Concurrent writers of equal bytes converge on one object. Readers
-acquire their lease before receiving a usable handle. Writers protect published
-fragments until their capture manifest becomes the durable root.
-
-A crash may leave an unreferenced object or staged file, never a usable manifest
-pointing to unpublished bytes. Recovery checks dead process leases, incomplete
-sessions, and orphaned objects. It does not reclaim a live lease merely because
-a clock-based timeout elapsed. Dry-run recovery precedes deletion of incomplete
-recordings. Metadata deletions are durable before their now-unreachable objects
-are reclaimed.
-
-Use original encoded bytes for finite sources. Generated arrays require a
-specified lossless representation that preserves dtype, shape, sample values,
-rate, and channel order. Quantization, resampling, and lossy encoding produce
-explicit derivatives. Thumbnails, waveforms, and indexes can use the same object
-store with `category = "derived"`; their keys include input identities and
-transform settings/version. They do not require a second storage system.
+Partition acquisition metadata by host credential scope. A matching hash
+must not grant access to another scope. Do not store raw credentials,
+cookies, signed URLs, or secret arguments in ordinary metadata. Use a
+keyed local fingerprint when a secret affects lookup, and resolve the
+actual value through host configuration. A redacted URL is for display,
+not lookup.
 
 ## Behavior for every source
 
@@ -219,212 +128,111 @@ Nondeterministic buffer output may be explicitly materialized as a new entry on
 every call. Streaming providers remain session sources for automatic lookup; a
 capture is an immutable result independent of whether it can be regenerated.
 
-## Captures, versions, and memory ownership
+## Provider materialization and capture integration
 
-A capture request supplies a source plus a frame/duration limit or a manual-stop
-mode, always with a maximum byte budget. Automatic recording without a bound is
-not a supported operation. Normal EOF, reaching the requested bound, and an
-explicit clean stop finalize a capture. Abort, failure, or exhausted capacity
-preserve incomplete recovery evidence, without publishing success. An explicitly
-requested salvage operation may finalize verified fragments and record the
-termination reason; it must not pretend the intended duration completed.
+A trusted host registration may declare a finite buffer provider
+deterministic under the value-key contract above. Nondeterministic output
+is a new explicit materialization on each call. For arrays, specify a
+lossless representation preserving dtype, shape, sample values, rate, and
+channel order. Quantization, resampling, and lossy encoding create
+separately identified derivatives. Thumbnails, waveforms, and indexes
+can use the same object store with keys containing source identities and
+transform settings/version.
 
-For callback audio, copy borrowed samples into a preallocated bounded queue
-before returning. Do no filesystem writes or encoding in a real-time callback,
-and never retain the array or a view. On queue overflow record a gap/status or
-fail according to an explicitly selected capture policy; never silently drop.
-For client-buffer audio, encode/consume the valid rows before reuse or transfer
-ownership of a buffer from a bounded pool. The provider must not retain it.
-Close providers using the existing protocol, including callback quiescence.
+Connect streaming URL, callback, and client-buffer adapters to the
+existing bounded `CaptureSession`. Copy borrowed callback samples before
+returning; do no filesystem I/O in the callback. For client-owned buffers,
+consume valid rows before reuse. Preserve timing, discontinuities, gaps,
+media facts, and actual termination reasons. Close providers according to
+their protocol on clean stop, cancellation, and failure. Select a capture
+by explicit ID or reference; never silently substitute the latest version
+for a live source.
 
-Each session gets an immutable capture ID even if its objects deduplicate with
-another session. Record native frame spans, resolved media facts, source key,
-requested/observed extent, timing and discontinuities, adapter/encoder versions,
-and the actual termination reason. Reuse uFor recording fragments and gaps for
-audio export instead of creating a competing timeline. Borrowed sample storage
-is never part of a persistent manifest.
+Export a selected capture as a finite portable score and package with
+ordinary relative asset locations and verified content identities. Use
+uFor recording fragments and gaps rather than another timeline model.
 
-A caller may keep an unnamed capture under retention rules or assign a reference.
-References protect their current targets. Moving `rehearsal/intro` to a new
-capture atomically releases only that reference's old protection; pin the old
-capture or give it another name to preserve it. Pinning a reference means pinning
-its current target by immutable ID, so later movement cannot retarget the pin.
-Reference removal is explicit. IDs are stable versions; automatic playback never
-selects "latest" or substitutes a capture for a live source.
+## Retention extensions
 
-Replay selects a capture ID/reference through the host and obtains finite assets
-or a recording definition. Export writes a portable score/package with normal
-relative locations and content identities. Source grouping for newest-N policies
-excludes session ID and capture bounds, but includes source and media context.
+The current store supports references, pins, leases, duration/forever
+rules, and ordinary/pressure collection for finite entries. Extend its
+policy to support response freshness (`while_fresh`), capture versions,
+derived objects, and a `newest` count per source or across all matches.
+A rule is additive; separate rules combine by union. A newest count and
+duration on one rule both apply. For example, retain captures younger
+than seven days OR the latest three per source, subject to pressure.
+Recompute rank when policy changes or versions are removed.
 
-## Retention policy format
-
-Separate three questions: is a result valid, is deletion forbidden, and when is
-it normally worth discarding? HTTP freshness and deterministic validity answer
-the first. Roots and `protect` answer the second. `retain` answers the third.
-
-Roots are mandatory: references, unexpired pins, active leases, and dependencies
-of protected manifests survive collection. Rules cannot override them. Rules are
-unordered and additive; display order is only for explanation. Custom policies
-replace the default rules, never the root invariants. Invalid policy fails before
-any collection; do not silently fall back to a more destructive policy.
+Proposed extension syntax, after capture records and freshness state exist:
 
 ```toml
-[cache]
-policy_version = 1
-maximum_object_bytes = "200 GiB"
-maximum_staging_bytes = "20 GiB"
-maximum_transport_bytes = "20 GiB"
-minimum_free_space = "10 GiB"
-
 [[cache.rules]]
-name = "recent finite acquisitions"
-match = { category = ["acquired", "generated"] }
-retain = { duration = "30 days", since = "access" }
-
-[[cache.rules]]
-name = "fresh URL responses"
-match = { source_kind = "download" }
-retain = "while_fresh"
-
-[[cache.rules]]
-name = "recent sessions"
+name = "recent captures"
 match = { category = "capture" }
 retain = { duration = "7 days", since = "created" }
 
 [[cache.rules]]
-name = "latest three sessions per source"
+name = "latest three captures per source"
 match = { category = "capture" }
 newest = { count = 3, group_by = "source" }
 retain = "forever"
 
 [[cache.rules]]
-name = "short-lived derivatives"
-match = { category = "derived" }
-retain = { duration = "1 days", since = "access" }
+name = "fresh downloads"
+match = { source_kind = "download" }
+retain = "while_fresh"
 ```
 
-This is the complete default rule set; capacities shown are example host settings
-and must be chosen for the installation. Imports belong to `acquired` but default
-to a permanent pin when explicitly saved; captures default to a reference when
-named. Users can deliberately remove those roots to let the rules collect them.
+HTTP freshness determines whether a response can answer a current-URL
+request. It does not determine whether verified bytes still exist, nor
+does it override explicit roots or a `no-store` response. Only download
+entries may use `while_fresh`; missing freshness grants no retention.
+Keep custom policies explicit and reject invalid or ambiguous rules before
+collection. Explain matching rules, roots, ranks, deadlines, and whether
+pressure may override retention. Captures are evictable when unnamed and
+unpinned; imports explicitly saved by a user should receive a durable root.
 
-Each rule requires a unique `name`, a nonempty `match` or `all = true`, and exactly
-one of `protect` or `retain`. Both accept `"forever"`, `"while_fresh"`, or a duration
-table. `protect` forbids pressure eviction; `retain` postpones ordinary collection
-but permits pressure eviction. Only `source_kind = "download"` may use
-`while_fresh`; an absent freshness deadline grants no protection/retention.
+## Capacity and recovery
 
-Selectors are limited to `category` (`acquired`, `generated`, `capture`, `derived`),
-`source_kind`, provider `delivery`, `media_kind` (`audio`, `midi`, `image`, `other`),
-`source_key`, and host-assigned `tags`. Fields combine with AND; a list is OR within
-one field. Tags match when at least one supplied tag is present. Missing metadata
-does not match. Origin-specific policy uses a host-assigned tag; avoid embedding
-secret URLs in configuration. Names/references and pins need no matching rule
-because they are already roots.
+Enforce installation-specific maximum object, staging, and transport
+bytes plus a minimum free-space margin. Reserve before admission and
+extend reservations as bounded input arrives. Account for incomplete
+staging and recovery evidence, not just published objects. If protected
+data blocks admission, report required bytes and blocking roots; never
+silently unpin or overwrite a capture.
+The proposed policy keys are `maximum_object_bytes`,
+`maximum_staging_bytes`, `maximum_transport_bytes`, and
+`minimum_free_space`; size values use positive integer `B`, `KiB`, `MiB`, or
+`GiB` units.
 
-Durations use positive integer `seconds`, `minutes`, `hours`, or `days` (24 hours);
-`since` is `created` or `access`. Size strings use positive integer `B`, `KiB`,
-`MiB`, or `GiB`. All dates are UTC. Access means successful payload consumption,
-not listing, explaining, scanning, or revalidation; initialize access at creation.
+Complete crash recovery for dead process leases, incomplete sessions,
+staged files, and orphaned objects. Do not reclaim a live lease based only
+on elapsed time. A dry run must explain proposed recovery; collection
+must recheck roots under the metadata lock before deletion. Report
+incomplete material with its size and available recovery action.
 
-Optional `newest` selects up to N records after matching, grouped by source key
-(`source`) or all matches (`all`), ordered by creation time then immutable ID.
-Its count is a positive integer. Duration and newest constraints within one rule
-both apply. Separate rules combine by union: the default keeps every capture for
-seven days OR the latest three per source indefinitely, subject to pressure.
-Changing policies or removing newer versions recomputes rank on surviving records.
+## Remaining operations and acceptance
 
-No rule means an unrooted record is eligible at the next ordinary collection.
-Use this explicit rule to keep selected deterministic outputs indefinitely:
+1. Implement local/volume verified copy and policy-gated HTTP and Git
+   acquisition. Test missing HTTP expiry, variants, `no-store`, conditional
+   validation, pinned offline reuse, redirects, identity mismatches, and
+   interrupted transfers with controlled local fixtures.
+2. Implement deterministic materialization, derivative identity, provider
+   adapters, and portable capture export. Test dependency and encoder
+   changes in value keys, callback buffer reuse, client-buffer short reads,
+   clean stop, abort, salvage, and partial-recovery diagnostics.
+3. Extend policy and collection to freshness, newest-N, capture and
+   derivative dependencies, capacity pressure, and recovery. Test shared
+   objects, moved references, expiring pins, readers racing collection,
+   writer interruption, and admission failure when all space is protected.
+4. Expose host operations to resolve, import, materialize, capture, open,
+   export, explain, and inspect recovery. Keep acquisition authority in
+   the host and distinguish a miss, denied acquisition, wrong identity,
+   corruption, incomplete capture, provider error, and insufficient space.
 
-```toml
-[[cache.rules]]
-name = "permanent generated values"
-match = { category = "generated", tags = ["keep-generated"] }
-protect = "forever"
-```
-
-Reject unknown fields, duplicate names, invalid enums/units, incompatible selectors,
-and ambiguous combinations. `explain` reports matching rules, roots, ranks,
-deadlines, and whether pressure can override retention. Removing a reference or
-pin does not force deletion when another rule or root still protects it.
-
-## Collection, capacity, and concurrent use
-
-Ordinary collection selects records with no root, active protection, or active
-retention. Pressure collection may additionally select retained records, but
-never protected/rooted ones. Evict derived records first, then least recently
-consumed records, then creation time and immutable ID for deterministic ties.
-A selected capture releases its dependencies only when no other record/root needs
-them. Count shared objects once; report logical sizes and incremental reclaimable
-bytes separately. Keeping an object does not automatically keep all entries that
-mention it.
-
-Collection runs alongside playback and recording. Under the metadata lock,
-recheck candidates and roots before unlinking metadata, then reclaim unreachable
-objects. Active leases protect only their own dependencies. A dry run is an
-explanation at a particular snapshot, not authorization to delete those same IDs
-later without rechecking.
-
-Reserve capacity before admission and extend reservations for bounded incoming
-data. Account for staging and transport use as well as durable objects, metadata,
-and recovery evidence when enforcing free space. Deduplication reduces durable
-usage only after verification. Keep a conservative free-space margin because
-other processes can consume disk space. If protected data prevents admission,
-return a capacity error with required bytes and blocking roots. Never silently
-unpin, overwrite a capture, or evict protected bytes.
-
-Crash recovery and GC use the same reachability rules. Report incomplete material
-separately with its size and recovery action; do not let it accumulate invisibly.
-Expiration grants permission to delete; it is not a promise of backup or a legal
-retention guarantee. Unnamed unpinned captures are deliberately evictable.
-
-## Host operations
-
-Implement library operations first:
-
-- Resolve a finite declared asset by verified identity; fetch on authorized miss.
-- Import local bytes or a current URL as a new finite entry.
-- Materialize a provider or capture a bounded session.
-- Open a specific entry/capture with a lease; export a finite package.
-- Create/move/remove references and add/remove pins.
-- List and explain without fetching, running providers, or refreshing access.
-- Plan collection, apply collection with root rechecks, and inspect recovery.
-
-These are host API responsibilities, not Python signatures fixed by this plan.
-Acquisition honors the existing location allowlists and credentials policy;
-cache lookup cannot grant new source execution authority. Failures distinguish
-miss, denied acquisition, identity mismatch, corruption, incomplete capture,
-provider contract violation, and insufficient capacity.
-
-## Implementation stages and acceptance
-
-1. **Policy evaluator and finite store.** Build manifest models, key fixtures,
-   pure rule evaluation, object verification, leases, roots, atomic publication,
-   and explain/dry-run. Cover all eight source kinds in metadata fixtures before
-   adding I/O adapters. Demonstrate same-size corruption detection and one object
-   shared by multiple entries without deleting it when just one expires.
-2. **Local imports and remote acquisition.** Implement verified copy, HTTP and Git
-   adapters outside uFor. Test missing HTTP expiry, response variants, `no-store`,
-   conditional validation, and pinned offline reuse separately. A wrong download
-   cannot replace a valid entry. Tests use controlled fixtures, not live servers.
-3. **Materialization and capture.** Implement deterministic contracts, reusable
-   buffers, finite capture/export, and explicit version selection. Test dependency
-   and encoding changes in value keys, reused callback memory, queue overflow,
-   clean stop versus abort, and partial-recovery diagnostics. Audio regression
-   artifacts use 48 kHz and at least one second, per repository conventions.
-4. **Collection and recovery.** Test the same evaluator under ordinary and pressure
-   modes, latest-N plus age union, references moved between versions, expiring
-   pins, shared objects, readers racing GC, writer interruption, and admission
-   failure when everything is protected. All deletion decisions are explainable.
-
-Do not postpone protection and capacity enforcement until after a working cache
-has started accepting persistent data. Choose the actual host package during
-implementation; no new fingerprint helper or runtime dependency belongs in uFor
-merely because this plan uses one.
+Tests use local fixtures, not public services. Audio regression artifacts
+use 48 kHz and at least one second where audio output is compared.
 
 ## Additional work beyond the prompt
 
-None. This revision records the reccy implementation status; it does not add
-acquisition, change the score format, or add dependencies.
+None.
