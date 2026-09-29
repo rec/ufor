@@ -17,16 +17,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Local I/O, concurrency, and exceptional conditions
 
-14. **Medium, risk: library reads are unbounded and all-at-once.**
-    `score_files` accumulates the complete tree, then `read_library` reads
-    every file into memory, parses each document, and resolves the complete
-    graph. A very large file, huge library, or user Python module that never
-    returns can stall a host or exhaust memory. `KeyboardInterrupt` does
-    propagate and per-file ordinary exceptions are diagnosed, as documented;
-    they do not solve hangs or resource exhaustion. State whether the host
-    must set file/count/time budgets or expose a bounded reader. Arbitrary
-    Python code remains a trusted-code boundary, not a sandbox promise.
-
 ## API and project structure
 
 20. **Low, risk: source-format work is concentrated in one large module.**

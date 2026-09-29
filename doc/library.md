@@ -140,6 +140,15 @@ not add library directories to `sys.path`. Module/declaration failures are
 reported per file; user interruption propagates. Each explicit read loads fresh
 file contents without generating bytecode caches. Concurrent Python score loads
 use distinct temporary module names so their executions cannot collide.
+`read_library` defaults to at most 10000 score files, 16 MiB per file
+(including the configuration), 256 MiB read in total, and 100000 discovered
+directory entries per library. `max_files`, `max_file_bytes`, and
+`max_total_bytes` can lower or raise the first three limits. Exceeded score
+limits produce `limit` diagnostics and a partial index; an oversized
+configuration raises `ValueError`. File contents are read with a byte cap.
+Executing trusted Python scores has no in-process time limit. A host requiring
+one must run the read in an isolated process with its own deadline and resource
+limits.
 
 ## Host integration and diagnostics
 
