@@ -27,6 +27,9 @@ to the root `~/.config/ufor/scores` and preserves existing registrations and
 comments. Reading a missing default configuration returns an empty collection;
 an explicitly requested missing or malformed configuration raises an error.
 Reading never creates files. A leading `~/` expands to the home directory.
+Creation serializes concurrent writers with a sibling `.lock` file and atomically
+replaces the configuration, so interrupted writes leave the previous version
+readable. The lock file remains beside the configuration.
 
 Files are visited in configuration order, then sorted relative address order.
 Only `.toml` and `.py` files are candidates. Symlinks are skipped and reported;

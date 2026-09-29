@@ -57,21 +57,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Local I/O, concurrency, and exceptional conditions
 
-10. **High, confirmed: config writes are not crash safe.**
-    `create_library` in `ufor/library_files.py:122-146` creates the root
-    and then writes the entire config directly with `Path.write_text()`.
-    A crash, interruption, or disk-full error can leave a truncated config;
-    later `read_library` then fails before indexing any library. Stage and
-    atomically replace the config, preserving the existing file on failure.
-    Test a failed write and an interrupted update at the file boundary.
-
-11. **High, risk: simultaneous config updates can lose registrations.**
-    The read-modify-write sequence in `create_library` has no concurrency
-    coordination. Two callers may both validate the same old file and the
-    later write discards the first registration. Decide whether writers are
-    serialized by the host or the library writer itself; test the chosen
-    contract. This is independent of atomic replacement.
-
 12. **Medium, risk: concurrent Python-score loads share a temporary module
     slot.** `python_score` in `ufor/library_files.py:182-218` installs a
     deterministic key in global `sys.modules` and restores the prior value in

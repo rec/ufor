@@ -1,10 +1,13 @@
 """Explicit filesystem and local Python loading for user score libraries."""
 
+import fcntl
+import os
 import sys
 from hashlib import sha256
 from importlib.util import module_from_spec, spec_from_file_location
 from os.path import abspath
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 
 import tomlkit
 from pydantic import TypeAdapter
@@ -123,27 +126,47 @@ def create_library(
     name: str, root: Path | None = None, config_path: Path | None = None
 ) -> LibraryConfig:
     path = configuration_path(config_path)
-    document = tomlkit.parse(path.read_text()) if path.exists() else tomlkit.document()
-    config = LibraryConfig.model_validate(document)
-    selected = (
-        expanded_path(str(root))
-        if root is not None
-        else Path.home() / '.config/ufor/scores'
-    )
-    registration = LibraryRegistration(name=name, root=str(selected))
-    updated = LibraryConfig(libraries=[*config.libraries, registration])
-    directory = selected if selected.is_absolute() else path.parent / selected
-    if directory.is_symlink():
-        raise ValueError('library root must not be a symlink')
-    directory.mkdir(parents=True, exist_ok=True)
     path.parent.mkdir(parents=True, exist_ok=True)
-    if 'libraries' not in document:
-        document['libraries'] = tomlkit.aot()
-    table = tomlkit.table()
-    table.update(registration.model_dump())
-    document['libraries'].append(table)
-    path.write_text(tomlkit.dumps(document))
-    return updated
+    lock_path = path.with_name(f'{path.name}.lock')
+    with lock_path.open('a+b') as lock:
+        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        document = (
+            tomlkit.parse(path.read_text()) if path.exists() else tomlkit.document()
+        )
+        config = LibraryConfig.model_validate(document)
+        selected = (
+            expanded_path(str(root))
+            if root is not None
+            else Path.home() / '.config/ufor/scores'
+        )
+        registration = LibraryRegistration(name=name, root=str(selected))
+        updated = LibraryConfig(libraries=[*config.libraries, registration])
+        directory = selected if selected.is_absolute() else path.parent / selected
+        if directory.is_symlink():
+            raise ValueError('library root must not be a symlink')
+        directory.mkdir(parents=True, exist_ok=True)
+        if 'libraries' not in document:
+            document['libraries'] = tomlkit.aot()
+        table = tomlkit.table()
+        table.update(registration.model_dump())
+        document['libraries'].append(table)
+        _write_config(path, tomlkit.dumps(document))
+        return updated
+
+
+def _write_config(path: Path, contents: str) -> None:
+    temporary = NamedTemporaryFile(
+        mode='w', dir=path.parent, prefix=f'.{path.name}.', delete=False
+    )
+    temporary_path = Path(temporary.name)
+    try:
+        with temporary:
+            temporary.write(contents)
+            temporary.flush()
+            os.fsync(temporary.fileno())
+        os.replace(temporary_path, path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
 
 
 def score_files(

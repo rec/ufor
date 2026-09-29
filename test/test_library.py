@@ -1,6 +1,7 @@
 import json
 import shutil
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
 from pathlib import Path
 
@@ -128,6 +129,40 @@ def test_create_and_read_preserve_configuration_and_use_relative_roots(
         library_files.create_library('local', Path('unused'), config)
     assert config.read_bytes() == before
     assert not (config.parent / 'unused').exists()
+
+
+def test_failed_config_replacement_preserves_existing_file(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = setup_library(tmp_path)
+    before = config.read_bytes()
+
+    def interrupt(source: Path, destination: Path) -> None:
+        raise KeyboardInterrupt
+
+    monkeypatch.setattr(library_files.os, 'replace', interrupt)
+    with pytest.raises(KeyboardInterrupt):
+        library_files.create_library('second', Path('second'), config)
+    assert config.read_bytes() == before
+    assert not list(tmp_path.glob('.library.toml.*'))
+
+
+def test_concurrent_config_updates_keep_every_registration(tmp_path: Path) -> None:
+    config = tmp_path / 'library.toml'
+
+    def register(index: int) -> None:
+        library_files.create_library(
+            f'library-{index}', Path(f'scores-{index}'), config
+        )
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(register, range(8)))
+    import tomlkit
+
+    document = tomlkit.parse(config.read_text())
+    assert {item['name'] for item in document['libraries']} == {
+        f'library-{i}' for i in range(8)
+    }
 
 
 def test_default_config_is_optional_and_explicit_config_is_exclusive(
