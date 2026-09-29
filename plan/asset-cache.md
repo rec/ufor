@@ -197,13 +197,19 @@ the capture result into a sealed recording score before this export can use them
 The current store supports references, pins, leases, duration/forever
 rules, newest-N per source or across all matches, download-only response
 freshness (`while_fresh`), and ordinary/pressure collection for finite entries.
-Extend its policy to support capture versions and derived-object dependencies.
+`CaptureStore` now applies additive duration, newest, forever, and protection
+rules to completed captures and recovery evidence. Named capture references,
+capture pins, and active record leases are roots; ordinary and pressure
+collection release fragment pins only after all surviving records stop using
+them. A subsequent `AssetStore.collect` reclaims eligible entry bytes. Recovery
+evidence expires automatically under these rules. Derived-object dependencies
+still need policy integration.
 A rule is additive; separate rules combine by union. A newest count and
 duration on one rule both apply. For example, retain captures younger
 than seven days OR the latest three per source, subject to pressure.
 Recompute rank when policy changes or versions are removed.
 
-Proposed extension syntax, after capture records and freshness state exist:
+Proposed host configuration syntax, after the policy is wired into a host:
 
 ```toml
 [[cache.rules]]
@@ -280,10 +286,11 @@ abandoned one or reclaim recovery material safely.
    adapters, and portable capture export. Test dependency and encoder
    changes in value keys, callback buffer reuse, client-buffer short reads,
    clean stop, abort, salvage, and partial-recovery diagnostics.
-3. Extend policy and collection to capture and
-   derivative dependencies, capacity pressure, and recovery. Test shared
-   objects, moved references, expiring pins, readers racing collection,
-   writer interruption, and admission failure when all space is protected.
+3. Extend policy and collection to derivative dependencies, capacity pressure,
+   and crash recovery. Test expiring asset pins, writer interruption, and
+   admission failure when all space is protected. Capture and recovery record
+   retention, shared salvage fragments, moved references, active reader leases,
+   and root rechecks are implemented.
 4. Expose host operations to resolve, import, materialize, capture, open,
    export, explain, and inspect recovery. Keep acquisition authority in
    the host and distinguish a miss, denied acquisition, wrong identity,
