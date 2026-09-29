@@ -66,6 +66,50 @@ def test_sfz_reports_missing_sample_metadata() -> None:
         )
 
 
+def test_sfz_define_expands_opcode_values_and_preserves_locations() -> None:
+    source = sfz.parse(
+        '#define $SAMPLE audio/glass.wav\n'
+        '#define $KEY 60\n'
+        '<region> sample=$SAMPLE key=$KEY\n'
+    )
+
+    assert sfz.sample_paths(source) == ['audio/glass.wav']
+    assert source.unimplemented == []
+    locations = [
+        (o.opcode, o.value, o.line, o.column) for o in source.regions[0].opcodes
+    ]
+    assert locations == [
+        ('sample', 'audio/glass.wav', 3, 10),
+        ('key', '60', 3, 25),
+    ]
+
+
+def test_sfz_define_uses_the_value_at_each_region() -> None:
+    source = sfz.parse(
+        '#define $KEY 60\n'
+        '<region> sample=a.wav key=$KEY\n'
+        '#define $KEY 61\n'
+        '<region> sample=b.wav key=$KEY\n'
+    )
+
+    assert [r.opcodes[-1].value for r in source.regions] == ['60', '61']
+
+
+@pytest.mark.parametrize(
+    ('definition', 'error'),
+    [
+        ('', 'Undefined SFZ variable \\$KEY on line 1'),
+        ('#define $KEY $KEY\n', 'Recursive SFZ variable \\$KEY on line 2'),
+        ('#define $KEY $MISSING\n', 'Undefined SFZ variable \\$MISSING on line 2'),
+    ],
+)
+def test_sfz_define_rejects_undefined_and_recursive_variables(
+    definition: str, error: str
+) -> None:
+    with pytest.raises(ValueError, match=error):
+        sfz.parse(f'{definition}<region> sample=a.wav key=$KEY')
+
+
 def test_sfz_random_range_round_trips_without_selection() -> None:
     source = sfz.parse('<region> sample=audio/glass.wav key=60 lorand=0.25 hirand=0.5')
     result = sfz.compile_instrument(
