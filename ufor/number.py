@@ -1,12 +1,8 @@
 import math
 from fractions import Fraction
-from typing import TypeAlias
 
 type NoteNumber = int  # May be negative
-if False:
-    type PitchNumber = float | int | Fraction
-else:
-    PitchNumber: TypeAlias = float | int | Fraction
+type PitchNumber = float | int | Fraction
 
 
 def cents_to_ratio(f: PitchNumber) -> float:
