@@ -59,9 +59,10 @@ stream interfaces.
 
 There are two distinct operations:
 
-- Resolving an existing uFor asset requests its expected SHA-256 and length. A
-  verified, authorized retained object satisfies that immutable request even if
-  the acquisition URL has changed or become unavailable.
+- Resolving an existing uFor asset requests its expected SHA-256 and length.
+  Reccy's scoped `open_expected()` now leases and verifies a matching retained
+  object even if the acquisition URL has changed or become unavailable. The
+  host must authorize the request before that lookup.
 - Fetching a URL's current representation uses HTTP response caching rules. Its
   freshness says when a response can answer that request without validation.
   Changed bytes are a new acquisition, never an automatic score update.
