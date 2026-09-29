@@ -22,6 +22,8 @@ from .sequence import SequenceScore
 from .slideshow import SlideshowScore
 from .synth import SynthInstrumentScore
 
+MAX_SCORE_CHARACTERS = 16 * 1024 * 1024
+
 
 def migrate_score_v3(value: dict[str, object]) -> ScoreValue:
     """Convert one decoded version 3 score to the version 4 asset representation."""
@@ -63,7 +65,14 @@ def parse_score(
     | SynthInstrumentScore
     | PresetScore
 ):
-    return TypeAdapter(ScoreValue).validate_python(tomlkit.parse(text).unwrap())
+    if len(text) > MAX_SCORE_CHARACTERS:
+        raise ValueError('score document exceeds 16777216 characters')
+    try:
+        data = tomlkit.parse(text).unwrap()
+    except RecursionError as error:
+        raise ValueError('score document is too deeply nested') from error
+    _check_document_budget(data)
+    return TypeAdapter(ScoreValue).validate_python(data)
 
 
 def score_toml(
@@ -93,6 +102,20 @@ def score_toml(
 
 def score_schema() -> dict[str, object]:
     return TypeAdapter(ScoreValue).json_schema()
+
+
+def _check_document_budget(value: object) -> None:
+    pending = [(value, 0)]
+    count = 0
+    while pending:
+        item, depth = pending.pop()
+        count += 1
+        if count > 100000 or depth > 64:
+            raise ValueError('score document exceeds 100000 values or 64 levels')
+        if isinstance(item, dict):
+            pending.extend((v, depth + 1) for v in item.values())
+        elif isinstance(item, list):
+            pending.extend((v, depth + 1) for v in item)
 
 
 def _check_toml_arrays(value: object) -> None:

@@ -15,14 +15,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
 
-9. **Medium, risk: exact unit conversion and recursive documents have no size
-   bounds.** `ufor/expression.py:10-38` accepts unbounded numeric literals
-   and exponentiation; very large powers can consume excessive CPU/memory
-   before the finite-result check. Recursive provider JSON in
-   `ufor/assets.py:95-126,210-226` and nested score declarations likewise
-   have no depth/size limit. Establish a format or host input-budget policy and
-   turn excessive or deeply nested input into an actionable validation error.
-
 ## Local I/O, concurrency, and exceptional conditions
 
 14. **Medium, risk: library reads are unbounded and all-at-once.**

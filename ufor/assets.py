@@ -214,20 +214,26 @@ def _python_identifier(value: str) -> bool:
 
 
 def _validate_json(value: object) -> None:
-    if value is None or isinstance(value, bool | str) or type(value) is int:
-        return
-    if type(value) is float:
-        if not isfinite(value):
-            raise ValueError('provider arguments require finite numbers')
-        return
-    if isinstance(value, list):
-        for item in value:
-            _validate_json(item)
-        return
-    if isinstance(value, dict):
-        if any(type(k) is not str for k in value):
-            raise ValueError('provider argument object keys must be strings')
-        for item in value.values():
-            _validate_json(item)
-        return
-    raise ValueError('provider arguments must contain only JSON values')
+    pending = [(value, 0)]
+    count = 0
+    while pending:
+        item, depth = pending.pop()
+        count += 1
+        if count > 10000 or depth > 64:
+            raise ValueError('provider arguments exceed 10000 values or 64 levels')
+        if item is None or isinstance(item, bool | str) or type(item) is int:
+            continue
+        if type(item) is float:
+            if not isfinite(item):
+                raise ValueError('provider arguments require finite numbers')
+            continue
+        if isinstance(item, list | dict):
+            if isinstance(item, dict):
+                if any(type(k) is not str for k in item):
+                    raise ValueError('provider argument object keys must be strings')
+                values = item.values()
+            else:
+                values = item
+            pending.extend((child, depth + 1) for child in values)
+            continue
+        raise ValueError('provider arguments must contain only JSON values')

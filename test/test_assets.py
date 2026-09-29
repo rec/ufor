@@ -118,6 +118,27 @@ def test_provider_arguments_preserve_recursive_json() -> None:
     )
 
 
+def test_provider_arguments_have_finite_nesting_and_size() -> None:
+    nested: object = None
+    for _ in range(65):
+        nested = [nested]
+    with pytest.raises(ValidationError, match='64 levels'):
+        PythonProviderLocation(
+            module='show_audio.generators',
+            function='tone',
+            delivery='buffer',
+            arguments={'deep': nested},
+        )
+
+    with pytest.raises(ValidationError, match='10000 values'):
+        PythonProviderLocation(
+            module='show_audio.generators',
+            function='tone',
+            delivery='buffer',
+            arguments={'many': [0] * 10000},
+        )
+
+
 @pytest.mark.parametrize(
     'module,function',
     [('show-audio.generators', 'tone'), ('show_audio.generators', 'make.tone')],

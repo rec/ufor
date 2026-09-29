@@ -27,6 +27,10 @@ values; nonintegral powers may require floating-point evaluation. Stored pitch
 values must evaluate to positive finite real numbers. No function calls,
 names, addition, multiplication, modulo, or Python `**` operator are accepted.
 Tuney's broader authoring evaluator compiles its results into portable values.
+Ufor limits an expression to 4096 characters and 64 syntax levels, a numeric
+scientific exponent to 4096, a power to 1024, and an exact numerator or
+denominator to 16384 bits. Larger expressions fail validation before producing
+an unbounded exact result.
 
 This grammar makes the user's stated `/` and `^` operators concrete. A separate
 original grammar implementation was not located during extraction; additional
