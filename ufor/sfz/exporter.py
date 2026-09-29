@@ -474,6 +474,8 @@ def _playback_opcodes(
                 Opcode(name='loop_end', value=str(_inclusive_end(loop.end_frame))),
             ]
         )
+        if loop.repeat_count is not None:
+            result.append(Opcode(name='loop_count', value=str(loop.repeat_count)))
         if loop.crossfade_frames:
             _issue(
                 issues,

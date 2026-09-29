@@ -6075,6 +6075,19 @@
           "minimum": 0,
           "title": "Crossfade Frames",
           "type": "integer"
+        },
+        "repeat_count": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat Count"
         }
       },
       "required": [

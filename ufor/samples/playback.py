@@ -2,7 +2,7 @@
 
 from typing import Self
 
-from pydantic import StrictBool, model_validator
+from pydantic import Field, StrictBool, model_validator
 
 from .. import base
 from ..number import cents_to_ratio
@@ -34,6 +34,7 @@ class Loop(base.Model):
     end_frame: base.Frame
     mode: enums.LoopMode = enums.LoopMode.until_release
     crossfade_frames: base.Frame = 0
+    repeat_count: int | None = Field(default=None, strict=True, ge=0)
 
     @model_validator(mode='after')
     def valid_interval(self) -> Self:
