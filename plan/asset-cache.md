@@ -49,6 +49,12 @@ reads create no payload entry, and GC must never delete external files. An
 import copies bytes, not a mutable hard link or symlink. A direct read is sound
 only while the host can trust that another process will not change the open
 file's contents after verification.
+Recs now has an explicit finite-asset resolver in
+`recs/recording/asset_resolver.py`. It requires a scoped store, measured volume
+mounts, approved remote URLs, Git transport storage, and byte/time limits from
+the host; callers hold its context while reading. Existing recording playback
+and edit readers still use session-relative files. They have not yet been
+changed to acquire leases or accept remote and volume assets.
 
 The existing Python provider protocol remains audio-specific. Other finite asset
 types need no provider protocol change to be cached. Future typed generators can
@@ -251,7 +257,9 @@ abandoned one or reclaim recovery material safely.
 1. Connect host-owned local/volume root authorization and remote Git acquisition
    to the existing verified admission. Reccy now has a generic volume-ID
    resolver, direct-read/snapshot file adapter, and remote Git fetch adapter;
-   consuming hosts must wire their measured mounts and quota-limited Git store.
+   recs has a policy-injected finite-byte resolver. Consuming commands still
+   must supply measured mounts and quota-limited Git storage and hold the
+   resulting leases during decoding.
    Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
