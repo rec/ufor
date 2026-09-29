@@ -5,6 +5,9 @@ an integer, half-open interval in the sequence's native timebase, moves its star
 to `selection.start`, and repeats it `selection.repetitions` times. The source
 sequence remains unchanged. No audio, network packets, or operating-system key
 events are generated.
+Selection and note ownership are checked when the function is called. It returns
+an iterator that builds each `PlaybackIteration` on demand; hosts can stop
+consuming it without materializing all repetitions.
 
 A `SequenceSelection` has a unique clip `name`, an `interval` (`start`, `end`),
 a destination `start` (default zero), a positive `repetitions` (default one), and

@@ -37,15 +37,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## API and project structure
 
-17. **Medium, confirmed: playback plans materialize all repetitions.**
-    `SequenceSelection.repetitions` has no upper bound and `plan_playback`
-    in `ufor/playback.py:75-145` builds a list of every iteration, rescanning
-    all sequence events each time. A small authored sequence with a large
-    repetition count can consume unbounded time and memory. A bounded
-    request or lazy iterator should be considered if this API is used for
-    long-running playback; keep the pure semantic operation independent of
-    dispatch.
-
 20. **Low, risk: source-format work is concentrated in one large module.**
     `ufor/sfz.py` is about 1,800 lines and contains parsing, metadata
     decoding, native compilation, diagnostics, and export. Changes to one

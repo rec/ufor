@@ -1,5 +1,6 @@
 """Pure sequence selection and replay planning; never dispatches external actions."""
 
+from collections.abc import Iterator
 from typing import Literal
 
 from pydantic import Field
@@ -77,15 +78,25 @@ def state_at(sequence: EventSequence, tick: int) -> SequenceState:
 
 def plan_playback(
     sequence: EventSequence, selection: SequenceSelection
-) -> list[PlaybackIteration]:
-    """Crop/seek and repeat a half-open interval, with explicit note cleanup."""
+) -> Iterator[PlaybackIteration]:
+    """Validate a selection, then yield repetitions with explicit note cleanup."""
     left, right = selection.interval.start, selection.interval.end
     if not sequence.start <= left < right <= sequence.end:
         raise ValueError('selection must lie within the sequence extent')
     # Validate ownership through the selected end, including the reconstruction prefix.
     state_at(sequence, right)
     initial = state_at(sequence, left)
-    result: list[PlaybackIteration] = []
+    selected = [e for e in sequence.events if left <= e.tick < right]
+    return _playback_iterations(sequence, selection, initial, selected)
+
+
+def _playback_iterations(
+    sequence: EventSequence,
+    selection: SequenceSelection,
+    initial: SequenceState,
+    selected: list[StoredEvent],
+) -> Iterator[PlaybackIteration]:
+    left, right = selection.interval.start, selection.interval.end
     for iteration in range(selection.repetitions):
         start = selection.start + iteration * (right - left)
         end = start + right - left
@@ -106,9 +117,7 @@ def plan_playback(
             for control in initial.controls:
                 if control.scope == 'trigger':
                     _append_event(events, control, start, prefix)
-        for event in sequence.events:
-            if not left <= event.tick < right:
-                continue
+        for event in selected:
             tick = start + event.tick - left
             if isinstance(event, Trigger):
                 active[(event.part, event.trigger_id)] = event
@@ -134,20 +143,17 @@ def plan_playback(
             )
             for i, t in enumerate(active.values())
         ]
-        result.append(
-            PlaybackIteration(
-                name=selection.name,
-                iteration=iteration,
-                timebase=sequence.timebase,
-                start=start,
-                end=end,
-                controls=controls,
-                events=events,
-                captured=captured,
-                cleanup=cleanup,
-            )
+        yield PlaybackIteration(
+            name=selection.name,
+            iteration=iteration,
+            timebase=sequence.timebase,
+            start=start,
+            end=end,
+            controls=controls,
+            events=events,
+            captured=captured,
+            cleanup=cleanup,
         )
-    return result
 
 
 def _append_event(
