@@ -122,6 +122,10 @@ def test_dependency_depth_is_diagnosed_and_configurable() -> None:
         ],
     ]
 
+    ordered = Library(entries, max_depth=8)
+    assert any(d.code == 'depth' for d in ordered.diagnostics)
+    assert ordered.entries['local:/preset_129.toml'].state == State.blocked
+
     entries.reverse()
     limited = Library(entries, max_depth=8)
     assert any(d.code == 'depth' for d in limited.diagnostics)
