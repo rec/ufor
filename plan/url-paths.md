@@ -103,9 +103,11 @@ unless the host explicitly resolves and verifies the LFS object. Retrieved bytes
 must also match the asset's SHA-256. The commit identifies repository history;
 the SHA-256 identifies the actual asset bytes across source kinds.
 
-Ufor does not run Git. The host may use a local object store, a bare clone, or a
-remote adapter. Credentials, known-host policy, and executable selection remain
-host configuration.
+Ufor does not run Git. Reccy has local-object and remote-fetch adapters. The
+remote adapter requires a host-approved repository URL and a bare object store
+on quota-limited transport storage; it does not create a working tree.
+Credentials, known-host policy, executable selection, transport-store GC, and
+consumer integration remain host responsibilities.
 
 ## Streaming URLs
 

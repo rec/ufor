@@ -110,7 +110,11 @@ location plan; do not run checkout hooks or repository code.
 
 Reccy now imports a full-commit, path-selected regular blob from a host-approved
 local Git object store, returning the observed blob ID separately from the
-verified file identity. Remote repository authorization and fetching remain.
+verified file identity. Its remote adapter fetches the pinned commit with a
+blob filter, then fetches the selected blob; if a server refuses a direct blob
+request, it can fetch the commit without a filter. The host must authorize the
+repository URL and provide a bare Git object store on quota-limited storage.
+Consuming-host integration and transport-store GC remain.
 
 Use available Git objects or a filtered fetch when supported. Obtaining one path
 can require commit/tree objects and a larger pack; do not promise single-object
@@ -224,8 +228,10 @@ data blocks admission, report required bytes and blocking roots; never
 silently unpin or overwrite a capture.
 Reccy now optionally enforces object, staging, and free-space budgets for
 asset admissions with serialized writers and incremental staging checks.
-Cooperating processes must use the same capacity. Transport quotas, pressure
-collection, capture reservations, and blocking-root explanations remain.
+Cooperating processes must use the same capacity. Remote Git acquisition now
+requires host-provided quota-limited transport storage; automated provisioning
+and GC for that storage, pressure collection, capture reservations, and
+blocking-root explanations remain.
 The proposed policy keys are `maximum_object_bytes`,
 `maximum_staging_bytes`, `maximum_transport_bytes`, and
 `minimum_free_space`; size values use positive integer `B`, `KiB`, `MiB`, or
@@ -244,8 +250,9 @@ abandoned one or reclaim recovery material safely.
 
 1. Connect host-owned local/volume root authorization and remote Git acquisition
    to the existing verified admission. Reccy now has a generic volume-ID
-   resolver and direct-read/snapshot file adapter; consuming hosts must wire
-   their measured mounts. Integrate current-URL HTTP imports in hosts. Test missing
+   resolver, direct-read/snapshot file adapter, and remote Git fetch adapter;
+   consuming hosts must wire their measured mounts and quota-limited Git store.
+   Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
    interrupted transfers with controlled local fixtures.
