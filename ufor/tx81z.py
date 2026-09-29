@@ -1,5 +1,7 @@
 """Lossless TX81Z voice-dump inspection, including additional operator data."""
 
+from __future__ import annotations
+
 from functools import cached_property
 
 from pydantic import Field, field_validator
@@ -19,6 +21,63 @@ class TX81ZVoice(Model):
             raise ValueError('TX81Z VCED data must contain 93 seven-bit bytes')
         return value
 
+    @cached_property
+    def operators(self) -> list[TX81ZOperator]:
+        return [self.operator(number) for number in range(1, 5)]
+
+    def operator(self, number: int) -> TX81ZOperator:
+        if not 1 <= number <= 4:
+            raise ValueError('TX81Z operator number must be from 1 through 4')
+        start = (4 - number) * 13
+        data = self.data[start : start + 13]
+        return TX81ZOperator(
+            number=number,
+            attack_rate=data[0],
+            decay_1_rate=data[1],
+            decay_2_rate=data[2],
+            release_rate=data[3],
+            decay_1_level=data[4],
+            level_scaling=data[5],
+            rate_scaling=data[6],
+            eg_bias_sensitivity=data[7],
+            amplitude_modulation_enable=bool(data[8]),
+            key_velocity_sensitivity=data[9],
+            output_level=data[10],
+            coarse=data[11],
+            detune=data[12],
+        )
+
+    @property
+    def algorithm(self) -> int:
+        return self.data[52] + 1
+
+    @property
+    def feedback(self) -> int:
+        return self.data[53]
+
+    @property
+    def title(self) -> str:
+        return self.data[77:87].decode('ascii')
+
+
+class TX81ZOperator(Model):
+    """One TX81Z VCED operator, numbered as on the front panel."""
+
+    number: int = Field(ge=1, le=4, strict=True)
+    attack_rate: int = Field(ge=0, le=31, strict=True)
+    decay_1_rate: int = Field(ge=0, le=31, strict=True)
+    decay_2_rate: int = Field(ge=0, le=31, strict=True)
+    release_rate: int = Field(ge=0, le=15, strict=True)
+    decay_1_level: int = Field(ge=0, le=15, strict=True)
+    level_scaling: int = Field(ge=0, le=99, strict=True)
+    rate_scaling: int = Field(ge=0, le=3, strict=True)
+    eg_bias_sensitivity: int = Field(ge=0, le=7, strict=True)
+    amplitude_modulation_enable: bool
+    key_velocity_sensitivity: int = Field(ge=0, le=7, strict=True)
+    output_level: int = Field(ge=0, le=99, strict=True)
+    coarse: int = Field(ge=0, le=63, strict=True)
+    detune: int = Field(ge=0, le=6, strict=True)
+
 
 class TX81ZAdditional(Model):
     """One validated 23-byte TX81Z ACED payload, including waveform settings."""
@@ -31,6 +90,35 @@ class TX81ZAdditional(Model):
         if len(value) != 23 or any(byte >= 128 for byte in value):
             raise ValueError('TX81Z ACED data must contain 23 seven-bit bytes')
         return value
+
+    @cached_property
+    def operators(self) -> list[TX81ZAdditionalOperator]:
+        return [self.operator(number) for number in range(1, 5)]
+
+    def operator(self, number: int) -> TX81ZAdditionalOperator:
+        if not 1 <= number <= 4:
+            raise ValueError('TX81Z operator number must be from 1 through 4')
+        start = (4 - number) * 5
+        data = self.data[start : start + 5]
+        return TX81ZAdditionalOperator(
+            number=number,
+            fixed_frequency=bool(data[0]),
+            fixed_frequency_range=data[1],
+            fine=data[2],
+            waveform=data[3],
+            eg_shift=data[4],
+        )
+
+
+class TX81ZAdditionalOperator(Model):
+    """One TX81Z ACED operator extension, including its waveform choice."""
+
+    number: int = Field(ge=1, le=4, strict=True)
+    fixed_frequency: bool
+    fixed_frequency_range: int = Field(ge=0, le=7, strict=True)
+    fine: int = Field(ge=0, le=15, strict=True)
+    waveform: int = Field(ge=0, le=7, strict=True)
+    eg_shift: int = Field(ge=0, le=3, strict=True)
 
 
 class TX81ZEntry(Model):
