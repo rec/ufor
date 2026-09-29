@@ -356,6 +356,8 @@ SUPPORTED_OPCODES = {
     'ampeg_release',
     'ampeg_sustain',
     'amp_veltrack',
+    'amp_keycenter',
+    'amp_keytrack',
     'direction',
     'end',
     'group',
