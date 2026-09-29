@@ -330,7 +330,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `pan_smoothccN` | SFZ v2 | controller_binding |
 | Opcode | `pan_stepccN` | SFZ v2 | controller_binding |
 | Opcode | `pan_veltrack` | SFZ v2 | new_model |
-| Opcode | `phase` | SFZ v2 | new_model |
+| Opcode | `phase` | SFZ v2 | supported |
 | Opcode | `phaser_depth` | SFZ v2 | new_model |
 | Opcode | `phaser_feedback` | SFZ v2 | new_model |
 | Opcode | `phaser_freq` | SFZ v2 | new_model |

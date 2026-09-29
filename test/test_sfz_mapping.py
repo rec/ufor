@@ -79,7 +79,33 @@ def test_sfz_off_by_keeps_each_victims_off_mode() -> None:
     }
 
 
-def _compile(text: str) -> sfz.SfzCompileResult:
+def test_sfz_phase_inversion_round_trips_as_native_processing() -> None:
+    result = _compile(
+        '<region> sample=sample.wav phase=invert pan=25',
+        output_channels=['left', 'right'],
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].processing.invert_polarity
+    assert result.instrument.body.slots[0].processing.pan == 0.25
+    exported = sfz.write(result.instrument)
+    assert exported.complete
+    assert 'phase=invert' in exported.contents
+    restored = _compile(exported.contents, output_channels=['left', 'right'])
+    assert restored.instrument is not None
+    assert restored.instrument.body.slots[0].processing.invert_polarity
+    assert restored.instrument.body.slots[0].processing.pan == 0.25
+
+
+def test_sfz_phase_rejects_unknown_value() -> None:
+    with pytest.raises(ValueError, match='Unsupported SFZ phase'):
+        _compile('<region> sample=sample.wav phase=reverse')
+
+
+def _compile(
+    text: str, output_channels: list[str] | None = None
+) -> sfz.SfzCompileResult:
     return sfz.compile_instrument(
         sfz.parse(text),
         name='mapping',
@@ -96,5 +122,5 @@ def _compile(text: str) -> sfz.SfzCompileResult:
             )
         },
         output_timebase=Timebase(name='output', rate=Rate(numerator=48000)),
-        output_channels=['mono'],
+        output_channels=output_channels or ['mono'],
     )

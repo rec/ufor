@@ -5,7 +5,7 @@ from fractions import Fraction
 from math import cos, pi, sin
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, StrictBool, model_validator
 
 from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
@@ -62,6 +62,7 @@ class BiquadCoefficients(Model):
 
 class Processing(Model):
     volume_db: FiniteScalar = 0.0
+    invert_polarity: StrictBool = False
     tuning_cents: FiniteScalar = 0.0
     pan: FiniteScalar = 0.0
     stereo_balance: FiniteScalar = 0.0
