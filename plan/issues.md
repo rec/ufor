@@ -14,17 +14,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
 
-4. **High, confirmed: automation tick durations serialize as seconds.**
-   `TimelineCurve` in `ufor/automation.py:39-53` interprets segment durations
-   as integer ticks. The shared `Duration` in `ufor/segments.py:13-47`
-   accepts an integer, but serializes it as `"<number> s"`; parsing that
-   string returns the same number and labels it seconds. At a 48 kHz
-   timebase, 2,000 ticks become the misleading `"2000 s"` on the wire.
-   `examples/automation/*.toml` use bare tick counts while
-   `doc/automation-format.md` promises a physical timebase. Give automation
-   tick durations a distinct representation or serialize with the actual
-   timebase semantics; test a non-one-hertz round trip and author-facing text.
-
 5. **Medium, confirmed: Scale silently drops misspelled fields.**
    `Scale.model_config = ConfigDict(extra='ignore')` in `ufor/scale.py:56`
    overrides the project's default `extra='forbid'`. For example, a typo in

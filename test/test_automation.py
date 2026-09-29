@@ -37,6 +37,22 @@ def test_edit_and_round_trip(name: str) -> None:
     assert parse_score(score_toml(edited)) == edited
 
 
+def test_automation_duration_is_a_native_tick_count_on_the_wire() -> None:
+    score = example('gain')
+    text = score_toml(score)
+    assert 'duration = 2000' in text
+    assert 'duration = "2000 s"' not in text
+    assert parse_score(text) == score
+
+
+@pytest.mark.parametrize('duration', ['2000 s', 1.5, True])
+def test_automation_rejects_noninteger_tick_durations(duration: object) -> None:
+    data = example('gain').model_dump()
+    data['body']['curves'][0]['segments'][0]['duration'] = duration
+    with pytest.raises(ValidationError):
+        AutomationScore.model_validate(data)
+
+
 def test_schema_includes_automation() -> None:
     assert 'automation' in score_schema()['discriminator']['mapping']
 
