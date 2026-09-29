@@ -266,12 +266,13 @@ inherit; an explicit default overrides, even after full JSON/TOML serialization.
 A slot's amplitude `envelope` is either absent or one complete shared
 `ufor.envelope.Envelope`; it never merges individual stages. The instrument
 supplies a default instantaneous gate. Amplitude envelopes are unipolar and
-voice-scoped. Named `envelopes` and `lfos` are dictionaries keyed by local IDs,
-using the same definitions as standalone envelope and LFO scores.
+voice-scoped. Named `motions` are keyed by local IDs. Each use owns its scope
+and clock, and contains a tagged `cycle` or `contour` body. The old named
+`envelopes` and `lfos` fields are rejected.
 
 A slot may name one non-nested group. A group provides an optional selection set
-and the six whole sound-setting categories: processing, amplitude envelope,
-named envelopes, LFOs, modulation, and bindings. For each category, an explicitly
+and the five whole sound-setting categories: processing, amplitude envelope,
+motions, modulation, and bindings. For each category, an explicitly
 authored slot value replaces the group's complete value; an omitted slot value
 inherits the group value. A group does not affect mappings, slices, channel routes,
 playback, choke groups, articulations, crossfades, or microphone synchronization.

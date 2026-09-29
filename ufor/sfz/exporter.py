@@ -148,19 +148,12 @@ def _sound_issues(
             value,
             'Instrument equalizer bands have no implemented SFZ conversion',
         )
-    for name, value in settings.envelopes.items():
+    for name, value in settings.motions.items():
         _issue(
             issues,
-            f'{path}.envelopes.{name}',
+            f'{path}.motions.{name}',
             value,
-            'Named instrument envelopes have no implemented SFZ conversion',
-        )
-    for name, value in settings.lfos.items():
-        _issue(
-            issues,
-            f'{path}.lfos.{name}',
-            value,
-            'Instrument LFOs have no implemented SFZ conversion',
+            'Instrument motions have no implemented SFZ conversion',
         )
     for i, value in enumerate(settings.modulation.routes):
         _issue(
@@ -725,19 +718,12 @@ def _slot_issues(
             articulation,
             'Instrument articulations require an external SFZ input binding',
         )
-    for name, value in slot.envelopes.items():
+    for name, value in slot.motions.items():
         _issue(
             issues,
-            f'{path}.envelopes.{name}',
+            f'{path}.motions.{name}',
             value,
-            'Named instrument envelopes have no implemented SFZ conversion',
-        )
-    for name, value in slot.lfos.items():
-        _issue(
-            issues,
-            f'{path}.lfos.{name}',
-            value,
-            'Instrument LFOs have no implemented SFZ conversion',
+            'Instrument motions have no implemented SFZ conversion',
         )
 
 

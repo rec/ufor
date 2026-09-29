@@ -536,10 +536,12 @@ def test_spatial_controls_reject_inapplicable_channel_layouts(
 
 def test_sfz_generator_diagnostics_use_dictionary_paths() -> None:
     raw = fixture()
-    raw['body']['slots'][0]['lfos'] = {'vibrato': {'rate': 5}}
+    raw['body']['slots'][0]['motions'] = {
+        'vibrato': {'body': {'kind': 'cycle', 'rate': 5}}
+    }
     result = sfz.write(SampleInstrumentScore.model_validate(raw))
     assert not result.complete
-    assert result.unimplemented[0].location.path == 'body.slots[0].lfos.vibrato'
+    assert result.unimplemented[0].location.path == 'body.slots[0].motions.vibrato'
 
 
 def test_sfz_export_resolves_group_processing() -> None:

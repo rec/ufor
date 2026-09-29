@@ -4,7 +4,7 @@ from fractions import Fraction
 import pytest
 from pydantic import ValidationError
 
-from ufor import envelope, modulation, segments
+from ufor import envelope, modulation
 from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import SampleInstrument
 from ufor.samples.processing import SoundSettings
@@ -18,29 +18,34 @@ def test_sample_routes_use_the_shared_evaluator() -> None:
     assert values[0].value == 0.25
 
 
-@pytest.mark.parametrize('kind', ['key', 'velocity', 'control', 'envelope', 'lfo'])
+@pytest.mark.parametrize('kind', ['key', 'velocity', 'control', 'contour', 'cycle'])
 def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) -> None:
     raw = lfo_settings()
-    binding: dict[str, object] = {'name': 'motion', 'kind': kind}
+    binding: dict[str, object] = {
+        'name': 'motion',
+        'kind': 'motion' if kind in ('contour', 'cycle') else kind,
+    }
     source = raw['modulation']['sources'][0]
     if kind == 'control':
         binding['control'] = 'bend'
         source['scope'] = 'part'
-    elif kind == 'envelope':
-        raw['envelopes'] = {
-            'motion': envelope.Envelope(
-                segments=[segments.Segment(duration=1, to=1)],
-                release=[segments.Segment(duration=1, to=0)],
-            ).model_dump()
+    elif kind == 'contour':
+        raw['motions'] = {
+            'motion': {
+                'body': {
+                    'kind': 'contour',
+                    'segments': [{'duration': '1 s', 'to': 1}],
+                    'release': [{'duration': '1 s', 'to': 0}],
+                }
+            }
         }
-        raw['lfos'] = {}
         binding['reference'] = 'motion'
         source['minimum'] = 0
         raw['modulation']['routes'][0]['points'][0]['input'] = 0
     elif kind == 'velocity':
         source['minimum'] = 0
         raw['modulation']['routes'][0]['points'][0]['input'] = 0
-    elif kind == 'lfo':
+    elif kind == 'cycle':
         binding['reference'] = 'motion'
     raw['bindings'] = [binding]
     result = SoundSettings.model_validate(raw)
@@ -55,8 +60,8 @@ def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) 
     [
         ('source', {'scope': 'instrument'}, 'scope and domain'),
         ('source', {'minimum': -0.5}, 'exceed its source domain'),
-        ('binding', {'reference': 'missing'}, 'Unknown local lfo'),
-        ('binding', {'kind': 'envelope'}, 'Unknown local envelope'),
+        ('binding', {'reference': 'missing'}, 'Unknown local motion'),
+        ('binding', {'kind': 'envelope'}, 'union_tag_invalid'),
         ('binding', {'name': 'unbound'}, 'exactly one binding'),
         ('parameter', {'unit': 'volts'}, 'requires unit'),
         ('parameter', {'default': 0.1}, 'default must match'),
@@ -83,7 +88,7 @@ def test_bindings_reject_false_domains_names_and_units(
         SoundSettings.model_validate(raw)
 
 
-def test_generator_definitions_are_never_duplicated_between_scopes() -> None:
+def test_old_generator_fields_are_rejected() -> None:
     raw = lfo_settings()
     raw['envelopes'] = {
         'motion': {
@@ -91,7 +96,7 @@ def test_generator_definitions_are_never_duplicated_between_scopes() -> None:
             'release': [{'duration': 0, 'to': 0}],
         }
     }
-    with pytest.raises(ValidationError, match='duplicate source ID'):
+    with pytest.raises(ValidationError, match='Extra inputs are not permitted'):
         SoundSettings.model_validate(raw)
 
 
@@ -200,30 +205,31 @@ def test_spatial_bounds_include_both_scopes_and_delayed_lfo_neutral() -> None:
     ]
     raw['settings']['processing'] = {'pan': 0.4}
     SampleInstrument.model_validate(raw)
-    raw['slots'][0]['lfos']['motion']['delay'] = '1/2'
+    raw['slots'][0]['motions']['motion']['body']['delay'] = '1/2'
     with pytest.raises(ValidationError, match='combined pan range'):
         SampleInstrument.model_validate(raw)
 
 
-@pytest.mark.parametrize('generator', ['envelopes', 'lfos'])
+@pytest.mark.parametrize('generator', ['contour', 'cycle'])
 def test_slot_generators_require_voice_scope(generator: str) -> None:
     value = (
         {
+            'kind': 'contour',
             'segments': [{'duration': 0, 'to': 1}],
             'release': [{'duration': 0, 'to': 0}],
         }
-        if generator == 'envelopes'
-        else {'rate': 1}
+        if generator == 'contour'
+        else {'kind': 'cycle', 'rate': 1}
     )
-    raw = body({generator: {'motion': value | {'scope': 'instrument'}}})
+    raw = body({'motions': {'motion': {'scope': 'instrument', 'body': value}}})
     with pytest.raises(ValidationError, match='voice scope'):
         SampleInstrument.model_validate(raw)
 
 
 def lfo_settings() -> dict[str, object]:
     return {
-        'lfos': {'motion': {'rate': 1}},
-        'bindings': [{'name': 'motion', 'kind': 'lfo', 'reference': 'motion'}],
+        'motions': {'motion': {'body': {'kind': 'cycle', 'rate': 1}}},
+        'bindings': [{'name': 'motion', 'kind': 'motion', 'reference': 'motion'}],
         'modulation': {
             'sources': [
                 {'name': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}

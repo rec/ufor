@@ -2756,6 +2756,19 @@
           },
           "title": "Release",
           "type": "array"
+        },
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "unipolar"
+        },
+        "hold": {
+          "default": true,
+          "title": "Hold",
+          "type": "boolean"
+        },
+        "retrigger": {
+          "$ref": "#/$defs/Retrigger",
+          "default": "current"
         }
       },
       "required": [
@@ -4070,18 +4083,11 @@
           ],
           "default": null
         },
-        "envelopes": {
+        "motions": {
           "additionalProperties": {
-            "$ref": "#/$defs/Envelope"
+            "$ref": "#/$defs/MotionUse"
           },
-          "title": "Envelopes",
-          "type": "object"
-        },
-        "lfos": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LFO"
-          },
-          "title": "Lfos",
+          "title": "Motions",
           "type": "object"
         },
         "modulation": {
@@ -4097,9 +4103,8 @@
             "discriminator": {
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
-                "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "lfo": "#/$defs/GeneratorBinding",
+                "motion": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -4862,10 +4867,8 @@
           "type": "string"
         },
         "kind": {
-          "enum": [
-            "envelope",
-            "lfo"
-          ],
+          "const": "motion",
+          "default": "motion",
           "title": "Kind",
           "type": "string"
         },
@@ -4876,7 +4879,6 @@
       },
       "required": [
         "name",
-        "kind",
         "reference"
       ],
       "title": "GeneratorBinding",
@@ -6300,6 +6302,42 @@
       "title": "MotionScore",
       "type": "object"
     },
+    "MotionUse": {
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "body": {
+          "discriminator": {
+            "mapping": {
+              "contour": "#/$defs/Contour",
+              "cycle": "#/$defs/Cycle"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cycle"
+            },
+            {
+              "$ref": "#/$defs/Contour"
+            }
+          ],
+          "title": "Body"
+        }
+      },
+      "required": [
+        "body"
+      ],
+      "title": "MotionUse",
+      "type": "object"
+    },
     "NoiseVoice": {
       "additionalProperties": false,
       "properties": {
@@ -6339,18 +6377,11 @@
             "retrigger": "current"
           }
         },
-        "envelopes": {
+        "motions": {
           "additionalProperties": {
-            "$ref": "#/$defs/Envelope"
+            "$ref": "#/$defs/MotionUse"
           },
-          "title": "Envelopes",
-          "type": "object"
-        },
-        "lfos": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LFO"
-          },
-          "title": "Lfos",
+          "title": "Motions",
           "type": "object"
         },
         "modulation": {
@@ -6366,9 +6397,8 @@
             "discriminator": {
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
-                "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "lfo": "#/$defs/GeneratorBinding",
+                "motion": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -9113,18 +9143,11 @@
             "retrigger": "current"
           }
         },
-        "envelopes": {
+        "motions": {
           "additionalProperties": {
-            "$ref": "#/$defs/Envelope"
+            "$ref": "#/$defs/MotionUse"
           },
-          "title": "Envelopes",
-          "type": "object"
-        },
-        "lfos": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LFO"
-          },
-          "title": "Lfos",
+          "title": "Motions",
           "type": "object"
         },
         "modulation": {
@@ -9140,9 +9163,8 @@
             "discriminator": {
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
-                "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "lfo": "#/$defs/GeneratorBinding",
+                "motion": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -9249,18 +9271,11 @@
           ],
           "default": null
         },
-        "envelopes": {
+        "motions": {
           "additionalProperties": {
-            "$ref": "#/$defs/Envelope"
+            "$ref": "#/$defs/MotionUse"
           },
-          "title": "Envelopes",
-          "type": "object"
-        },
-        "lfos": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LFO"
-          },
-          "title": "Lfos",
+          "title": "Motions",
           "type": "object"
         },
         "modulation": {
@@ -9276,9 +9291,8 @@
             "discriminator": {
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
-                "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "lfo": "#/$defs/GeneratorBinding",
+                "motion": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -10273,18 +10287,11 @@
           ],
           "default": null
         },
-        "envelopes": {
+        "motions": {
           "additionalProperties": {
-            "$ref": "#/$defs/Envelope"
+            "$ref": "#/$defs/MotionUse"
           },
-          "title": "Envelopes",
-          "type": "object"
-        },
-        "lfos": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LFO"
-          },
-          "title": "Lfos",
+          "title": "Motions",
           "type": "object"
         },
         "modulation": {
@@ -10300,9 +10307,8 @@
             "discriminator": {
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
-                "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "lfo": "#/$defs/GeneratorBinding",
+                "motion": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -10930,18 +10936,11 @@
             "retrigger": "current"
           }
         },
-        "envelopes": {
+        "motions": {
           "additionalProperties": {
-            "$ref": "#/$defs/Envelope"
+            "$ref": "#/$defs/MotionUse"
           },
-          "title": "Envelopes",
-          "type": "object"
-        },
-        "lfos": {
-          "additionalProperties": {
-            "$ref": "#/$defs/LFO"
-          },
-          "title": "Lfos",
+          "title": "Motions",
           "type": "object"
         },
         "modulation": {
@@ -10957,9 +10956,8 @@
             "discriminator": {
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
-                "envelope": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "lfo": "#/$defs/GeneratorBinding",
+                "motion": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"

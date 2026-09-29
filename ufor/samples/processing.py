@@ -9,8 +9,8 @@ from pydantic import Field, model_validator
 from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
-from ..lfo import LFO
 from ..modulation import Modulation, Target, Unit
+from ..motion import Contour, Cycle, MotionUse
 from . import enums
 from .controls import ControlDeclaration
 
@@ -128,7 +128,7 @@ class ControlBinding(Model):
 
 class GeneratorBinding(Model):
     name: Identifier
-    kind: Literal['envelope', 'lfo']
+    kind: Literal['motion'] = 'motion'
     reference: Identifier
 
 
@@ -140,14 +140,12 @@ Binding = Annotated[
 class SoundSettings(Model):
     processing: Processing = Processing()
     envelope: Envelope | None = None
-    envelopes: dict[Identifier, Envelope] = Field(default_factory=dict)
-    lfos: dict[Identifier, LFO] = Field(default_factory=dict)
+    motions: dict[Identifier, MotionUse] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def local_references(self) -> Self:
-        unique([*self.envelopes, *self.lfos], 'source ID')
         unique((b.name for b in self.bindings), 'binding ID')
         sources = {s.name: s for s in self.modulation.sources}
         if sources.keys() != {b.name for b in self.bindings}:
@@ -177,16 +175,15 @@ class SoundSettings(Model):
                 elif (source.minimum, source.maximum) != (0, 1):
                     raise ValueError('Velocity source domain must be [0, 1]')
             elif isinstance(binding, GeneratorBinding):
-                generators = self.envelopes if binding.kind == 'envelope' else self.lfos
-                if binding.reference not in generators:
+                if binding.reference not in self.motions:
                     raise ValueError(
-                        f'Unknown local {binding.kind} source: {binding.reference}'
+                        f'Unknown local motion source: {binding.reference}'
                     )
-                generator = generators[binding.reference]
+                generator = self.motions[binding.reference]
                 minimum = (
                     0
-                    if isinstance(generator, Envelope)
-                    and generator.polarity == control.Polarity.unipolar
+                    if isinstance(generator.body, Contour)
+                    and generator.body.polarity == control.Polarity.unipolar
                     else -1
                 )
                 if (source.scope, source.minimum, source.maximum) != (
@@ -212,9 +209,10 @@ class SoundSettings(Model):
                 raise ValueError('Resonance requires a positive parameter domain')
             if parameter.target.name == 'envelope':
                 generator = self.envelope
-            elif parameter.target.name.startswith('env-'):
-                generator = self.envelopes.get(
-                    parameter.target.name.removeprefix('env-')
+            elif parameter.target.name.startswith('motion-'):
+                motion = self.motions.get(parameter.target.name.removeprefix('motion-'))
+                generator = (
+                    motion if motion and isinstance(motion.body, Contour) else None
                 )
             else:
                 generator = None
@@ -225,7 +223,9 @@ class SoundSettings(Model):
                 p.amount < 0 for p in route.points
             ):
                 raise ValueError('Sample processing multipliers must be nonnegative')
-            if route.target.name == 'envelope' or route.target.name.startswith('env-'):
+            if route.target.name == 'envelope' or route.target.name.startswith(
+                'motion-'
+            ):
                 binding = next(b for b in self.bindings if b.name == route.source)
                 if not isinstance(binding, EventBinding):
                     raise ValueError(
@@ -287,11 +287,17 @@ def parameter_definition(
             units = {'cutoff_hz': modulation.Unit.hz, 'q': modulation.Unit.ratio}
             if target.parameter in units:
                 return units[target.parameter], getattr(filter, target.parameter)
-    generators = {f'env-{k}': v for k, v in settings.envelopes.items()}
-    if settings.envelope is not None:
-        generators['envelope'] = settings.envelope
-    if target.name in generators:
-        definition = generators[target.name]
+    definition: Envelope | Contour | None = None
+    clock: control.Clock | None = None
+    if target.name == 'envelope' and settings.envelope is not None:
+        definition = settings.envelope
+        clock = definition.clock
+    elif target.name.startswith('motion-'):
+        motion = settings.motions.get(target.name.removeprefix('motion-'))
+        if motion is not None and isinstance(motion.body, Contour):
+            definition = motion.body
+            clock = motion.clock
+    if definition is not None:
         for phase, segments in (
             ('on', definition.segments),
             ('release', definition.release),
@@ -300,7 +306,7 @@ def parameter_definition(
                 if target.parameter == f'{phase}-{index}-duration':
                     unit = (
                         modulation.Unit.seconds
-                        if definition.clock == control.Clock.seconds
+                        if clock == control.Clock.seconds
                         else modulation.Unit.beats
                     )
                     return unit, float(segment.duration)
@@ -315,8 +321,8 @@ def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
         b.name
         for b in settings.bindings
         if isinstance(b, GeneratorBinding)
-        and b.kind == 'lfo'
-        and (settings.lfos[b.reference].delay or settings.lfos[b.reference].fade_in)
+        and isinstance(body := settings.motions[b.reference].body, Cycle)
+        and (body.delay or body.fade_in)
     }
     for route in settings.modulation.routes:
         if route.target == modulation.Target(name='processing', parameter=target):

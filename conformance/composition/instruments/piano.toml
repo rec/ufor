@@ -101,9 +101,8 @@ duration = "0 s"
 curve = 0.0
 to = 0.0
 
-[body.settings.envelopes]
+[body.settings.motions]
 
-[body.settings.lfos]
 
 [body.settings.modulation]
 sources = []
@@ -195,9 +194,8 @@ duration = "2/5 s"
 curve = -5.0
 to = 0.0
 
-[body.slots.envelopes]
+[body.slots.motions]
 
-[body.slots.lfos]
 
 [[body.slots.modulation.parameters]]
 unit = "ratio"
