@@ -2,6 +2,7 @@
 
 from fractions import Fraction
 from pathlib import PurePosixPath
+from typing import Literal
 
 from .. import envelope, modulation, segments
 from ..assets import AudioDescription, ContentIdentity, RelativeFileLocation
@@ -45,8 +46,11 @@ def compile_instrument(
     assets: dict[str, AudioMetadata],
     output_timebase: Timebase,
     output_channels: list[str],
+    sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
 ) -> SfzCompileResult:
     """Build a native document from parsed text and caller-supplied asset facts."""
+    if sequence_counter not in ('reject', 'all_note_ons'):
+        raise ValueError(f'Unknown SFZ sequence counter rule: {sequence_counter}')
     paths = sample_paths(source)
     if missing := [p for p in paths if p not in assets]:
         raise ValueError(f'Missing audio metadata for SFZ samples: {missing}')
@@ -88,7 +92,13 @@ def compile_instrument(
     for index, region in enumerate(source.regions, 1):
         if (
             result := _slot(
-                index, assets, asset_ids, output_channels, region, unimplemented
+                index,
+                assets,
+                asset_ids,
+                output_channels,
+                region,
+                unimplemented,
+                sequence_counter,
             )
         ) is not None:
             slot, sample_slice = result
@@ -169,6 +179,7 @@ def _slot(
     output_channels: list[str],
     region: ParsedRegion,
     unimplemented: list[UnimplementedFeature],
+    sequence_counter: Literal['reject', 'all_note_ons'],
 ) -> tuple[SampleSlot, playback.Slice] | None:
     values: dict[str, str] = {}
     declarations: dict[str, ParsedOpcode] = {}
@@ -226,6 +237,28 @@ def _slot(
         'mapping': mapping,
         'channels': _channel_routes(metadata.channels, output_channels),
     }
+    if 'seq_length' in values or 'seq_position' in values:
+        if sequence_counter == 'reject':
+            for name in ('seq_length', 'seq_position'):
+                if name in declarations:
+                    _add_unimplemented(
+                        unimplemented,
+                        declarations[name],
+                        'SFZ sequence requires an explicit counter rule',
+                    )
+        else:
+            length = _integer(
+                values.get('seq_length', '1'), 'seq_length', minimum=1, maximum=100
+            )
+            position = _integer(
+                values.get('seq_position', '1'),
+                'seq_position',
+                minimum=1,
+                maximum=100,
+            )
+            kwargs['sequence'] = selection.SequencePosition(
+                length=length, position=position
+            )
     if 'lorand' in values or 'hirand' in values:
         kwargs['random_range'] = selection.RandomRange(
             minimum=_number(values.get('lorand', '0'), 'lorand'),

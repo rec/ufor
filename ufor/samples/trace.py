@@ -115,6 +115,11 @@ def prepare(
             if s.trigger == kind
             and s.mapping.lowest_key <= key <= s.mapping.highest_key
             and s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+            and (
+                s.sequence is None
+                or (state.note_on_counts.get(part, 0) - 1) % s.sequence.length + 1
+                == s.sequence.position
+            )
             and (s.random_range is None or s.random_range.contains(random_value))
             and (
                 kind
@@ -478,6 +483,11 @@ def prepare(
                     | event.controls,
                 )
             )
+            if any(s.sequence is not None for s in instrument.slots):
+                counts = state.note_on_counts | {
+                    event.part: state.note_on_counts.get(event.part, 0) + 1
+                }
+                state = state.model_copy(update={'note_on_counts': counts})
             selected = selected_slots(
                 event.part,
                 enums.TriggerKind.start,

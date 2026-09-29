@@ -282,6 +282,46 @@ def test_sfz_random_range_round_trips_without_selection() -> None:
     assert 'hirand=0.5' in rendered.contents
 
 
+def test_sfz_sequence_requires_explicit_counter_rule() -> None:
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav key=60 seq_length=2 seq_position=1'
+    )
+    metadata = AudioMetadata(
+        channels=1,
+        frames=48_000,
+        sample_rate=48_000,
+        encoding='WAV/PCM_16',
+        byte_length=96_044,
+        sha256='0' * 64,
+        embedded_loop_known=True,
+    )
+    kwargs = dict(
+        name='glass',
+        title='Glass',
+        assets={'audio/glass.wav': metadata},
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+
+    default = sfz.compile_instrument(source, **kwargs)
+    opted_in = sfz.compile_instrument(source, sequence_counter='all_note_ons', **kwargs)
+
+    assert [i.location.opcode for i in default.unimplemented] == [
+        'seq_length',
+        'seq_position',
+    ]
+    assert opted_in.complete
+    assert opted_in.instrument is not None
+    assert opted_in.instrument.body.slots[0].sequence == selection.SequencePosition(
+        length=2, position=1
+    )
+    exported = sfz.write(opted_in.instrument)
+    assert not exported.complete
+    assert exported.unimplemented[0].location.path == 'body.slots[0].sequence'
+    assert 'seq_length=2' in exported.contents
+    assert 'seq_position=1' in exported.contents
+
+
 def test_native_instrument_round_trips_through_the_common_codec() -> None:
     document = SampleInstrumentScore.model_validate(fixture())
     assert parse_score(score_toml(document)) == document

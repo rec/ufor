@@ -384,6 +384,8 @@ SUPPORTED_OPCODES = {
     'pitch_keytrack',
     'region_label',
     'sample',
+    'seq_length',
+    'seq_position',
     'transpose',
     'trigger',
     'tune',

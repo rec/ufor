@@ -125,6 +125,26 @@ Future execution conformance must cover layering outside sets, several independe
 candidate filtering before selection, one/zero eligible candidates, shuffle
 refill boundaries, and invariance under audio block-size changes.
 
+## Note-On Position Conditions
+
+`body.slots.sequence` is an optional `{length, position}` condition on a start
+slot. Both values are positive integers and `position` cannot exceed `length`.
+Each part has a note-on count, initially zero. Every accepted trigger event in
+that part increments the count once, before slot mapping and selection, even
+when its key or velocity matches no slot. A sequence slot is eligible when
+`(count - 1) % length + 1 == position`. Other slots are unaffected. Multiple
+slots at one position layer unless a separate named selection restricts them.
+Release and control events do not increment the count. Counts are independent
+between parts and appear in `SelectionState.note_on_counts` in snapshots.
+
+This is the explicit `all_note_ons` counter rule. It is distinct from the
+eligible-candidate counters of named selection sets and may produce silent
+steps. SFZ import reports `seq_length` and `seq_position` as unsupported by
+default; callers must explicitly request `sequence_counter='all_note_ons'` to
+interpret them using this rule. It is not a claim that all SFZ players count
+identically. SFZ export writes the corresponding opcodes but reports that the
+player-dependent counter rule cannot be guaranteed by the file.
+
 ## Random Range Conditions
 
 `body.slots.random_range` filters a slot after its trigger, key, velocity, and

@@ -35,6 +35,7 @@ from .selection import (
     Choke,
     RandomRange,
     Selection,
+    SequencePosition,
     Sustain,
     VoicePolicy,
 )
@@ -100,6 +101,7 @@ class SampleSlot(SoundSettings):
     playback: SlotPlayback = SlotPlayback()
     group: Identifier | None = None
     selection: Identifier | Literal[False] | None = None
+    sequence: SequencePosition | None = None
     random_range: RandomRange | None = None
     take: Identifier | None = None
     microphone: Identifier | None = None
@@ -142,6 +144,8 @@ class SampleSlot(SoundSettings):
 
     @model_validator(mode='after')
     def slot_values(self) -> Self:
+        if self.sequence is not None and self.trigger != enums.TriggerKind.start:
+            raise ValueError('sequence position requires a start trigger')
         unique(self.tags, 'tag')
         unique(self.articulations, 'articulation reference')
         unique((c.group for c in self.chokes), 'choke target')
