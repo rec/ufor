@@ -27,14 +27,6 @@ configuration writer are uFor's significant I/O paths.
     keeping the public `sfz` entry points stable. This is a maintenance risk,
     not a reason for a broad refactor now.
 
-21. **Low, risk: small modules should be judged by domain role, not size.**
-    `ufor/noise.py`, `ufor/references.py`, `ufor/preset.py`, and
-    `ufor/number.py` are short, but several expose public concepts used by
-    other modules. No safe consolidation is apparent merely from line counts.
-    The conditional type-alias declaration in `ufor/number.py` is the one
-    conspicuous readability issue; use a direct modern type alias when tooling
-    allows it and check import users before moving anything.
-
 22. **Low, confirmed: checked-in schema and type unions require manual
     synchronization.** `ufor/codec.py:21-88` repeats the score union exposed
     by `ufor/score_types.py`; `schema/scores.json` is a roughly 12,000-line
