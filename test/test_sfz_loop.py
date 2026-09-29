@@ -3,7 +3,7 @@ from pydantic import ValidationError
 
 from ufor import sfz
 from ufor.samples.enums import Direction
-from ufor.samples.metadata import AudioMetadata
+from ufor.samples.metadata import AudioMetadata, EmbeddedLoop
 from ufor.samples.playback import Loop
 from ufor.time import Rate, Timebase
 
@@ -56,7 +56,37 @@ def test_mirror_loop_rejects_crossfade() -> None:
         )
 
 
-def _compile(text: str) -> sfz.SfzCompileResult:
+@pytest.mark.parametrize(
+    ('loop_type', 'direction'),
+    [(1, Direction.mirror), (2, Direction.backward)],
+)
+def test_embedded_wav_loop_direction_is_preserved(
+    loop_type: int, direction: Direction
+) -> None:
+    result = _compile(
+        '<region> sample=loop.wav',
+        embedded_loop=EmbeddedLoop(start_frame=10, end_frame=100, loop_type=loop_type),
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slices[0].loop is not None
+    assert result.instrument.body.slices[0].loop.direction == direction
+
+
+def test_unknown_embedded_wav_loop_type_is_diagnosed() -> None:
+    result = _compile(
+        '<region> sample=loop.wav',
+        embedded_loop=EmbeddedLoop(start_frame=10, end_frame=100, loop_type=3),
+    )
+
+    assert not result.complete
+    assert result.unimplemented[0].reason == 'WAV smpl loop type 3 is not implemented'
+
+
+def _compile(
+    text: str, embedded_loop: EmbeddedLoop | None = None
+) -> sfz.SfzCompileResult:
     return sfz.compile_instrument(
         sfz.parse(text),
         name='loop',
@@ -69,6 +99,7 @@ def _compile(text: str) -> sfz.SfzCompileResult:
                 byte_length=96000,
                 sha256='0' * 64,
                 frames=48000,
+                embedded_loop=embedded_loop,
                 embedded_loop_known=True,
             )
         },

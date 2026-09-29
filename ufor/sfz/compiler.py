@@ -519,7 +519,8 @@ def _playback(
     embedded_loop = metadata.embedded_loop
     if (
         embedded_loop is not None
-        and embedded_loop.loop_type
+        and embedded_loop.loop_type not in (0, 1, 2)
+        and 'loop_type' not in values
         and (
             mode is None
             or mode.startswith('loop_')
@@ -559,11 +560,19 @@ def _playback(
     if mode == 'one_shot' or release_trigger:
         result['mode'] = enums.PlaybackMode.one_shot
     elif mode.startswith('loop_'):
-        loop_type = values.get('loop_type', 'forward')
-        if loop_type not in ('forward', 'backward', 'alternate'):
-            raise ValueError(f'Region {index}: unsupported loop_type: {loop_type}')
         start = values.get('loop_start')
         end = values.get('loop_end')
+        embedded_type = (
+            embedded_loop.loop_type
+            if embedded_loop is not None and (start is None or end is None)
+            else 0
+        )
+        default_loop_type = {0: 'forward', 1: 'alternate', 2: 'backward'}.get(
+            embedded_type, 'forward'
+        )
+        loop_type = values.get('loop_type', default_loop_type)
+        if loop_type not in ('forward', 'backward', 'alternate'):
+            raise ValueError(f'Region {index}: unsupported loop_type: {loop_type}')
         if start is None and embedded_loop is not None:
             start = str(embedded_loop.start_frame)
         if end is None and embedded_loop is not None:
