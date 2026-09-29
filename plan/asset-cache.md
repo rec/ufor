@@ -143,6 +143,11 @@ promise cannot fit the configured capacity.
 Nondeterministic buffer output may be explicitly materialized as a new entry on
 every call. Streaming providers remain session sources for automatic lookup; a
 capture is an immutable result independent of whether it can be regenerated.
+Reccy now provides deterministic finite-byte value caching keyed by a
+host-supplied source fingerprint. It remembers the first content identity
+across collection and invalidates the mapping on conflicting regeneration.
+Provider invocation, effective-argument resolution, and audio encoding still
+belong to the consuming host.
 
 ## Provider materialization and capture integration
 
