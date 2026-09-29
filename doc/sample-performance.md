@@ -408,6 +408,16 @@ release event creates the pending voice and starts this timer; that same event
 does not cancel it. This differs from an
 amplitude envelope's delay phase, which begins when the voice itself starts.
 
+## Final Sample Fade
+
+`end_fade_seconds` on a slot defaults to zero. A positive value applies a
+linear amplitude fade during the final seconds before the sample reaches its
+trimmed playback boundary. The duration is measured in playback time, not
+source frames, so pitch changes do not change the requested fade time. It is
+independent of the amplitude envelope and does not begin merely because a note
+is released. An early release or envelope completion can end the voice before
+the fade is reached. Loop and repeated-playback interactions are not yet defined.
+
 ## Release And Sustain Samples
 
 Each slot's `trigger` is `start` (default), `release`, `logical_release`,

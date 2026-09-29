@@ -695,6 +695,33 @@ def test_voice_policy_round_trips_through_toml() -> None:
     assert parse_score(score_toml(document)) == document
 
 
+def test_end_fade_round_trips_through_toml() -> None:
+    raw = fixture()
+    raw['body']['slots'][0]['playback']['end_fade_seconds'] = 0.25
+
+    document = SampleInstrumentScore.model_validate(raw)
+
+    assert parse_score(score_toml(document)) == document
+
+
+@pytest.mark.parametrize('repetition', ['loop', 'play_count'])
+def test_end_fade_rejects_undefined_repetition(repetition: str) -> None:
+    raw = fixture()
+    raw['body']['slots'][0]['playback']['end_fade_seconds'] = 0.25
+    if repetition == 'loop':
+        raw['body']['slices'][0]['loop'] = {
+            'start_frame': 100,
+            'end_frame': 200,
+        }
+    else:
+        raw['body']['slots'][0]['playback'].update(
+            {'mode': 'one_shot', 'play_count': 2}
+        )
+
+    with pytest.raises(ValidationError, match='end fade requires unlooped'):
+        SampleInstrumentScore.model_validate(raw)
+
+
 def test_instrument_score_tags_use_the_library_contract() -> None:
     raw = fixture()
     raw['tags'] = ['#sample', '#sample']

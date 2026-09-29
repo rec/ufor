@@ -60,12 +60,13 @@ class Playback(base.Model):
 
 
 class SlotPlayback(base.Model):
-    """Unset direction and mode inherit instrument traversal after serialization."""
+    """Per-voice traversal, timing, and final linear fade."""
 
     direction: enums.Direction | None = None
     mode: enums.PlaybackMode | None = None
     play_count: int | None = Field(default=None, strict=True, ge=1)
     start_delay_seconds: base.Seconds = 0
+    end_fade_seconds: base.Seconds = 0
 
 
 class Slice(base.Model):
