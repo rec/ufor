@@ -351,6 +351,12 @@ class SampleInstrument(Model):
                 and mode != enums.PlaybackMode.one_shot
             ):
                 raise ValueError(f'Slot {slot.name}: play_count requires one_shot')
+            if slot.playback.end_fade_seconds and (
+                sample_slice.loop is not None or slot.playback.play_count is not None
+            ):
+                raise ValueError(
+                    f'Slot {slot.name}: end fade requires unlooped single playback'
+                )
             if sample_slice.loop is not None:
                 if mode != enums.PlaybackMode.while_held:
                     raise ValueError(f'Slot {slot.name}: loops require while_held')

@@ -15,6 +15,21 @@ from ufor.samples.instrument import (
 )
 
 
+def test_slot_playback_end_fade_round_trips() -> None:
+    value = playback.SlotPlayback(end_fade_seconds=0.25)
+
+    assert playback.SlotPlayback.model_validate_json(value.model_dump_json()) == value
+    assert value.model_dump(mode='json', exclude_unset=True) == {
+        'end_fade_seconds': 0.25
+    }
+
+
+@pytest.mark.parametrize('value', [-1, float('inf')])
+def test_slot_playback_end_fade_requires_finite_nonnegative_time(value: float) -> None:
+    with pytest.raises(ValidationError):
+        playback.SlotPlayback(end_fade_seconds=value)
+
+
 @pytest.mark.parametrize(
     'input_settings',
     [
