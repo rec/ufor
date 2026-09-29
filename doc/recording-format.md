@@ -6,19 +6,23 @@ ordered event sequences. TOML is the score syntax; `format = "recs"`,
 `ufor.codec.score_schema()` generates structural JSON Schema for all supported
 score kinds; [semantic validation](validation.md) adds the cross-field rules.
 The [arrangement format](arrangement-format.md) describes audio editing.
+Ufor validates recording declarations and their references. The capture,
+finalization, payload verification, recovery, and export behavior described
+below belongs to the `recs` host, which must handle storage and I/O failures.
 
-`recording.toml` is the content index used by session browsing, checking,
+In `recs`, `recording.toml` is the content index used by session browsing, checking,
 export, and the editor's session resolver. Recording shutdown and successful
 audio edits finalize this score beside their version 4 capture journal.
 The journal remains append-only operational evidence for diagnostics and
 recovery. Content readers require the common score; they do not fall back
 to historical journals. Convert old sessions explicitly before opening them.
 
-Finalization hashes finished assets and checks audio metadata and native spans.
+`recs` finalization hashes finished assets and checks audio metadata and native spans.
 It never overwrites an existing score. A failed finalization leaves the
 journal and media available; the recorder reports the error, and the next
 recovery scan reports the missing score even if the journal has a footer.
-`recs record check` performs the fuller payload verification described below.
+`recs record check` performs the fuller payload verification described below;
+uFor does not open or verify asset payloads.
 
 Finalized recordings use finite `relative_file`, `volume_file`, `download`, or
 `git_file` locations with verified content identity. Capturing a URL or Python
@@ -82,7 +86,8 @@ count is zero. Counts never substitute for duration:
 External MIDI and OSC streams do not claim a score timebase. Their observed
 opening timestamp and timing-source label can be retained separately. Native
 event JSONL uses the same event records as sequences below, one complete record
-per line. Verification checks ordering and unique ordinals across fragments.
+per line. The `recs` payload checker verifies ordering and unique ordinals
+across fragments.
 Production MIDI, OSC, and key capture now write this common event representation.
 MIDI defaults to host monotonic callback timestamps; the optional Mido-delta
 mode requires meaningful deltas from the source. OSC retains raw packets,
@@ -188,7 +193,7 @@ original recording parent, supply that parent explicitly:
 recs session migrate '/recordings/2026-09-04 15-01-57' --paths-relative-to /recordings
 ```
 
-The command verifies hashes, decodes every finished audio file, checks native
+The `recs` migration command verifies hashes, decodes every finished audio file, checks native
 frame intervals, channels and sample rates, and counts MIDI/OSC events before
 writing anything. A count/span discrepancy becomes an explicitly unmapped
 fragment and a report entry; corrupt payloads and inconsistent sample rates or
@@ -228,14 +233,14 @@ recs session export /path/to/session/recording.toml /path/to/export
 recs session export-midi /path/to/session/recording.toml midi:keys take.mid
 ```
 
-The checker follows continuations, verifies asset hashes and byte lengths,
+The `recs` checker follows continuations, verifies asset hashes and byte lengths,
 decodes audio, and counts events. Open recordings and unresolved audio placement
 produce explicit diagnostics. Browsing reports these states without decoding
 all audio; its warnings and control markers come from the referenced journal.
 `recs explain /path/to/session/session-record.jsonl` still examines operational
 evidence directly, including captures that have not finalized.
 
-Export requires sealed scores and verifies every asset before copying.
+`recs` export requires sealed scores and verifies every asset before copying.
 It includes all linked segments, rewrites common-score continuation paths,
 and verifies copied assets. Original journal bytes remain unchanged as evidence.
 The result starts at `recording.toml`; additional segments live under `sessions/`.
