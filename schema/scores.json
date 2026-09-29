@@ -4955,6 +4955,10 @@
         "reference": {
           "title": "Reference",
           "type": "string"
+        },
+        "release_timing": {
+          "$ref": "#/$defs/ReleaseTiming",
+          "default": "event"
         }
       },
       "required": [
@@ -9175,6 +9179,14 @@
       ],
       "title": "Release",
       "type": "object"
+    },
+    "ReleaseTiming": {
+      "enum": [
+        "event",
+        "voice"
+      ],
+      "title": "ReleaseTiming",
+      "type": "string"
     },
     "Reset": {
       "enum": [

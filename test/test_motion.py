@@ -28,7 +28,7 @@ from ufor.motion import (
     motion_at,
     motion_event,
 )
-from ufor.samples.processing import SoundSettings
+from ufor.samples.processing import ReleaseTiming, SoundSettings
 from ufor.segments import Segment
 
 
@@ -138,6 +138,39 @@ def test_voice_motion_event_connections_validate_ports_and_cues() -> None:
     assert SoundSettings.model_validate(raw).event_connections[0].port == 'peak'
     raw['event_connections'][0]['port'] = 'stage.missing'
     with pytest.raises(ValidationError, match='unknown port'):
+        SoundSettings.model_validate(raw)
+
+
+def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
+    raw = {
+        'motions': {
+            'motion': {
+                'body': {
+                    'kind': 'contour',
+                    'segments': [{'duration': '1 s', 'to': 1}],
+                    'release': [{'duration': '1 s', 'to': 0}],
+                }
+            }
+        },
+        'modulation': {
+            'sources': [
+                {'name': 'motion', 'scope': 'voice', 'minimum': 0, 'maximum': 1}
+            ]
+        },
+        'bindings': [{'name': 'motion', 'kind': 'motion', 'reference': 'motion'}],
+    }
+    default = SoundSettings.model_validate(raw)
+    assert default.bindings[0].release_timing == ReleaseTiming.event
+    raw['bindings'][0]['release_timing'] = 'voice'
+    selected = SoundSettings.model_validate(raw)
+    assert selected.bindings[0].release_timing == ReleaseTiming.voice
+    assert SoundSettings.model_validate_json(selected.model_dump_json()) == selected
+    raw['motions']['motion']['body']['release'] = []
+    with pytest.raises(ValidationError, match='releasing contour'):
+        SoundSettings.model_validate(raw)
+    raw['motions']['motion']['body'] = {'kind': 'cycle', 'rate': '1'}
+    raw['modulation']['sources'][0]['minimum'] = -1
+    with pytest.raises(ValidationError, match='releasing contour'):
         SoundSettings.model_validate(raw)
 
 
