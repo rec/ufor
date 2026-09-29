@@ -167,6 +167,8 @@ for a live source.
 Export a selected capture as a finite portable score and package with
 ordinary relative asset locations and verified content identities. Use
 uFor recording fragments and gaps rather than another timeline model.
+Reccy now offers atomic export of one verified finite entry to a host-approved
+destination; the host still has to assemble and seal the score and package.
 
 ## Retention extensions
 
