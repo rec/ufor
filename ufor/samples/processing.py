@@ -180,6 +180,10 @@ class SoundSettings(Model):
                         f'Unknown local motion source: {binding.reference}'
                     )
                 generator = self.motions[binding.reference]
+                if generator.score is not None:
+                    if source.scope != generator.scope:
+                        raise ValueError('Motion source scope must match its use')
+                    continue
                 minimum = (
                     0
                     if isinstance(generator.body, Contour)
@@ -195,6 +199,13 @@ class SoundSettings(Model):
                         'Generator source scope and domain must match its definition'
                     )
         for parameter in self.modulation.parameters:
+            motion = self.motions.get(parameter.target.name.removeprefix('motion-'))
+            if parameter.target.name.startswith('motion-') and (
+                motion is not None and motion.score is not None
+            ):
+                if parameter.scope != motion.scope:
+                    raise ValueError('Motion parameter scope must match its use')
+                continue
             unit, default = self.parameter_definition(parameter.target)
             if parameter.unit != unit or parameter.default != default:
                 raise ValueError(

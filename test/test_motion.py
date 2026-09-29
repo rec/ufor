@@ -1,17 +1,22 @@
 from fractions import Fraction
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
 from ufor.codec import parse_score, score_toml
+from ufor.library_files import read_library
 from ufor.motion import (
     Contour,
     Cycle,
     MotionEvent,
+    MotionParameter,
     MotionScore,
     MotionState,
     MotionUse,
+    ParameterReference,
     initial_motion,
+    instantiate_motion,
     motion_at,
     motion_event,
 )
@@ -45,6 +50,41 @@ def test_motion_score_round_trips_simple_bodies(
 def test_old_generator_score_kinds_are_rejected(kind: str) -> None:
     with pytest.raises(ValidationError):
         parse_score(f'kind = "{kind}"\nname = "old"\ntitle = "Old"\n')
+
+
+def test_public_cycle_rate_is_explicitly_bound_and_instantiated() -> None:
+    score = MotionScore(
+        name='vibrato',
+        title='Vibrato',
+        parameters={
+            'speed': MotionParameter(unit='hz', default=5, minimum=0.1, maximum=20)
+        },
+        body=Cycle(rate=ParameterReference(parameter='speed')),
+    )
+    assert parse_score(score_toml(score)) == score
+    assert instantiate_motion(score).body == Cycle(rate=Fraction(5))
+    assert instantiate_motion(score, {'speed': 6}).body == Cycle(rate=Fraction(6))
+    with pytest.raises(ValueError, match='unknown public'):
+        instantiate_motion(score, {'depth': 1})
+    with pytest.raises(ValueError, match='outside its range'):
+        instantiate_motion(score, {'speed': 30})
+    with pytest.raises(ValidationError, match='inline cycle rate'):
+        MotionUse(body=score.body)
+
+
+def test_motion_use_requires_exactly_one_definition() -> None:
+    with pytest.raises(ValidationError, match='exactly one'):
+        MotionUse()
+    with pytest.raises(ValidationError, match='exactly one'):
+        MotionUse.model_validate(
+            {'body': {'kind': 'cycle', 'rate': '1'}, 'score': {'selector': 'vibrato'}}
+        )
+
+
+def test_example_motion_library_resolves_all_scores() -> None:
+    library = read_library(Path(__file__).parents[1] / 'examples/motions/library.toml')
+    assert not library.diagnostics
+    assert {e.name for e in library.find()} == {'vibrato', 'pulse', 'pluck'}
 
 
 def test_autonomous_contour_completes_without_note_off() -> None:

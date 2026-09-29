@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from .base import Model
 from .composition import Composition, ScoreRecord
 from .interface import InterfaceScore, ScoreReference
+from .motion import MotionOrigin, MotionScore, MotionUse, instantiate_motion
 from .preset import PresetScore
 from .score import Score
 from .score_types import ScoreValue
@@ -101,6 +102,44 @@ class Library:
         self, selector: str | ScoreSelector, parameters: dict[str, float] | None = None
     ) -> Composition:
         return Composition(self.resolve(selector).key, self.records, parameters)
+
+    def materialize(self, selector: str | ScoreSelector) -> ScoreValue:
+        """Resolve a library score's Motion uses before consumer preparation."""
+        record = self.records[self.resolve(selector).key]
+        value = self._materialize_motions(record.score, record.paths)
+        assert isinstance(value, BaseModel)
+        return TypeAdapter(ScoreValue).validate_python(value.model_dump())
+
+    def _materialize_motions(self, value: object, paths: dict[str, str]) -> object:
+        if isinstance(value, MotionUse) and value.score is not None:
+            reference = value.score
+            key = (
+                paths[str(reference.path)]
+                if reference.path is not None
+                else self.resolve(str(reference.selector)).key
+            )
+            target = self.records[key].score
+            if not isinstance(target, MotionScore):
+                raise ValueError(f'{key}: Motion use requires a motion score')
+            return instantiate_motion(
+                target,
+                value.parameters,
+                value.scope,
+                value.clock,
+                MotionOrigin(identity=key, sha256=self.entries[key].sha256),
+            )
+        if isinstance(value, BaseModel):
+            return value.model_copy(
+                update={
+                    name: self._materialize_motions(getattr(value, name), paths)
+                    for name in type(value).model_fields
+                }
+            )
+        if isinstance(value, list):
+            return [self._materialize_motions(v, paths) for v in value]
+        if isinstance(value, dict):
+            return {k: self._materialize_motions(v, paths) for k, v in value.items()}
+        return value
 
     def _select(self, selector: str | ScoreSelector) -> Entry:
         query = parse_selector(selector) if isinstance(selector, str) else selector
@@ -222,24 +261,43 @@ class Library:
             record = self.records[target.key]
             data = record.score.model_dump()
             if entry.score.parameters:
-                if not isinstance(record.score, InterfaceScore):
-                    raise ValueError('selected score has no public parameters')
-                composition = Composition(target.key, self.records)
-                for name, value in entry.score.parameters.items():
-                    contract = composition.parameter_contract(target.key, name)
-                    if not contract.minimum <= value <= contract.maximum:
-                        raise ValueError(
-                            f'preset parameter {name} is outside its range'
+                if isinstance(record.score, MotionScore):
+                    if entry.score.parameters.keys() - record.score.parameters.keys():
+                        raise ValueError('preset names an unknown motion parameter')
+                    for name, value in entry.score.parameters.items():
+                        contract = record.score.parameters[name]
+                        if not contract.minimum <= value <= contract.maximum:
+                            raise ValueError(
+                                f'preset parameter {name} is outside its range'
+                            )
+                    data['parameters'] = {
+                        name: contract.model_dump()
+                        | (
+                            {'default': entry.score.parameters[name]}
+                            if name in entry.score.parameters
+                            else {}
                         )
-                data['parameters'] = [
-                    p.model_dump()
-                    | (
-                        {'default': entry.score.parameters[p.name]}
-                        if p.name in entry.score.parameters
-                        else {}
-                    )
-                    for p in record.score.parameters
-                ]
+                        for name, contract in record.score.parameters.items()
+                    }
+                elif isinstance(record.score, InterfaceScore):
+                    composition = Composition(target.key, self.records)
+                    for name, value in entry.score.parameters.items():
+                        contract = composition.parameter_contract(target.key, name)
+                        if not contract.minimum <= value <= contract.maximum:
+                            raise ValueError(
+                                f'preset parameter {name} is outside its range'
+                            )
+                    data['parameters'] = [
+                        p.model_dump()
+                        | (
+                            {'default': entry.score.parameters[p.name]}
+                            if p.name in entry.score.parameters
+                            else {}
+                        )
+                        for p in record.score.parameters
+                    ]
+                else:
+                    raise ValueError('selected score has no public parameters')
             data.update(name=entry.name, title=entry.score.title, tags=entry.tags)
             resolved = TypeAdapter(ScoreValue).validate_python(data)
             assert target.content_origin is not None

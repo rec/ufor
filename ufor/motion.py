@@ -6,18 +6,45 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, field_validator, model_validator
 
 from . import control, envelope, lfo
-from .base import FiniteScalar, Model
+from .base import FiniteScalar, Identifier, Model
 from .envelope import Retrigger
+from .interface import ScoreReference
 from .lfo import Reset
+from .modulation import Unit
 from .oscillator import Waveform
 from .score import Score
 from .segments import Segment
 
 
+class ParameterReference(Model):
+    parameter: Identifier
+
+
+class MotionParameter(Model):
+    unit: Unit
+    default: float
+    minimum: float
+    maximum: float
+    description: str | None = None
+
+    @model_validator(mode='after')
+    def domain(self) -> Self:
+        if not 0 <= self.minimum <= self.default <= self.maximum:
+            raise ValueError('motion parameter has an invalid domain or default')
+        if self.unit == Unit.hz and self.minimum == 0:
+            raise ValueError('Hz motion parameters require a positive minimum')
+        return self
+
+
+class MotionOrigin(Model):
+    identity: str
+    sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
+
+
 class Cycle(Model):
     kind: Literal['cycle'] = 'cycle'
     shape: Waveform = Waveform.sine
-    rate: control.Rational = Field(ge=0)
+    rate: ParameterReference | Annotated[control.Rational, Field(ge=0)]
     phase: control.Rational = Field(default=Fraction(0), ge=0, lt=1)
     duty_cycle: control.Rational = Field(default=Fraction(1, 2), ge=0, le=1)
     reset: Reset = Reset.trigger
@@ -54,7 +81,24 @@ class Contour(Model):
 class MotionUse(Model):
     scope: control.Scope = control.Scope.voice
     clock: control.Clock = control.Clock.seconds
-    body: Annotated[Cycle | Contour, Field(discriminator='kind')]
+    body: Annotated[Cycle | Contour, Field(discriminator='kind')] | None = None
+    score: ScoreReference | None = None
+    parameters: dict[Identifier, float] = Field(default_factory=dict)
+    origin: MotionOrigin | None = None
+
+    @model_validator(mode='after')
+    def one_definition(self) -> Self:
+        if (self.body is None) == (self.score is None):
+            raise ValueError('MotionUse requires exactly one body or score reference')
+        if self.score is None and self.parameters:
+            raise ValueError('inline motions do not accept public parameters')
+        if self.score is not None and self.origin is not None:
+            raise ValueError('unresolved motions cannot claim a materialized origin')
+        if isinstance(self.body, Cycle) and isinstance(
+            self.body.rate, ParameterReference
+        ):
+            raise ValueError('inline cycle rate cannot reference a public parameter')
+        return self
 
 
 class MotionEvent(control.ControlEvent):
@@ -82,6 +126,8 @@ def cycle_lfo(motion: MotionUse) -> lfo.LFO:
     body = motion.body
     if not isinstance(body, Cycle):
         raise ValueError('motion is not a cycle')
+    if isinstance(body.rate, ParameterReference):
+        raise ValueError('cycle rate has an unresolved public parameter')
     return lfo.LFO(
         clock=motion.clock,
         scope=motion.scope,
@@ -115,6 +161,8 @@ def contour_envelope(motion: MotionUse) -> envelope.Envelope:
 def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
     if isinstance(motion.body, Cycle):
         return MotionState(runtime=lfo.initial_lfo(cycle_lfo(motion), at))
+    if not isinstance(motion.body, Contour):
+        raise ValueError('motion reference must be materialized before use')
     state = envelope.initial_envelope(contour_envelope(motion), at)
     if not motion.body.release:
         state = state.model_copy(update={'phase': 'on'})
@@ -189,4 +237,40 @@ def motion_event(
 
 class MotionScore(Score):
     kind: Literal['motion'] = 'motion'
+    parameters: dict[Identifier, MotionParameter] = Field(default_factory=dict)
     body: Annotated[Cycle | Contour, Field(discriminator='kind')]
+
+    @model_validator(mode='after')
+    def public_parameters(self) -> Self:
+        rate = self.body.rate if isinstance(self.body, Cycle) else None
+        used = {rate.parameter} if isinstance(rate, ParameterReference) else set()
+        if used != self.parameters.keys():
+            raise ValueError('motion parameters must each bind to a supported field')
+        if (
+            isinstance(rate, ParameterReference)
+            and self.parameters[rate.parameter].unit != Unit.hz
+        ):
+            raise ValueError('cycle rate requires a Hz parameter')
+        return self
+
+
+def instantiate_motion(
+    score: MotionScore,
+    parameters: dict[str, float] | None = None,
+    scope: control.Scope = control.Scope.voice,
+    clock: control.Clock = control.Clock.seconds,
+    origin: MotionOrigin | None = None,
+) -> MotionUse:
+    values = parameters or {}
+    if values.keys() - score.parameters.keys():
+        raise ValueError('unknown public motion parameters')
+    body = score.body
+    if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
+        declared = score.parameters[body.rate.parameter]
+        value = values.get(body.rate.parameter, declared.default)
+        if not declared.minimum <= value <= declared.maximum:
+            raise ValueError(
+                f'motion parameter {body.rate.parameter} is outside its range'
+            )
+        body = Cycle.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
+    return MotionUse(scope=scope, clock=clock, body=body, origin=origin)
