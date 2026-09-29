@@ -55,8 +55,10 @@ mounts, approved remote URLs, Git transport storage, and byte/time limits from
 the host. Offline edit preparation uses that resolver for selected recording
 fragments and holds cache leases through rendering. Ordinary `recs edit`
 commands accept an explicit operator-owned asset policy file with measured
-volume IDs, approved URLs, and cache settings. Composition, calibration,
-recording playback, and package export still use session-relative files.
+volume IDs, approved URLs, and cache settings. `recs session export` accepts
+the same policy and rewrites verified finite assets to relative files in a
+portable package. Composition, calibration, and recording playback still use
+session-relative files.
 
 The existing Python provider protocol remains audio-specific. Other finite asset
 types need no provider protocol change to be cached. Future typed generators can
@@ -185,7 +187,10 @@ Export a selected capture as a finite portable score and package with
 ordinary relative asset locations and verified content identities. Use
 uFor recording fragments and gaps rather than another timeline model.
 Reccy now offers atomic export of one verified finite entry to a host-approved
-destination; the host still has to assemble and seal the score and package.
+destination. Recs can assemble a portable recording package from verified
+relative, volume, HTTPS, and Git assets, rewriting non-relative locations to
+relative files. Captured streaming realizations still need a host path from
+the capture result into a sealed recording score before this export can use them.
 
 ## Retention extensions
 
@@ -262,7 +267,8 @@ abandoned one or reclaim recovery material safely.
    recs has a policy-injected finite-byte resolver and ordinary offline edit
    commands hold its leases during decoding. Their policy files supply measured
    mounts and require operator-provided quota-limited Git transport storage.
-   Other recs consumers still need this integration.
+   Recs package export also accepts this policy and rewrites finite assets;
+   other recs consumers still need this integration.
    Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and

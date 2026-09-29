@@ -53,7 +53,9 @@ display-name change does not invalidate a stable ID. Consuming hosts still
 have to populate the measured mount registry and authorize roots. Recs now has
 an explicit finite-byte resolver that accepts those measured mounts. Ordinary
 offline edit commands can supply an operator-owned policy file and hold leases
-through rendering; recording playback still uses session-relative files.
+through rendering. Recs package export accepts the same policy and rewrites
+verified volume assets as relative files; recording playback still uses
+session-relative files.
 
 ## Download URLs
 
@@ -422,7 +424,8 @@ enforce the cross-field source/facts matrix and URI/path rules.
 - Port the current relative-file resolution to the new model.
 - Define the host volume registry and exact missing/ambiguous/mismatch errors.
 - Verify encoded byte facts and decoded audio facts before publishing a handle.
-- Implement package export by copying to relative locations.
+- Recs package export now copies verified finite locations into relative files;
+  other hosts still need their own export path.
 
 Acceptance: moving the package preserves relative files; changing a mount point
 preserves a volume asset; a same-named wrong volume is rejected; symlink escapes
