@@ -19,6 +19,26 @@ def test_pitch_alias_and_tune_follow_inheritance_order() -> None:
     assert sfz.write(result.instrument).complete
 
 
+def test_conflicting_pitch_center_before_key_is_diagnosed() -> None:
+    result = _compile('<global> pitch_keycenter=60 <region> sample=sample.wav key=72')
+
+    assert not result.complete
+    assert len(result.unimplemented) == 1
+    assert result.unimplemented[0].location.opcode == 'key'
+    assert 'players disagree' in result.unimplemented[0].reason
+
+
+def test_key_before_pitch_center_is_unambiguous() -> None:
+    result = _compile('<region> sample=sample.wav key=72 pitch_keycenter=60')
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].mapping.lowest_key == 72
+    assert result.instrument.body.slots[0].mapping.reference_pitch_hz == pytest.approx(
+        261.625565
+    )
+
+
 @pytest.mark.parametrize('transpose', ['1.5', '128', '-128'])
 def test_transpose_requires_an_in_range_integer(transpose: str) -> None:
     with pytest.raises(ValueError, match='transpose'):
