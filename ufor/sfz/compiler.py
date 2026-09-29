@@ -283,6 +283,13 @@ def _slot(
             'Generated SFZ samples are not implemented',
         )
         return None
+    if 'end' in values and _integer(values['end'], 'end', minimum=-1) == -1:
+        _add_unimplemented(
+            unimplemented,
+            declarations['end'],
+            'Silent SFZ regions that can choke other voices are not implemented',
+        )
+        return None
 
     tracking = _integer(
         values.get('pitch_keytrack', '100'),
