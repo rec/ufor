@@ -134,6 +134,7 @@ class SampleSlot(SoundSettings):
                 'motions',
                 'modulation',
                 'bindings',
+                'event_connections',
                 'selection',
             ):
                 if name not in self.model_fields_set:
@@ -198,7 +199,14 @@ class SampleSlot(SoundSettings):
 
 def effective_settings(slot: SampleSlot, group: SlotGroup | None) -> SoundSettings:
     """Resolve whole sound-setting categories from slot, group, then defaults."""
-    fields = ('processing', 'envelope', 'motions', 'modulation', 'bindings')
+    fields = (
+        'processing',
+        'envelope',
+        'motions',
+        'modulation',
+        'bindings',
+        'event_connections',
+    )
     return SoundSettings.model_validate(
         {
             name: getattr(slot, name)

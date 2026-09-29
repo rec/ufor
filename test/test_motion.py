@@ -28,6 +28,7 @@ from ufor.motion import (
     motion_at,
     motion_event,
 )
+from ufor.samples.processing import SoundSettings
 from ufor.segments import Segment
 
 
@@ -90,6 +91,54 @@ def staged_motion() -> MotionUse:
             ],
         )
     )
+
+
+def test_voice_motion_event_connections_validate_ports_and_cues() -> None:
+    source = staged_motion()
+    destination = MotionUse(
+        body=Stages(
+            initial_stage='waiting',
+            stages=[
+                Stage(name='waiting', motion=Hold(value=0.0)),
+                Stage(name='bright', motion=Hold(value=1.0)),
+            ],
+            transitions=[
+                StageTransition(
+                    from_stages=['waiting'],
+                    event='cue.brighten',
+                    action=EnterStage(stage='bright'),
+                )
+            ],
+        )
+    )
+    raw = {
+        'motions': {
+            'source': source.model_dump(),
+            'destination': destination.model_dump(),
+        },
+        'modulation': {
+            'sources': [
+                {'name': 'source', 'scope': 'voice', 'minimum': -1, 'maximum': 1},
+                {'name': 'destination', 'scope': 'voice', 'minimum': -1, 'maximum': 1},
+            ]
+        },
+        'bindings': [
+            {'name': 'source', 'kind': 'motion', 'reference': 'source'},
+            {'name': 'destination', 'kind': 'motion', 'reference': 'destination'},
+        ],
+        'event_connections': [
+            {
+                'source': 'source',
+                'port': 'peak',
+                'destination': 'destination',
+                'cue': 'brighten',
+            }
+        ],
+    }
+    assert SoundSettings.model_validate(raw).event_connections[0].port == 'peak'
+    raw['event_connections'][0]['port'] = 'stage.missing'
+    with pytest.raises(ValidationError, match='unknown port'):
+        SoundSettings.model_validate(raw)
 
 
 @pytest.mark.parametrize(
