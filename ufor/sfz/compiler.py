@@ -332,13 +332,21 @@ def _slot(
         'channels': _channel_routes(metadata.channels, output_channels),
     }
     if 'seq_length' in values or 'seq_position' in values:
-        if sequence_counter == 'reject':
+        if sequence_counter == 'reject' or values.get('trigger') not in (
+            None,
+            'attack',
+        ):
+            reason = (
+                'SFZ sequence requires an explicit counter rule'
+                if sequence_counter == 'reject'
+                else 'Native sequence positions require note-on triggers'
+            )
             for name in ('seq_length', 'seq_position'):
                 if name in declarations:
                     _add_unimplemented(
                         unimplemented,
                         declarations[name],
-                        'SFZ sequence requires an explicit counter rule',
+                        reason,
                     )
         else:
             length = _integer(

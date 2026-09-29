@@ -1,3 +1,5 @@
+from typing import Literal
+
 import pytest
 
 from ufor import sfz
@@ -37,6 +39,22 @@ def test_key_before_pitch_center_is_unambiguous() -> None:
     assert result.instrument.body.slots[0].mapping.reference_pitch_hz == pytest.approx(
         261.625565
     )
+
+
+def test_release_sequence_requires_a_distinct_counter_rule() -> None:
+    result = _compile(
+        '<region> sample=sample.wav trigger=release seq_length=2 seq_position=1',
+        sequence_counter='all_note_ons',
+    )
+
+    assert not result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].sequence is None
+    assert [i.location.opcode for i in result.unimplemented] == [
+        'seq_length',
+        'seq_position',
+    ]
+    assert all('note-on triggers' in i.reason for i in result.unimplemented)
 
 
 @pytest.mark.parametrize('transpose', ['1.5', '128', '-128'])
@@ -207,7 +225,9 @@ def test_silent_region_reports_unsupported_choke_behavior() -> None:
 
 
 def _compile(
-    text: str, output_channels: list[str] | None = None
+    text: str,
+    output_channels: list[str] | None = None,
+    sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
 ) -> sfz.SfzCompileResult:
     return sfz.compile_instrument(
         sfz.parse(text),
@@ -226,4 +246,5 @@ def _compile(
         },
         output_timebase=Timebase(name='output', rate=Rate(numerator=48000)),
         output_channels=output_channels or ['mono'],
+        sequence_counter=sequence_counter,
     )
