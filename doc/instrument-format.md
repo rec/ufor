@@ -322,8 +322,10 @@ not the asset's native frame coordinates, and is not time stretching.
 
 Forward traversal reads first to last; backward reads last to first; mirror
 reads first to last and back once without doubling the turning endpoint.
-For A B C D this is A B C D C B A. Loops require at least two frames and
-`while_held` playback. Loop crossfade is either zero or at least two frames
+For A B C D this is A B C D C B A. Loops require at least two frames,
+`while_held` playback, and have an independent forward, backward, or alternating
+direction. The slot's whole-sample direction does not replace its loop
+direction. Loop crossfade is either zero or at least two frames
 and shorter than half the loop. Mirror loops cannot crossfade. `until_release`
 leaves the loop when the logical gate opens; `through_release` continues it
 through the amplitude release. Detailed audio traversal conformance belongs to

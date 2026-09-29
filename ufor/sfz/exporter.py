@@ -476,6 +476,17 @@ def _playback_opcodes(
         )
         if loop.repeat_count is not None:
             result.append(Opcode(name='loop_count', value=str(loop.repeat_count)))
+        if loop.direction != enums.Direction.forward:
+            result.append(
+                Opcode(
+                    name='loop_type',
+                    value=(
+                        'backward'
+                        if loop.direction == enums.Direction.backward
+                        else 'alternate'
+                    ),
+                )
+            )
         if loop.crossfade_frames:
             _issue(
                 issues,
