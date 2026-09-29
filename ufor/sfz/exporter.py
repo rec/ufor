@@ -490,6 +490,16 @@ def _playback_opcodes(
                 value='one_shot' if mode == enums.PlaybackMode.one_shot else 'no_loop',
             )
         )
+    if value.play_count is not None:
+        if value.play_count > 2**32:
+            _issue(
+                issues,
+                f'{path}.playback.play_count',
+                value.play_count,
+                'SFZ count exceeds its supported range',
+            )
+        else:
+            result.append(Opcode(name='count', value=str(value.play_count)))
     return result
 
 

@@ -464,6 +464,53 @@ def test_sfz_loop_count_without_loop_is_reported_at_opcode() -> None:
     ]
 
 
+def test_sfz_count_overrides_loop_mode_without_retriggering_the_envelope() -> None:
+    metadata = AudioMetadata(
+        channels=1,
+        frames=48_000,
+        sample_rate=48_000,
+        encoding='WAV/PCM_16',
+        byte_length=96_044,
+        sha256='0' * 64,
+        embedded_loop_known=True,
+    )
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav count=3 loop_mode=loop_continuous '
+        'loop_start=100 loop_end=999'
+    )
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={'audio/glass.wav': metadata},
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+    assert result.complete
+    assert result.instrument is not None
+    slot = result.instrument.body.slots[0]
+    assert slot.playback == playback.SlotPlayback(
+        mode=enums.PlaybackMode.one_shot, play_count=3
+    )
+    assert result.instrument.body.slices[0].loop is None
+    rendered = sfz.write(result.instrument)
+    assert rendered.complete
+    assert 'count=3' in rendered.contents
+
+    source = sfz.parse('<region> sample=audio/glass.wav count=0')
+    ambiguous = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={'audio/glass.wav': metadata},
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+    assert [(i.location.opcode, i.reason) for i in ambiguous.unimplemented] == [
+        ('count', 'SFZ count=0 differs between players')
+    ]
+
+
 def test_sfz_sequence_requires_explicit_counter_rule() -> None:
     source = sfz.parse(
         '<region> sample=audio/glass.wav key=60 seq_length=2 seq_position=1'
@@ -834,6 +881,15 @@ def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
     SampleInstrumentScore.model_validate(raw)
 
 
+def test_whole_sample_repeats_require_one_shot_playback() -> None:
+    raw = fixture()
+    raw['body']['slots'][0]['playback'] = {'play_count': 2}
+    with pytest.raises(ValidationError, match='play_count requires one_shot'):
+        SampleInstrumentScore.model_validate(raw)
+    raw['body']['slots'][0]['playback']['mode'] = 'one_shot'
+    SampleInstrumentScore.model_validate(raw)
+
+
 @pytest.mark.parametrize(
     ('model', 'raw'),
     [
@@ -853,6 +909,7 @@ def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 1}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 5}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'repeat_count': -1}),
+        (playback.SlotPlayback, {'play_count': 0}),
         (ControlDeclaration, {'default': -0.1}),
         (ControlDeclaration, {'default': float('inf')}),
         (ControlDeclaration, {'polarity': 'bipolar', 'default': -1.01}),

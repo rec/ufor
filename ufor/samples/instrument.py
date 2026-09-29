@@ -346,6 +346,11 @@ class SampleInstrument(Model):
                 raise ValueError(
                     f'Slot {slot.name}: release/sustain triggers require one_shot'
                 )
+            if (
+                slot.playback.play_count is not None
+                and mode != enums.PlaybackMode.one_shot
+            ):
+                raise ValueError(f'Slot {slot.name}: play_count requires one_shot')
             if sample_slice.loop is not None:
                 if mode != enums.PlaybackMode.while_held:
                     raise ValueError(f'Slot {slot.name}: loops require while_held')

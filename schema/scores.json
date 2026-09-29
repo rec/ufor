@@ -9682,7 +9682,8 @@
           "$ref": "#/$defs/SlotPlayback",
           "default": {
             "direction": null,
-            "mode": null
+            "mode": null,
+            "play_count": null
           }
         },
         "group": {
@@ -10730,6 +10731,19 @@
             }
           ],
           "default": null
+        },
+        "play_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Play Count"
         }
       },
       "title": "SlotPlayback",

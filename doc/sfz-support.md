@@ -77,7 +77,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `comp_release` | SFZ v2 | new_model |
 | Opcode | `comp_stlink` | SFZ v2 | new_model |
 | Opcode | `comp_threshold` | SFZ v2 | new_model |
-| Opcode | `count` | SFZ v1 | new_model |
+| Opcode | `count` | SFZ v1 | supported |
 | Opcode | `cutoff` | SFZ v1 | new_model |
 | Opcode | `cutoff_curveccN` | SFZ v2 | new_model |
 | Opcode | `cutoff_onccN` | SFZ v2 | new_model |

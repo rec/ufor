@@ -61,6 +61,7 @@ class SlotPlayback(base.Model):
 
     direction: enums.Direction | None = None
     mode: enums.PlaybackMode | None = None
+    play_count: int | None = Field(default=None, strict=True, ge=1)
 
 
 class Slice(base.Model):
