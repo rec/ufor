@@ -250,7 +250,8 @@ def _slot(
     slot_processing = processing.Processing.model_validate(processing_values)
     if processing_values:
         kwargs['processing'] = slot_processing
-    kwargs['envelope'] = amplitude_envelope(values)
+    slot_envelope = amplitude_envelope(values)
+    kwargs['envelope'] = slot_envelope
     sources: list[modulation.Source] = []
     parameters: list[modulation.Parameter] = []
     routes: list[modulation.Route] = []
@@ -271,6 +272,38 @@ def _slot(
         )
         routes.append(result)
         bindings.append(processing.EventBinding(name='velocity', kind='velocity'))
+    for parameter_name, base, amount in _velocity_envelope_durations(
+        values, slot_envelope
+    ):
+        if not any(source.name == 'velocity' for source in sources):
+            sources.append(
+                modulation.Source(name='velocity', scope='voice', minimum=0, maximum=1)
+            )
+            bindings.append(processing.EventBinding(name='velocity', kind='velocity'))
+        target = modulation.Target(name='envelope', parameter=parameter_name)
+        parameters.append(
+            modulation.Parameter(
+                target=target,
+                unit=modulation.Unit.seconds,
+                scope=Scope.voice,
+                minimum=min(base, base + amount),
+                maximum=max(base, base + amount),
+                default=base,
+            )
+        )
+        routes.append(
+            modulation.Route(
+                name=f'velocity-{parameter_name}',
+                source='velocity',
+                target=target,
+                operation=modulation.Operation.add,
+                unit=modulation.Unit.seconds,
+                points=[
+                    modulation.Point(input=0, amount=0),
+                    modulation.Point(input=1, amount=amount),
+                ],
+            )
+        )
     key_routes = [
         r
         for r in (
@@ -555,6 +588,31 @@ def _key_pitch_modulation(tracking: int, center: int) -> modulation.Route | None
             for key in (0, 127)
         ],
     )
+
+
+def _velocity_envelope_durations(
+    values: dict[str, str], definition: envelope.Envelope
+) -> list[tuple[str, float, float]]:
+    result: list[tuple[str, float, float]] = []
+    for name, phase, index in (
+        ('delay', 'on', 0),
+        ('attack', 'on', 1),
+        ('hold', 'on', 2),
+        ('decay', 'on', 3),
+        ('release', 'release', 0),
+    ):
+        opcode = f'ampeg_vel2{name}'
+        if opcode not in values:
+            continue
+        segments = definition.segments if phase == 'on' else definition.release
+        base = float(segments[index].duration)
+        amount = _number(values[opcode], opcode)
+        if not -100 <= amount <= 100:
+            raise ValueError(f'{opcode} must be between -100 and 100')
+        if base + amount < 0:
+            raise ValueError(f'{opcode} makes envelope duration negative')
+        result.append((f'{phase}-{index}-duration', base, amount))
+    return result
 
 
 def _crossfades(values: dict[str, str]) -> list[crossfade.KeyCrossfade]:
