@@ -10,7 +10,7 @@ from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
 from ..modulation import Modulation, Target, Unit
-from ..motion import Contour, Cycle, MotionUse
+from ..motion import Contour, Cycle, MotionUse, Stages
 from . import enums
 from .controls import ControlDeclaration
 
@@ -132,6 +132,13 @@ class GeneratorBinding(Model):
     reference: Identifier
 
 
+class MotionEventConnection(Model):
+    source: Identifier
+    port: str = Field(min_length=1)
+    destination: Identifier
+    cue: Identifier
+
+
 Binding = Annotated[
     EventBinding | ControlBinding | GeneratorBinding, Field(discriminator='kind')
 ]
@@ -143,6 +150,7 @@ class SoundSettings(Model):
     motions: dict[Identifier, MotionUse] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
+    event_connections: list[MotionEventConnection] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def local_references(self) -> Self:
@@ -150,6 +158,42 @@ class SoundSettings(Model):
         sources = {s.name: s for s in self.modulation.sources}
         if sources.keys() != {b.name for b in self.bindings}:
             raise ValueError('Each modulation source requires exactly one binding')
+        bindings = {b.name: b for b in self.bindings}
+        for connection in self.event_connections:
+            source = bindings.get(connection.source)
+            destination = bindings.get(connection.destination)
+            if not isinstance(source, GeneratorBinding) or not isinstance(
+                destination, GeneratorBinding
+            ):
+                raise ValueError('Motion event connections require Motion bindings')
+            origin = self.motions.get(source.reference)
+            target = self.motions.get(destination.reference)
+            if origin is None or target is None:
+                raise ValueError('Motion event connection references an unknown Motion')
+            if (
+                origin.scope != control.Scope.voice
+                or target.scope != control.Scope.voice
+            ):
+                raise ValueError('Motion event connections require voice scope')
+            if origin.body is not None:
+                if not isinstance(origin.body, Stages):
+                    raise ValueError('Motion event source must have stages')
+                ports = {'done', 'stage.done'} | {
+                    marker.name
+                    for stage in origin.body.stages
+                    for marker in getattr(stage.motion, 'markers', [])
+                }
+                if connection.port not in ports:
+                    raise ValueError(
+                        'Motion event connection references an unknown port'
+                    )
+            if target.body is not None and (
+                not isinstance(target.body, Stages)
+                or not any(
+                    t.event == f'cue.{connection.cue}' for t in target.body.transitions
+                )
+            ):
+                raise ValueError('Motion event destination has no matching cue')
         if self.envelope is not None and (
             self.envelope.scope != control.Scope.voice
             or self.envelope.polarity != control.Polarity.unipolar

@@ -4184,6 +4184,13 @@
           "title": "Bindings",
           "type": "array"
         },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/MotionEventConnection"
+          },
+          "title": "Event Connections",
+          "type": "array"
+        },
         "name": {
           "title": "Name",
           "type": "string"
@@ -6351,6 +6358,36 @@
       "title": "Modulation",
       "type": "object"
     },
+    "MotionEventConnection": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "title": "Source",
+          "type": "string"
+        },
+        "port": {
+          "minLength": 1,
+          "title": "Port",
+          "type": "string"
+        },
+        "destination": {
+          "title": "Destination",
+          "type": "string"
+        },
+        "cue": {
+          "title": "Cue",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "port",
+        "destination",
+        "cue"
+      ],
+      "title": "MotionEventConnection",
+      "type": "object"
+    },
     "MotionOrigin": {
       "additionalProperties": false,
       "properties": {
@@ -6645,6 +6682,13 @@
             ]
           },
           "title": "Bindings",
+          "type": "array"
+        },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/MotionEventConnection"
+          },
+          "title": "Event Connections",
           "type": "array"
         },
         "name": {
@@ -9427,6 +9471,13 @@
           "title": "Bindings",
           "type": "array"
         },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/MotionEventConnection"
+          },
+          "title": "Event Connections",
+          "type": "array"
+        },
         "playback": {
           "$ref": "#/$defs/Playback",
           "default": {
@@ -9553,6 +9604,13 @@
             ]
           },
           "title": "Bindings",
+          "type": "array"
+        },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/MotionEventConnection"
+          },
+          "title": "Event Connections",
           "type": "array"
         },
         "name": {
@@ -10604,6 +10662,13 @@
           "title": "Bindings",
           "type": "array"
         },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/MotionEventConnection"
+          },
+          "title": "Event Connections",
+          "type": "array"
+        },
         "name": {
           "title": "Name",
           "type": "string"
@@ -11367,6 +11432,13 @@
             ]
           },
           "title": "Bindings",
+          "type": "array"
+        },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/MotionEventConnection"
+          },
+          "title": "Event Connections",
           "type": "array"
         },
         "name": {
