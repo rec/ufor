@@ -90,16 +90,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Tests, documentation, and ownership
 
-24. **Medium, risk: hostile and failure-path tests are thinner than happy-path
-    conformance.** Existing tests cover malformed scores, symlinks,
-    individual Python module failures, interrupt propagation, and schema
-    drift. There is no focused coverage for concurrent library reads/writes,
-    failed config replacement, long acyclic dependency chains, oversized
-    expression/JSON inputs, or non-finite assets in sealed recording and
-    slideshow definitions. Add focused cases alongside fixes; avoid broad
-    tests that reassert every field already covered by Pydantic and the
-    conformance corpus.
-
 25. **Low, confirmed: recording verification language spans two owners.**
     `doc/recording-format.md` describes `recs record check`, finalization,
     payload verification, and recovery, while uFor's `RecordingScore` only
