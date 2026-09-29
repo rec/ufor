@@ -204,6 +204,8 @@ class RecordingScore(InterfaceScore):
     @model_validator(mode='after')
     def references(self) -> Self:
         unique([a.name for a in self.assets], 'asset IDs')
+        if self.body.state == 'sealed' and any(a.content is None for a in self.assets):
+            raise ValueError('sealed recordings require finite assets')
         unique([t.name for t in self.timebases], 'timebase names')
         assets = {a.name for a in self.assets}
         clocks = {t.name for t in self.timebases}

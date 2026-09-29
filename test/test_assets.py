@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 
 import pytest
+import tomlkit
 from pydantic import ValidationError
 
 from ufor.assets import (
@@ -14,8 +15,6 @@ from ufor.assets import (
     StreamLocation,
     VolumeFileLocation,
 )
-from ufor.codec import parse_score, score_toml
-from ufor.slideshow import SlideshowScore
 
 
 @pytest.mark.parametrize('path', ['../a.wav', '/a.wav', 'C:/a.wav', 'https://x/a', '.'])
@@ -150,22 +149,7 @@ def test_language_neutral_asset_conformance() -> None:
 def test_every_location_round_trips_through_toml() -> None:
     cases = json.loads(Path('conformance/assets.json').read_text())
     for asset in cases['valid']:
-        score = SlideshowScore.model_validate(
-            {
-                'name': f'{asset["name"]}-show',
-                'title': asset['name'],
-                'timebase': {'name': 'seconds', 'rate': {'numerator': 1}},
-                'body': {
-                    'assets': [asset],
-                    'items': [
-                        {
-                            'name': 'slide',
-                            'asset': asset['name'],
-                            'duration': 1,
-                            'alt': 'Asset location example',
-                        }
-                    ],
-                },
-            }
-        )
-        assert parse_score(score_toml(score)) == score
+        value = Asset.model_validate(asset)
+        data = {'asset': value.model_dump(mode='json', exclude_none=True)}
+        text = tomlkit.dumps(data)
+        assert Asset.model_validate(tomlkit.parse(text).unwrap()['asset']) == value

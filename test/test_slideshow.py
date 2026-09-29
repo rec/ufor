@@ -82,6 +82,34 @@ def test_still_show_requires_accessibility_and_replayable_decisions() -> None:
         SlideshowScore.model_validate(data)
 
 
+@pytest.mark.parametrize(
+    'location',
+    [
+        {'kind': 'stream', 'url': 'https://example.org/live', 'transport': 'hls'},
+        {
+            'kind': 'python_provider',
+            'module': 'visuals',
+            'function': 'frame',
+            'delivery': 'buffer',
+        },
+    ],
+)
+def test_slideshow_rejects_live_assets(location: dict[str, str]) -> None:
+    data = {
+        'name': 'show',
+        'title': 'Show',
+        'timebase': {'name': 'seconds', 'rate': {'numerator': 1}},
+        'body': {
+            'assets': [{'name': 'photo', 'location': location, 'encoding': 'jpeg'}],
+            'items': [
+                {'name': 'first', 'asset': 'photo', 'duration': 1, 'alt': 'Photo'}
+            ],
+        },
+    }
+    with pytest.raises(ValidationError, match='finite assets'):
+        SlideshowScore.model_validate(data)
+
+
 def test_video_accompaniment_and_captions_are_portable_timeline_data() -> None:
     score = SlideshowScore.model_validate(
         {
