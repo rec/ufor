@@ -15,9 +15,11 @@ from ufor.codec import parse_score, score_toml
 from ufor.recording import (
     AudioFragment,
     AudioStream,
+    EventStream,
     Gap,
     Recording,
     RecordingScore,
+    stream_outputs,
 )
 from ufor.streams import AudioType
 from ufor.time import Rate, Timebase
@@ -112,6 +114,25 @@ def test_open_recording_allows_live_asset_declarations() -> None:
         'encoding': 'float32',
     }
     assert RecordingScore.model_validate(data).body.state == 'open'
+
+
+def test_native_lfo_change_stream_can_be_exported() -> None:
+    stream = EventStream(
+        name='lfo',
+        source_id='controls',
+        event_schema='recs_events',
+        event_kind='lfo_change',
+        timebase='ticks',
+    )
+    score = RecordingScore(
+        name='changes',
+        title='LFO changes',
+        assets=[],
+        timebases=[Timebase(name='ticks', rate=Rate(numerator=48000))],
+        outputs=stream_outputs([stream]),
+        body=Recording(state='sealed', streams=[stream]),
+    )
+    assert parse_score(score_toml(score)) == score
 
 
 def test_gap_cannot_cover_recorded_audio() -> None:

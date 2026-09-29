@@ -67,10 +67,10 @@ The timeline renderer rejects those streams until placement is explicitly
 resolved. It does not stretch the file or guess where gaps belong.
 
 Event streams declare `event_schema` and ordered fragments. Native captures also
-set `event_kind` to `midi`, `osc`, `key`, `trigger`, `release`, or
-`control_change`. Omit it for a mixed-kind stream. Each fragment has an asset,
-`event_count`, and matching `timing`. Native fragments require `start` and `end`
-in the stream timebase: a half-open stored-event range, empty only when the
+set `event_kind` to `midi`, `ump`, `osc`, `key`, `trigger`, `release`,
+`control_change`, or `lfo_change`. Omit it for a mixed-kind stream. Each fragment
+has an asset, `event_count`, and matching `timing`. Native fragments require
+`start` and `end` in the stream timebase: a half-open stored-event range, empty only when the
 count is zero. Counts never substitute for duration:
 
 | Schema | Timing | Interpretation |
@@ -133,7 +133,7 @@ optional text, modifiers, and a repeat flag. These are stored events, not yet a
 universal performance engine. Recs also captures its observed key transitions
 through the same event model.
 
-Semantic `trigger`, `release`, and `control_change` records use that same
+Semantic `trigger`, `release`, `control_change`, and `lfo_change` records use that same
 envelope. Their payload and addressing rules are defined in the
 [instrument contract](instrument-format.md#performance-input). A
 [portable performance sequence](../conformance/performance.json) demonstrates

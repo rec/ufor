@@ -1,8 +1,9 @@
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from ufor.codec import score_toml
-from ufor.events import MidiEvent, OscEvent, OscMessage, StoredEvent
+from ufor.codec import parse_score, score_toml
+from ufor.events import LFOChange, MidiEvent, OscEvent, OscMessage, StoredEvent
+from ufor.interface import EventType, Output, SequenceBinding
 from ufor.sequence import EventSequence, SequenceScore
 from ufor.time import Rate, Timebase
 
@@ -42,3 +43,27 @@ def test_toml_rejects_null_osc_arguments_without_dropping_positions() -> None:
     assert SequenceScore.model_validate_json(score.model_dump_json()) == score
     with pytest.raises(ValueError, match='TOML cannot represent null array arguments'):
         score_toml(score)
+
+
+def test_lfo_change_sequence_declares_and_round_trips_its_output() -> None:
+    score = SequenceScore(
+        name='lfo',
+        title='LFO change',
+        timebases=[Timebase(name='ticks', rate=Rate(numerator=48000))],
+        outputs=[
+            Output(
+                name='events',
+                stream=EventType(timebase='ticks', kinds=['lfo_change']),
+                binding=SequenceBinding(),
+            )
+        ],
+        body=EventSequence(
+            timebase='ticks',
+            end=48000,
+            events=[
+                LFOChange(tick=0, ordinal=0, name='vibrato', action='rate', rate=5.0)
+            ],
+        ),
+    )
+    assert SequenceScore.model_validate_json(score.model_dump_json()) == score
+    assert parse_score(score_toml(score)) == score
