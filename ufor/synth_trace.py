@@ -276,6 +276,7 @@ def prepare(
                     action=event.action,
                     rate=event.rate,
                     position=event.position,
+                    offset=event.offset,
                 )
             )
         elif isinstance(event, MotionChange):
@@ -288,6 +289,7 @@ def prepare(
                     trigger_id=event.trigger_id,
                     action=event.action,
                     position=event.position,
+                    offset=event.offset,
                 )
             )
         elif isinstance(event, ControlChange):

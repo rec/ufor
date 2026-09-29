@@ -85,6 +85,10 @@ def test_lfo_position_changes_validate_their_payloads() -> None:
         LFOChange(tick=0, ordinal=0, name='vibrato', action='seek')
     with pytest.raises(ValueError, match='require a position'):
         LFOChange(tick=0, ordinal=0, name='vibrato', action='pause', position=0.5)
+    shift = LFOChange(tick=0, ordinal=0, name='vibrato', action='shift', offset=-0.25)
+    assert LFOChange.model_validate_json(shift.model_dump_json()) == shift
+    with pytest.raises(ValueError, match='require an offset'):
+        LFOChange(tick=0, ordinal=0, name='vibrato', action='shift')
 
 
 def test_trigger_addressed_motion_change_round_trips() -> None:
@@ -120,4 +124,17 @@ def test_trigger_addressed_motion_change_round_trips() -> None:
             trigger_id='note',
             action='pause',
             position=0.5,
+        )
+    shift = change.model_copy(
+        update={'action': 'shift', 'position': None, 'offset': -0.25}
+    )
+    assert adapter.validate_json(adapter.dump_json(shift)) == shift
+    with pytest.raises(ValueError, match='require an offset'):
+        MotionChange(
+            tick=0,
+            ordinal=0,
+            name='swell',
+            part='main',
+            trigger_id='note',
+            action='shift',
         )

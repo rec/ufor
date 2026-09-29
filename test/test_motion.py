@@ -330,6 +330,45 @@ def test_cycle_pause_reverse_and_seek_preserve_seconds_position() -> None:
     )
 
 
+def test_relative_shift_wraps_cycles_and_clamps_contours() -> None:
+    cycle = MotionUse(body=Cycle(rate=Fraction(1)))
+    cycle_state = motion_event(
+        cycle,
+        initial_motion(cycle, Fraction(0)),
+        MotionEvent(
+            at=Fraction(1, 4),
+            ordinal=0,
+            action='shift',
+            offset=Fraction(-1, 2),
+        ),
+    )
+    assert motion_at(cycle, cycle_state, Fraction(1, 4)).value == pytest.approx(-1)
+
+    contour = MotionUse(body=Contour(segments=[Segment(duration=Fraction(1), to=1)]))
+    state = motion_event(
+        contour,
+        initial_motion(contour, Fraction(0)),
+        MotionEvent(
+            at=Fraction(1, 2),
+            ordinal=0,
+            action='shift',
+            offset=Fraction(3, 4),
+        ),
+    )
+    assert motion_at(contour, state, Fraction(1, 2)).value == 1
+    state = motion_event(
+        contour,
+        state,
+        MotionEvent(
+            at=Fraction(1, 2),
+            ordinal=1,
+            action='shift',
+            offset=Fraction(-1, 2),
+        ),
+    )
+    assert motion_at(contour, state, Fraction(1, 2)).value == pytest.approx(0.5)
+
+
 def test_contour_reverses_through_segments_without_recapturing_start() -> None:
     motion = MotionUse(
         body=Contour(

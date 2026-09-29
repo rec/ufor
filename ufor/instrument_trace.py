@@ -69,9 +69,10 @@ class ControlObservation(TraceAction):
 class LFOObservation(TraceAction):
     kind: Literal['lfo'] = 'lfo'
     name: Identifier
-    action: Literal['reset', 'rate', 'pause', 'resume', 'reverse', 'seek']
+    action: Literal['reset', 'rate', 'pause', 'resume', 'reverse', 'seek', 'shift']
     rate: float | None = Field(default=None, ge=0)
     position: float | None = Field(default=None, ge=0, le=1)
+    offset: float | None = Field(default=None, allow_inf_nan=False)
 
     @model_validator(mode='after')
     def rate_payload(self) -> Self:
@@ -79,6 +80,8 @@ class LFOObservation(TraceAction):
             raise ValueError('only LFO rate changes require a rate')
         if (self.action == 'seek') != (self.position is not None):
             raise ValueError('only LFO seek changes require a position')
+        if (self.action == 'shift') != (self.offset is not None):
+            raise ValueError('only LFO shift changes require an offset')
         return self
 
 
@@ -87,13 +90,16 @@ class MotionObservation(TraceAction):
     name: Identifier
     part: Identifier
     trigger_id: Identifier
-    action: Literal['pause', 'resume', 'reverse', 'seek']
+    action: Literal['pause', 'resume', 'reverse', 'seek', 'shift']
     position: float | None = Field(default=None, ge=0, le=1)
+    offset: float | None = Field(default=None, allow_inf_nan=False)
 
     @model_validator(mode='after')
     def seek_payload(self) -> Self:
         if (self.action == 'seek') != (self.position is not None):
             raise ValueError('only Motion seek observations require a position')
+        if (self.action == 'shift') != (self.offset is not None):
+            raise ValueError('only Motion shift observations require an offset')
         return self
 
 
