@@ -87,7 +87,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `cutoff2` | SFZ v2 | new_model |
 | Opcode | `decim` | SFZ v2 | new_model |
 | Opcode | `default_path` | SFZ v2 | supported |
-| Opcode | `delay` | SFZ v1 | new_model |
+| Opcode | `delay` | SFZ v1 | supported |
 | Opcode | `delay_beats` | SFZ v2 | new_model |
 | Opcode | `delay_cutoff` | SFZ v2 | new_model |
 | Opcode | `delay_damphi` | SFZ v2 | new_model |

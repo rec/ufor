@@ -500,6 +500,26 @@ def _playback_opcodes(
             )
         else:
             result.append(Opcode(name='count', value=str(value.play_count)))
+    if value.start_delay_seconds:
+        if (
+            mode == enums.PlaybackMode.one_shot
+            and slot.trigger == enums.TriggerKind.start
+        ):
+            _issue(
+                issues,
+                f'{path}.playback.start_delay_seconds',
+                value.start_delay_seconds,
+                'SFZ one-shot delayed note-off behavior differs between players',
+            )
+        elif value.start_delay_seconds > 100:
+            _issue(
+                issues,
+                f'{path}.playback.start_delay_seconds',
+                value.start_delay_seconds,
+                'SFZ delay exceeds 100 seconds',
+            )
+        else:
+            result.append(Opcode(name='delay', value=str(value.start_delay_seconds)))
     return result
 
 

@@ -398,6 +398,16 @@ on envelope completion or after the final traversal, whichever occurs first.
 This is distinct from a loop's `repeat_count`, which repeats only the loop
 interval and then continues into the sample tail.
 
+## Delayed Voice Start
+
+`start_delay_seconds` on a slot defaults to zero. A positive value postpones
+the start of both sample traversal and all voice envelopes by that duration.
+For a start-triggered slot, release of the owning trigger before delayed start
+cancels the pending voice without sounding. For a release-triggered slot, the
+release event creates the pending voice and starts this timer; that same event
+does not cancel it. This differs from an
+amplitude envelope's delay phase, which begins when the voice itself starts.
+
 ## Release And Sustain Samples
 
 Each slot's `trigger` is `start` (default), `release`, `logical_release`,
