@@ -27,7 +27,7 @@ def write(instrument: SampleInstrumentScore) -> SfzExportResult:
     """Serialize a native instrument without reading or writing sample assets."""
     issues: list[UnimplementedFeature] = []
     _instrument_issues(instrument, issues)
-    groups = _choke_groups(instrument)
+    groups, victims = _choke_groups(instrument, issues)
     regions: list[list[str]] = []
     slot_groups = {g.name: g for g in instrument.body.groups}
     for i, slot in enumerate(instrument.body.slots):
@@ -38,7 +38,7 @@ def write(instrument: SampleInstrumentScore) -> SfzExportResult:
                 | effective_settings(slot, group).model_dump()
                 | {'group': None, 'selection': effective_selection(slot, group)}
             )
-        opcodes = _region(instrument, slot, i, groups, issues)
+        opcodes = _region(instrument, slot, i, groups, victims, issues)
         if opcodes is None:
             continue
         metadata = '// recs:slot ' + _json(
@@ -169,6 +169,7 @@ def _region(
     slot: SampleSlot,
     index: int,
     groups: dict[str, int],
+    victims: dict[str, tuple[int, enums.ChokeMode]],
     issues: list[UnimplementedFeature],
 ) -> list[Opcode] | None:
     path = f'body.slots[{index}]'
@@ -211,7 +212,7 @@ def _region(
         )
     mapping_eligible = _mapping_eligible(slot.mapping, path, issues)
     if not sample_safe or not mapping_eligible:
-        _diagnose_omitted_slot(document, slot, path, groups, issues)
+        _diagnose_omitted_slot(document, slot, path, groups, victims, issues)
         return None
 
     opcodes = [Opcode(name='sample', value=sample)]
@@ -241,7 +242,7 @@ def _region(
             )
     opcodes.extend(_random_range_opcodes(slot.random_range))
     opcodes.extend(_trigger_opcodes(slot, path, issues))
-    opcodes.extend(_choking(slot, path, groups, issues))
+    opcodes.extend(_choking(slot, path, groups, victims, issues))
     opcodes.extend(_playback_opcodes(document, slot, path, issues))
     opcodes.extend(_processing_opcodes(document, slot, path, issues))
     opcodes.extend(_envelope_opcodes(document, slot, path, issues))
@@ -256,10 +257,11 @@ def _diagnose_omitted_slot(
     slot: SampleSlot,
     path: str,
     groups: dict[str, int],
+    victims: dict[str, tuple[int, enums.ChokeMode]],
     issues: list[UnimplementedFeature],
 ) -> None:
     _trigger_opcodes(slot, path, issues)
-    _choking(slot, path, groups, issues)
+    _choking(slot, path, groups, victims, issues)
     _playback_opcodes(document, slot, path, issues)
     instrument = document.body.settings.processing
     local = slot.processing
@@ -378,51 +380,75 @@ def _trigger_opcodes(
     return []
 
 
-def _choke_groups(document: SampleInstrumentScore) -> dict[str, int]:
+def _choke_groups(
+    document: SampleInstrumentScore, issues: list[UnimplementedFeature]
+) -> tuple[dict[str, int], dict[str, tuple[int, enums.ChokeMode]]]:
+    signatures: dict[tuple[tuple[str, str], ...], int] = {}
     groups: dict[str, int] = {}
     for slot in document.body.slots:
-        if slot.choke_group is not None and slot.choke_group not in groups:
-            groups[slot.choke_group] = len(groups) + 1
-    return groups
+        signature = tuple(
+            sorted(
+                (c.group, c.mode.value)
+                for c in slot.chokes
+                if c.mode != enums.ChokeMode.fade
+            )
+        )
+        if signature:
+            if signature not in signatures:
+                signatures[signature] = len(signatures) + 1
+            groups[slot.name] = signatures[signature]
+    incoming: dict[str, set[tuple[int, enums.ChokeMode]]] = {}
+    for slot in document.body.slots:
+        for choke in slot.chokes:
+            if choke.mode != enums.ChokeMode.fade:
+                incoming.setdefault(choke.group, set()).add(
+                    (groups[slot.name], choke.mode)
+                )
+    victims: dict[str, tuple[int, enums.ChokeMode]] = {}
+    for group, rules in incoming.items():
+        if len(rules) == 1:
+            victims[group] = next(iter(rules))
+        else:
+            for i, slot in enumerate(document.body.slots):
+                if slot.choke_group == group:
+                    _issue(
+                        issues,
+                        f'body.slots[{i}].choke_group',
+                        group,
+                        'SFZ off_by cannot express multiple triggering groups or modes',
+                    )
+    return groups, victims
 
 
 def _choking(
     slot: SampleSlot,
     path: str,
     groups: dict[str, int],
+    victims: dict[str, tuple[int, enums.ChokeMode]],
     issues: list[UnimplementedFeature],
 ) -> list[Opcode]:
     result: list[Opcode] = []
-    if slot.choke_group is not None:
-        result.append(Opcode(name='group', value=str(groups[slot.choke_group])))
-    if len(slot.chokes) > 1:
-        for i, choke in enumerate(slot.chokes[1:], 1):
+    if slot.name in groups:
+        result.append(Opcode(name='group', value=str(groups[slot.name])))
+    if slot.choke_group in victims:
+        off_by, mode = victims[slot.choke_group]
+        result.extend(
+            [
+                Opcode(name='off_by', value=str(off_by)),
+                Opcode(
+                    name='off_mode',
+                    value='fast' if mode == enums.ChokeMode.immediate else 'normal',
+                ),
+            ]
+        )
+    for i, choke in enumerate(slot.chokes):
+        if choke.mode == enums.ChokeMode.fade:
             _issue(
                 issues,
                 f'{path}.chokes[{i}]',
                 choke,
-                'An SFZ region can target only one choke group',
+                'Timed instrument fade choking has no exact SFZ off_mode',
             )
-    if not slot.chokes:
-        return result
-    choke = slot.chokes[0]
-    if choke.mode == enums.ChokeMode.fade:
-        _issue(
-            issues,
-            f'{path}.chokes[0]',
-            choke,
-            'Timed instrument fade choking has no exact SFZ off_mode',
-        )
-        return result
-    result.extend(
-        [
-            Opcode(name='off_by', value=str(groups[choke.group])),
-            Opcode(
-                name='off_mode',
-                value='fast' if choke.mode == enums.ChokeMode.immediate else 'normal',
-            ),
-        ]
-    )
     return result
 
 
