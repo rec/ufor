@@ -15,20 +15,18 @@ is tracked in [asset locations](url-paths.md).
 
 ## Source identity and authorization
 
-Add a versioned canonical source/request fingerprint that includes the
-location, resolved context, expected content identity, and relevant
-representation settings. Relative paths need package identity; volume
-paths need volume ID; Python requests need resolved rate and ordered
-channels. Test null, booleans, integer versus float arguments, Unicode,
-and dictionary ordering. Do not normalize URLs or provider values in ways
-that change meaning.
+Reccy now provides a versioned source/request fingerprint and partitions its
+verified store by a required host-issued credential scope. The fingerprint
+covers public location, resolved context, expected content identity, and
+representation settings; a host-private key can fingerprint lookup secrets
+without persisting them. Reccy rejects raw source descriptions as store keys.
 
-Partition acquisition metadata by host credential scope. A matching hash
-must not grant access to another scope. Do not store raw credentials,
-cookies, signed URLs, or secret arguments in ordinary metadata. Use a
-keyed local fingerprint when a secret affects lookup, and resolve the
-actual value through host configuration. A redacted URL is for display,
-not lookup.
+Acquisition adapters still need to supply complete effective facts: relative
+paths need package identity, volume paths need volume ID, and Python requests
+need resolved rate and ordered channels. Hosts must resolve actual credentials
+through their own configuration and authorize every acquisition independently
+of the fingerprint. Do not put raw credentials, cookies, signed URLs, or secret
+arguments in ordinary metadata. A redacted URL is for display, not lookup.
 
 ## Behavior for every source
 
