@@ -22,7 +22,7 @@ from ufor.samples.instrument import (
 )
 from ufor.samples.metadata import AudioMetadata
 from ufor.sfz import registry
-from ufor.sfz.model import SfzCompileResult
+from ufor.sfz.model import SfzCompileResult, SfzMidiBindingRequest
 from ufor.time import Rate, Timebase
 
 
@@ -552,6 +552,67 @@ def test_sfz_delay_postpones_voice_start_and_reports_one_shot_ambiguity() -> Non
     assert release.complete
     assert release.instrument is not None
     assert release.instrument.body.slots[0].playback.start_delay_seconds == 0.25
+
+
+def test_sfz_uniform_midi_channels_return_separate_binding() -> None:
+    metadata = AudioMetadata(
+        channels=1,
+        frames=48_000,
+        sample_rate=48_000,
+        encoding='WAV/PCM_16',
+        byte_length=96_044,
+        sha256='0' * 64,
+        embedded_loop_known=True,
+    )
+    request = SfzMidiBindingRequest(
+        instrument=ScoreReference(path='glass.toml'),
+        part='main',
+        repeated_key_release='newest',
+    )
+
+    def compile_regions(
+        text: str, binding: SfzMidiBindingRequest | None
+    ) -> SfzCompileResult:
+        return sfz.compile_instrument(
+            sfz.parse(text),
+            name='glass',
+            title='Glass',
+            assets={'audio/glass.wav': metadata},
+            output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+            output_channels=['left', 'right'],
+            midi_binding=binding,
+        )
+
+    text = (
+        '<region> sample=audio/glass.wav key=60 lochan=2 hichan=3\n'
+        '<region> sample=audio/glass.wav key=61 lochan=2 hichan=3'
+    )
+    result = compile_regions(text, request)
+    assert result.complete
+    assert result.binding is not None
+    assert result.binding.body.instrument == ScoreReference(path='glass.toml')
+    assert result.binding.body.midi[0].channels == [2, 3]
+    assert result.binding.body.midi[0].part == 'main'
+    assert result.binding.body.midi[0].repeated_key_release == 'newest'
+    assert result.binding.body.midi[0].controllers[0].number == 64
+    assert parse_score(score_toml(result.binding)) == result.binding
+
+    missing = compile_regions(text, None)
+    assert missing.binding is None
+    assert {i.location.opcode for i in missing.unimplemented} == {
+        'lochan',
+        'hichan',
+    }
+    assert len(missing.unimplemented) == 4
+
+    mixed = compile_regions(
+        '<region> sample=audio/glass.wav key=60 lochan=2 hichan=3\n'
+        '<region> sample=audio/glass.wav key=61 lochan=4 hichan=5',
+        request,
+    )
+    assert mixed.binding is None
+    assert len(mixed.unimplemented) == 4
+    assert all('native channel eligibility' in i.reason for i in mixed.unimplemented)
 
 
 def test_sfz_sequence_requires_explicit_counter_rule() -> None:

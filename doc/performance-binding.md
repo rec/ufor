@@ -37,3 +37,11 @@ still open the input, track note identities, resolve the referenced instrument
 and tuning, validate declared controls, and emit native performance events.
 The [portable example](../conformance/performance-binding.json) records one
 explicit repeated-key rule and a sustain-pedal mapping.
+
+SFZ import can return this score alongside the instrument when the caller
+supplies `SfzMidiBindingRequest` with the destination instrument reference,
+part, and repeated-key release rule. The import maps SFZ's shared inclusive
+`lochan`/`hichan` range and the standard sustain pedal CC 64. Without a request,
+channel opcodes remain source-located diagnostics. Different channel ranges in
+different regions cannot be represented by one instrument-level MIDI channel
+filter, so they also remain diagnostics rather than being silently merged.

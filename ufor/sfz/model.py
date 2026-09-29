@@ -6,6 +6,8 @@ from typing import Annotated, Literal
 from pydantic import Field
 
 from .. import base
+from ..interface import ScoreReference
+from ..performance_binding import PerformanceBindingScore
 from ..samples import processing
 from ..samples.instrument import SampleInstrumentScore
 
@@ -31,6 +33,7 @@ class UnimplementedFeature(base.Model):
 
 class SfzCompileResult(base.Model):
     instrument: SampleInstrumentScore | None
+    binding: PerformanceBindingScore | None = None
     unimplemented: list[UnimplementedFeature] = Field(default_factory=list)
 
     @property
@@ -85,6 +88,12 @@ class SfzSource(base.Model):
     instrument_metadata: dict[str, object]
     slot_metadata: dict[int, dict[str, object]]
     unimplemented: list[UnimplementedFeature]
+
+
+class SfzMidiBindingRequest(base.Model):
+    instrument: ScoreReference
+    part: base.Identifier
+    repeated_key_release: Literal['oldest', 'newest']
 
 
 def _channel_routes(channels: int, outputs: list[str]) -> list[processing.ChannelRoute]:
