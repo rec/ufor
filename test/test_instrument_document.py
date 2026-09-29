@@ -12,7 +12,7 @@ from ufor.codec import migrate_score_v3, parse_score, score_schema, score_toml
 from ufor.interface import ScoreReference
 from ufor.library import Entry, Library
 from ufor.preset import PresetScore
-from ufor.samples import playback, processing, selection
+from ufor.samples import crossfade, enums, playback, processing, selection
 from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import (
     SampleInstrumentScore,
@@ -354,6 +354,114 @@ def test_sfz_random_range_round_trips_without_selection() -> None:
     assert rendered.complete
     assert 'lorand=0.25' in rendered.contents
     assert 'hirand=0.5' in rendered.contents
+
+
+def test_sfz_crossfades_do_not_narrow_layer_eligibility() -> None:
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav lokey=40 hikey=80 '
+        'xfin_lokey=50 xfin_hikey=60 xf_keycurve=power '
+        'xfin_lovel=32 xfin_hivel=64 xf_velcurve=gain'
+    )
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=48_000,
+                sample_rate=48_000,
+                encoding='WAV/PCM_16',
+                byte_length=96_044,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+    assert result.complete
+    assert result.instrument is not None
+    slot = result.instrument.body.slots[0]
+    assert (slot.mapping.lowest_key, slot.mapping.highest_key) == (40, 80)
+    assert slot.crossfades == [
+        crossfade.KeyCrossfade(
+            input=enums.CrossfadeInput.key,
+            direction=enums.FadeDirection.fade_in,
+            start=50,
+            end=60,
+            curve=enums.FadeCurve.equal_power,
+        ),
+        crossfade.KeyCrossfade(
+            input=enums.CrossfadeInput.velocity,
+            direction=enums.FadeDirection.fade_in,
+            start=32 / 127,
+            end=64 / 127,
+        ),
+    ]
+    rendered = sfz.write(result.instrument)
+    assert rendered.complete
+    assert 'xfin_lokey=50' in rendered.contents
+    assert 'xfin_hivel=64' in rendered.contents
+
+
+def test_sfz_loop_count_round_trips_as_finite_repeats() -> None:
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav loop_mode=loop_sustain '
+        'loop_start=100 loop_end=999 loop_count=3'
+    )
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=48_000,
+                sample_rate=48_000,
+                encoding='WAV/PCM_16',
+                byte_length=96_044,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slices[0].loop == playback.Loop(
+        start_frame=100, end_frame=1000, repeat_count=3
+    )
+    rendered = sfz.write(result.instrument)
+    assert rendered.complete
+    assert 'loop_count=3' in rendered.contents
+
+
+def test_sfz_loop_count_without_loop_is_reported_at_opcode() -> None:
+    source = sfz.parse('<region> sample=audio/glass.wav loop_count=2')
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=48_000,
+                sample_rate=48_000,
+                encoding='WAV/PCM_16',
+                byte_length=96_044,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+    assert not result.complete
+    assert [(i.location.opcode, i.reason) for i in result.unimplemented] == [
+        ('loop_count', 'SFZ loop_count requires an active loop')
+    ]
 
 
 def test_sfz_sequence_requires_explicit_counter_rule() -> None:
@@ -744,6 +852,7 @@ def test_loop_rules_use_inherited_playback_and_half_open_slice_bounds() -> None:
         (playback.Loop, {'start_frame': 0, 'end_frame': 1}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 1}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 5}),
+        (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'repeat_count': -1}),
         (ControlDeclaration, {'default': -0.1}),
         (ControlDeclaration, {'default': float('inf')}),
         (ControlDeclaration, {'polarity': 'bipolar', 'default': -1.01}),

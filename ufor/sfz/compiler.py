@@ -506,6 +506,17 @@ def _playback(
                 if mode == 'loop_continuous'
                 else enums.LoopMode.until_release
             ),
+            repeat_count=(
+                _integer(values['loop_count'], 'loop_count', minimum=0)
+                if 'loop_count' in values
+                else None
+            ),
+        )
+    elif 'loop_count' in values:
+        _add_unimplemented(
+            unimplemented,
+            declarations['loop_count'],
+            'SFZ loop_count requires an active loop',
         )
     start_frame = result.get('start_frame', 0)
     end_frame = result.get('end_frame', metadata.frames)

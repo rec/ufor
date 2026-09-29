@@ -177,6 +177,7 @@ PARSABLE_OPCODES = {
     'lokey',
     'lorand',
     'loop_end',
+    'loop_count',
     'loop_mode',
     'loop_start',
     'lovel',

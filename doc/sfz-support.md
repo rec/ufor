@@ -279,7 +279,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `lochan` | SFZ v1 | controller_binding |
 | Opcode | `lochanaft` | SFZ v1 | controller_binding |
 | Opcode | `lokey` | SFZ v1 | supported |
-| Opcode | `loop_count` | SFZ v2 | new_model |
+| Opcode | `loop_count` | SFZ v2 | supported |
 | Opcode | `loop_crossfade` | SFZ v2 | new_model |
 | Opcode | `loop_end` | SFZ v1 | asset_metadata |
 | Opcode | `loop_lengthccN` | SFZ v2 | controller_binding |

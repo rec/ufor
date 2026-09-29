@@ -347,7 +347,12 @@ inherit from instrument settings because they address one particular asset.
 Both boundaries are required native-frame integers. They define a half-open
 interval inside the trimmed sample containing at least two frames. `mode` is
 `"until_release"` (default) or `"through_release"`; `crossfade_frames` defaults
-to zero. Loops require effective playback mode `while_held`, so a one-shot voice
+to zero. `repeat_count` is either null (unbounded) or a nonnegative number of
+additional traversals after the first pass through the loop. When the count is
+exhausted, playback continues toward the trimmed sample boundary without another
+wrap or reflection. A release can disable an `until_release` loop earlier; a
+`through_release` loop still ends if its finite count is exhausted. Loops require
+effective playback mode `while_held`, so a one-shot voice
 cannot loop forever without a release event.
 
 Forward playback enters from the trimmed start, then repeats the loop toward
