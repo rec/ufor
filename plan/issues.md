@@ -29,14 +29,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Tests, documentation, and ownership
 
-25. **Low, confirmed: recording verification language spans two owners.**
-    `doc/recording-format.md` describes `recs record check`, finalization,
-    payload verification, and recovery, while uFor's `RecordingScore` only
-    validates the declaration and references. Mark host verification claims
-    explicitly as reccy behavior and keep uFor's guarantee limited to
-    structural/semantic validation. This also clarifies what network or
-    storage failures can be handled here versus by a host.
-
 ## Additional work beyond the prompt
 
 None.
