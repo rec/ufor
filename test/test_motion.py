@@ -301,6 +301,105 @@ def test_cycle_uses_same_value_and_event_contract() -> None:
     )
 
 
+def test_cycle_pause_reverse_and_seek_preserve_seconds_position() -> None:
+    motion = MotionUse(body=Cycle(rate=Fraction(1), delay=Fraction(1, 4)))
+    state = initial_motion(motion, Fraction(0))
+    state = motion_event(
+        motion, state, MotionEvent(at=Fraction(1, 4), ordinal=0, action='pause')
+    )
+    assert motion_at(motion, state, Fraction(2)).value == pytest.approx(1)
+    assert motion_at(motion, state, Fraction(2)).weight == 1
+    state = motion_event(
+        motion, state, MotionEvent(at=Fraction(2), ordinal=0, action='reverse')
+    )
+    state = motion_event(
+        motion, state, MotionEvent(at=Fraction(3), ordinal=0, action='resume')
+    )
+    assert motion_at(motion, state, Fraction(13, 4)).value == pytest.approx(0)
+    state = motion_event(
+        motion,
+        state,
+        MotionEvent(
+            at=Fraction(13, 4), ordinal=0, action='seek', position=Fraction(1, 2)
+        ),
+    )
+    assert motion_at(motion, state, Fraction(7, 2)).value == pytest.approx(1)
+    restored = MotionState.model_validate_json(state.model_dump_json())
+    assert motion_at(motion, restored, Fraction(7, 2)) == motion_at(
+        motion, state, Fraction(7, 2)
+    )
+
+
+def test_contour_reverses_through_segments_without_recapturing_start() -> None:
+    motion = MotionUse(
+        body=Contour(
+            segments=[Segment(duration=Fraction(1), to=1)],
+            release=[Segment(duration=Fraction(1), to=0)],
+        )
+    )
+    state = motion_event(
+        motion,
+        initial_motion(motion, Fraction(0)),
+        MotionEvent(at=Fraction(0), ordinal=0, action='note_on'),
+    )
+    state = motion_event(
+        motion, state, MotionEvent(at=Fraction(3, 4), ordinal=0, action='reverse')
+    )
+    assert motion_at(motion, state, Fraction(1)).value == pytest.approx(0.5)
+    state = motion_event(
+        motion, state, MotionEvent(at=Fraction(1), ordinal=0, action='pause')
+    )
+    assert motion_at(motion, state, Fraction(3)).value == pytest.approx(0.5)
+    state = motion_event(
+        motion,
+        state,
+        MotionEvent(at=Fraction(3), ordinal=0, action='seek', position=Fraction(1)),
+    )
+    assert motion_at(motion, state, Fraction(3)).status == 'held'
+    state = motion_event(
+        motion, state, MotionEvent(at=Fraction(3), ordinal=1, action='note_off')
+    )
+    assert motion_at(motion, state, Fraction(3)).value == 1
+
+
+def test_staged_reverse_markers_and_seek_do_not_undo_transitions() -> None:
+    motion = staged_motion()
+    cue = MotionEvent(at=Fraction(0), ordinal=0, action='cue', cue='sway')
+    state = advance_motion(motion, initial_motion(motion, cue.at), cue.at, cue).state
+    first = advance_motion(motion, state, Fraction(3, 8))
+    assert [(e.at, e.port) for e in first.events] == [(Fraction(1, 8), 'peak')]
+    reversed_at = MotionEvent(at=Fraction(3, 8), ordinal=0, action='reverse')
+    state = advance_motion(motion, first.state, reversed_at.at, reversed_at).state
+    backward = advance_motion(motion, state, Fraction(5, 8))
+    assert [(e.at, e.port) for e in backward.events] == [(Fraction(5, 8), 'peak')]
+    seek = MotionEvent(
+        at=Fraction(5, 8), ordinal=0, action='seek', position=Fraction(3, 4)
+    )
+    jumped = advance_motion(motion, backward.state, seek.at, seek)
+    assert jumped.events == []
+    assert jumped.state.runtime.stage == 'sway'
+    assert advance_motion(motion, jumped.state, Fraction(7, 8)).events == [
+        backward.events[0].model_copy(update={'at': Fraction(7, 8)})
+    ]
+
+
+def test_unconnected_stage_completion_emits_once() -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='rise',
+            stages=[
+                Stage(
+                    name='rise',
+                    motion=Contour(segments=[Segment(duration=Fraction(1, 4), to=1)]),
+                )
+            ],
+        )
+    )
+    first = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(1, 4))
+    assert [e.port for e in first.events] == ['stage.done']
+    assert advance_motion(motion, first.state, Fraction(1)).events == []
+
+
 def test_stages_attack_sways_releases_and_emits_completion() -> None:
     motion = staged_motion()
     assert MotionUse.model_validate_json(motion.model_dump_json()) == motion

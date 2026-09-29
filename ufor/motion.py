@@ -1,7 +1,7 @@
 """Portable definitions for reusable control motions."""
 
 from fractions import Fraction
-from math import floor
+from math import ceil, floor
 from typing import Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
@@ -209,9 +209,21 @@ class MotionUse(Model):
 
 
 class MotionEvent(control.ControlEvent):
-    action: Literal['note_on', 'note_off', 'reset', 'rate', 'transport', 'cue']
+    action: Literal[
+        'note_on',
+        'note_off',
+        'reset',
+        'rate',
+        'transport',
+        'cue',
+        'pause',
+        'resume',
+        'reverse',
+        'seek',
+    ]
     rate: control.Rational | None = Field(default=None, ge=0)
     cue: Identifier | None = None
+    position: control.Rational | None = Field(default=None, ge=0, le=1)
 
     @model_validator(mode='after')
     def rate_payload(self) -> Self:
@@ -219,15 +231,40 @@ class MotionEvent(control.ControlEvent):
             raise ValueError('only rate events require a rate')
         if (self.action == 'cue') != (self.cue is not None):
             raise ValueError('only cue events require a cue name')
+        if (self.action == 'seek') != (self.position is not None):
+            raise ValueError('only seek events require a position')
         return self
+
+
+class MotionPosition(Model):
+    at: control.Rational
+    coordinate: control.Rational
+    rate: control.Rational = Field(ge=0)
+    direction: Literal[-1, 1] = 1
+    paused: bool = False
+    age: control.Rational = Field(default=Fraction(0), ge=0)
+
+
+class CycleState(Model):
+    at: control.Rational
+    ordinal: int = -1
+    position: MotionPosition
+
+
+class ContourState(Model):
+    at: control.Rational
+    ordinal: int = -1
+    phase: Literal['idle', 'on', 'release'] = 'idle'
+    start_value: FiniteScalar
+    position: MotionPosition
 
 
 class StageState(Model):
     at: control.Rational
     ordinal: int = -1
     stage: Identifier
-    entered_at: control.Rational
     entry_value: FiniteScalar
+    position: MotionPosition
     activation: int = 0
     cursor_order: int = -1
     completed: bool = False
@@ -235,7 +272,7 @@ class StageState(Model):
 
 
 class MotionState(Model):
-    runtime: lfo.LFOState | envelope.EnvelopeState | StageState
+    runtime: CycleState | ContourState | StageState
 
 
 class MotionValue(Model):
@@ -295,9 +332,95 @@ def contour_envelope(motion: MotionUse) -> envelope.Envelope:
     )
 
 
+def _contour_rate(segments: list[Segment]) -> Fraction:
+    duration = sum((s.duration for s in segments), Fraction(0))
+    return Fraction(1, 1) / duration if duration else Fraction(0)
+
+
+def _initial_position(body: Hold | Cycle | Contour, at: Fraction) -> MotionPosition:
+    if isinstance(body, Cycle):
+        assert isinstance(body.rate, Fraction)
+        return MotionPosition(at=at, coordinate=body.phase, rate=body.rate)
+    if isinstance(body, Contour):
+        return MotionPosition(
+            at=at, coordinate=Fraction(0), rate=_contour_rate(body.segments)
+        )
+    return MotionPosition(at=at, coordinate=Fraction(0), rate=Fraction(0))
+
+
+def _coordinate_at(position: MotionPosition, at: Fraction) -> Fraction:
+    elapsed = control.elapsed(at, position.at)
+    if position.paused:
+        return position.coordinate
+    return position.coordinate + position.direction * position.rate * elapsed
+
+
+def _age_at(position: MotionPosition, at: Fraction) -> Fraction:
+    elapsed = control.elapsed(at, position.at)
+    return position.age if position.paused else position.age + elapsed
+
+
+def _position_at(position: MotionPosition, at: Fraction) -> MotionPosition:
+    return position.model_copy(
+        update={
+            'at': at,
+            'coordinate': _coordinate_at(position, at),
+            'age': _age_at(position, at),
+        }
+    )
+
+
+def _position_command(position: MotionPosition, event: MotionEvent) -> MotionPosition:
+    if event.action == 'pause':
+        return position.model_copy(update={'paused': True})
+    if event.action == 'resume':
+        return position.model_copy(update={'paused': False})
+    if event.action == 'reverse':
+        return position.model_copy(update={'direction': -position.direction})
+    if event.action == 'seek':
+        assert event.position is not None
+        return position.model_copy(update={'coordinate': event.position})
+    if event.action == 'rate':
+        assert event.rate is not None
+        return position.model_copy(update={'rate': event.rate})
+    return position
+
+
+def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionValue:
+    if state.phase == 'idle':
+        assert isinstance(body.initial, float)
+        return MotionValue(value=body.initial, weight=1, status='idle')
+    segments = body.release if state.phase == 'release' else body.segments
+    duration = sum((s.duration for s in segments), Fraction(0))
+    coordinate = (
+        max(Fraction(0), min(Fraction(1), _coordinate_at(state.position, at)))
+        if duration
+        else Fraction(1)
+    )
+    value = envelope.curve_at(
+        envelope.Curve(initial=state.start_value, segments=segments),
+        coordinate * duration,
+    )
+    if coordinate < 1:
+        status = 'running'
+    elif state.phase == 'on' and body.hold and body.release:
+        status = 'held'
+    else:
+        status = 'complete'
+    return MotionValue(value=value, weight=1, status=status)
+
+
 def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
     if isinstance(motion.body, Cycle):
-        return MotionState(runtime=lfo.initial_lfo(cycle_lfo(motion), at))
+        assert isinstance(motion.body.rate, Fraction)
+        return MotionState(
+            runtime=CycleState(
+                at=at,
+                position=MotionPosition(
+                    at=at, coordinate=motion.body.phase, rate=motion.body.rate
+                ),
+            )
+        )
     if isinstance(motion.body, Stages):
         stage = next(
             s for s in motion.body.stages if s.name == motion.body.initial_stage
@@ -308,33 +431,53 @@ def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
             runtime=StageState(
                 at=at,
                 stage=stage.name,
-                entered_at=at,
                 entry_value=initial,
+                position=_initial_position(stage.motion, at),
             )
         )
     if not isinstance(motion.body, Contour):
         raise ValueError('motion reference must be materialized before use')
-    state = envelope.initial_envelope(contour_envelope(motion), at)
-    if not motion.body.release:
-        state = state.model_copy(update={'phase': 'on'})
-    return MotionState(runtime=state)
+    assert isinstance(motion.body.initial, float)
+    return MotionState(
+        runtime=ContourState(
+            at=at,
+            phase='idle' if motion.body.release else 'on',
+            start_value=motion.body.initial,
+            position=_initial_position(motion.body, at).model_copy(
+                update={
+                    'coordinate': Fraction(1)
+                    if not sum(s.duration for s in motion.body.segments)
+                    else Fraction(0)
+                }
+            ),
+        )
+    )
 
 
 def motion_at(motion: MotionUse, state: MotionState, at: Fraction) -> MotionValue:
-    if isinstance(motion.body, Cycle) and isinstance(state.runtime, lfo.LFOState):
-        value = lfo.lfo_at(cycle_lfo(motion), state.runtime, at)
+    if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
+        position = state.runtime.position
+        coordinate = _coordinate_at(position, at)
+        age = _age_at(position, at)
+        if age < motion.body.delay:
+            weight = 0.0
+        elif motion.body.fade_in:
+            weight = float(
+                min(Fraction(1), (age - motion.body.delay) / motion.body.fade_in)
+            )
+        else:
+            weight = 1.0
         return MotionValue(
-            value=motion.body.center + motion.body.depth * value.value,
-            weight=value.weight,
+            value=motion.body.center
+            + motion.body.depth
+            * shape_value(motion.body.shape, coordinate % 1, motion.body.duty_cycle),
+            weight=weight,
             status='running',
         )
     if isinstance(motion.body, Stages) and isinstance(state.runtime, StageState):
         return advance_motion(motion, state, at).value
-    if isinstance(motion.body, Contour) and isinstance(
-        state.runtime, envelope.EnvelopeState
-    ):
-        value = envelope.envelope_at(contour_envelope(motion), state.runtime, at)
-        return MotionValue(value=value.value, weight=1, status=value.status)
+    if isinstance(motion.body, Contour) and isinstance(state.runtime, ContourState):
+        return _contour_value(motion.body, state.runtime, at)
     raise ValueError('motion state does not match its definition')
 
 
@@ -343,54 +486,73 @@ def motion_event(
 ) -> MotionState:
     if isinstance(motion.body, Stages) and isinstance(state.runtime, StageState):
         return advance_motion(motion, state, event.at, event).state
-    if isinstance(motion.body, Cycle) and isinstance(state.runtime, lfo.LFOState):
+    if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
         if event.action == 'cue':
             raise ValueError('cycles do not accept cue events')
-        if event.action in ('note_off', 'note_on'):
-            action = 'trigger'
-            if event.action == 'note_off':
-                control.check_order(state.runtime.at, state.runtime.ordinal, event)
-                return MotionState(
-                    runtime=state.runtime.model_copy(
-                        update={
-                            'at': event.at,
-                            'ordinal': event.ordinal,
-                            'phase': lfo.phase_at(state.runtime, event.at),
-                        }
-                    )
+        control.check_order(state.runtime.at, state.runtime.ordinal, event)
+        position = _position_at(state.runtime.position, event.at)
+        if event.action in ('note_on', 'reset', 'transport'):
+            if (
+                event.action == 'reset'
+                or (event.action == 'note_on' and motion.body.reset == Reset.trigger)
+                or (
+                    event.action == 'transport' and motion.body.reset == Reset.transport
+                )
+            ):
+                position = position.model_copy(
+                    update={'coordinate': motion.body.phase, 'age': Fraction(0)}
                 )
         else:
-            action = event.action
+            position = _position_command(position, event)
         return MotionState(
-            runtime=lfo.lfo_event(
-                cycle_lfo(motion),
-                state.runtime,
-                lfo.LFOEvent(
-                    at=event.at, ordinal=event.ordinal, action=action, rate=event.rate
-                ),
-            )
+            runtime=CycleState(at=event.at, ordinal=event.ordinal, position=position)
         )
-    if isinstance(motion.body, Contour) and isinstance(
-        state.runtime, envelope.EnvelopeState
-    ):
-        if event.action not in ('note_on', 'note_off'):
-            raise ValueError('contours accept only note events')
-        if event.action == 'note_off' and not motion.body.release:
-            control.check_order(state.runtime.at, state.runtime.ordinal, event)
-            return MotionState(
-                runtime=state.runtime.model_copy(
-                    update={'at': event.at, 'ordinal': event.ordinal}
+    if isinstance(motion.body, Contour) and isinstance(state.runtime, ContourState):
+        if event.action in ('cue', 'reset', 'transport', 'rate'):
+            raise ValueError('contours do not accept this event')
+        control.check_order(state.runtime.at, state.runtime.ordinal, event)
+        runtime = state.runtime
+        position = _position_at(runtime.position, event.at)
+        phase = runtime.phase
+        start_value = runtime.start_value
+        observed = _contour_value(motion.body, runtime, event.at)
+        if event.action == 'note_on':
+            active = observed.status in ('running', 'held')
+            if not active or motion.body.retrigger != Retrigger.ignore:
+                assert isinstance(motion.body.initial, float)
+                start_value = (
+                    observed.value
+                    if motion.body.retrigger == Retrigger.current
+                    else motion.body.initial
                 )
-            )
+                phase = 'on'
+                position = position.model_copy(
+                    update={
+                        'coordinate': Fraction(0),
+                        'age': Fraction(0),
+                        'rate': _contour_rate(motion.body.segments),
+                    }
+                )
+        elif event.action == 'note_off':
+            if motion.body.release and phase == 'on' and observed.status != 'complete':
+                phase = 'release'
+                start_value = observed.value
+                position = position.model_copy(
+                    update={
+                        'coordinate': Fraction(0),
+                        'age': Fraction(0),
+                        'rate': _contour_rate(motion.body.release),
+                    }
+                )
+        else:
+            position = _position_command(position, event)
         return MotionState(
-            runtime=envelope.envelope_event(
-                contour_envelope(motion),
-                state.runtime,
-                envelope.EnvelopeEvent(
-                    at=event.at,
-                    ordinal=event.ordinal,
-                    action='trigger' if event.action == 'note_on' else 'release',
-                ),
+            runtime=ContourState(
+                at=event.at,
+                ordinal=event.ordinal,
+                phase=phase,
+                start_value=start_value,
+                position=position,
             )
         )
     raise ValueError('motion state does not match its definition')
@@ -414,13 +576,26 @@ def advance_motion(
         control.check_order(runtime.at, runtime.ordinal, event)
     current, emitted = _advance_stages(body, runtime, at, event is None)
     if event is not None:
-        key = f'cue.{event.cue}' if event.action == 'cue' else event.action
-        activation = current.activation
-        current, output = _stage_transition(body, current, at, key)
-        emitted.extend(output)
-        if current.activation == activation and not current.completed:
-            current, output = _advance_stages(body, current, at, True)
+        if event.action in ('pause', 'resume', 'reverse', 'seek', 'rate'):
+            stage = next(s.motion for s in body.stages if s.name == current.stage)
+            if event.action == 'seek' and isinstance(stage, Hold):
+                raise ValueError('hold stages do not accept seek events')
+            current = current.model_copy(
+                update={
+                    'position': _position_command(
+                        _position_at(current.position, at), event
+                    ),
+                    'cursor_order': -1,
+                }
+            )
+        else:
+            key = f'cue.{event.cue}' if event.action == 'cue' else event.action
+            activation = current.activation
+            current, output = _stage_transition(body, current, at, key)
             emitted.extend(output)
+            if current.activation == activation and not current.completed:
+                current, output = _advance_stages(body, current, at, True)
+                emitted.extend(output)
         current = current.model_copy(
             update={
                 'at': at,
@@ -447,6 +622,7 @@ def _advance_stages(
                 'at': time,
                 'ordinal': state.ordinal if state.at == time else -1,
                 'cursor_order': order,
+                'position': _position_at(state.position, time),
             }
         )
         emitted.append(
@@ -467,6 +643,7 @@ def _advance_stages(
                 'at': at,
                 'ordinal': state.ordinal if state.at == at else -1,
                 'cursor_order': -1 if state.at != at else state.cursor_order,
+                'position': _position_at(state.position, at),
             }
         )
     return state, emitted
@@ -481,38 +658,55 @@ def _next_stage_event(
     if isinstance(stage, Hold):
         return None
     candidates: list[tuple[Fraction, int, str]] = []
+    position = state.position
+    if position.paused or not position.rate:
+        return None
+    start = position.coordinate
+    forward = position.direction == 1
     if isinstance(stage, Contour):
-        duration = sum((s.duration for s in stage.segments), Fraction(0))
         for index, marker in enumerate(stage.markers):
+            target = marker.position
+            if (target > start if forward else target < start) or (
+                target == start
+                and state.cursor_order >= 0
+                and (
+                    index > state.cursor_order
+                    if forward
+                    else index < state.cursor_order
+                )
+            ):
+                time = state.at + abs(target - start) / position.rate
+                candidates.append((time, index, marker.name))
+        if forward and (
+            start < 1 or (start == 1 and 0 <= state.cursor_order < len(stage.markers))
+        ):
             candidates.append(
-                (state.entered_at + duration * marker.position, index, marker.name)
+                (state.at + (1 - start) / position.rate, len(stage.markers), 'done')
             )
-        candidates.append((state.entered_at + duration, len(stage.markers), 'done'))
     else:
         assert isinstance(stage, Cycle)
-        assert isinstance(stage.rate, Fraction)
-        if stage.rate:
-            for index, marker in enumerate(stage.markers):
-                turn = floor(
-                    (state.at - state.entered_at) * stage.rate
-                    + stage.phase
-                    - marker.position
+        for index, marker in enumerate(stage.markers):
+            offset = start - marker.position
+            turn = floor(offset) + 1 if forward else ceil(offset) - 1
+            target = turn + marker.position
+            time = state.at + abs(target - start) / position.rate
+            candidates.append((time, index, marker.name))
+            if (
+                state.cursor_order >= 0
+                and offset.denominator == 1
+                and (
+                    index > state.cursor_order
+                    if forward
+                    else index < state.cursor_order
                 )
-                for count in (turn, turn + 1):
-                    time = (
-                        state.entered_at
-                        + (count + marker.position - stage.phase) / stage.rate
-                    )
-                    if time >= state.entered_at:
-                        candidates.append((time, index, marker.name))
+            ):
+                candidates.append((state.at, index, marker.name))
     available = [
-        c
-        for c in candidates
-        if c[0] > state.entered_at
-        and (c[0], c[1]) > (state.at, state.cursor_order)
-        and (c[0] <= limit if inclusive else c[0] < limit)
+        c for c in candidates if (c[0] <= limit if inclusive else c[0] < limit)
     ]
-    return min(available) if available else None
+    if not available:
+        return None
+    return min(available) if forward else min(available, key=lambda c: (c[0], -c[1]))
 
 
 def _stage_transition(
@@ -548,8 +742,13 @@ def _stage_transition(
                 at=at,
                 ordinal=state.ordinal,
                 stage=transition.action.stage,
-                entered_at=at,
                 entry_value=entry,
+                position=_initial_position(target, at).model_copy(
+                    update={
+                        'paused': state.position.paused,
+                        'direction': state.position.direction,
+                    }
+                ),
                 activation=state.activation + 1,
             ),
             [],
@@ -571,14 +770,15 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
     stage = next(s.motion for s in body.stages if s.name == state.stage)
     if isinstance(stage, Hold):
         return MotionValue(value=stage.value, weight=1, status='held')
-    elapsed = control.elapsed(at, state.entered_at)
+    position = state.position
+    coordinate = _coordinate_at(position, at)
     if isinstance(stage, Cycle):
-        assert isinstance(stage.rate, Fraction)
-        phase = (stage.phase + stage.rate * elapsed) % 1
-        if elapsed < stage.delay:
+        phase = coordinate % 1
+        age = _age_at(position, at)
+        if age < stage.delay:
             weight = 0.0
         elif stage.fade_in:
-            weight = float(min(Fraction(1), (elapsed - stage.delay) / stage.fade_in))
+            weight = float(min(Fraction(1), (age - stage.delay) / stage.fade_in))
         else:
             weight = 1.0
         value = stage.center + stage.depth * weight * shape_value(
@@ -586,10 +786,11 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
         )
         return MotionValue(value=value, weight=1, status='running')
     curve = envelope.Curve(initial=state.entry_value, segments=stage.segments)
-    value = envelope.curve_at(curve, elapsed)
     duration = sum((s.duration for s in stage.segments), Fraction(0))
+    bounded = max(Fraction(0), min(Fraction(1), coordinate))
+    value = envelope.curve_at(curve, bounded * duration)
     return MotionValue(
-        value=value, weight=1, status='running' if elapsed < duration else 'held'
+        value=value, weight=1, status='running' if bounded < 1 else 'held'
     )
 
 
