@@ -11087,7 +11087,7 @@
         },
         "segments": {
           "items": {
-            "$ref": "#/$defs/Segment"
+            "$ref": "#/$defs/TimelineSegment"
           },
           "title": "Segments",
           "type": "array"
@@ -11111,6 +11111,33 @@
         "initial"
       ],
       "title": "TimelineCurve",
+      "type": "object"
+    },
+    "TimelineSegment": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "minimum": 0,
+          "title": "Duration",
+          "type": "integer"
+        },
+        "to": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "boolean"
+            }
+          ],
+          "title": "To"
+        }
+      },
+      "required": [
+        "duration",
+        "to"
+      ],
+      "title": "TimelineSegment",
       "type": "object"
     },
     "Track": {

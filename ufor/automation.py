@@ -11,7 +11,6 @@ from .base import FiniteScalar, Identifier, Model, unique
 from .control import Scope
 from .interface import ControlBinding, ControlType, InterfaceScore, Output
 from .modulation import Operation, Target, Unit
-from .segments import Segment
 from .time import Timebase
 
 
@@ -41,20 +40,19 @@ class ArrangementGainTarget(Model):
         return self
 
 
+class TimelineSegment(Model):
+    duration: int = Field(ge=0, strict=True)
+    to: FiniteScalar | StrictBool
+
+
 class TimelineCurve(Model):
     name: Identifier
     unit: Unit
     interpolation: Interpolation = Interpolation.linear
     at: int = Field(strict=True)
     initial: FiniteScalar | StrictBool
-    segments: list[Segment] = Field(default_factory=list)
+    segments: list[TimelineSegment] = Field(default_factory=list)
     operation: Operation | None = None
-
-    @model_validator(mode='after')
-    def tick_segments(self) -> Self:
-        if any(segment.duration.denominator != 1 for segment in self.segments):
-            raise ValueError('timeline segment durations must be integer ticks')
-        return self
 
 
 class Automation(Model):

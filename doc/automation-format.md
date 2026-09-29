@@ -45,7 +45,9 @@ Each score has one named physical timebase with an exact rational rate and one
 `control` output. The output declares the curve's quantity, unit, scope, and
 timebase, and must exactly match the body. Curve ticks are strict signed integers
 in that timebase. A curve names its unit and has a start tick, initial value, and
-ordered segments.
+ordered segments. Each segment's `duration` is a nonnegative integer number of
+native ticks, serialized as a TOML integer such as `duration = 2000`.
+Second-suffixed durations belong to envelopes and are invalid here.
 It has at least one knot; a score can have no curves, in which case it evaluates
 to its base value.
 
