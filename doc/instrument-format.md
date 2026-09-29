@@ -18,6 +18,9 @@ belong to both `PerformanceEvent` and `StoredEvent`. Common sequence scores
 and native JSONL parsing can therefore carry semantic performance events.
 Recording event-kind filters also recognize their three kind names. Existing
 capture adapters do not infer musical triggers from incoming raw MIDI.
+The separate [performance input binding](performance-binding.md) score now
+defines MIDI channel and controller mappings without coupling them to a host
+adapter or a device port.
 
 Every event has a strict integer `tick` and nonnegative strict integer
 `ordinal`. Its containing sequence or event stream names the physical

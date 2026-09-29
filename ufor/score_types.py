@@ -13,6 +13,7 @@ from .interface import Part
 from .light_animation import AnimationScore
 from .motion import MotionScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
+from .performance_binding import PerformanceBindingScore
 from .preset import PresetScore
 from .recording import RecordingScore
 from .samples.instrument import SampleInstrumentScore
@@ -24,6 +25,7 @@ ScoreValue = Annotated[
     ArrangementScore
     | AutomationScore
     | BindingScore
+    | PerformanceBindingScore
     | BroadcastScore
     | FixtureScore
     | RecordingScore

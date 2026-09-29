@@ -1,0 +1,20 @@
+{
+  "format": "recs",
+  "version": 4,
+  "kind": "performance_binding",
+  "name": "sfz-midi",
+  "title": "SFZ MIDI performance binding",
+  "body": {
+    "instrument": {"path": "instrument.toml"},
+    "midi": [
+      {
+        "channels": [1, 2],
+        "part": "main",
+        "repeated_key_release": "newest",
+        "controllers": [
+          {"number": 64, "control": "sustain"}
+        ]
+      }
+    ]
+  }
+}
