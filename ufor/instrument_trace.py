@@ -82,6 +82,21 @@ class LFOObservation(TraceAction):
         return self
 
 
+class MotionObservation(TraceAction):
+    kind: Literal['motion'] = 'motion'
+    name: Identifier
+    part: Identifier
+    trigger_id: Identifier
+    action: Literal['pause', 'resume', 'reverse', 'seek']
+    position: float | None = Field(default=None, ge=0, le=1)
+
+    @model_validator(mode='after')
+    def seek_payload(self) -> Self:
+        if (self.action == 'seek') != (self.position is not None):
+            raise ValueError('only Motion seek observations require a position')
+        return self
+
+
 class Diagnostic(TraceAction):
     kind: Literal['diagnostic'] = 'diagnostic'
     code: Identifier

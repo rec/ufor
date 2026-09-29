@@ -2,7 +2,14 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 
 from ufor.codec import parse_score, score_toml
-from ufor.events import LFOChange, MidiEvent, OscEvent, OscMessage, StoredEvent
+from ufor.events import (
+    LFOChange,
+    MidiEvent,
+    MotionChange,
+    OscEvent,
+    OscMessage,
+    StoredEvent,
+)
 from ufor.interface import EventType, Output, SequenceBinding
 from ufor.sequence import EventSequence, SequenceScore
 from ufor.time import Rate, Timebase
@@ -78,3 +85,39 @@ def test_lfo_position_changes_validate_their_payloads() -> None:
         LFOChange(tick=0, ordinal=0, name='vibrato', action='seek')
     with pytest.raises(ValueError, match='require a position'):
         LFOChange(tick=0, ordinal=0, name='vibrato', action='pause', position=0.5)
+
+
+def test_trigger_addressed_motion_change_round_trips() -> None:
+    assert EventType(timebase='ticks', kinds=['motion_change']).kinds == [
+        'motion_change'
+    ]
+    change = MotionChange(
+        tick=12000,
+        ordinal=0,
+        name='swell',
+        part='main',
+        trigger_id='note',
+        action='seek',
+        position=0.75,
+    )
+    adapter = TypeAdapter(StoredEvent)
+    assert adapter.validate_json(adapter.dump_json(change)) == change
+    with pytest.raises(ValueError, match='require a position'):
+        MotionChange(
+            tick=0,
+            ordinal=0,
+            name='swell',
+            part='main',
+            trigger_id='note',
+            action='seek',
+        )
+    with pytest.raises(ValueError, match='require a position'):
+        MotionChange(
+            tick=0,
+            ordinal=0,
+            name='swell',
+            part='main',
+            trigger_id='note',
+            action='pause',
+            position=0.5,
+        )

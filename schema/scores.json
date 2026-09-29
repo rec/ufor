@@ -3750,6 +3750,7 @@
                 "key": "#/$defs/KeyEvent",
                 "lfo_change": "#/$defs/LFOChange",
                 "midi": "#/$defs/MidiEvent",
+                "motion_change": "#/$defs/MotionChange",
                 "osc": "#/$defs/OscEvent",
                 "release": "#/$defs/Release",
                 "trigger": "#/$defs/Trigger",
@@ -3781,6 +3782,9 @@
               },
               {
                 "$ref": "#/$defs/LFOChange"
+              },
+              {
+                "$ref": "#/$defs/MotionChange"
               }
             ]
           },
@@ -3833,7 +3837,8 @@
                 "trigger",
                 "release",
                 "control_change",
-                "lfo_change"
+                "lfo_change",
+                "motion_change"
               ],
               "type": "string"
             },
@@ -3895,7 +3900,8 @@
               "trigger",
               "release",
               "control_change",
-              "lfo_change"
+              "lfo_change",
+              "motion_change"
             ],
             "type": "string"
           },
@@ -6483,6 +6489,73 @@
         }
       },
       "title": "Modulation",
+      "type": "object"
+    },
+    "MotionChange": {
+      "additionalProperties": false,
+      "description": "Control named Motions on the voices started by one trigger.",
+      "properties": {
+        "tick": {
+          "title": "Tick",
+          "type": "integer"
+        },
+        "ordinal": {
+          "minimum": 0,
+          "title": "Ordinal",
+          "type": "integer"
+        },
+        "kind": {
+          "const": "motion_change",
+          "default": "motion_change",
+          "title": "Kind",
+          "type": "string"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "part": {
+          "title": "Part",
+          "type": "string"
+        },
+        "trigger_id": {
+          "title": "Trigger Id",
+          "type": "string"
+        },
+        "action": {
+          "enum": [
+            "pause",
+            "resume",
+            "reverse",
+            "seek"
+          ],
+          "title": "Action",
+          "type": "string"
+        },
+        "position": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Position"
+        }
+      },
+      "required": [
+        "tick",
+        "ordinal",
+        "name",
+        "part",
+        "trigger_id",
+        "action"
+      ],
+      "title": "MotionChange",
       "type": "object"
     },
     "MotionEventConnection": {
@@ -9889,7 +9962,7 @@
             "direction": null,
             "mode": null,
             "play_count": null,
-            "start_delay_seconds": 0
+            "start_delay_seconds": 0.0
           }
         },
         "group": {
