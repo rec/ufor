@@ -187,6 +187,8 @@ class Slideshow(Model):
     @model_validator(mode='after')
     def references(self) -> Self:
         unique((a.name for a in self.assets), 'asset')
+        if any(a.content is None for a in self.assets):
+            raise ValueError('slideshows require finite assets')
         unique((s.name for s in self.selections), 'selection')
         unique((i.name for i in self.items), 'slide')
         assets = {a.name for a in self.assets}

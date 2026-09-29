@@ -14,23 +14,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
 
-1. **High, confirmed: sealed recordings can refer to live assets.**
-   `RecordingScore.references` in `ufor/recording.py` checks referenced asset
-   names, but not the locations or content identities of those assets. A
-   `state="sealed"` recording can therefore use a `stream` or
-   `python_provider` location for a fragment or journal. This contradicts
-   `doc/recording-format.md`'s finite-payload contract and leaves an apparently
-   finalized session impossible to verify or export reproducibly. Validate the
-   finite content-bearing locations for assets used by a sealed recording;
-   cover both audio and event fragments.
-
-2. **High, confirmed: slideshow assets can be live despite the sealed-media
-   contract.** `ufor/slideshow.py:187-225` checks names and references only.
-   Slides, accompaniment, and caption assets may be `StreamLocation` or a
-   callback/client-buffer provider. `doc/slideshow-format.md` calls them
-   sealed assets. Decide whether a slideshow is a live-source format; if not,
-   enforce finite content-bearing assets in its validator and conformance data.
-
 3. **High, confirmed: one stored event kind cannot be exported.**
    `StoredEvent` includes `LFOChange` in `ufor/events.py:165-178`, but
    `EventType.kinds` in `ufor/interface.py:81-88` and

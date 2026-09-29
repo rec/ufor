@@ -4,7 +4,13 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor.assets import Asset, ContentIdentity, RelativeFileLocation
+from ufor.assets import (
+    Asset,
+    ContentIdentity,
+    PythonProviderLocation,
+    RelativeFileLocation,
+    StreamLocation,
+)
 from ufor.codec import parse_score, score_toml
 from ufor.recording import (
     AudioFragment,
@@ -76,6 +82,36 @@ def test_recording_rejects_unknown_assets() -> None:
     data['assets'] = data['assets'][:1]
     with pytest.raises(ValidationError, match='unknown asset'):
         RecordingScore.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    'location',
+    [
+        StreamLocation(url='https://example.org/live', transport='icecast'),
+        PythonProviderLocation(module='audio', function='source', delivery='buffer'),
+    ],
+)
+def test_sealed_recording_rejects_live_assets(location: object) -> None:
+    data = recording().model_dump()
+    data['assets'][1] = {
+        'name': 'take',
+        'location': location,
+        'encoding': 'float32',
+    }
+    with pytest.raises(ValidationError, match='finite assets'):
+        RecordingScore.model_validate(data)
+
+
+def test_open_recording_allows_live_asset_declarations() -> None:
+    data = recording().model_dump()
+    data['body']['state'] = 'open'
+    data['body']['ended_at'] = None
+    data['assets'][1] = {
+        'name': 'take',
+        'location': StreamLocation(url='https://example.org/live', transport='icecast'),
+        'encoding': 'float32',
+    }
+    assert RecordingScore.model_validate(data).body.state == 'open'
 
 
 def test_gap_cannot_cover_recorded_audio() -> None:
