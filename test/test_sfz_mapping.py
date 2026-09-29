@@ -131,6 +131,27 @@ def test_sfz_off_by_keeps_each_victims_off_mode() -> None:
     }
 
 
+def test_sfz_group_identity_uses_numeric_value() -> None:
+    result = _compile(
+        '<region> sample=sample.wav group=01 '
+        '<region> sample=sample.wav off_by=1 '
+        '<region> sample=sample.wav group=00 off_by=+0'
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    trigger, victim, ungrouped = result.instrument.body.slots
+    assert victim.choke_group == trigger.chokes[0].group
+    assert ungrouped.choke_group is None
+    assert ungrouped.chokes == []
+
+
+@pytest.mark.parametrize('group', [str(2**31), str(-(2**31) - 1)])
+def test_sfz_group_must_fit_the_standard_range(group: str) -> None:
+    with pytest.raises(ValueError, match='signed 32-bit'):
+        _compile(f'<region> sample=sample.wav group={group}')
+
+
 def test_sfz_phase_inversion_round_trips_as_native_processing() -> None:
     result = _compile(
         '<region> sample=sample.wav phase=invert pan=25',
