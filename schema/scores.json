@@ -9683,7 +9683,8 @@
           "default": {
             "direction": null,
             "mode": null,
-            "play_count": null
+            "play_count": null,
+            "start_delay_seconds": 0
           }
         },
         "group": {
@@ -10708,7 +10709,7 @@
     },
     "SlotPlayback": {
       "additionalProperties": false,
-      "description": "None inherits the instrument traversal setting, including after serialization.",
+      "description": "Unset direction and mode inherit instrument traversal after serialization.",
       "properties": {
         "direction": {
           "anyOf": [
@@ -10744,6 +10745,12 @@
           ],
           "default": null,
           "title": "Play Count"
+        },
+        "start_delay_seconds": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Start Delay Seconds",
+          "type": "number"
         }
       },
       "title": "SlotPlayback",

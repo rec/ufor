@@ -529,6 +529,22 @@ def _playback(
             declarations['loop_count'],
             'SFZ loop_count requires an active loop',
         )
+    if 'delay' in values:
+        delay = _number(values['delay'], 'delay')
+        if not 0 <= delay <= 100:
+            raise ValueError('delay must be between 0 and 100 seconds')
+        if (
+            delay
+            and not release_trigger
+            and result.get('mode') == enums.PlaybackMode.one_shot
+        ):
+            _add_unimplemented(
+                unimplemented,
+                declarations['delay'],
+                'SFZ one-shot delayed note-off behavior differs between players',
+            )
+        else:
+            result['start_delay_seconds'] = delay
     start_frame = result.get('start_frame', 0)
     end_frame = result.get('end_frame', metadata.frames)
     assert isinstance(start_frame, int)

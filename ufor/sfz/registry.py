@@ -168,6 +168,7 @@ PARSABLE_OPCODES = {
     'amp_keycenter',
     'amp_keytrack',
     'count',
+    'delay',
     'direction',
     'end',
     'group',

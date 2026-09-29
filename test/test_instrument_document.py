@@ -22,6 +22,7 @@ from ufor.samples.instrument import (
 )
 from ufor.samples.metadata import AudioMetadata
 from ufor.sfz import registry
+from ufor.sfz.model import SfzCompileResult
 from ufor.time import Rate, Timebase
 
 
@@ -511,6 +512,48 @@ def test_sfz_count_overrides_loop_mode_without_retriggering_the_envelope() -> No
     ]
 
 
+def test_sfz_delay_postpones_voice_start_and_reports_one_shot_ambiguity() -> None:
+    metadata = AudioMetadata(
+        channels=1,
+        frames=48_000,
+        sample_rate=48_000,
+        encoding='WAV/PCM_16',
+        byte_length=96_044,
+        sha256='0' * 64,
+        embedded_loop_known=True,
+    )
+
+    def compile_region(text: str) -> SfzCompileResult:
+        return sfz.compile_instrument(
+            sfz.parse(f'<region> sample=audio/glass.wav {text}'),
+            name='glass',
+            title='Glass',
+            assets={'audio/glass.wav': metadata},
+            output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+            output_channels=['left', 'right'],
+        )
+
+    result = compile_region('delay=0.25')
+    assert result.complete
+    assert result.instrument is not None
+    slot = result.instrument.body.slots[0]
+    assert slot.playback.start_delay_seconds == 0.25
+    assert slot.envelope is not None
+    assert slot.envelope.segments[0].duration == 0
+    rendered = sfz.write(result.instrument)
+    assert rendered.complete
+    assert 'delay=0.25' in rendered.contents
+
+    ambiguous = compile_region('delay=0.25 loop_mode=one_shot')
+    assert [(i.location.opcode, i.reason) for i in ambiguous.unimplemented] == [
+        ('delay', 'SFZ one-shot delayed note-off behavior differs between players')
+    ]
+    release = compile_region('delay=0.25 trigger=release')
+    assert release.complete
+    assert release.instrument is not None
+    assert release.instrument.body.slots[0].playback.start_delay_seconds == 0.25
+
+
 def test_sfz_sequence_requires_explicit_counter_rule() -> None:
     source = sfz.parse(
         '<region> sample=audio/glass.wav key=60 seq_length=2 seq_position=1'
@@ -910,6 +953,7 @@ def test_whole_sample_repeats_require_one_shot_playback() -> None:
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 5}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'repeat_count': -1}),
         (playback.SlotPlayback, {'play_count': 0}),
+        (playback.SlotPlayback, {'start_delay_seconds': -1}),
         (ControlDeclaration, {'default': -0.1}),
         (ControlDeclaration, {'default': float('inf')}),
         (ControlDeclaration, {'polarity': 'bipolar', 'default': -1.01}),
