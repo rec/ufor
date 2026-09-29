@@ -388,6 +388,16 @@ crossfade duration and head consumption, release before entry, release during
 an overlap, and both release modes. The no-loop direction examples remain
 unchanged.
 
+## Repeated Whole-Sample Playback
+
+A slot may set `play_count` to a positive integer when its effective playback
+mode is `one_shot`. The selected sample interval plays that many times in its
+chosen direction. The amplitude envelope and other voice state start once and
+continue across each sample restart; they are not retriggered. The voice ends
+on envelope completion or after the final traversal, whichever occurs first.
+This is distinct from a loop's `repeat_count`, which repeats only the loop
+interval and then continues into the sample tail.
+
 ## Release And Sustain Samples
 
 Each slot's `trigger` is `start` (default), `release`, `logical_release`,

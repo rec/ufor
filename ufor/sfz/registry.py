@@ -167,6 +167,7 @@ PARSABLE_OPCODES = {
     'amp_veltrack',
     'amp_keycenter',
     'amp_keytrack',
+    'count',
     'direction',
     'end',
     'group',

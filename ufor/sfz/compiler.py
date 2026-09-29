@@ -444,6 +444,17 @@ def _playback(
         )
 
     mode = values.get('loop_mode')
+    if 'count' in values:
+        count = _integer(values['count'], 'count', minimum=0, maximum=2**32)
+        if count == 0:
+            _add_unimplemented(
+                unimplemented,
+                declarations['count'],
+                'SFZ count=0 differs between players',
+            )
+        else:
+            result['play_count'] = count
+            mode = 'one_shot'
     embedded_loop = metadata.embedded_loop
     if (
         embedded_loop is not None
