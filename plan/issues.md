@@ -51,15 +51,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Local I/O, concurrency, and exceptional conditions
 
-13. **Medium, risk: the symlink-skip check does not protect the subsequent
-    open.** `score_files` checks `file.is_symlink()` in
-    `ufor/library_files.py:159-179`, then `read_library` later calls
-    `file.read_bytes()` at line 69. Another process can replace the path with
-    a symlink between those operations, so a library advertised as skipping
-    links can read outside its root. Clarify whether library roots are trusted
-    mutable directories; if confinement is promised, open using an approach
-    that enforces it on the opened file.
-
 14. **Medium, risk: library reads are unbounded and all-at-once.**
     `score_files` accumulates the complete tree, then `read_library` reads
     every file into memory, parses each document, and resolves the complete
