@@ -285,6 +285,18 @@ def test_python_classes_are_retained_without_construction_or_module_collisions(
     assert not [m for m in set(sys.modules) - modules if m.startswith('_ufor_score_')]
 
 
+def test_concurrent_python_score_reads_leave_modules_isolated(tmp_path: Path) -> None:
+    config = setup_library(tmp_path)
+    shutil.copyfile(PYTHON / 'oscillator.py', tmp_path / 'scores/oscillator.py')
+    modules = set(sys.modules)
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        libraries = list(executor.map(library_files.read_library, [config] * 8))
+    entries = [library.resolve('Python triangle') for library in libraries]
+    assert all(not library.diagnostics for library in libraries)
+    assert len({entry.python_class for entry in entries}) == 8
+    assert not [m for m in set(sys.modules) - modules if m.startswith('_ufor_score_')]
+
+
 @pytest.mark.parametrize(
     'fixture', ['import_failure.py', 'imported_only.py', 'multiple.py', 'syntax.txt']
 )

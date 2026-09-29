@@ -51,15 +51,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Local I/O, concurrency, and exceptional conditions
 
-12. **Medium, risk: concurrent Python-score loads share a temporary module
-    slot.** `python_score` in `ufor/library_files.py:182-218` installs a
-    deterministic key in global `sys.modules` and restores the prior value in
-    `finally`. Two threads reading the same library can interleave installs
-    and removals; imports during execution can see the other thread's module.
-    Serialize that critical section or give concurrent executions distinct
-    identities while preserving stable definition identity. Add a concurrent
-    read test if threaded use is supported.
-
 13. **Medium, risk: the symlink-skip check does not protect the subsequent
     open.** `score_files` checks `file.is_symlink()` in
     `ufor/library_files.py:159-179`, then `read_library` later calls
