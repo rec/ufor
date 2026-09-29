@@ -99,6 +99,10 @@ file content identity as separate facts. Git object IDs are not file SHA-256
 identities. Reject symlink/submodule entries and unresolved LFS pointers as in the
 location plan; do not run checkout hooks or repository code.
 
+Reccy now imports a full-commit, path-selected regular blob from a host-approved
+local Git object store, returning the observed blob ID separately from the
+verified file identity. Remote repository authorization and fetching remain.
+
 Use available Git objects or a filtered fetch when supported. Obtaining one path
 can require commit/tree objects and a larger pack; do not promise single-object
 transfer. Keep auxiliary Git transport data in a separately bounded area. Once
@@ -216,7 +220,7 @@ incomplete material with its size and available recovery action.
 
 ## Remaining operations and acceptance
 
-1. Connect local/volume root authorization and policy-gated HTTP and Git
+1. Connect local/volume root authorization and policy-gated HTTP and remote Git
    acquisition to the existing verified stream/file admission. Test missing
    HTTP expiry, variants, `no-store`, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
