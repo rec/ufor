@@ -96,6 +96,18 @@ def compile_instrument(
     unimplemented = list(source.unimplemented)
     slots: list[SampleSlot] = []
     slices: list[playback.Slice] = []
+    choke_targets: dict[str, dict[str, enums.ChokeMode]] = {}
+    for region in source.regions:
+        values = {o.opcode: o.value for o in region.opcodes}
+        if values.get('sample', '').startswith('*'):
+            continue
+        if off_by := _group(values.get('off_by')):
+            mode = values.get('off_mode', 'fast')
+            if mode not in ('fast', 'normal'):
+                raise ValueError(f'Unsupported SFZ off_mode: {mode}')
+            choke_targets.setdefault(off_by, {})[mode] = (
+                enums.ChokeMode.immediate if mode == 'fast' else enums.ChokeMode.release
+            )
     for index, region in enumerate(source.regions, 1):
         if (
             result := _slot(
@@ -106,6 +118,7 @@ def compile_instrument(
                 region,
                 unimplemented,
                 sequence_counter,
+                choke_targets,
             )
         ) is not None:
             slot, sample_slice = result
@@ -240,6 +253,7 @@ def _slot(
     region: ParsedRegion,
     unimplemented: list[UnimplementedFeature],
     sequence_counter: Literal['reject', 'all_note_ons'],
+    choke_targets: dict[str, dict[str, enums.ChokeMode]],
 ) -> tuple[SampleSlot, playback.Slice] | None:
     values: dict[str, str] = {}
     declarations: dict[str, ParsedOpcode] = {}
@@ -462,21 +476,13 @@ def _slot(
         kwargs['crossfades'] = result
     if result := _trigger(values, declarations, unimplemented):
         kwargs['trigger'] = result
-    if group := _group(values.get('group')):
-        kwargs['choke_group'] = group
     if off_by := _group(values.get('off_by')):
         mode = values.get('off_mode', 'fast')
-        if mode not in ('fast', 'normal'):
-            raise ValueError(f'Region {index}: unsupported off_mode: {mode}')
+        kwargs['choke_group'] = f'{off_by}-{mode}'
+    if group := _group(values.get('group')):
         kwargs['chokes'] = [
-            selection.Choke(
-                group=off_by,
-                mode=(
-                    enums.ChokeMode.immediate
-                    if mode == 'fast'
-                    else enums.ChokeMode.release
-                ),
-            )
+            selection.Choke(group=f'{group}-{mode}', mode=choke_mode)
+            for mode, choke_mode in choke_targets.get(group, {}).items()
         ]
     return SampleSlot.model_validate(kwargs), sample_slice
 
@@ -654,7 +660,9 @@ def _processing(
     if 'volume' in values:
         result['volume_db'] = _number(values['volume'], 'volume')
     tuning = _number(values.get('tune', '0'), 'tune')
-    tuning += 100 * _number(values.get('transpose', '0'), 'transpose')
+    tuning += 100 * _integer(
+        values.get('transpose', '0'), 'transpose', minimum=-127, maximum=127
+    )
     if tuning:
         result['tuning_cents'] = tuning
     if 'pan' in values:

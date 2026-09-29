@@ -229,6 +229,7 @@ OPCODE_ALIASES = {
     'loopend': 'loop_end',
     'loopmode': 'loop_mode',
     'loopstart': 'loop_start',
+    'pitch': 'tune',
 }
 ASSET_OPCODES = {
     'sample',

@@ -541,6 +541,9 @@ fractions. Export accepts that representable shape and reports general envelopes
 as unsupported. Velocity response becomes the shared typed multiplier route.
 SFZ inclusive endpoints become exclusive native slice/loop ends and reverse on
 export. Imported channel maps are identity or the standard mono-to-stereo law.
+SFZ `off_by` identifies the existing voice to stop when a new region in the
+named `group` starts. Import maps this victim-side rule to native trigger-side
+`chokes`; export reverses that mapping and diagnoses graphs SFZ cannot express.
 
 `ufor.sfz.write(score)` returns text and diagnostics without opening files.
 Unsafe sample syntax, custom channel maps, named controls/generators, selections,
