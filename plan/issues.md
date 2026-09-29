@@ -131,15 +131,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Tests, documentation, and ownership
 
-23. **Medium, confirmed: the cache plan's implementation status is stale.**
-    `plan/asset-cache.md` still says the host cache is only proposed, but
-    reccy now has `reccy/runtime/assets.py` for finite object storage and
-    `reccy/runtime/capture.py` for captures. The plan can misdirect future
-    work into duplicating that service inside uFor. Update the status to
-    distinguish the implemented generic store/capture core from source
-    acquisition adapters and any remaining policy gaps. Do not import reccy
-    into the portable format library.
-
 24. **Medium, risk: hostile and failure-path tests are thinner than happy-path
     conformance.** Existing tests cover malformed scores, symlinks,
     individual Python module failures, interrupt propagation, and schema
