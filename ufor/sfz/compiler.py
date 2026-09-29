@@ -942,10 +942,12 @@ def _number(value: str, opcode: str) -> float:
 
 
 def _group(value: str | None) -> str | None:
-    if value is None or value == '0':
+    if value is None:
         return None
     try:
-        int(value)
+        number = int(value)
     except ValueError:
         raise ValueError(f'SFZ group must be an integer: {value}') from None
-    return f'sfz-group-{value}'
+    if not -(2**31) <= number < 2**31:
+        raise ValueError('SFZ group must fit in a signed 32-bit integer')
+    return f'sfz-group-{number}' if number else None
