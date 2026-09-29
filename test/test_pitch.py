@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from ufor import codec
 from ufor.codec import parse_score, score_toml
 from ufor.expression import evaluate
 from ufor.musical import OscillatorScore, ScaleScore, TuningScore
@@ -31,6 +32,29 @@ def test_pitch_language_rejects_other_operators_and_undefined_values(
 ) -> None:
     with pytest.raises(ValueError):
         evaluate(expression)
+
+
+@pytest.mark.parametrize(
+    'expression',
+    ['2^100000', '1e100000', '(' * 70 + '1' + ')' * 70, '1' * 4097],
+)
+def test_pitch_expression_budgets_reject_expensive_input(expression: str) -> None:
+    with pytest.raises(ValueError, match='exceeds'):
+        evaluate(expression)
+
+
+def test_score_parser_rejects_oversized_input_before_parsing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(codec, 'MAX_SCORE_CHARACTERS', 10)
+    with pytest.raises(ValueError, match='score document exceeds'):
+        parse_score('x' * 11)
+
+
+def test_score_parser_rejects_deep_documents() -> None:
+    nested = 'x = ' + '{a = ' * 65 + '1' + '}' * 65
+    with pytest.raises(ValueError, match='deeply nested|64 levels'):
+        parse_score(nested)
 
 
 def test_repeating_ratios_and_intervals_share_conformance_values() -> None:

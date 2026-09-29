@@ -58,7 +58,10 @@ declared root. Downloads require an absolute credential-free HTTPS URL and no
 fragment. Git locations require an absolute supported repository URI, a full
 lowercase object ID, and a portable blob path. Stream URLs are absolute and
 credential-free. Provider modules are dotted Python names, functions are Python
-identifiers, and arguments contain recursive finite JSON values only.
+identifiers, and arguments contain recursive finite JSON values only. Provider
+arguments are limited to 10000 values and 64 nesting levels. `parse_score`
+accepts at most 16777216 TOML characters, 100000 decoded values, and 64 decoded
+nesting levels; larger documents fail validation.
 
 Validation grants no authority to read a volume, open a network connection,
 contact Git, import Python, or decode media. Hosts resolve those declarations
