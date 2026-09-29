@@ -5,22 +5,7 @@ from copy import deepcopy
 import tomlkit
 from pydantic import TypeAdapter
 
-from .arrangement import ArrangementScore
-from .automation import AutomationScore
-from .binding import BindingScore
-from .broadcast import BroadcastScore
-from .envelope import EnvelopeScore
-from .fixture import FixtureScore
-from .lfo import LFOScore
-from .light_animation import AnimationScore
-from .musical import OscillatorScore, ScaleScore, TuningScore
-from .preset import PresetScore
-from .recording import RecordingScore
-from .samples.instrument import SampleInstrumentScore
 from .score_types import ScoreValue
-from .sequence import SequenceScore
-from .slideshow import SlideshowScore
-from .synth import SynthInstrumentScore
 
 MAX_SCORE_CHARACTERS = 16 * 1024 * 1024
 
@@ -44,27 +29,7 @@ def migrate_score_v3(value: dict[str, object]) -> ScoreValue:
     return TypeAdapter(ScoreValue).validate_python(data)
 
 
-def parse_score(
-    text: str,
-) -> (
-    ArrangementScore
-    | AutomationScore
-    | BindingScore
-    | BroadcastScore
-    | FixtureScore
-    | RecordingScore
-    | SequenceScore
-    | SlideshowScore
-    | TuningScore
-    | ScaleScore
-    | OscillatorScore
-    | EnvelopeScore
-    | SampleInstrumentScore
-    | LFOScore
-    | AnimationScore
-    | SynthInstrumentScore
-    | PresetScore
-):
+def parse_score(text: str) -> ScoreValue:
     if len(text) > MAX_SCORE_CHARACTERS:
         raise ValueError('score document exceeds 16777216 characters')
     try:
@@ -75,25 +40,7 @@ def parse_score(
     return TypeAdapter(ScoreValue).validate_python(data)
 
 
-def score_toml(
-    value: ArrangementScore
-    | AutomationScore
-    | BindingScore
-    | BroadcastScore
-    | FixtureScore
-    | RecordingScore
-    | SequenceScore
-    | SlideshowScore
-    | TuningScore
-    | ScaleScore
-    | OscillatorScore
-    | EnvelopeScore
-    | SampleInstrumentScore
-    | LFOScore
-    | AnimationScore
-    | SynthInstrumentScore
-    | PresetScore,
-) -> str:
+def score_toml(value: ScoreValue) -> str:
     validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
     data = validated.model_dump(mode='json', exclude_none=True)
     _check_toml_arrays(data)
