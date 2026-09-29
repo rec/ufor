@@ -76,7 +76,8 @@ def test_omit_active_drops_only_that_notes_controls_and_release() -> None:
             interval=TickRange(start=4, end=9),
             active_notes='omit_active',
         ),
-    )[0]
+    )
+    loop = next(loop)
     assert len(loop.events) == 1
     assert loop.events[0].trigger_id.endswith('-b')
     assert len(loop.cleanup) == 1
@@ -87,7 +88,8 @@ def test_note_at_end_is_excluded_and_release_at_start_is_ordered_after_retrigger
 ):
     loop = plan_playback(
         sequence(), SequenceSelection(name='phrase', interval=TickRange(start=6, end=9))
-    )[0]
+    )
+    loop = next(loop)
     assert [e.kind for e in loop.events] == [
         'trigger',
         'trigger',
@@ -130,7 +132,8 @@ def test_empty_sequence_and_invalid_selection() -> None:
     source = EventSequence(timebase='clock', start=-10, end=10)
     loop = plan_playback(
         source, SequenceSelection(name='silence', interval=TickRange(start=-5, end=5))
-    )[0]
+    )
+    loop = next(loop)
     assert loop.events == loop.controls == loop.cleanup == loop.captured == []
     with pytest.raises(ValueError):
         plan_playback(
@@ -174,7 +177,8 @@ def test_reused_ids_and_independent_parts_keep_distinct_ownership() -> None:
     )
     loop = plan_playback(
         source, SequenceSelection(name='both', interval=TickRange(start=0, end=5))
-    )[0]
+    )
+    loop = next(loop)
     assert len(loop.events) == 4
     assert {e.part for e in loop.cleanup} == {'left', 'right'}
 
@@ -195,6 +199,19 @@ def test_control_snapshot_does_not_carry_later_changes_into_next_loop() -> None:
             name='reset', interval=TickRange(start=0, end=5), repetitions=2
         ),
     )
-    assert loops[0].controls == loops[1].controls == []
-    assert loops[0].events[0].tick == 2
-    assert loops[1].events[0].tick == 7
+    first, second = loops
+    assert first.controls == second.controls == []
+    assert first.events[0].tick == 2
+    assert second.events[0].tick == 7
+
+
+def test_large_repetition_count_is_lazy() -> None:
+    loops = plan_playback(
+        EventSequence(timebase='clock', end=1),
+        SequenceSelection(
+            name='long', interval=TickRange(start=0, end=1), repetitions=10**9
+        ),
+    )
+
+    assert next(loops).iteration == 0
+    assert next(loops).iteration == 1
