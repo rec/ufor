@@ -99,6 +99,41 @@ score = { selector = "my library:pretty score" }
 parameters = { brightness = 0.25 }
 ```
 
+## Motion uses
+
+The [example Motion library](../examples/motions/library.toml) contains a sine
+vibrato, a pulse, and a pluck contour. A Motion score may expose a named Hz
+parameter for its cycle rate. A use supplies a public value, or inherits the
+score's default. A Motion preset can change that default. Other body fields are
+currently literal values, not public parameter targets.
+
+Within an instrument voice's settings, a Motion use may reference a library
+score:
+
+```toml
+[motions.vibrato]
+score = { selector = "motions:vibrato" }
+scope = "voice"
+parameters = { speed = 6.0 }
+```
+
+Library-backed instruments are authored and validated with unresolved uses.
+Before handing one to a renderer, resolve the selected score explicitly:
+
+```python
+from ufor.library_files import read_library
+
+library = read_library(config_path)
+instrument = library.materialize("my library:my instrument")
+```
+
+`materialize` returns a fully validated score with independent inline Motion
+uses. It rejects unknown parameters, out-of-range values, and references to
+non-Motion scores. Relative Motion references resolve from the containing
+library score; selectors retain the library's ambiguity and digest checks. Each
+materialized use records its resolved library identity and available source
+digest; that provenance stays with a renderer snapshot of the prepared score.
+
 Presets can select other presets. Callers can override the defaults within the
 original parameter ranges. Unknown or out-of-range parameters reject the preset.
 The preset supplies its own metadata, including tags. An empty preset can name

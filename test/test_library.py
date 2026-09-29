@@ -12,6 +12,7 @@ from ufor import library_files
 from ufor.codec import parse_score, score_toml
 from ufor.interface import ScoreReference
 from ufor.library import Entry, Library, State
+from ufor.motion import Cycle, MotionParameter, MotionScore, ParameterReference
 from ufor.musical import OscillatorScore
 from ufor.oscillator import Oscillator
 from ufor.preset import PresetScore
@@ -21,6 +22,7 @@ from ufor.selector import (
     ScoreSelector,
     parse_selector,
 )
+from ufor.synth import SynthInstrumentScore
 
 CASES = json.loads(Path('conformance/selectors.json').read_text())
 PYTHON = Path('test/fixtures/library_python')
@@ -92,6 +94,97 @@ def test_reserved_name_characters_are_rejected(name: str) -> None:
 
 def oscillator(name: str = 'triangle') -> OscillatorScore:
     return OscillatorScore(name=name, title=name, body=Oscillator())
+
+
+def test_motion_library_materializes_relative_references_and_presets() -> None:
+    motion = MotionScore(
+        name='vibrato',
+        title='Vibrato',
+        parameters={
+            'speed': MotionParameter(unit='hz', default=5, minimum=0.1, maximum=20)
+        },
+        body=Cycle(rate=ParameterReference(parameter='speed')),
+    )
+    raw = json.loads(Path('conformance/synth-instrument.json').read_text())
+    raw['body']['voices'][0]['motions'] = {
+        'first': {'score': {'path': 'slow.toml'}},
+        'second': {'score': {'path': 'vibrato.toml'}, 'parameters': {'speed': 6}},
+    }
+    raw['body']['voices'][0]['bindings'] = [
+        {'name': 'motion', 'kind': 'motion', 'reference': 'first'}
+    ]
+    raw['body']['voices'][0]['modulation'] = {
+        'sources': [{'name': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}]
+    }
+    instrument = SynthInstrumentScore.model_validate(raw)
+    library = Library(
+        [
+            Entry(
+                library='local',
+                address='/vibrato.toml',
+                name='vibrato',
+                sha256='a' * 64,
+                score=motion,
+            ),
+            Entry(
+                library='local',
+                address='/slow.toml',
+                name='slow',
+                sha256='b' * 64,
+                score=PresetScore(
+                    name='slow',
+                    title='Slow vibrato',
+                    score=ScoreReference(path='vibrato.toml'),
+                    parameters={'speed': 2},
+                ),
+            ),
+            Entry(
+                library='local',
+                address='/patch.toml',
+                name='patch',
+                score=instrument,
+            ),
+        ]
+    )
+    assert not library.diagnostics
+    prepared = library.materialize('local:patch')
+    assert isinstance(prepared, SynthInstrumentScore)
+    first = prepared.body.voices[0].motions['first']
+    second = prepared.body.voices[0].motions['second']
+    assert first.body == Cycle(rate=2)
+    assert second.body == Cycle(rate=6)
+    assert first.origin is not None
+    assert first.origin.identity == 'local:/slow.toml'
+    assert first.origin.sha256 == 'b' * 64
+    assert second.origin is not None
+    assert second.origin.identity == 'local:/vibrato.toml'
+    assert second.origin.sha256 == 'a' * 64
+    assert first is not second
+    assert instrument.body.voices[0].motions['first'].score is not None
+
+
+def test_motion_library_rejects_references_to_other_score_kinds() -> None:
+    raw = json.loads(Path('conformance/synth-instrument.json').read_text())
+    raw['body']['voices'][0]['motions'] = {'first': {'score': {'path': 'other.toml'}}}
+    instrument = SynthInstrumentScore.model_validate(raw)
+    library = Library(
+        [
+            Entry(
+                library='local',
+                address='/other.toml',
+                name='other',
+                score=oscillator('other'),
+            ),
+            Entry(
+                library='local',
+                address='/patch.toml',
+                name='patch',
+                score=instrument,
+            ),
+        ]
+    )
+    with pytest.raises(ValueError, match='requires a motion score'):
+        library.materialize('local:patch')
 
 
 def setup_library(tmp_path: Path, name: str = 'local') -> Path:

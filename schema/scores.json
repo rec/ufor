@@ -3248,10 +3248,17 @@
           "default": "sine"
         },
         "rate": {
-          "format": "fraction",
-          "ge": 0,
-          "title": "Rate",
-          "type": "string"
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParameterReference"
+            },
+            {
+              "format": "fraction",
+              "ge": 0,
+              "type": "string"
+            }
+          ],
+          "title": "Rate"
         },
         "phase": {
           "default": "0",
@@ -6238,6 +6245,73 @@
       "title": "Modulation",
       "type": "object"
     },
+    "MotionOrigin": {
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "title": "Identity",
+          "type": "string"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        }
+      },
+      "required": [
+        "identity"
+      ],
+      "title": "MotionOrigin",
+      "type": "object"
+    },
+    "MotionParameter": {
+      "additionalProperties": false,
+      "properties": {
+        "unit": {
+          "$ref": "#/$defs/Unit"
+        },
+        "default": {
+          "type": "number",
+          "title": "Default"
+        },
+        "minimum": {
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "title": "Maximum",
+          "type": "number"
+        },
+        "description": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Description"
+        }
+      },
+      "required": [
+        "unit",
+        "default",
+        "minimum",
+        "maximum"
+      ],
+      "title": "MotionParameter",
+      "type": "object"
+    },
     "MotionScore": {
       "additionalProperties": false,
       "properties": {
@@ -6274,6 +6348,13 @@
           "default": "motion",
           "title": "Kind",
           "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "$ref": "#/$defs/MotionParameter"
+          },
+          "title": "Parameters",
+          "type": "object"
         },
         "body": {
           "discriminator": {
@@ -6314,27 +6395,61 @@
           "default": "seconds"
         },
         "body": {
-          "discriminator": {
-            "mapping": {
-              "contour": "#/$defs/Contour",
-              "cycle": "#/$defs/Cycle"
-            },
-            "propertyName": "kind"
-          },
-          "oneOf": [
+          "anyOf": [
             {
-              "$ref": "#/$defs/Cycle"
+              "discriminator": {
+                "mapping": {
+                  "contour": "#/$defs/Contour",
+                  "cycle": "#/$defs/Cycle"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/Cycle"
+                },
+                {
+                  "$ref": "#/$defs/Contour"
+                }
+              ]
             },
             {
-              "$ref": "#/$defs/Contour"
+              "type": "null"
             }
           ],
+          "default": null,
           "title": "Body"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "number"
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MotionOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
-      "required": [
-        "body"
-      ],
       "title": "MotionUse",
       "type": "object"
     },
@@ -7332,6 +7447,20 @@
         "unit"
       ],
       "title": "ParameterMapping",
+      "type": "object"
+    },
+    "ParameterReference": {
+      "additionalProperties": false,
+      "properties": {
+        "parameter": {
+          "title": "Parameter",
+          "type": "string"
+        }
+      },
+      "required": [
+        "parameter"
+      ],
+      "title": "ParameterReference",
       "type": "object"
     },
     "Part": {

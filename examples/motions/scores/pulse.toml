@@ -1,0 +1,16 @@
+kind = "motion"
+name = "pulse"
+title = "Quarter-width pulse"
+tags = ["#rhythm", "#periodic"]
+
+[parameters.speed]
+unit = "hz"
+default = 2.0
+minimum = 0.1
+maximum = 20.0
+
+[body]
+kind = "cycle"
+shape = "square"
+rate = { parameter = "speed" }
+duty_cycle = "1/4"

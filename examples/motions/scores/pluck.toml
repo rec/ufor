@@ -1,0 +1,13 @@
+kind = "motion"
+name = "pluck"
+title = "Short pluck contour"
+tags = ["#envelope", "#pluck"]
+
+[body]
+kind = "contour"
+initial = 0.0
+segments = [
+  { duration = "10 ms", to = 1.0 },
+  { duration = "100 ms", to = 0.6 },
+]
+release = [{ duration = "200 ms", to = 0.0 }]

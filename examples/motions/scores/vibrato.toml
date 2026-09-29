@@ -1,0 +1,16 @@
+kind = "motion"
+name = "vibrato"
+title = "Sine vibrato"
+tags = ["#pitch", "#periodic"]
+
+[parameters.speed]
+unit = "hz"
+default = 5.0
+minimum = 0.1
+maximum = 20.0
+description = "Cycles per second"
+
+[body]
+kind = "cycle"
+shape = "sine"
+rate = { parameter = "speed" }
