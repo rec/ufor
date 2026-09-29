@@ -498,7 +498,8 @@ add/multiply operations, mapping knots, and runtime result checks.
 
 Instrument and slot processing both run per voice, before mixing. Instrument
 settings affect every voice; they are not a single post-mix effect. Their
-volume and tuning add in dB/cents. Slot EQ bands precede instrument EQ bands,
+volume and tuning add in dB/cents, while polarity inversion composes by XOR.
+Slot EQ bands precede instrument EQ bands,
 with IDs local to each scope. EQ means bell-shaped peaking biquads with positive
 Hz/Q, not arbitrary filters. The eventual prepared player must check effective
 frequency against output Nyquist and retain independent filter state per voice.

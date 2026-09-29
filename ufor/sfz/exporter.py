@@ -585,6 +585,8 @@ def _processing_opcodes(
     result: list[Opcode] = []
     if volume:
         result.append(Opcode(name='volume', value=_number_text(volume)))
+    if instrument.invert_polarity != local.invert_polarity:
+        result.append(Opcode(name='phase', value='invert'))
     if tuning:
         transpose = round(tuning / 100)
         if not -127 <= transpose <= 127:

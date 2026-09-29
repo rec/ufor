@@ -4125,6 +4125,7 @@
           "$ref": "#/$defs/Processing",
           "default": {
             "volume_db": 0.0,
+            "invert_polarity": false,
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
@@ -6737,6 +6738,7 @@
           "$ref": "#/$defs/Processing",
           "default": {
             "volume_db": 0.0,
+            "invert_polarity": false,
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
@@ -8212,6 +8214,11 @@
           "title": "Volume Db",
           "type": "number"
         },
+        "invert_polarity": {
+          "default": false,
+          "title": "Invert Polarity",
+          "type": "boolean"
+        },
         "tuning_cents": {
           "default": 0.0,
           "title": "Tuning Cents",
@@ -9607,6 +9614,7 @@
           "$ref": "#/$defs/Processing",
           "default": {
             "volume_db": 0.0,
+            "invert_polarity": false,
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
@@ -9752,6 +9760,7 @@
           "$ref": "#/$defs/Processing",
           "default": {
             "volume_db": 0.0,
+            "invert_polarity": false,
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
@@ -10814,6 +10823,7 @@
           "$ref": "#/$defs/Processing",
           "default": {
             "volume_db": 0.0,
+            "invert_polarity": false,
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,
@@ -11591,6 +11601,7 @@
           "$ref": "#/$defs/Processing",
           "default": {
             "volume_db": 0.0,
+            "invert_polarity": false,
             "tuning_cents": 0.0,
             "pan": 0.0,
             "stereo_balance": 0.0,

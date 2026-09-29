@@ -192,6 +192,7 @@ PARSABLE_OPCODES = {
     'off_mode',
     'offset',
     'pan',
+    'phase',
     'pitch_keycenter',
     'pitch_keytrack',
     'pitch_veltrack',
