@@ -51,8 +51,9 @@ Reccy now provides a resolver for host-measured volume IDs and a file adapter
 that reads trusted immutable bytes directly or snapshots mutable bytes. A
 display-name change does not invalidate a stable ID. Consuming hosts still
 have to populate the measured mount registry and authorize roots. Recs now has
-an explicit finite-byte resolver that accepts those measured mounts; its
-recording playback and edit readers have not yet been wired to it.
+an explicit finite-byte resolver that accepts those measured mounts. Offline
+edit preparation can use it and hold its leases through rendering, but the edit
+command and recording playback do not yet supply host policy for it.
 
 ## Download URLs
 

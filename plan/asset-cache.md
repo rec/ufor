@@ -52,9 +52,10 @@ file's contents after verification.
 Recs now has an explicit finite-asset resolver in
 `recs/recording/asset_resolver.py`. It requires a scoped store, measured volume
 mounts, approved remote URLs, Git transport storage, and byte/time limits from
-the host; callers hold its context while reading. Existing recording playback
-and edit readers still use session-relative files. They have not yet been
-changed to acquire leases or accept remote and volume assets.
+the host. Offline edit preparation can use that resolver for selected recording
+fragments and holds cache leases through rendering. The edit command does not
+yet construct host policy or pass a resolver; recording playback still uses
+session-relative files.
 
 The existing Python provider protocol remains audio-specific. Other finite asset
 types need no provider protocol change to be cached. Future typed generators can
@@ -257,9 +258,9 @@ abandoned one or reclaim recovery material safely.
 1. Connect host-owned local/volume root authorization and remote Git acquisition
    to the existing verified admission. Reccy now has a generic volume-ID
    resolver, direct-read/snapshot file adapter, and remote Git fetch adapter;
-   recs has a policy-injected finite-byte resolver. Consuming commands still
-   must supply measured mounts and quota-limited Git storage and hold the
-   resulting leases during decoding.
+   recs has a policy-injected finite-byte resolver and offline edit preparation
+   can hold its leases during decoding. Consuming commands still must supply
+   measured mounts and quota-limited Git storage.
    Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
