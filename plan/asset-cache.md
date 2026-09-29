@@ -74,10 +74,11 @@ operation; current finite uFor assets still require `content`.
 Reccy now resolves known-hash HTTPS assets from the scoped store or acquires a
 bounded, verified response under host URL policy. Its immutable asset adapter
 handles gzip content decoding, redirect reauthorization, and transient
-`no-store` responses. Mutable current-URL import, response freshness metadata,
-and conditional validation remain to be implemented. Reccy now has a pure
-RFC 9111 explicit-freshness and corrected-age calculation, ready for that
-current-URL path; it is not yet connected to persisted responses.
+`no-store` responses. Its current-URL import now keeps scoped response
+metadata, calculates RFC 9111 explicit freshness and corrected age, and
+validates stale responses with ETag or Last-Modified. It serializes updates
+per request key and conservatively keys every request header to avoid `Vary`
+collisions. Host-level integration with score imports remains to be done.
 
 Follow [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html) for response reuse:
 use `Cache-Control` precedence, `Expires`, and corrected age including `Date`,
@@ -230,8 +231,8 @@ abandoned one or reclaim recovery material safely.
 
 ## Remaining operations and acceptance
 
-1. Connect local/volume root authorization, mutable current-URL HTTP caching,
-   and remote Git acquisition to the existing verified admission. Test missing
+1. Connect local/volume root authorization and remote Git acquisition to the
+   existing verified admission. Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
    interrupted transfers with controlled local fixtures.
