@@ -19,10 +19,10 @@ from .score_types import ScoreValue
 from .selector import LibraryConfig, LibraryRegistration, address
 
 
-def read_library(config_path: Path | None = None) -> Library:
+def read_library(config_path: Path | None = None, max_depth: int = 128) -> Library:
     path = configuration_path(config_path)
     if config_path is None and not path.exists():
-        return Library([])
+        return Library([], max_depth=max_depth)
     config = LibraryConfig.model_validate(tomlkit.parse(path.read_text()))
     entries = []
     diagnostics = []
@@ -120,7 +120,7 @@ def read_library(config_path: Path | None = None) -> Library:
             else:
                 entry = entry.model_copy(update={'score': score})
             entries.append(entry)
-    return Library(entries, diagnostics)
+    return Library(entries, diagnostics, max_depth=max_depth)
 
 
 def create_library(

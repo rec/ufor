@@ -60,13 +60,24 @@ class Library:
     """One explicit read's definitions, usable records and recoverable errors."""
 
     def __init__(
-        self, entries: list[Entry], diagnostics: list[Diagnostic] | None = None
+        self,
+        entries: list[Entry],
+        diagnostics: list[Diagnostic] | None = None,
+        max_depth: int = 128,
     ) -> None:
+        if (
+            not isinstance(max_depth, int)
+            or isinstance(max_depth, bool)
+            or not 1 <= max_depth <= 160
+        ):
+            raise ValueError('max_depth must be an integer from 1 through 160')
+        self.max_depth = max_depth
         self.entries = {e.key: e for e in entries}
         if len(self.entries) != len(entries):
             raise ValueError('duplicate library/address identity')
         self.diagnostics = list(diagnostics or [])
         self.records: dict[str, ScoreRecord] = {}
+        self._depths: dict[str, int] = {}
         self._bind()
         for key in self.entries:
             self._visit(key, [])
@@ -146,6 +157,13 @@ class Library:
         if entry.state != State.pending:
             return
         active = [*stack, key]
+        if len(active) > self.max_depth:
+            self._fail(
+                key,
+                'depth',
+                f'score dependency depth exceeds {self.max_depth}',
+            )
+            return
         assert entry.score is not None
         for field, reference in references(entry.score):
             target = entry.dependencies[reference.key]
@@ -169,6 +187,17 @@ class Library:
                     field=field,
                 )
                 return
+        depth = 1 + max(
+            (self._depths[target] for target in entry.dependencies.values()),
+            default=0,
+        )
+        if depth > self.max_depth:
+            self._fail(
+                key,
+                'depth',
+                f'score dependency depth exceeds {self.max_depth}',
+            )
+            return
         try:
             record, origin = self._normalize(entry)
             if isinstance(record.score, InterfaceScore):
@@ -177,6 +206,7 @@ class Library:
             self._fail(key, 'invalid', str(error))
             return
         self.records[key] = record
+        self._depths[key] = depth
         self.entries[key] = entry.model_copy(
             update={
                 'state': State.ready,

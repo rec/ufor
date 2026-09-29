@@ -35,13 +35,6 @@ configuration writer are uFor's significant I/O paths.
     must set file/count/time budgets or expose a bounded reader. Arbitrary
     Python code remains a trusted-code boundary, not a sandbox promise.
 
-15. **Medium, risk: long acyclic reference chains can overflow recursion.**
-    `Library._visit` in `ufor/library.py:144-183` recurses for each
-    dependency, then `Composition` recursively instantiates parts. A valid
-    deep graph can raise `RecursionError` rather than return a per-entry
-    diagnostic. An iterative traversal or an explicit depth limit would
-    preserve graceful handling of authored data.
-
 ## API and project structure
 
 17. **Medium, confirmed: playback plans materialize all repetitions.**
