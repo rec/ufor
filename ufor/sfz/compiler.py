@@ -8,6 +8,12 @@ from .. import envelope, modulation, segments
 from ..assets import AudioDescription, ContentIdentity, RelativeFileLocation
 from ..control import Scope
 from ..interface import AudioBinding, EventType, Input, Output, PerformanceBinding
+from ..performance_binding import (
+    MidiController,
+    MidiPerformanceInput,
+    PerformanceBindingScore,
+    PerformanceInputBinding,
+)
 from ..samples import controls, crossfade, enums, playback, processing, selection
 from ..samples.instrument import (
     AudioAsset,
@@ -23,6 +29,7 @@ from .model import (
     ParsedOpcode,
     ParsedRegion,
     SfzCompileResult,
+    SfzMidiBindingRequest,
     SfzSource,
     UnimplementedFeature,
     _channel_routes,
@@ -46,6 +53,7 @@ def compile_instrument(
     output_timebase: Timebase,
     output_channels: list[str],
     sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
+    midi_binding: SfzMidiBindingRequest | None = None,
 ) -> SfzCompileResult:
     """Build a native document from parsed text and caller-supplied asset facts."""
     if sequence_counter not in ('reject', 'all_note_ons'):
@@ -143,8 +151,61 @@ def compile_instrument(
             )
             | source.instrument_metadata
         )
+    binding = _midi_binding(source, name, title, midi_binding, unimplemented)
     unimplemented.sort(key=_sfz_issue_position)
-    return SfzCompileResult(instrument=document, unimplemented=unimplemented)
+    return SfzCompileResult(
+        instrument=document,
+        binding=binding if document is not None else None,
+        unimplemented=unimplemented,
+    )
+
+
+def _midi_binding(
+    source: SfzSource,
+    name: str,
+    title: str,
+    request: SfzMidiBindingRequest | None,
+    unimplemented: list[UnimplementedFeature],
+) -> PerformanceBindingScore | None:
+    ranges: set[tuple[int, int]] = set()
+    declarations: dict[tuple[int, int], ParsedOpcode] = {}
+    for region in source.regions:
+        values = {o.opcode: o.value for o in region.opcodes}
+        low = _integer(values.get('lochan', '1'), 'lochan', minimum=1, maximum=16)
+        high = _integer(values.get('hichan', '16'), 'hichan', minimum=1, maximum=16)
+        if low > high:
+            raise ValueError('lochan must not exceed hichan')
+        ranges.add((low, high))
+        for opcode in region.opcodes:
+            if opcode.opcode in ('lochan', 'hichan'):
+                declarations[(opcode.line, opcode.column)] = opcode
+    if request is None or len(ranges) > 1:
+        reason = (
+            'SFZ MIDI channel range requires an external controller binding'
+            if request is None
+            else 'Per-region MIDI channel ranges require native channel eligibility'
+        )
+        for opcode in declarations.values():
+            _add_unimplemented(unimplemented, opcode, reason)
+        return None
+    if not ranges:
+        return None
+    low, high = next(iter(ranges))
+    return PerformanceBindingScore(
+        name=f'{name}-midi',
+        title=f'{title} MIDI input',
+        body=PerformanceInputBinding(
+            instrument=request.instrument,
+            midi=[
+                MidiPerformanceInput(
+                    channels=list(range(low, high + 1)),
+                    part=request.part,
+                    repeated_key_release=request.repeated_key_release,
+                    controllers=[MidiController(number=64, control='sustain')],
+                )
+            ],
+        ),
+    )
 
 
 def amplitude_envelope(values: dict[str, str]) -> envelope.Envelope:

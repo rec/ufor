@@ -36,6 +36,8 @@ def opcode_support(name: str) -> tuple[Support, str | None, str | None]:
             return Support.asset_metadata, version, category
         if canonical in AMBIGUOUS_OPCODES:
             return Support.ambiguous, version, category
+        if canonical in CONDITIONAL_BINDING_OPCODES:
+            return Support.controller_binding, version, category
         return Support.supported, version, category
     if entry is None:
         return Support.vendor_extension, None, None
@@ -172,10 +174,12 @@ PARSABLE_OPCODES = {
     'direction',
     'end',
     'group',
+    'hichan',
     'hikey',
     'hirand',
     'hivel',
     'key',
+    'lochan',
     'lokey',
     'lorand',
     'loop_end',
@@ -235,6 +239,7 @@ ASSET_OPCODES = {
     'md5',
 }
 AMBIGUOUS_OPCODES = {'seq_length', 'seq_position'}
+CONDITIONAL_BINDING_OPCODES = {'lochan', 'hichan'}
 AMP_VELOCITY_CURVE = re.compile(r'amp_velcurve_(\d+)')
 STANDARD_OPCODES: dict[str, tuple[str, str]] = {
     '#define': ('SFZ v2', 'Instrument Settings'),
