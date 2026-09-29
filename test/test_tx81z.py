@@ -28,6 +28,32 @@ def test_tx81z_parses_aced_additional_operator_data() -> None:
     assert entry.additional == TX81ZAdditional(data=bytes(range(23)))
 
 
+def test_tx81z_decodes_paired_operator_parameters() -> None:
+    voice_data = bytearray(93)
+    voice_data[:13] = bytes([1, 2, 3, 4, 5, 6, 3, 7, 1, 7, 10, 11, 6])
+    voice_data[52] = 7
+    voice_data[53] = 6
+    voice_data[77:87] = b'TX81Z TEST'
+    additional_data = bytearray(23)
+    additional_data[:5] = bytes([1, 7, 15, 6, 3])
+    voice = TX81ZVoice(data=bytes(voice_data))
+    additional = TX81ZAdditional(data=bytes(additional_data))
+
+    operator = voice.operator(4)
+    extension = additional.operator(4)
+
+    assert operator.attack_rate == 1
+    assert operator.amplitude_modulation_enable is True
+    assert operator.detune == 6
+    assert extension.fixed_frequency is True
+    assert extension.fixed_frequency_range == 7
+    assert extension.waveform == 6
+    assert extension.eg_shift == 3
+    assert voice.algorithm == 8
+    assert voice.feedback == 6
+    assert voice.title == 'TX81Z TEST'
+
+
 @pytest.mark.parametrize(
     'data,diagnostic',
     [
