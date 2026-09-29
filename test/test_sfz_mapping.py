@@ -2,6 +2,7 @@ import pytest
 
 from ufor import sfz
 from ufor.samples.enums import ChokeMode
+from ufor.samples.instrument import SampleInstrumentScore
 from ufor.samples.metadata import AudioMetadata
 from ufor.time import Rate, Timebase
 
@@ -22,6 +23,57 @@ def test_pitch_alias_and_tune_follow_inheritance_order() -> None:
 def test_transpose_requires_an_in_range_integer(transpose: str) -> None:
     with pytest.raises(ValueError, match='transpose'):
         _compile(f'<region> sample=sample.wav transpose={transpose}')
+
+
+@pytest.mark.parametrize('tune', ['100.5', '101', '-101'])
+def test_tune_requires_an_in_range_integer(tune: str) -> None:
+    with pytest.raises(ValueError, match='tune'):
+        _compile(f'<region> sample=sample.wav tune={tune}')
+
+
+@pytest.mark.parametrize('volume', ['6.1', '-144.1'])
+def test_volume_must_fit_the_standard_sfz_range(volume: str) -> None:
+    with pytest.raises(ValueError, match='volume'):
+        _compile(f'<region> sample=sample.wav volume={volume}')
+
+
+@pytest.mark.parametrize('tuning', [-12800, 12800])
+def test_tuning_at_the_sfz_limit_round_trips(tuning: int) -> None:
+    transpose = 127 if tuning > 0 else -127
+    tune = tuning - 100 * transpose
+    result = _compile(f'<region> sample=sample.wav transpose={transpose} tune={tune}')
+
+    assert result.complete
+    assert result.instrument is not None
+    exported = sfz.write(result.instrument)
+    assert exported.complete
+    assert f'tune={100 if tuning > 0 else -100}' in exported.contents
+    restored = _compile(exported.contents)
+    assert restored.instrument is not None
+    assert restored.instrument.body.slots[0].processing.tuning_cents == tuning
+
+
+@pytest.mark.parametrize(
+    ('field', 'value', 'reason'),
+    [
+        ('tuning_cents', 0.5, 'integral-cent'),
+        ('tuning_cents', 12801, 'exceeds SFZ'),
+        ('volume_db', 6.1, 'exceeds the SFZ range'),
+    ],
+)
+def test_nonrepresentable_processing_is_diagnosed(
+    field: str, value: float, reason: str
+) -> None:
+    compiled = _compile('<region> sample=sample.wav')
+    assert compiled.instrument is not None
+    raw = compiled.instrument.model_dump()
+    raw['body']['slots'][0]['processing'][field] = value
+    instrument = SampleInstrumentScore.model_validate(raw)
+
+    exported = sfz.write(instrument)
+
+    assert not exported.complete
+    assert any(reason in issue.reason for issue in exported.unimplemented)
 
 
 def test_sfz_off_by_marks_the_victim_not_the_trigger() -> None:

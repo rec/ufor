@@ -665,12 +665,15 @@ def _processing(
 ) -> dict[str, object]:
     result: dict[str, object] = {}
     if 'volume' in values:
-        result['volume_db'] = _number(values['volume'], 'volume')
+        volume = _number(values['volume'], 'volume')
+        if not -144 <= volume <= 6:
+            raise ValueError('volume must be between -144 and 6 dB')
+        result['volume_db'] = volume
     if (phase := values.get('phase')) is not None:
         if phase not in ('normal', 'invert'):
             raise ValueError(f'Unsupported SFZ phase: {phase}')
         result['invert_polarity'] = phase == 'invert'
-    tuning = _number(values.get('tune', '0'), 'tune')
+    tuning = _integer(values.get('tune', '0'), 'tune', minimum=-100, maximum=100)
     tuning += 100 * _integer(
         values.get('transpose', '0'), 'transpose', minimum=-127, maximum=127
     )
