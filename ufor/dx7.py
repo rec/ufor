@@ -3,7 +3,7 @@
 from enum import StrEnum
 from functools import cached_property
 
-from pydantic import Field, field_validator
+from pydantic import Field, ValidationError, field_validator
 
 from .base import Model
 
@@ -49,7 +49,7 @@ class DX7Algorithm(Model):
 
 
 class DX7Voice(Model):
-    """One validated DX7 voice in Yamaha's edit or packed-bank representation."""
+    """One structurally valid raw DX7 voice; parameters may not decode."""
 
     data: bytes = Field(strict=True)
 
@@ -59,6 +59,21 @@ class DX7Voice(Model):
         if len(value) not in (128, 155) or any(byte >= 128 for byte in value):
             raise ValueError('DX7 voice data must contain 128 or 155 seven-bit bytes')
         return value
+
+    @cached_property
+    def parameter_diagnostic(self) -> str | None:
+        """Why a supported parameter cannot be decoded from the raw bytes."""
+        if not 1 <= self.algorithm <= 32:
+            return f'DX7 algorithm {self.algorithm} is outside 1 through 32'
+        if not 0 <= self.feedback <= 7:
+            return f'DX7 feedback {self.feedback} is outside 0 through 7'
+        for number in range(1, 7):
+            try:
+                self.operator(number)
+            except ValidationError as error:
+                field = error.errors()[0]['loc'][0]
+                return f'DX7 operator {number} has invalid {field}'
+        return None
 
     @property
     def packed(self) -> bool:
@@ -152,12 +167,12 @@ class DX7Entry(Model):
 
     @cached_property
     def diagnostic(self) -> str | None:
-        """Why the entry cannot be decoded as a DX7 voice message, if applicable."""
+        """Why the message framing or checksum is invalid; not parameter validity."""
         return _diagnostic(self.data)
 
     @cached_property
     def voices(self) -> list[DX7Voice] | None:
-        """Decoded voices, or None when this entry is not a supported DX7 message."""
+        """Raw voices, or None when this entry is not a supported DX7 message."""
         if self.diagnostic is not None:
             return None
         payload = self.data[6:-2]
