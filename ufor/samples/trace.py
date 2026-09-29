@@ -314,6 +314,7 @@ def prepare(
                     name=event.name,
                     action=event.action,
                     rate=event.rate,
+                    position=event.position,
                 )
             )
         elif isinstance(event, ControlChange):
