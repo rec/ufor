@@ -75,7 +75,9 @@ Reccy now resolves known-hash HTTPS assets from the scoped store or acquires a
 bounded, verified response under host URL policy. Its immutable asset adapter
 handles gzip content decoding, redirect reauthorization, and transient
 `no-store` responses. Mutable current-URL import, response freshness metadata,
-and conditional validation remain to be implemented.
+and conditional validation remain to be implemented. Reccy now has a pure
+RFC 9111 explicit-freshness and corrected-age calculation, ready for that
+current-URL path; it is not yet connected to persisted responses.
 
 Follow [RFC 9111](https://www.rfc-editor.org/rfc/rfc9111.html) for response reuse:
 use `Cache-Control` precedence, `Expires`, and corrected age including `Date`,
