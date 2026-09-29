@@ -201,13 +201,17 @@ def test_table_edits_are_reflected_in_evaluation(
     'settings',
     [
         {'intervals': [0]},
-        {'intervlas': [1]},
         {'notes': 'nonsense'},
         {'notes': 'C nonsense'},
     ],
 )
 def test_scale_accepts_tuney_editing_states(settings: dict[str, object]) -> None:
     Scale.model_validate(settings)
+
+
+def test_scale_rejects_misspelled_fields() -> None:
+    with pytest.raises(ValueError, match='Extra inputs are not permitted'):
+        Scale.model_validate({'intervlas': [1]})
 
 
 def test_scale_rejects_negative_intervals() -> None:
