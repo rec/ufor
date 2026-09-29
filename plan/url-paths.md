@@ -47,6 +47,10 @@ The host maps `volume_id` to a currently mounted root. Missing, duplicated, or
 mismatched volumes are resolution errors. A matching display name must never
 silently substitute for a missing ID. Export can copy the content into the score
 package and rewrite the location to `relative_file`.
+Reccy now provides a resolver for host-measured volume IDs and a file adapter
+that reads trusted immutable bytes directly or snapshots mutable bytes. A
+display-name change does not invalidate a stable ID. Consuming hosts still
+have to populate the measured mount registry and authorize roots.
 
 ## Download URLs
 

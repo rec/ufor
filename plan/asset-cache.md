@@ -233,8 +233,10 @@ abandoned one or reclaim recovery material safely.
 
 ## Remaining operations and acceptance
 
-1. Connect local/volume root authorization and remote Git acquisition to the
-   existing verified admission. Integrate current-URL HTTP imports in hosts. Test missing
+1. Connect host-owned local/volume root authorization and remote Git acquisition
+   to the existing verified admission. Reccy now has a generic volume-ID
+   resolver and direct-read/snapshot file adapter; consuming hosts must wire
+   their measured mounts. Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
    interrupted transfers with controlled local fixtures.
