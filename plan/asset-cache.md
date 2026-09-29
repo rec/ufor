@@ -1,8 +1,12 @@
 # Asset cache: verified objects, captures, and retention
 
-Status: proposed host design, not an implemented API or score-format change.
-Build acquisition and caching outside uFor. The cache accepts opaque finite
-bytes, with audio-specific capture adapters layered above it.
+Status: partially implemented in reccy, not a uFor API or score-format change.
+`reccy/runtime/assets.py` provides a generic verified finite-byte store,
+retention rules, and collection. `reccy/runtime/capture.py` provides capture
+manifests and sessions. The source acquisition and provider adapters described
+below remain design work; the implemented core does not imply that HTTP/Git
+freshness, volume resolution, or every provider protocol is supported. Keep
+those adapters in the host, outside uFor.
 
 ## Critique of the original draft
 
@@ -422,5 +426,5 @@ merely because this plan uses one.
 
 ## Additional work beyond the prompt
 
-None. This revision changes the plan only; it does not implement acquisition,
-change the score format, select a host repository, or add dependencies.
+None. This revision records the reccy implementation status; it does not add
+acquisition, change the score format, or add dependencies.
