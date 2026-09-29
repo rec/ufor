@@ -27,15 +27,6 @@ configuration writer are uFor's significant I/O paths.
     keeping the public `sfz` entry points stable. This is a maintenance risk,
     not a reason for a broad refactor now.
 
-22. **Low, confirmed: checked-in schema and type unions require manual
-    synchronization.** `ufor/codec.py:21-88` repeats the score union exposed
-    by `ufor/score_types.py`; `schema/scores.json` is a roughly 12,000-line
-    generated artifact. The test in `test/test_instrument_document.py:94`
-    detects schema drift, which is good, but a new score kind still needs
-    synchronized edits in several locations. Consider deriving the public
-    signatures from one declared union when a score kind is next added;
-    avoid changing the generated schema by hand.
-
 ## Tests, documentation, and ownership
 
 25. **Low, confirmed: recording verification language spans two owners.**
