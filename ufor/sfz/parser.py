@@ -16,6 +16,14 @@ from .model import (
     SlotMetadata,
     UnimplementedFeature,
 )
+from .registry import (
+    AMP_VELOCITY_CURVE,
+    OPCODE_ALIASES,
+    PARSABLE_OPCODES,
+    Support,
+    diagnostic_reason,
+    header_support,
+)
 
 
 def parse(text: str) -> SfzSource:
@@ -189,7 +197,7 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
             finish_region()
             current = header.lower()
             current_line = line
-            if current not in SUPPORTED_HEADERS:
+            if header_support(current) != Support.supported:
                 unimplemented.append(
                     UnimplementedFeature(
                         location=SfzLocation(
@@ -199,9 +207,7 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
                             column=column,
                         ),
                         value=None,
-                        reason=UNSUPPORTED_HEADERS.get(
-                            current, 'SFZ header is not implemented'
-                        ),
+                        reason=diagnostic_reason(current, header=True),
                     )
                 )
                 continue
@@ -229,28 +235,26 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
             line=line,
             column=column,
         )
-        if current not in SUPPORTED_HEADERS:
+        if header_support(current) != Support.supported:
             _add_unimplemented(
                 unimplemented,
                 item,
-                f'SFZ {current} opcode is not implemented',
+                diagnostic_reason(name),
             )
             continue
         if not value and not (current == 'control' and name == 'default_path'):
             raise ValueError(f'SFZ opcode has no value: {opcode}')
         canonical = OPCODE_ALIASES.get(name, name)
-        supported = canonical in SUPPORTED_OPCODES or AMP_VELOCITY_CURVE.fullmatch(
+        supported = canonical in PARSABLE_OPCODES or AMP_VELOCITY_CURVE.fullmatch(
             canonical
         )
         if current == 'control':
             if name != 'default_path':
-                _add_unimplemented(
-                    unimplemented, item, 'SFZ control opcode is not implemented'
-                )
+                _add_unimplemented(unimplemented, item, diagnostic_reason(name))
                 continue
             default_path = value
         elif not supported:
-            _add_unimplemented(unimplemented, item, 'SFZ opcode is not implemented')
+            _add_unimplemented(unimplemented, item, diagnostic_reason(name))
         elif current == 'global':
             global_opcodes.append(item)
         elif current == 'master':
@@ -342,83 +346,6 @@ def _expand_variables(value: str, variables: dict[str, str], line: int) -> str:
     return expand(value, ())
 
 
-SUPPORTED_HEADERS = {'control', 'global', 'master', 'group', 'region'}
-UNSUPPORTED_HEADERS = {
-    'curve': 'SFZ curve header requires curve-table support',
-    'effect': 'SFZ effect header requires effect routing support',
-    'sample': 'SFZ sample header requires sample-definition support',
-}
-SUPPORTED_OPCODES = {
-    'ampeg_attack',
-    'ampeg_decay',
-    'ampeg_delay',
-    'ampeg_hold',
-    'ampeg_release',
-    'ampeg_sustain',
-    'ampeg_vel2attack',
-    'ampeg_vel2decay',
-    'ampeg_vel2delay',
-    'ampeg_vel2hold',
-    'ampeg_vel2release',
-    'amp_veltrack',
-    'amp_keycenter',
-    'amp_keytrack',
-    'direction',
-    'end',
-    'group',
-    'hikey',
-    'hirand',
-    'hivel',
-    'key',
-    'lokey',
-    'lorand',
-    'loop_end',
-    'loop_mode',
-    'loop_start',
-    'lovel',
-    'off_by',
-    'off_mode',
-    'offset',
-    'pan',
-    'pitch_keycenter',
-    'pitch_keytrack',
-    'pitch_veltrack',
-    'region_label',
-    'sample',
-    'seq_length',
-    'seq_position',
-    'transpose',
-    'trigger',
-    'tune',
-    'volume',
-    'xf_keycurve',
-    'xf_velcurve',
-    'xfin_hikey',
-    'xfin_hivel',
-    'xfin_lokey',
-    'xfin_lovel',
-    'xfout_hikey',
-    'xfout_hivel',
-    'xfout_lokey',
-    'xfout_lovel',
-}
-OPCODE_ALIASES = {
-    'amp_attack': 'ampeg_attack',
-    'amp_decay': 'ampeg_decay',
-    'amp_delay': 'ampeg_delay',
-    'amp_hold': 'ampeg_hold',
-    'amp_release': 'ampeg_release',
-    'amp_sustain': 'ampeg_sustain',
-    'amp_vel2attack': 'ampeg_vel2attack',
-    'amp_vel2decay': 'ampeg_vel2decay',
-    'amp_vel2delay': 'ampeg_vel2delay',
-    'amp_vel2hold': 'ampeg_vel2hold',
-    'amp_vel2release': 'ampeg_vel2release',
-    'loopend': 'loop_end',
-    'loopmode': 'loop_mode',
-    'loopstart': 'loop_start',
-}
-
 NOTES = {'c': 0, 'd': 2, 'e': 4, 'f': 5, 'g': 7, 'a': 9, 'b': 11}
 NOTE = re.compile(r'([A-Ga-g])([#b]?)(-?\d+)')
 TOKEN = re.compile(r'<([A-Za-z_][A-Za-z0-9_]*)>|([A-Za-z_][A-Za-z0-9_]*)=')
@@ -427,5 +354,4 @@ LINE_COMMENT = re.compile(r'//.*$', re.MULTILINE)
 PREPROCESSOR = re.compile(r'^\s*#', re.MULTILINE)
 DEFINE = re.compile(r'(\$[A-Za-z_][A-Za-z0-9_]*)\s+(.+)')
 VARIABLE = re.compile(r'\$[A-Za-z_][A-Za-z0-9_]*')
-AMP_VELOCITY_CURVE = re.compile(r'amp_velcurve_(\d+)')
 RECS_METADATA = re.compile(r'//\s*recs:(instrument|slot)\s+(\{.*\})')
