@@ -94,13 +94,6 @@ configuration writer are uFor's significant I/O paths.
     long-running playback; keep the pure semantic operation independent of
     dispatch.
 
-18. **Medium, confirmed: audio-gap validation scales poorly.**
-    `AudioStream.timeline` in `ufor/recording.py:57-109` scans all fragments
-    and all unmapped fragments for every gap, in addition to sorting them.
-    Large recovered recording journals can therefore spend quadratic time
-    validating otherwise valid gaps. Use sorted interval passes and add a
-    many-fragment regression case.
-
 19. **Medium, risk: public asset names blur acquisition and identity.**
     `DownloadLocation` and `GitFileLocation` in `ufor/assets.py` are source
     declarations with pinned byte identity, while `StreamLocation` and

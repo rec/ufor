@@ -84,24 +84,25 @@ class AudioStream(Model):
         for gap in self.gaps:
             if gap.start < previous or gap.end > self.end:
                 raise ValueError('gaps must be ordered and within the stream extent')
-            if any(
-                gap.start < f.start + f.count and f.start < gap.end for f in fragments
-            ) or any(
-                gap.start < f.journal_range.end and f.journal_range.start < gap.end
-                for f in self.unmapped_fragments
-            ):
-                raise ValueError('gap overlaps captured audio')
             previous = gap.end
         intervals = sorted(
-            [(f.start, f.start + f.count) for f in fragments]
-            + [(g.start, g.end) for g in self.gaps]
+            [(f.start, f.start + f.count, False) for f in fragments]
+            + [(g.start, g.end, True) for g in self.gaps]
             + [
-                (f.journal_range.start, f.journal_range.end)
+                (f.journal_range.start, f.journal_range.end, False)
                 for f in self.unmapped_fragments
             ]
         )
-        covered = 0
-        for start, end in intervals:
+        covered = audio_end = gap_end = 0
+        for start, end, is_gap in intervals:
+            if is_gap:
+                if start < audio_end:
+                    raise ValueError('gap overlaps captured audio')
+                gap_end = max(gap_end, end)
+            else:
+                if start < gap_end:
+                    raise ValueError('gap overlaps captured audio')
+                audio_end = max(audio_end, end)
             if start > covered:
                 raise ValueError('uncaptured audio intervals must have explicit gaps')
             covered = max(covered, end)
