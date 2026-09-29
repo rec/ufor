@@ -9,7 +9,6 @@ from pydantic import Field, model_validator
 
 from . import control
 from .base import Model
-from .score import Score
 from .segments import Segment
 
 
@@ -53,11 +52,6 @@ class Envelope(Model):
         ):
             raise ValueError('unipolar envelope levels must be in [0, 1]')
         return self
-
-
-class EnvelopeScore(Score):
-    kind: Literal['envelope'] = 'envelope'
-    body: Envelope
 
 
 class EnvelopeEvent(control.ControlEvent):

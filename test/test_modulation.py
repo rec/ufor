@@ -10,6 +10,7 @@ from pydantic import ValidationError
 from ufor import envelope, lfo, segments
 from ufor.base import Model
 from ufor.codec import parse_score, score_toml
+from ufor.motion import Contour, Cycle, MotionScore
 from ufor.oscillator import Waveform, shape_value
 
 
@@ -219,8 +220,14 @@ LFOS = [LFOCase.model_validate(c) for c in CASES['lfos']]
 @pytest.mark.parametrize('extra_observations', [False, True])
 def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> None:
     check_envelope(case, extra_observations)
-    document = envelope.EnvelopeScore(
-        name='envelope', title=case.name, body=case.definition
+    document = MotionScore(
+        name='envelope',
+        title=case.name,
+        body=Contour(
+            initial=case.definition.initial,
+            segments=case.definition.segments,
+            release=case.definition.release,
+        ),
     )
     assert parse_score(score_toml(document)) == document
 
@@ -229,7 +236,19 @@ def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> N
 @pytest.mark.parametrize('extra_observations', [False, True])
 def test_lfo_conformance(case: LFOCase, extra_observations: bool) -> None:
     check_lfo(case, extra_observations)
-    document = lfo.LFOScore(name='lfo', title=case.name, body=case.definition)
+    document = MotionScore(
+        name='lfo',
+        title=case.name,
+        body=Cycle(
+            shape=case.definition.waveform,
+            rate=case.definition.rate,
+            phase=case.definition.phase,
+            duty_cycle=case.definition.duty_cycle,
+            reset=case.definition.reset,
+            delay=case.definition.delay,
+            fade_in=case.definition.fade_in,
+        ),
+    )
     assert parse_score(score_toml(document)) == document
 
 
