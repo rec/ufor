@@ -34,6 +34,20 @@ class DX7Operator(Model):
     detune: int = Field(ge=0, le=14, strict=True)
 
 
+class DX7Edge(Model):
+    source: int = Field(ge=1, le=6, strict=True)
+    destination: int = Field(ge=1, le=6, strict=True)
+
+
+class DX7Algorithm(Model):
+    """One Yamaha DX7 topology, using visible operator numbering."""
+
+    number: int = Field(ge=1, le=32, strict=True)
+    edges: list[DX7Edge]
+    carriers: list[int] = Field(min_length=1)
+    feedback: int = Field(ge=1, le=6, strict=True)
+
+
 class DX7Voice(Model):
     """One validated DX7 voice in Yamaha's edit or packed-bank representation."""
 
@@ -125,6 +139,10 @@ class DX7Voice(Model):
             detune=data[20],
         )
 
+    @cached_property
+    def topology(self) -> DX7Algorithm:
+        return dx7_algorithm(self.algorithm)
+
 
 class DX7Entry(Model):
     """One complete message or opaque span at its original byte offset."""
@@ -166,6 +184,22 @@ def parse_dx7(data: bytes) -> list[DX7Entry]:
     return entries
 
 
+def dx7_algorithm(number: int) -> DX7Algorithm:
+    """Return the official DX7 routing, with a one-sample delayed feedback tap."""
+    if not 1 <= number <= len(DX7_ALGORITHMS):
+        raise ValueError('DX7 algorithm must be from 1 through 32')
+    edges, carriers, feedback = DX7_ALGORITHMS[number - 1]
+    return DX7Algorithm(
+        number=number,
+        edges=[
+            DX7Edge(source=source, destination=destination)
+            for source, destination in edges
+        ],
+        carriers=list(carriers),
+        feedback=feedback,
+    )
+
+
 def _diagnostic(data: bytes) -> str | None:
     if not data or data[0] != 0xF0 or data[-1] != 0xF7:
         return 'missing SysEx framing (F0 ... F7)'
@@ -182,3 +216,39 @@ def _diagnostic(data: bytes) -> str | None:
     if data[-2] != -sum(data[6:-2]) % 128:
         return 'invalid DX7 checksum'
     return None
+
+
+DX7_ALGORITHMS = [
+    ([(2, 1), (6, 5), (5, 4), (4, 3)], [1, 3], 6),
+    ([(2, 1), (6, 5), (5, 4), (4, 3)], [1, 3], 2),
+    ([(3, 2), (2, 1), (6, 5), (5, 4)], [1, 4], 6),
+    ([(3, 2), (2, 1), (6, 5), (5, 4)], [1, 4], 4),
+    ([(2, 1), (4, 3), (6, 5)], [1, 3, 5], 6),
+    ([(2, 1), (4, 3), (6, 5)], [1, 3, 5], 5),
+    ([(2, 1), (4, 3), (6, 5), (5, 3)], [1, 3], 6),
+    ([(2, 1), (4, 3), (6, 5), (5, 3)], [1, 3], 4),
+    ([(2, 1), (4, 3), (6, 5), (5, 3)], [1, 3], 2),
+    ([(5, 4), (6, 4), (3, 2), (2, 1)], [1, 4], 3),
+    ([(5, 4), (6, 4), (3, 2), (2, 1)], [1, 4], 6),
+    ([(4, 3), (5, 3), (6, 3), (2, 1)], [1, 3], 2),
+    ([(4, 3), (5, 3), (6, 3), (2, 1)], [1, 3], 6),
+    ([(2, 1), (5, 4), (6, 4), (4, 3)], [1, 3], 6),
+    ([(2, 1), (5, 4), (6, 4), (4, 3)], [1, 3], 2),
+    ([(2, 1), (4, 3), (6, 5), (3, 1), (5, 1)], [1], 6),
+    ([(2, 1), (4, 3), (6, 5), (3, 1), (5, 1)], [1], 2),
+    ([(2, 1), (3, 1), (6, 5), (5, 4), (4, 1)], [1], 3),
+    ([(3, 2), (2, 1), (6, 4), (6, 5)], [1, 4, 5], 6),
+    ([(3, 1), (3, 2), (5, 4), (6, 4)], [1, 2, 4], 3),
+    ([(3, 1), (3, 2), (6, 4), (6, 5)], [1, 2, 4, 5], 3),
+    ([(2, 1), (6, 3), (6, 4), (6, 5)], [1, 3, 4, 5], 6),
+    ([(3, 2), (2, 1), (6, 4), (6, 5)], [1, 4, 5], 6),
+    ([(6, 3), (6, 4), (6, 5)], [1, 2, 3, 4, 5], 6),
+    ([(6, 4), (6, 5)], [1, 2, 3, 4, 5], 6),
+    ([(3, 2), (5, 4), (6, 4)], [1, 2, 4], 6),
+    ([(3, 2), (5, 4), (6, 4)], [1, 2, 4], 3),
+    ([(2, 1), (5, 4), (4, 3)], [1, 3, 6], 5),
+    ([(4, 3), (6, 5)], [1, 2, 3, 5], 6),
+    ([(5, 4), (4, 3)], [1, 2, 3, 6], 5),
+    ([(6, 5)], [1, 2, 3, 4, 5], 6),
+    ([], [1, 2, 3, 4, 5, 6], 6),
+]

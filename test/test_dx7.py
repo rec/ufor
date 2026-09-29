@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.dx7 import DX7FrequencyMode, DX7Voice, parse_dx7
+from ufor.dx7 import DX7FrequencyMode, DX7Voice, dx7_algorithm, parse_dx7
 
 
 def message(format: int, payload: bytes) -> bytes:
@@ -79,6 +79,30 @@ def test_dx7_decodes_packed_operator_parameters_in_yamaha_order() -> None:
     assert operator.coarse == 22
     assert operator.fine == 15
     assert operator.detune == 14
+
+
+def test_dx7_decodes_algorithm_routing_in_visible_operator_order() -> None:
+    first = dx7_algorithm(1)
+    last = dx7_algorithm(32)
+
+    assert [(edge.source, edge.destination) for edge in first.edges] == [
+        (2, 1),
+        (6, 5),
+        (5, 4),
+        (4, 3),
+    ]
+    assert first.carriers == [1, 3]
+    assert first.feedback == 6
+    assert last.edges == []
+    assert last.carriers == [1, 2, 3, 4, 5, 6]
+    assert last.feedback == 6
+
+
+def test_dx7_voice_exposes_its_algorithm_routing() -> None:
+    payload = bytearray(155)
+    payload[134] = 31
+
+    assert DX7Voice(data=bytes(payload)).topology == dx7_algorithm(32)
 
 
 @pytest.mark.parametrize(
