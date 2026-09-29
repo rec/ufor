@@ -5656,7 +5656,8 @@
             "pause",
             "resume",
             "reverse",
-            "seek"
+            "seek",
+            "shift"
           ],
           "title": "Action",
           "type": "string"
@@ -5687,6 +5688,18 @@
           ],
           "default": null,
           "title": "Position"
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset"
         }
       },
       "required": [
@@ -6527,7 +6540,8 @@
             "pause",
             "resume",
             "reverse",
-            "seek"
+            "seek",
+            "shift"
           ],
           "title": "Action",
           "type": "string"
@@ -6545,6 +6559,18 @@
           ],
           "default": null,
           "title": "Position"
+        },
+        "offset": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Offset"
         }
       },
       "required": [

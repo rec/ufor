@@ -52,6 +52,18 @@ def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
             action='pause',
         )
     ]
+    shifted = action.model_copy(update={'action': 'shift', 'offset': -0.25})
+    assert ufor.synth_trace.prepare(document.body, [shifted], seed=0).actions == [
+        MotionObservation(
+            tick=1,
+            ordinal=0,
+            name='swell',
+            part='main',
+            trigger_id='note-a',
+            action='shift',
+            offset=-0.25,
+        )
+    ]
 
 
 def test_synth_instrument_validates_controls_and_voice_routes() -> None:

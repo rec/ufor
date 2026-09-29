@@ -220,10 +220,12 @@ class MotionEvent(control.ControlEvent):
         'resume',
         'reverse',
         'seek',
+        'shift',
     ]
     rate: control.Rational | None = Field(default=None, ge=0)
     cue: Identifier | None = None
     position: control.Rational | None = Field(default=None, ge=0, le=1)
+    offset: control.Rational | None = None
 
     @model_validator(mode='after')
     def rate_payload(self) -> Self:
@@ -233,6 +235,8 @@ class MotionEvent(control.ControlEvent):
             raise ValueError('only cue events require a cue name')
         if (self.action == 'seek') != (self.position is not None):
             raise ValueError('only seek events require a position')
+        if (self.action == 'shift') != (self.offset is not None):
+            raise ValueError('only shift events require an offset')
         return self
 
 
@@ -380,6 +384,11 @@ def _position_command(position: MotionPosition, event: MotionEvent) -> MotionPos
     if event.action == 'seek':
         assert event.position is not None
         return position.model_copy(update={'coordinate': event.position})
+    if event.action == 'shift':
+        assert event.offset is not None
+        return position.model_copy(
+            update={'coordinate': position.coordinate + event.offset}
+        )
     if event.action == 'rate':
         assert event.rate is not None
         return position.model_copy(update={'rate': event.rate})
@@ -546,6 +555,14 @@ def motion_event(
                 )
         else:
             position = _position_command(position, event)
+            if event.action == 'shift':
+                position = position.model_copy(
+                    update={
+                        'coordinate': max(
+                            Fraction(0), min(Fraction(1), position.coordinate)
+                        )
+                    }
+                )
         return MotionState(
             runtime=ContourState(
                 at=event.at,
@@ -576,15 +593,22 @@ def advance_motion(
         control.check_order(runtime.at, runtime.ordinal, event)
     current, emitted = _advance_stages(body, runtime, at, event is None)
     if event is not None:
-        if event.action in ('pause', 'resume', 'reverse', 'seek', 'rate'):
+        if event.action in ('pause', 'resume', 'reverse', 'seek', 'shift', 'rate'):
             stage = next(s.motion for s in body.stages if s.name == current.stage)
-            if event.action == 'seek' and isinstance(stage, Hold):
-                raise ValueError('hold stages do not accept seek events')
+            if event.action in ('seek', 'shift') and isinstance(stage, Hold):
+                raise ValueError('hold stages do not accept position events')
+            position = _position_command(_position_at(current.position, at), event)
+            if event.action == 'shift' and isinstance(stage, Contour):
+                position = position.model_copy(
+                    update={
+                        'coordinate': max(
+                            Fraction(0), min(Fraction(1), position.coordinate)
+                        )
+                    }
+                )
             current = current.model_copy(
                 update={
-                    'position': _position_command(
-                        _position_at(current.position, at), event
-                    ),
+                    'position': position,
                     'cursor_order': -1,
                 }
             )
