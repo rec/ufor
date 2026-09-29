@@ -14,14 +14,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
 
-3. **High, confirmed: one stored event kind cannot be exported.**
-   `StoredEvent` includes `LFOChange` in `ufor/events.py:165-178`, but
-   `EventType.kinds` in `ufor/interface.py:81-88` and
-   `EventStream.event_kind` in `ufor/recording.py:141-145` omit
-   `lfo_change`. A `SequenceScore` containing that event cannot declare a
-   matching output. Reconcile the event-kind vocabulary across storage,
-   recording exports, and public ports, with a native sequence round trip.
-
 4. **High, confirmed: automation tick durations serialize as seconds.**
    `TimelineCurve` in `ufor/automation.py:39-53` interprets segment durations
    as integer ticks. The shared `Duration` in `ufor/segments.py:13-47`

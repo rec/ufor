@@ -3711,7 +3711,8 @@
                 "key",
                 "trigger",
                 "release",
-                "control_change"
+                "control_change",
+                "lfo_change"
               ],
               "type": "string"
             },
@@ -3772,7 +3773,8 @@
               "key",
               "trigger",
               "release",
-              "control_change"
+              "control_change",
+              "lfo_change"
             ],
             "type": "string"
           },
