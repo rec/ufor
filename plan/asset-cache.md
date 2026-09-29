@@ -222,6 +222,10 @@ extend reservations as bounded input arrives. Account for incomplete
 staging and recovery evidence, not just published objects. If protected
 data blocks admission, report required bytes and blocking roots; never
 silently unpin or overwrite a capture.
+Reccy now optionally enforces object, staging, and free-space budgets for
+asset admissions with serialized writers and incremental staging checks.
+Cooperating processes must use the same capacity. Transport quotas, pressure
+collection, capture reservations, and blocking-root explanations remain.
 The proposed policy keys are `maximum_object_bytes`,
 `maximum_staging_bytes`, `maximum_transport_bytes`, and
 `minimum_free_space`; size values use positive integer `B`, `KiB`, `MiB`, or
