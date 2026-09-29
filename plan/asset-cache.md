@@ -178,9 +178,9 @@ destination; the host still has to assemble and seal the score and package.
 ## Retention extensions
 
 The current store supports references, pins, leases, duration/forever
-rules, newest-N per source or across all matches, and ordinary/pressure
-collection for finite entries. Extend its policy to support response
-freshness (`while_fresh`), capture versions, and derived-object dependencies.
+rules, newest-N per source or across all matches, download-only response
+freshness (`while_fresh`), and ordinary/pressure collection for finite entries.
+Extend its policy to support capture versions and derived-object dependencies.
 A rule is additive; separate rules combine by union. A newest count and
 duration on one rule both apply. For example, retain captures younger
 than seven days OR the latest three per source, subject to pressure.
@@ -253,7 +253,7 @@ abandoned one or reclaim recovery material safely.
    adapters, and portable capture export. Test dependency and encoder
    changes in value keys, callback buffer reuse, client-buffer short reads,
    clean stop, abort, salvage, and partial-recovery diagnostics.
-3. Extend policy and collection to freshness, capture and
+3. Extend policy and collection to capture and
    derivative dependencies, capacity pressure, and recovery. Test shared
    objects, moved references, expiring pins, readers racing collection,
    writer interruption, and admission failure when all space is protected.
