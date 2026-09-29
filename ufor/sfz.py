@@ -149,6 +149,8 @@ def compile_instrument(
 ) -> SfzCompileResult:
     """Build a native document from parsed text and caller-supplied asset facts."""
     paths = sample_paths(source)
+    if missing := [p for p in paths if p not in assets]:
+        raise ValueError(f'Missing audio metadata for SFZ samples: {missing}')
     asset_ids = {p: f'asset-{i}' for i, p in enumerate(paths, 1)}
     native_assets: list[AudioAsset] = []
     clocks = {output_timebase.name: output_timebase}
