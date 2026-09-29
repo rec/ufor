@@ -224,6 +224,9 @@ staged files, and orphaned objects. Do not reclaim a live lease based only
 on elapsed time. A dry run must explain proposed recovery; collection
 must recheck roots under the metadata lock before deletion. Report
 incomplete material with its size and available recovery action.
+Reccy now has read-only inspection of staging files and unreferenced objects,
+including sizes. It cannot yet distinguish an active staging writer from an
+abandoned one or reclaim recovery material safely.
 
 ## Remaining operations and acceptance
 
