@@ -360,9 +360,13 @@ def normalize_references(value: object, names: dict[str, str]) -> object:
     if isinstance(value, ScoreReference):
         return {'path': names[value.key], 'sha256': value.sha256}
     if isinstance(value, BaseModel):
+        fields = {
+            field.serialization_alias or name: name
+            for name, field in type(value).model_fields.items()
+        }
         return {
-            n: normalize_references(getattr(value, n), names)
-            for n in value.model_dump()
+            key: normalize_references(getattr(value, fields[key]), names)
+            for key in value.model_dump()
         }
     if isinstance(value, list):
         return [normalize_references(v, names) for v in value]

@@ -1,0 +1,54 @@
+kind = "motion"
+name = "bloom"
+title = "Attack, sway, release"
+tags = ["#envelope", "#periodic"]
+
+[body]
+kind = "stages"
+initial_stage = "waiting"
+
+[[body.stages]]
+name = "waiting"
+motion = { kind = "hold", value = 0.0 }
+
+[[body.stages]]
+name = "attack"
+motion = { kind = "contour", initial = "current", segments = [
+  { duration = "300 ms", to = 0.7 },
+] }
+
+[[body.stages]]
+name = "sway"
+motion = { kind = "cycle", shape = "sine", rate = "3 Hz", center = 0.7, depth = 0.2,
+  markers = [{ name = "peak", position = "1/4" }] }
+
+[[body.stages]]
+name = "release"
+motion = { kind = "contour", initial = "current", segments = [
+  { duration = "500 ms", to = 0.0 },
+] }
+
+[[body.transitions]]
+from = ["waiting", "attack", "sway", "release"]
+event = "note_on"
+action = { kind = "enter", stage = "attack" }
+
+[[body.transitions]]
+from = ["attack"]
+event = "stage.done"
+action = { kind = "enter", stage = "sway" }
+
+[[body.transitions]]
+from = ["attack", "sway"]
+event = "note_off"
+action = { kind = "enter", stage = "release" }
+
+[[body.transitions]]
+from = ["release"]
+event = "stage.done"
+action = { kind = "finish" }
+
+[[body.transitions]]
+from = ["waiting", "attack", "sway"]
+event = "cue.release"
+action = { kind = "enter", stage = "release" }
