@@ -41,7 +41,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `ampeg_hold_onccN` | SFZ v2 | controller_binding |
 | Opcode | `ampeg_release` | SFZ v1 | supported |
 | Opcode | `ampeg_release_onccN` | SFZ v2 | controller_binding |
-| Opcode | `ampeg_start` | SFZ v1 | new_model |
+| Opcode | `ampeg_start` | SFZ v1 | supported |
 | Opcode | `ampeg_start_onccN` | SFZ v2 | controller_binding |
 | Opcode | `ampeg_sustain` | SFZ v1 | supported |
 | Opcode | `ampeg_sustain_onccN` | SFZ v2 | controller_binding |
