@@ -134,7 +134,8 @@ them. Loading modules executes local user code; this reader is not a sandbox.
 Keep helper modules outside the score root or in installed packages. Ufor does
 not add library directories to `sys.path`. Module/declaration failures are
 reported per file; user interruption propagates. Each explicit read loads fresh
-file contents without generating bytecode caches.
+file contents without generating bytecode caches. Concurrent Python score loads
+use distinct temporary module names so their executions cannot collide.
 
 ## Host integration and diagnostics
 

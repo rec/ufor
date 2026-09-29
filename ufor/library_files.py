@@ -8,6 +8,7 @@ from importlib.util import module_from_spec, spec_from_file_location
 from os.path import abspath
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+from uuid import uuid4
 
 import tomlkit
 from pydantic import TypeAdapter
@@ -206,12 +207,11 @@ def python_score(
     path: Path, library: str, location: str, contents: bytes
 ) -> tuple[type[Score], dict[str, object]]:
     identity = f'{library}:{location}:{path}'
-    name = '_ufor_score_' + sha256(identity.encode()).hexdigest()
+    name = '_ufor_score_' + sha256(identity.encode()).hexdigest() + '_' + uuid4().hex
     spec = spec_from_file_location(name, path)
     if spec is None:
         raise ValueError('cannot create module specification')
     module = module_from_spec(spec)
-    previous = sys.modules.get(name)
     sys.modules[name] = module
     try:
         # Compile the bytes already hashed, and never write a __pycache__ directory.
@@ -235,10 +235,7 @@ def python_score(
         return score_class, data
     finally:
         # Retained classes keep their method globals; do not accumulate modules.
-        if previous is None:
-            sys.modules.pop(name, None)
-        else:
-            sys.modules[name] = previous
+        sys.modules.pop(name, None)
 
 
 def configuration_path(path: Path | None) -> Path:
