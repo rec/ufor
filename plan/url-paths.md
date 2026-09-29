@@ -1,174 +1,10 @@
-# Asset locations: files, URLs, streams, and providers
+# Asset locations: remaining host work
 
-Status: implemented in the version 4 format models, validation, schema, and
-conformance data. Network, Git, volume, and Python-provider I/O remain host work
-and are intentionally not implemented in Ufor.
-
-## Goal
-
-An audio asset can be obtained from exactly one of these sources:
-
-1. A file relative to the score.
-2. A file relative to a specifically identified mounted volume.
-3. A finite file downloaded from an absolute URL.
-4. A file at a pinned revision in a Git repository.
-5. A live or progressively decoded streaming URL.
-6. A trusted Python function returning a complete in-memory NumPy array.
-7. A trusted Python function delivering borrowed NumPy arrays to a callback.
-8. A trusted Python function filling a buffer managed by its client.
-
-The score describes the source and its media contract. A host resolves it and
-performs I/O. Ufor continues to validate definitions and calculate semantics
-without mounting volumes, opening sockets, cloning repositories, importing user
-code, decoding media, or depending on NumPy.
-
-## Rename `path` to `location`
-
-Do not broaden the string meaning of `Asset.path`. A URL, Git object, and Python
-callable are not paths, and URI-like strings cannot express the different
-validation and reproducibility rules without hidden parsing conventions.
-
-Replace `Asset.path: str` with one required discriminated
-`Asset.location: AssetLocation`. Use one structured representation in Python,
-JSON, and TOML. Do not retain a second shorthand string form.
-
-This is the version 4 wire-format change. Migrate existing
-`path = "audio/take.wav"` values to:
-
-```toml
-[assets.location]
-kind = "relative_file"
-path = "audio/take.wav"
-```
-
-`ScoreReference.path`, selector addresses, continuation paths, SFZ sample paths,
-and diagnostic field paths are separate concepts and do not change as part of
-this work.
-
-## Location model
-
-```python
-class RelativeFileLocation(Model):
-    kind: Literal['relative_file'] = 'relative_file'
-    path: str
-
-
-class VolumeFileLocation(Model):
-    kind: Literal['volume_file'] = 'volume_file'
-    volume_id: str
-    volume_name: str | None = None
-    path: str
-
-
-class DownloadLocation(Model):
-    kind: Literal['download'] = 'download'
-    url: str
-
-
-class GitFileLocation(Model):
-    kind: Literal['git_file'] = 'git_file'
-    repository: str
-    commit: str
-    path: str
-
-
-class StreamLocation(Model):
-    kind: Literal['stream'] = 'stream'
-    url: str
-    transport: Identifier
-
-
-class PythonProviderLocation(Model):
-    kind: Literal['python_provider'] = 'python_provider'
-    module: str
-    function: str
-    delivery: Literal['buffer', 'callback', 'client_buffer']
-    arguments: dict[str, JsonValue] = Field(default_factory=dict)
-
-
-AssetLocation = Annotated[
-    RelativeFileLocation
-    | VolumeFileLocation
-    | DownloadLocation
-    | GitFileLocation
-    | StreamLocation
-    | PythonProviderLocation,
-    Field(discriminator='kind'),
-]
-```
-
-`JsonValue` is the recursive JSON value set: null, boolean, finite number,
-string, list, or string-keyed object. Provider arguments contain data, never
-Python expressions, import statements, objects, credentials, or callbacks.
-
-The concrete names above are intentional:
-
-- `relative_file` keeps the current portable package behavior.
-- `volume_file` identifies a storage root independently of its current mount
-  point.
-- `download` means a finite object that can be completely retrieved and cached.
-- `git_file` selects one file, not a repository working tree as an asset.
-- `stream` means an open-ended or session-dependent media source.
-- `python_provider` makes execution and trust visible in the document.
-
-Do not use a generic `url` kind. A downloadable object, a Git repository, and a
-live stream can all use HTTPS while having different lifetime, seeking, hashing,
-and caching contracts.
-
-## Common asset facts
-
-The existing `encoding`, `byte_length`, and `sha256` fields assume a finite,
-already inspected byte sequence. Streaming and generated audio may have no byte
-representation. Separate the source from the facts verified about one
-realization:
-
-```python
-class Asset(Model):
-    name: Identifier
-    location: AssetLocation
-    encoding: str
-    content: ContentIdentity | None = None
-
-
-class ContentIdentity(Model):
-    byte_length: int = Field(ge=0, strict=True)
-    sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
-```
-
-For an encoded finite file, `encoding` describes its bytes and `content` is
-required. For decoded provider output and live streams, `encoding` describes the
-declared sample representation or stream format and `content` is absent.
-
-Retain `AudioDescription`, but distinguish finite and open-ended audio:
-
-```python
-class AudioDescription(Model):
-    timebase: Identifier
-    channels: list[str]
-    frames: int | None = Field(default=None, ge=0, strict=True)
-```
-
-`frames` is required for finite files, downloads, Git files, and buffer
-providers. It is absent for a stream URL or streaming provider unless the source
-has a declared finite extent. Channel names and the timebase remain required for
-every audio source so downstream routing does not depend on probing a live source.
-
-Validation must enforce this matrix:
-
-| Location | Content identity | Audio frames | Seek contract |
-| --- | --- | --- | --- |
-| Relative file | Required | Required | Random access |
-| Volume file | Required | Required | Random access |
-| Download | Required | Required | Random access after retrieval/cache |
-| Git file | Required and checked against retrieved bytes | Required | Random access after checkout/read |
-| Stream URL | Absent | Usually absent | Sequential unless the transport explicitly reports seeking |
-| Python buffer provider | Absent; the array is not encoded bytes | Required | Random access in the returned array |
-| Python callback provider | Absent | Usually absent | Sequential |
-| Python client-buffer provider | Absent | Usually absent | Sequential |
-
-A later plan may add identity for deterministic generated arrays. Do not pretend
-that `sha256` of provider source code proves the returned samples: imports,
-arguments, environment, native libraries, and external state can all affect it.
+The version 4 location models, validation, schema, conformance data, and
+migration are implemented in uFor. See [validation](../doc/validation.md)
+and [the asset cache plan](asset-cache.md) for the current contract and
+storage work. This plan now covers host resolution, acquisition, providers,
+and consumer capability checks. uFor does not perform I/O or import NumPy.
 
 ## Relative files
 
@@ -562,39 +398,9 @@ TOML and JSON use the same discriminated location objects. JSON Schema describes
 their structure; Python and other language implementations must additionally
 enforce the cross-field source/facts matrix and URI/path rules.
 
-## Migration
+## Remaining implementation stages
 
-This is a deliberate versioned cutover, without compatibility aliases in the new
-models:
-
-1. Read the previous score version using its existing schema.
-2. Convert every `Asset.path` to `location = RelativeFileLocation(path=...)`.
-3. Move `byte_length` and `sha256` into `content`.
-4. Preserve `encoding` and audio facts exactly.
-5. Write the new score version beside the original; do not overwrite production
-   material implicitly.
-6. Revalidate all asset references, package-root containment, and score-specific
-   finite/seekable requirements.
-
-Do not interpret an old path string containing `://`, a volume prefix, or a
-Python-looking name as a new location. Old scores permitted relative files only.
-
-## Implementation stages
-
-### 1. Definition cutover (implemented)
-
-- Add the location variants and recursive JSON value validation to
-  `ufor.assets`.
-- Add `ContentIdentity`; update `Asset` and `AudioDescription`.
-- Update all score models, conformance documents, examples, JSON Schema, SFZ
-  conversion boundaries, and diagnostics in one versioned cutover.
-- Keep all acquisition outside Ufor.
-
-Acceptance: each location round-trips through JSON and TOML; invalid mixed fields,
-unsafe paths, relative URLs, symbolic Git revisions, malformed provider names,
-and source/facts contradictions are rejected.
-
-### 2. Local and volume host resolution (host work)
+### 1. Local and volume host resolution
 
 - Port the current relative-file resolution to the new model.
 - Define the host volume registry and exact missing/ambiguous/mismatch errors.
@@ -605,9 +411,9 @@ Acceptance: moving the package preserves relative files; changing a mount point
 preserves a volume asset; a same-named wrong volume is rejected; symlink escapes
 and hash mismatches fail.
 
-### 3. Downloads and Git (host work)
+### 2. Downloads and Git
 
-- Add bounded verified caches keyed by content SHA-256.
+- Connect the verified cache to bounded download and Git acquisition.
 - Add explicit download and Git resolver adapters under host policy.
 - Resolve Git commits and blobs without checking out arbitrary working trees.
 - Keep authentication outside score data.
@@ -616,7 +422,7 @@ Acceptance: cached offline replay is byte-identical; redirects and repository
 aliases cannot bypass policy; moving a tag or branch is irrelevant because only
 full commits are accepted; wrong bytes fail before decoding.
 
-### 4. Streaming URLs (host work)
+### 3. Streaming URLs
 
 - Define transport-adapter capability reports and discontinuity observations.
 - Permit only forward live-input use in the first implementation.
@@ -627,7 +433,7 @@ Acceptance: HLS-over-HTTPS is distinguishable from finite HTTPS download;
 dropouts become explicit recording gaps; reconnect policy is visible; no live
 stream is described as sealed or deterministic.
 
-### 5. Python providers (host work)
+### 4. Python providers
 
 - Define provider request types in the host/provider package.
 - Implement opt-in module/function resolution and JSON arguments.
@@ -643,69 +449,26 @@ Acceptance: wrong dtype/shape/channel/frame/nonfinite output fails with the asse
 and provider named; callback blocks concatenate without losing or duplicating
 frames; borrowed callback arrays are never retained; client-buffer providers can
 repeatedly fill the same array without changing its identity; exceptions close
-the provider once; Ufor imports without NumPy installed.
+the provider once.
 
-### 6. Consumer capability validation (partly implemented)
+### 5. Consumer capability validation
 
-- State finite/seekable/live requirements for sample instruments, arrangement
-  clips, reverse/loop playback, offline composition, and recording.
 - Validate these requirements against resolved handles before starting output.
-- Add a capability matrix to the relevant format documents.
 
 Acceptance: every unsupported combination fails before output with the exact
-asset and requested operation; existing relative-file behavior remains equivalent
-after migration.
+asset and requested operation.
 
-## Conformance and tests
+## Host integration tests
 
-Add language-neutral cases for:
-
-- each valid location kind and its canonical JSON/TOML form;
-- path traversal, Windows drives, URLs in file paths, and volume-root escapes;
-- finite sources missing content identity or frames;
-- streaming sources incorrectly declaring sealed content;
-- absolute/relative URL boundaries and URL fragments;
-- full versus symbolic Git revisions and safe repository paths;
-- provider module/function spelling, delivery modes, and recursive JSON arguments;
-- callback ordering, borrowed-buffer lifetime, status, and cleanup rules;
-- client-buffer frame counts, short reads, end-of-stream, and retention rules;
-- sample/clip operations requiring finite or seekable content;
-- migration of current file assets without semantic changes.
-
-Host integration tests should use local fixtures: a temporary mounted-root
-registry, a loopback HTTP server, a local bare Git repository, a finite test
-stream adapter, and provider functions returning arrays, invoking callbacks, and
-filling client buffers. Network tests must not depend on public services. Audio
-regression fixtures remain WAV at 48,000 samples per second and at least one
-second long where audio output is actually compared.
-
-## Documentation updates
-
-The format implementation updates:
-
-- `doc/validation.md` with the source/facts matrix and policy boundary;
-- `doc/instrument-format.md` with finite/seekable sample requirements;
-- `doc/recording-format.md` with capture of live sources;
-- `doc/arrangement-format.md` with stream capability restrictions;
-- `doc/library.md` to distinguish score references from asset locations;
-- `doc/api-map.md` and `doc/capabilities.md` with resolver ownership;
-- checked-in schema and conformance examples.
-
-## Decisions recorded
-
-- Use a structured `location`, not an overloaded path/URI string.
-- Keep acquisition and NumPy out of Ufor core.
-- Treat finite downloadable content and live streams as different kinds even
-  when both use HTTPS.
-- Pin Git by full commit and verify the selected bytes independently.
-- Identify volumes by stable host-supplied ID, never a mount path or display name.
-- Store provider references and JSON data, never Python source in a score.
-- Use provider-owned borrowed callback buffers for push sources and client-owned
-  reusable buffers for pull sources.
-- Keep credentials, network policy, mounted-root mapping, provider trust, caches,
-  decoding, and buffers in hosts.
-- Require capture/materialization before live or generated sources become sealed
-  portable files.
+Use local fixtures for volume-root mapping, symlink escapes, a loopback
+HTTP server, a local bare Git repository, and finite stream adapters. Test
+provider functions that return arrays, invoke callbacks, and fill reusable
+client buffers. Cover identity mismatches, denied origins and modules,
+redirects, intermittent network failures, borrowed-buffer lifetime, short
+reads, end-of-stream, callback status, provider cancellation, and cleanup.
+Check unsupported seek, reverse, loop, and offline requests before output.
+Network tests must not depend on public services. Where audio output is
+compared, regression WAV fixtures use 48 kHz and at least one second.
 
 ## Additional work beyond the prompt
 
