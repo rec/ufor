@@ -14,13 +14,6 @@ configuration writer are uFor's significant I/O paths.
 
 ## Format and semantic correctness
 
-5. **Medium, confirmed: Scale silently drops misspelled fields.**
-   `Scale.model_config = ConfigDict(extra='ignore')` in `ufor/scale.py:56`
-   overrides the project's default `extra='forbid'`. For example, a typo in
-   `note_names` is accepted and the default alphabet is used. `ScaleScore`
-   exposes this through TOML. Unless the editing workflow deliberately relies
-   on extra fields, reject them and test an authored typo.
-
 6. **Medium, confirmed: “frozen” scores have mutable nested collections.**
    `ufor/base.py:10-13` freezes model attributes, but fields such as
    `AudioDescription.channels` (`ufor/assets.py:169-178`),

@@ -7,7 +7,7 @@ from contextlib import suppress
 from itertools import batched, chain
 from typing import Annotated, Self
 
-from pydantic import BeforeValidator, ConfigDict, Field, model_validator
+from pydantic import BeforeValidator, Field, model_validator
 
 from .accidentals import AccidentalNames, Accidentals
 from .base import Model
@@ -52,8 +52,6 @@ class Scale(Model):
     Scale generalizes this to allow more or less than 12 notes per octave, N-just limit,
     custom tunings, different note names and intervals.
     """
-
-    model_config = ConfigDict(extra='ignore')
 
     note_names: str = string.ascii_uppercase
     root: str = 'C'
