@@ -115,6 +115,31 @@ def test_sfz_full_stereo_width_swap_round_trips() -> None:
     )
 
 
+def test_sfz_envelope_start_level_persists_through_delay() -> None:
+    result = _compile(
+        '<region> sample=sample.wav ampeg_start=25 ampeg_delay=0.1 ampeg_attack=0.2'
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    envelope = result.instrument.body.slots[0].envelope
+    assert envelope is not None
+    assert envelope.initial == 0.25
+    assert envelope.segments[0].to == 0.25
+    exported = sfz.write(result.instrument)
+    assert exported.complete
+    assert 'ampeg_start=25' in exported.contents
+    restored = _compile(exported.contents)
+    assert restored.instrument is not None
+    assert restored.instrument.body.slots[0].envelope == envelope
+
+
+@pytest.mark.parametrize('start', ['-1', '101', 'nan'])
+def test_sfz_envelope_start_rejects_out_of_range_level(start: str) -> None:
+    with pytest.raises(ValueError, match='ampeg_start'):
+        _compile(f'<region> sample=sample.wav ampeg_start={start}')
+
+
 @pytest.mark.parametrize('settings', ['width=50', 'width=-100 pan=25'])
 def test_sfz_width_without_exact_channel_mapping_is_diagnosed(settings: str) -> None:
     result = _compile(

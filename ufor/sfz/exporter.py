@@ -663,7 +663,7 @@ def _envelope_opcodes(
     representable = (
         value.clock == Clock.seconds
         and value.scope == Scope.voice
-        and value.initial == 0
+        and 0 <= value.initial <= 1
         and value.hold
         and value.retrigger == envelope.Retrigger.current
         and len(segments) == 4
@@ -671,7 +671,7 @@ def _envelope_opcodes(
     )
     if representable:
         representable = (
-            [s.to for s in segments[:3]] == [0, 1, 1]
+            [s.to for s in segments[:3]] == [value.initial, 1, 1]
             and [s.curve for s in segments] == [0, 0, 0, -5]
             and value.release[0].to == 0
             and value.release[0].curve == -5
@@ -693,6 +693,8 @@ def _envelope_opcodes(
         )
     )
     values['ampeg_sustain'] = segments[-1].to * 100
+    if value.initial:
+        values['ampeg_start'] = value.initial * 100
     values['ampeg_release'] = float(value.release[0].duration)
     return [Opcode(name=n, value=_number_text(v)) for n, v in values.items()]
 

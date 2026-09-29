@@ -223,16 +223,20 @@ def _midi_binding(
 
 def amplitude_envelope(values: dict[str, str]) -> envelope.Envelope:
     """Translate SFZ's DAHDSR vocabulary into the one shared segment model."""
+    start = _number(values.get('ampeg_start', '0'), 'ampeg_start') / 100
+    if not 0 <= start <= 1:
+        raise ValueError('ampeg_start must be between 0 and 100 percent')
     durations = [
         Fraction(values.get(f'ampeg_{n}', '0'))
         for n in ('delay', 'attack', 'hold', 'decay')
     ]
     sustain = _number(values.get('ampeg_sustain', '100'), 'ampeg_sustain') / 100
     return envelope.Envelope(
+        initial=start,
         segments=[
             segments.Segment(duration=d, to=t, curve=c)
             for d, t, c in zip(
-                durations, [0, 1, 1, sustain], [0, 0, 0, -5], strict=True
+                durations, [start, 1, 1, sustain], [0, 0, 0, -5], strict=True
             )
         ],
         release=[

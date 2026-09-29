@@ -160,6 +160,7 @@ PARSABLE_OPCODES = {
     'ampeg_delay',
     'ampeg_hold',
     'ampeg_release',
+    'ampeg_start',
     'ampeg_sustain',
     'ampeg_vel2attack',
     'ampeg_vel2decay',
