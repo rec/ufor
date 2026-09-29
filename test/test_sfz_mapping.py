@@ -72,6 +72,44 @@ def test_release_random_range_requires_the_original_note_on_draw() -> None:
     assert all('note-on draw' in i.reason for i in result.unimplemented)
 
 
+def test_sfz_sample_end_fade_round_trips() -> None:
+    result = _compile(
+        '<region> sample=sample.wav loop_mode=no_loop sample_fadeout=0.25'
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].playback.end_fade_seconds == 0.25
+    exported = sfz.write(result.instrument)
+    assert exported.complete
+    assert 'sample_fadeout=0.25' in exported.contents
+    restored = _compile(exported.contents)
+    assert restored.instrument is not None
+    assert restored.instrument.body.slots[0].playback.end_fade_seconds == 0.25
+
+
+@pytest.mark.parametrize(
+    'settings',
+    [
+        'loop_mode=loop_sustain loop_start=10 loop_end=99',
+        'count=2',
+    ],
+)
+def test_sfz_end_fade_with_repetition_is_diagnosed(settings: str) -> None:
+    result = _compile(f'<region> sample=sample.wav {settings} sample_fadeout=0.25')
+
+    assert not result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].playback.end_fade_seconds == 0
+    assert result.unimplemented[0].location.opcode == 'sample_fadeout'
+
+
+@pytest.mark.parametrize('fade', ['-0.1', 'inf', 'nan'])
+def test_sfz_end_fade_requires_finite_nonnegative_seconds(fade: str) -> None:
+    with pytest.raises(ValueError, match='sample_fadeout'):
+        _compile(f'<region> sample=sample.wav sample_fadeout={fade}')
+
+
 @pytest.mark.parametrize('transpose', ['1.5', '128', '-128'])
 def test_transpose_requires_an_in_range_integer(transpose: str) -> None:
     with pytest.raises(ValueError, match='transpose'):

@@ -557,6 +557,10 @@ def _playback_opcodes(
             )
         else:
             result.append(Opcode(name='delay', value=str(value.start_delay_seconds)))
+    if value.end_fade_seconds:
+        result.append(
+            Opcode(name='sample_fadeout', value=_number_text(value.end_fade_seconds))
+        )
     return result
 
 
