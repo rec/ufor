@@ -8,11 +8,10 @@ from .arrangement import ArrangementScore
 from .automation import AutomationScore
 from .binding import BindingScore
 from .broadcast import BroadcastScore
-from .envelope import EnvelopeScore
 from .fixture import FixtureScore
 from .interface import Part
-from .lfo import LFOScore
 from .light_animation import AnimationScore
+from .motion import MotionScore
 from .musical import OscillatorScore, ScaleScore, TuningScore
 from .preset import PresetScore
 from .recording import RecordingScore
@@ -33,9 +32,8 @@ ScoreValue = Annotated[
     | TuningScore
     | ScaleScore
     | OscillatorScore
-    | EnvelopeScore
+    | MotionScore
     | SampleInstrumentScore
-    | LFOScore
     | AnimationScore
     | SynthInstrumentScore
     | PresetScore,

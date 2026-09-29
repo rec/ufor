@@ -2728,6 +2728,42 @@
       "title": "ContentIdentity",
       "type": "object"
     },
+    "Contour": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "contour",
+          "default": "contour",
+          "title": "Kind",
+          "type": "string"
+        },
+        "initial": {
+          "default": 0.0,
+          "title": "Initial",
+          "type": "number"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "release": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "title": "Release",
+          "type": "array"
+        }
+      },
+      "required": [
+        "segments"
+      ],
+      "title": "Contour",
+      "type": "object"
+    },
     "Control": {
       "additionalProperties": false,
       "description": "A free-running control in seconds from this score's activation.",
@@ -3185,6 +3221,66 @@
       "title": "Curve",
       "type": "object"
     },
+    "Cycle": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "cycle",
+          "default": "cycle",
+          "title": "Kind",
+          "type": "string"
+        },
+        "shape": {
+          "$ref": "#/$defs/Waveform",
+          "default": "sine"
+        },
+        "rate": {
+          "format": "fraction",
+          "ge": 0,
+          "title": "Rate",
+          "type": "string"
+        },
+        "phase": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "lt": 1,
+          "title": "Phase",
+          "type": "string"
+        },
+        "duty_cycle": {
+          "default": "1/2",
+          "format": "fraction",
+          "ge": 0,
+          "le": 1,
+          "title": "Duty Cycle",
+          "type": "string"
+        },
+        "reset": {
+          "$ref": "#/$defs/Reset",
+          "default": "trigger"
+        },
+        "delay": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Delay",
+          "type": "string"
+        },
+        "fade_in": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Fade In",
+          "type": "string"
+        }
+      },
+      "required": [
+        "rate"
+      ],
+      "title": "Cycle",
+      "type": "object"
+    },
     "Direction": {
       "enum": [
         "forward",
@@ -3423,55 +3519,6 @@
         "release"
       ],
       "title": "Envelope",
-      "type": "object"
-    },
-    "EnvelopeScore": {
-      "additionalProperties": false,
-      "properties": {
-        "format": {
-          "const": "recs",
-          "default": "recs",
-          "title": "Format",
-          "type": "string"
-        },
-        "version": {
-          "const": 4,
-          "default": 4,
-          "title": "Version",
-          "type": "integer"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "title": {
-          "minLength": 1,
-          "title": "Title",
-          "type": "string"
-        },
-        "tags": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Tags",
-          "type": "array"
-        },
-        "kind": {
-          "const": "envelope",
-          "default": "envelope",
-          "title": "Kind",
-          "type": "string"
-        },
-        "body": {
-          "$ref": "#/$defs/Envelope"
-        }
-      },
-      "required": [
-        "name",
-        "title",
-        "body"
-      ],
-      "title": "EnvelopeScore",
       "type": "object"
     },
     "EqualizerBand": {
@@ -5522,55 +5569,6 @@
       "title": "LFOChange",
       "type": "object"
     },
-    "LFOScore": {
-      "additionalProperties": false,
-      "properties": {
-        "format": {
-          "const": "recs",
-          "default": "recs",
-          "title": "Format",
-          "type": "string"
-        },
-        "version": {
-          "const": 4,
-          "default": 4,
-          "title": "Version",
-          "type": "integer"
-        },
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "title": {
-          "minLength": 1,
-          "title": "Title",
-          "type": "string"
-        },
-        "tags": {
-          "items": {
-            "type": "string"
-          },
-          "title": "Tags",
-          "type": "array"
-        },
-        "kind": {
-          "const": "lfo",
-          "default": "lfo",
-          "title": "Kind",
-          "type": "string"
-        },
-        "body": {
-          "$ref": "#/$defs/LFO"
-        }
-      },
-      "required": [
-        "name",
-        "title",
-        "body"
-      ],
-      "title": "LFOScore",
-      "type": "object"
-    },
     "LarsonScanner": {
       "additionalProperties": false,
       "properties": {
@@ -6236,6 +6234,70 @@
         }
       },
       "title": "Modulation",
+      "type": "object"
+    },
+    "MotionScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 4,
+          "default": 4,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "motion",
+          "default": "motion",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "discriminator": {
+            "mapping": {
+              "contour": "#/$defs/Contour",
+              "cycle": "#/$defs/Cycle"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Cycle"
+            },
+            {
+              "$ref": "#/$defs/Contour"
+            }
+          ],
+          "title": "Body"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "body"
+      ],
+      "title": "MotionScore",
       "type": "object"
     },
     "NoiseVoice": {
@@ -7262,10 +7324,9 @@
                   "automation": "#/$defs/AutomationScore",
                   "binding": "#/$defs/BindingScore",
                   "broadcast": "#/$defs/BroadcastScore",
-                  "envelope": "#/$defs/EnvelopeScore",
                   "fixture": "#/$defs/FixtureScore",
                   "instrument": "#/$defs/SampleInstrumentScore",
-                  "lfo": "#/$defs/LFOScore",
+                  "motion": "#/$defs/MotionScore",
                   "oscillator": "#/$defs/OscillatorScore",
                   "preset": "#/$defs/PresetScore",
                   "recording": "#/$defs/RecordingScore",
@@ -7312,13 +7373,10 @@
                   "$ref": "#/$defs/OscillatorScore"
                 },
                 {
-                  "$ref": "#/$defs/EnvelopeScore"
+                  "$ref": "#/$defs/MotionScore"
                 },
                 {
                   "$ref": "#/$defs/SampleInstrumentScore"
-                },
-                {
-                  "$ref": "#/$defs/LFOScore"
                 },
                 {
                   "$ref": "#/$defs/AnimationScore"
@@ -11936,10 +11994,9 @@
       "automation": "#/$defs/AutomationScore",
       "binding": "#/$defs/BindingScore",
       "broadcast": "#/$defs/BroadcastScore",
-      "envelope": "#/$defs/EnvelopeScore",
       "fixture": "#/$defs/FixtureScore",
       "instrument": "#/$defs/SampleInstrumentScore",
-      "lfo": "#/$defs/LFOScore",
+      "motion": "#/$defs/MotionScore",
       "oscillator": "#/$defs/OscillatorScore",
       "preset": "#/$defs/PresetScore",
       "recording": "#/$defs/RecordingScore",
@@ -11986,13 +12043,10 @@
       "$ref": "#/$defs/OscillatorScore"
     },
     {
-      "$ref": "#/$defs/EnvelopeScore"
+      "$ref": "#/$defs/MotionScore"
     },
     {
       "$ref": "#/$defs/SampleInstrumentScore"
-    },
-    {
-      "$ref": "#/$defs/LFOScore"
     },
     {
       "$ref": "#/$defs/AnimationScore"

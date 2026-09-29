@@ -9,7 +9,6 @@ from pydantic import Field, model_validator
 from . import control
 from .base import Model
 from .oscillator import Shape, Waveform, shape_value
-from .score import Score
 
 
 class Reset(StrEnum):
@@ -27,11 +26,6 @@ class LFO(Shape):
     waveform: Waveform = Waveform.sine
     delay: control.Rational = Field(default=Fraction(0), ge=0)
     fade_in: control.Rational = Field(default=Fraction(0), ge=0)
-
-
-class LFOScore(Score):
-    kind: Literal['lfo'] = 'lfo'
-    body: LFO
 
 
 class LFOEvent(control.ControlEvent):
