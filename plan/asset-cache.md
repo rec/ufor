@@ -52,10 +52,11 @@ file's contents after verification.
 Recs now has an explicit finite-asset resolver in
 `recs/recording/asset_resolver.py`. It requires a scoped store, measured volume
 mounts, approved remote URLs, Git transport storage, and byte/time limits from
-the host. Offline edit preparation can use that resolver for selected recording
-fragments and holds cache leases through rendering. The edit command does not
-yet construct host policy or pass a resolver; recording playback still uses
-session-relative files.
+the host. Offline edit preparation uses that resolver for selected recording
+fragments and holds cache leases through rendering. Ordinary `recs edit`
+commands accept an explicit operator-owned asset policy file with measured
+volume IDs, approved URLs, and cache settings. Composition, calibration,
+recording playback, and package export still use session-relative files.
 
 The existing Python provider protocol remains audio-specific. Other finite asset
 types need no provider protocol change to be cached. Future typed generators can
@@ -258,9 +259,10 @@ abandoned one or reclaim recovery material safely.
 1. Connect host-owned local/volume root authorization and remote Git acquisition
    to the existing verified admission. Reccy now has a generic volume-ID
    resolver, direct-read/snapshot file adapter, and remote Git fetch adapter;
-   recs has a policy-injected finite-byte resolver and offline edit preparation
-   can hold its leases during decoding. Consuming commands still must supply
-   measured mounts and quota-limited Git storage.
+   recs has a policy-injected finite-byte resolver and ordinary offline edit
+   commands hold its leases during decoding. Their policy files supply measured
+   mounts and require operator-provided quota-limited Git transport storage.
+   Other recs consumers still need this integration.
    Integrate current-URL HTTP imports in hosts. Test missing
    HTTP expiry, variants, conditional
    validation, pinned offline reuse, redirects, identity mismatches, and
