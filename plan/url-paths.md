@@ -11,7 +11,11 @@ and consumer capability checks. uFor does not perform I/O or import NumPy.
 `RelativeFileLocation` preserves the current rules. Its POSIX path resolves from
 the directory containing the score. Reject absolute POSIX paths, Windows drives,
 URLs, backslashes, `.` as the complete path, and any `..` component. Symlink
-resolution belongs to the host and must remain inside the declared package root.
+handling belongs to the host. Reccy's current confined-file helper rejects
+symlinks entirely; another host strategy must prove that resolution stays
+inside the package root. A direct verified read is permitted only when the
+host trusts the file to remain immutable during use. Mutable files need a
+verified snapshot.
 
 ```toml
 [[assets]]
