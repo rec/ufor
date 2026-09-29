@@ -744,6 +744,7 @@
     },
     "Asset": {
       "additionalProperties": false,
+      "description": "A source declaration; payload acquisition and readiness belong to hosts.",
       "properties": {
         "name": {
           "title": "Name",

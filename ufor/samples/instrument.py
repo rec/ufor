@@ -12,7 +12,7 @@ from pydantic import (
 )
 
 from .. import base, control
-from ..assets import Asset, AudioDescription, finite_audio_required
+from ..assets import Asset, AudioDescription, is_finite_audio_source
 from ..base import Identifier, Model, Text, unique
 from ..envelope import Envelope
 from ..events import ControlChange, PerformanceEvent, Trigger
@@ -393,7 +393,7 @@ class AudioAsset(Asset):
 
     @model_validator(mode='after')
     def audio_extent(self) -> Self:
-        if finite_audio_required(self.location) and self.audio.frames is None:
+        if is_finite_audio_source(self.location) and self.audio.frames is None:
             raise ValueError(f'{self.location.kind} requires a finite audio extent')
         return self
 
@@ -411,7 +411,7 @@ class SampleInstrumentScore(InterfaceScore):
         unique((a.name for a in self.assets), 'asset ID')
         clocks = {t.name for t in self.timebases}
         assets = {a.name: a for a in self.assets}
-        if any(not finite_audio_required(a.location) for a in self.assets):
+        if any(not is_finite_audio_source(a.location) for a in self.assets):
             raise ValueError('sample instruments require finite, seekable assets')
         audio = [p for p in self.outputs if isinstance(p.binding, AudioBinding)]
         performance = [

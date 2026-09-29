@@ -144,6 +144,8 @@ class ContentIdentity(Model):
 
 
 class Asset(Model):
+    """A source declaration; payload acquisition and readiness belong to hosts."""
+
     name: Identifier
     location: AssetLocation
     encoding: str = Field(min_length=1)
@@ -178,7 +180,7 @@ class AudioDescription(Model):
         return self
 
 
-def finite_audio_required(location: AssetLocation) -> bool:
+def is_finite_audio_source(location: AssetLocation) -> bool:
     return not isinstance(location, StreamLocation) and not (
         isinstance(location, PythonProviderLocation)
         and location.delivery in {'callback', 'client_buffer'}
