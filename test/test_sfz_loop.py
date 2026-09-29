@@ -84,6 +84,14 @@ def test_unknown_embedded_wav_loop_type_is_diagnosed() -> None:
     assert result.unimplemented[0].reason == 'WAV smpl loop type 3 is not implemented'
 
 
+def test_sfz_default_velocity_excludes_note_off() -> None:
+    result = _compile('<region> sample=loop.wav')
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.instrument.body.slots[0].mapping.minimum_velocity == 1 / 127
+
+
 def _compile(
     text: str, embedded_loop: EmbeddedLoop | None = None
 ) -> sfz.SfzCompileResult:
