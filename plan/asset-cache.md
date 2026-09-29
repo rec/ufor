@@ -260,14 +260,17 @@ The proposed policy keys are `maximum_object_bytes`,
 `minimum_free_space`; size values use positive integer `B`, `KiB`, `MiB`, or
 `GiB` units.
 
-Complete crash recovery for dead process leases, incomplete sessions,
-staged files, and orphaned objects. Do not reclaim a live lease based only
-on elapsed time. A dry run must explain proposed recovery; collection
-must recheck roots under the metadata lock before deletion. Report
-incomplete material with its size and available recovery action.
-Reccy now has read-only inspection of staging files and unreferenced objects,
-including sizes. It cannot yet distinguish an active staging writer from an
-abandoned one or reclaim recovery material safely.
+Reccy now holds process-owned shared claims for active asset and capture
+readers and serializes all staging writes under an admission claim. Its
+`plan_recovery()` lists abandoned staging files, orphan objects, and stale
+asset and capture leases with byte sizes. `recover()` rechecks ownership and
+entry references under the same claims before discarding those files; it
+reports a busy store while a reader or writer is active. Published capture
+recovery records remain subject to capture retention rather than crash
+cleanup. Reader leases are never declared dead from elapsed time alone.
+Incomplete capture sessions and their pinned fragments still need durable
+ownership and a recovery action. A crash between deleting a capture record
+and releasing its fragment pins can leave a pin that requires operator review.
 
 ## Remaining operations and acceptance
 
@@ -288,10 +291,10 @@ abandoned one or reclaim recovery material safely.
    changes in value keys, callback buffer reuse, client-buffer short reads,
    clean stop, abort, salvage, and partial-recovery diagnostics.
 3. Extend policy and collection to derivative dependencies, capacity pressure,
-   and crash recovery. Test writer interruption and admission failure when all
-   space is protected. Capture and recovery record
-   retention, shared salvage fragments, moved references, active reader leases,
-   and root rechecks are implemented.
+   and incomplete-capture recovery. Test admission failure when all space is
+   protected. Capture and recovery retention, shared salvage fragments, moved
+   references, live reader and writer claims, stale lease cleanup, and root
+   rechecks are implemented.
 4. Expose host operations to resolve, import, materialize, capture, open,
    export, explain, and inspect recovery. Keep acquisition authority in
    the host and distinguish a miss, denied acquisition, wrong identity,
