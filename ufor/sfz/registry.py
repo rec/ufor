@@ -198,6 +198,7 @@ PARSABLE_OPCODES = {
     'pitch_veltrack',
     'region_label',
     'sample',
+    'sample_fadeout',
     'seq_length',
     'seq_position',
     'transpose',

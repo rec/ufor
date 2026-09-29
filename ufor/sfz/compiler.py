@@ -672,6 +672,18 @@ def _playback(
             )
         else:
             result['start_delay_seconds'] = delay
+    if 'sample_fadeout' in values:
+        fade = _number(values['sample_fadeout'], 'sample_fadeout')
+        if not 0 <= fade < float('inf'):
+            raise ValueError('sample_fadeout must be finite and nonnegative')
+        if fade and (result.get('loop') or result.get('play_count')):
+            _add_unimplemented(
+                unimplemented,
+                declarations['sample_fadeout'],
+                'Sample end fade with looping or repetition is not implemented',
+            )
+        else:
+            result['end_fade_seconds'] = fade
     start_frame = result.get('start_frame', 0)
     end_frame = result.get('end_frame', metadata.frames)
     assert isinstance(start_frame, int)

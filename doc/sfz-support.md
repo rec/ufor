@@ -398,7 +398,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `rt_dead` | SFZ v2 | new_model |
 | Opcode | `rt_decay` | SFZ v1 | new_model |
 | Opcode | `sample` | SFZ v1 | asset_metadata |
-| Opcode | `sample_fadeout` | SFZ v2 | new_model |
+| Opcode | `sample_fadeout` | SFZ v2 | supported |
 | Opcode | `sample_quality` | SFZ v2 | new_model |
 | Opcode | `seq_length` | SFZ v1 | ambiguous |
 | Opcode | `seq_position` | SFZ v1 | ambiguous |
