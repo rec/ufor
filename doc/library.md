@@ -158,6 +158,9 @@ Discovery precedes dependency resolution, so forward references work. On a cycle
 are blocked by unavailable dependencies. Independent scores continue loading.
 Diagnostics include the referring field and the full cycle. An explicit reread
 rebuilds the index after edits; there is no watcher or automatic retry.
+Dependency chains are limited to 128 scores by default. A deeper chain receives
+a `depth` diagnostic and its dependents are blocked. Pass `max_depth` to
+`read_library` or `Library` to set a limit from 1 through 160.
 
 An entry's `score` is its authored declaration. `resolved` is the native score
 prepared for composition. `library.records` supplies the existing `Composition`

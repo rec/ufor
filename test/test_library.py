@@ -11,7 +11,7 @@ from pydantic import ValidationError
 from ufor import library_files
 from ufor.codec import parse_score, score_toml
 from ufor.interface import ScoreReference
-from ufor.library import State
+from ufor.library import Entry, Library, State
 from ufor.musical import OscillatorScore
 from ufor.oscillator import Oscillator
 from ufor.preset import PresetScore
@@ -98,6 +98,43 @@ def setup_library(tmp_path: Path, name: str = 'local') -> Path:
     config = tmp_path / 'library.toml'
     library_files.create_library(name, Path('scores'), config)
     return config
+
+
+def test_dependency_depth_is_diagnosed_and_configurable() -> None:
+    entries = [
+        Entry(
+            library='local', address='/base.toml', name='triangle', score=oscillator()
+        ),
+        *[
+            Entry(
+                library='local',
+                address=f'/preset_{i}.toml',
+                name=f'preset {i}',
+                score=PresetScore(
+                    name=f'preset {i}',
+                    title=f'Preset {i}',
+                    score=ScoreReference(
+                        path='base.toml' if i == 0 else f'preset_{i - 1}.toml'
+                    ),
+                ),
+            )
+            for i in range(130)
+        ],
+    ]
+
+    entries.reverse()
+    limited = Library(entries, max_depth=8)
+    assert any(d.code == 'depth' for d in limited.diagnostics)
+    assert limited.entries['local:/preset_129.toml'].state == State.blocked
+    assert any(d.code == 'depth' for d in Library(entries).diagnostics)
+    extended = Library(entries, max_depth=160)
+    assert extended.entries['local:/preset_129.toml'].state == State.ready, (
+        extended.diagnostics[0].message if extended.diagnostics else ''
+    )
+    with pytest.raises(ValueError, match='1 through 160'):
+        Library(entries, max_depth=0)
+    with pytest.raises(ValueError, match='1 through 160'):
+        Library(entries, max_depth=161)
 
 
 def save(path: Path, score: object) -> None:
