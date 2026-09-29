@@ -149,6 +149,44 @@ def test_sfz_partial_pitch_tracking_uses_key_modulation() -> None:
     )
 
 
+def test_sfz_pitch_velocity_combines_with_key_tracking() -> None:
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav key=60 hikey=61 '
+        'pitch_keytrack=50 pitch_veltrack=1200 amp_veltrack=0 tune=10'
+    )
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=48_000,
+                sample_rate=48_000,
+                encoding='WAV/PCM_16',
+                byte_length=96_044,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    slot = result.instrument.body.slots[0]
+    values = modulation.evaluate(
+        slot.modulation,
+        {
+            'key': modulation.SourceValue(value=61),
+            'velocity': modulation.SourceValue(value=64 / 127),
+        },
+    )
+    tuning = next(v.value for v in values if v.target.parameter == 'tuning_cents')
+    assert tuning == pytest.approx(10 - 50 + 1200 * 64 / 127)
+
+
 def test_sfz_velocity_changes_envelope_attack_duration() -> None:
     source = sfz.parse(
         '<region> sample=audio/glass.wav ampeg_attack=0.5 '

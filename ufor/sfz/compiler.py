@@ -305,6 +305,14 @@ def _slot(
         )
         routes.append(result)
         bindings.append(processing.EventBinding(name='velocity', kind='velocity'))
+    pitch_velocity = _velocity_pitch_modulation(values)
+    if pitch_velocity is not None:
+        if not any(s.name == 'velocity' for s in sources):
+            sources.append(
+                modulation.Source(name='velocity', scope='voice', minimum=0, maximum=1)
+            )
+            bindings.append(processing.EventBinding(name='velocity', kind='velocity'))
+        routes.append(pitch_velocity)
     for parameter_name, base, amount in _velocity_envelope_durations(
         values, slot_envelope
     ):
@@ -350,6 +358,9 @@ def _slot(
             modulation.Source(name='key', scope='voice', minimum=0, maximum=127)
         )
         for route in key_routes:
+            if route.target.parameter == 'tuning_cents':
+                routes.append(route)
+                continue
             base = getattr(slot_processing, route.target.parameter)
             amounts = [p.amount for p in route.points]
             parameters.append(
@@ -364,6 +375,24 @@ def _slot(
             )
             routes.append(route)
         bindings.append(processing.EventBinding(name='key', kind='key'))
+    pitch_key = next(
+        (r for r in key_routes if r.target.parameter == 'tuning_cents'), None
+    )
+    if pitch_key is not None or pitch_velocity is not None:
+        base = slot_processing.tuning_cents
+        pitch_routes = [r for r in (pitch_key, pitch_velocity) if r is not None]
+        lower = sum(min(0, *(p.amount for p in r.points)) for r in pitch_routes)
+        upper = sum(max(0, *(p.amount for p in r.points)) for r in pitch_routes)
+        parameters.append(
+            modulation.Parameter(
+                target=modulation.Target(name='processing', parameter='tuning_cents'),
+                unit=modulation.Unit.cents,
+                scope=Scope.voice,
+                minimum=base + lower,
+                maximum=base + upper,
+                default=base,
+            )
+        )
     if routes:
         kwargs['modulation'] = modulation.Modulation(
             sources=sources, parameters=parameters, routes=routes
@@ -619,6 +648,28 @@ def _key_pitch_modulation(tracking: int, center: int) -> modulation.Route | None
         points=[
             modulation.Point(input=key, amount=(key - center) * (tracking - 100))
             for key in (0, 127)
+        ],
+    )
+
+
+def _velocity_pitch_modulation(values: dict[str, str]) -> modulation.Route | None:
+    tracking = _integer(
+        values.get('pitch_veltrack', '0'),
+        'pitch_veltrack',
+        minimum=-9600,
+        maximum=9600,
+    )
+    if not tracking:
+        return None
+    return modulation.Route(
+        name='velocity-pitch',
+        source='velocity',
+        target=modulation.Target(name='processing', parameter='tuning_cents'),
+        operation=modulation.Operation.add,
+        unit=modulation.Unit.cents,
+        points=[
+            modulation.Point(input=0, amount=0),
+            modulation.Point(input=1, amount=tracking),
         ],
     )
 
