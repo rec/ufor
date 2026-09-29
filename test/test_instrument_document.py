@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor import envelope, segments, sfz
+from ufor import envelope, modulation, segments, sfz
 from ufor.base import Model
 from ufor.codec import migrate_score_v3, parse_score, score_schema, score_toml
 from ufor.interface import ScoreReference
@@ -64,6 +64,47 @@ def test_sfz_reports_missing_sample_metadata() -> None:
             output_timebase=Timebase(name='output', rate=Rate(numerator=48000)),
             output_channels=['left'],
         )
+
+
+def test_sfz_key_amplitude_tracking_combines_with_velocity() -> None:
+    source = sfz.parse(
+        '<region> sample=audio/glass.wav lokey=60 hikey=67 '
+        'pitch_keycenter=60 volume=-3 '
+        'amp_keycenter=60 amp_keytrack=-1.5 amp_veltrack=100'
+    )
+    result = sfz.compile_instrument(
+        source,
+        name='glass',
+        title='Glass',
+        assets={
+            'audio/glass.wav': AudioMetadata(
+                channels=1,
+                frames=48_000,
+                sample_rate=48_000,
+                encoding='WAV/PCM_16',
+                byte_length=96_044,
+                sha256='0' * 64,
+                embedded_loop_known=True,
+            )
+        },
+        output_timebase=Timebase(name='output', rate=Rate(numerator=48_000)),
+        output_channels=['left', 'right'],
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    slot = result.instrument.body.slots[0]
+    values = modulation.evaluate(
+        slot.modulation,
+        {
+            'key': modulation.SourceValue(value=64),
+            'velocity': modulation.SourceValue(value=1),
+        },
+    )
+    assert {v.target.parameter: v.value for v in values} == {
+        'amplitude': 1,
+        'volume_db': -9,
+    }
 
 
 def test_sfz_define_expands_opcode_values_and_preserves_locations() -> None:

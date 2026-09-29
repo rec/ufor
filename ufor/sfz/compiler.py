@@ -249,24 +249,49 @@ def _slot(
     if result := _processing(values, declarations, metadata.channels, unimplemented):
         kwargs['processing'] = processing.Processing.model_validate(result)
     kwargs['envelope'] = amplitude_envelope(values)
+    sources: list[modulation.Source] = []
+    parameters: list[modulation.Parameter] = []
+    routes: list[modulation.Route] = []
+    bindings: list[processing.EventBinding] = []
     if result := _velocity_modulation(values):
-        kwargs['modulation'] = modulation.Modulation(
-            sources=[
-                modulation.Source(name='velocity', scope='voice', minimum=0, maximum=1)
-            ],
-            parameters=[
-                modulation.Parameter(
-                    target=result.target,
-                    unit=modulation.Unit.ratio,
-                    scope=Scope.voice,
-                    minimum=0,
-                    maximum=1,
-                    default=1,
-                )
-            ],
-            routes=[result],
+        sources.append(
+            modulation.Source(name='velocity', scope='voice', minimum=0, maximum=1)
         )
-        kwargs['bindings'] = [processing.EventBinding(name='velocity', kind='velocity')]
+        parameters.append(
+            modulation.Parameter(
+                target=result.target,
+                unit=modulation.Unit.ratio,
+                scope=Scope.voice,
+                minimum=0,
+                maximum=1,
+                default=1,
+            )
+        )
+        routes.append(result)
+        bindings.append(processing.EventBinding(name='velocity', kind='velocity'))
+    if result := _key_amplitude_modulation(values):
+        base_volume = _number(values.get('volume', '0'), 'volume')
+        amounts = [p.amount for p in result.points]
+        sources.append(
+            modulation.Source(name='key', scope='voice', minimum=0, maximum=127)
+        )
+        parameters.append(
+            modulation.Parameter(
+                target=result.target,
+                unit=modulation.Unit.db,
+                scope=Scope.voice,
+                minimum=base_volume + min(0, *amounts),
+                maximum=base_volume + max(0, *amounts),
+                default=base_volume,
+            )
+        )
+        routes.append(result)
+        bindings.append(processing.EventBinding(name='key', kind='key'))
+    if routes:
+        kwargs['modulation'] = modulation.Modulation(
+            sources=sources, parameters=parameters, routes=routes
+        )
+        kwargs['bindings'] = bindings
     if result := _crossfades(values):
         kwargs['crossfades'] = result
     if result := _trigger(values, declarations, unimplemented):
@@ -482,6 +507,26 @@ def _velocity_modulation(values: dict[str, str]) -> modulation.Route | None:
         target=modulation.Target(name='processing', parameter='amplitude'),
         operation=modulation.Operation.multiply,
         points=[modulation.Point(input=v / 127, amount=a) for v, a in enumerate(gains)],
+    )
+
+
+def _key_amplitude_modulation(values: dict[str, str]) -> modulation.Route | None:
+    center = _key(values.get('amp_keycenter', '60'), 'amp_keycenter')
+    tracking = _number(values.get('amp_keytrack', '0'), 'amp_keytrack')
+    if not -96 <= tracking <= 12:
+        raise ValueError('amp_keytrack must be between -96 and 12')
+    if not tracking:
+        return None
+    return modulation.Route(
+        name='key-amplitude',
+        source='key',
+        target=modulation.Target(name='processing', parameter='volume_db'),
+        operation=modulation.Operation.add,
+        unit=modulation.Unit.db,
+        points=[
+            modulation.Point(input=key, amount=(key - center) * tracking)
+            for key in (0, 127)
+        ],
     )
 
 
