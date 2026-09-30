@@ -19,10 +19,12 @@ from ufor.motion import (
     MotionState,
     MotionUse,
     ParameterReference,
+    PlaybackMode,
     Stage,
     Stages,
     StageTransition,
     advance_motion,
+    contour_envelope,
     initial_motion,
     instantiate_motion,
     motion_at,
@@ -367,6 +369,70 @@ def test_relative_shift_wraps_cycles_and_clamps_contours() -> None:
         ),
     )
     assert motion_at(contour, state, Fraction(1, 2)).value == pytest.approx(0.5)
+
+
+@pytest.mark.parametrize(
+    ('mode', 'at_end', 'after_end'),
+    [
+        (PlaybackMode.loop, 0, 0.25),
+        (PlaybackMode.ping_pong, 1, 0.75),
+    ],
+)
+def test_contour_playback_loops_and_releases_from_current_value(
+    mode: PlaybackMode, at_end: float, after_end: float
+) -> None:
+    motion = MotionUse(
+        body=Contour(
+            segments=[Segment(duration=Fraction(1), to=1)],
+            release=[Segment(duration=Fraction(1), to=0)],
+            playback=mode,
+        )
+    )
+    state = motion_event(
+        motion,
+        initial_motion(motion, Fraction(0)),
+        MotionEvent(at=Fraction(0), ordinal=0, action='note_on'),
+    )
+    assert motion_at(motion, state, Fraction(1)).value == at_end
+    assert motion_at(motion, state, Fraction(5, 4)).value == after_end
+    assert motion_at(motion, state, Fraction(5, 4)).status == 'running'
+    state = motion_event(
+        motion,
+        state,
+        MotionEvent(at=Fraction(5, 4), ordinal=0, action='note_off'),
+    )
+    assert motion_at(motion, state, Fraction(5, 4)).value == after_end
+    assert motion_at(motion, state, Fraction(7, 4)).value == pytest.approx(
+        after_end / 2
+    )
+    assert motion_at(motion, state, Fraction(9, 4)).status == 'complete'
+    restored = MotionState.model_validate_json(state.model_dump_json())
+    assert motion_at(motion, restored, Fraction(7, 4)) == motion_at(
+        motion, state, Fraction(7, 4)
+    )
+    with pytest.raises(ValueError, match='cannot be converted'):
+        contour_envelope(motion)
+
+
+def test_looping_contour_shift_keeps_unwrapped_position() -> None:
+    motion = MotionUse(
+        body=Contour(
+            segments=[Segment(duration=Fraction(1), to=1)],
+            playback=PlaybackMode.ping_pong,
+        )
+    )
+    state = motion_event(
+        motion,
+        initial_motion(motion, Fraction(0)),
+        MotionEvent(
+            at=Fraction(1, 4),
+            ordinal=0,
+            action='shift',
+            offset=Fraction(3, 2),
+        ),
+    )
+    assert motion_at(motion, state, Fraction(1, 4)).value == 0.25
+    assert motion_at(motion, state, Fraction(1, 2)).value == 0
 
 
 def test_contour_reverses_through_segments_without_recapturing_start() -> None:
