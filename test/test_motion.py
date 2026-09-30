@@ -701,6 +701,125 @@ def test_named_loop_reverse_orders_boundary_markers_before_cycle() -> None:
     )
 
 
+@pytest.mark.parametrize(
+    ('mode', 'events', 'value'),
+    [
+        (PlaybackMode.loop, ['cycle', 'cycle', 'stage.done'], 1.0),
+        (
+            PlaybackMode.ping_pong,
+            ['turned', 'turned', 'cycle', 'stage.done'],
+            0.0,
+        ),
+    ],
+)
+def test_finite_contour_repeats_hold_final_boundary(
+    mode: PlaybackMode, events: list[str], value: float
+) -> None:
+    contour = Contour(
+        segments=[Segment(duration=Fraction(1), to=1)],
+        playback=mode,
+        repeat_count=2,
+    )
+    staged = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[Stage(name='sweep', motion=contour)],
+        )
+    )
+    result = advance_motion(staged, initial_motion(staged, Fraction(0)), Fraction(3))
+    assert [e.port for e in result.events] == events
+    assert result.value.value == value
+    assert result.value.status == 'complete'
+    assert advance_motion(staged, result.state, Fraction(4)).events == []
+    assert (
+        MotionState.model_validate_json(result.state.model_dump_json()) == result.state
+    )
+
+    standalone = MotionUse(body=contour)
+    initial = initial_motion(standalone, Fraction(0))
+    assert motion_at(standalone, initial, Fraction(3)).value == value
+    assert motion_at(standalone, initial, Fraction(3)).status == 'complete'
+    state = motion_event(
+        standalone,
+        initial,
+        MotionEvent(at=Fraction(3), ordinal=0, action='pause'),
+    )
+    assert motion_at(standalone, state, Fraction(4)).value == value
+
+
+def test_finite_named_loop_counts_reverse_boundary_crossing() -> None:
+    contour = Contour(
+        segments=[Segment(duration=Fraction(1), to=1)],
+        playback=PlaybackMode.loop,
+        markers=[
+            Marker(name='start', position=Fraction(1, 4)),
+            Marker(name='end', position=Fraction(3, 4)),
+        ],
+        loop_start='start',
+        loop_end='end',
+        repeat_count=2,
+    )
+    staged = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[Stage(name='sweep', motion=contour)],
+        )
+    )
+    forward = advance_motion(staged, initial_motion(staged, Fraction(0)), Fraction(1))
+    reversed_state = advance_motion(
+        staged,
+        forward.state,
+        Fraction(1),
+        MotionEvent(at=Fraction(1), ordinal=0, action='reverse'),
+    ).state
+    final = advance_motion(staged, reversed_state, Fraction(2))
+    assert [(e.at, e.port) for e in final.events] == [
+        (Fraction(5, 4), 'end'),
+        (Fraction(5, 4), 'start'),
+        (Fraction(5, 4), 'cycle'),
+        (Fraction(5, 4), 'stage.done'),
+    ]
+    assert final.value.value == 0.25
+    assert final.value.status == 'complete'
+
+
+def test_final_repeat_emits_done_before_entering_next_stage() -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[
+                Stage(
+                    name='sweep',
+                    motion=Contour(
+                        segments=[Segment(duration=Fraction(1), to=1)],
+                        playback=PlaybackMode.loop,
+                        repeat_count=1,
+                    ),
+                ),
+                Stage(name='held', motion=Hold(value=0.5)),
+            ],
+            transitions=[
+                StageTransition(
+                    **{
+                        'from': ['sweep'],
+                        'event': 'stage.cycle',
+                        'action': EnterStage(stage='held'),
+                    }
+                )
+            ],
+        )
+    )
+    result = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(2))
+    assert [e.port for e in result.events] == ['cycle', 'stage.done']
+    assert result.state.runtime.stage == 'held'
+    assert result.value.value == 0.5
+
+
+def test_repeat_count_requires_repeating_contour() -> None:
+    with pytest.raises(ValidationError, match='requires loop'):
+        Contour(segments=[Segment(duration=Fraction(1), to=1)], repeat_count=1)
+
+
 def test_contour_reverses_through_segments_without_recapturing_start() -> None:
     motion = MotionUse(
         body=Contour(

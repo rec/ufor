@@ -101,6 +101,7 @@ class Contour(Model):
     markers: list[Marker] = Field(default_factory=list)
     loop_start: Identifier | None = None
     loop_end: Identifier | None = None
+    repeat_count: int | None = Field(default=None, ge=1)
 
     @model_validator(mode='after')
     def levels_match_polarity(self) -> Self:
@@ -125,6 +126,8 @@ class Contour(Model):
                 raise ValueError('contour loop start must precede its end')
             if any(m.position > positions[self.loop_end] for m in self.markers):
                 raise ValueError('contour markers cannot follow its loop end')
+        if self.repeat_count is not None and self.playback == PlaybackMode.once:
+            raise ValueError('repeat count requires loop or ping-pong playback')
         return self
 
 
@@ -210,6 +213,7 @@ class Stages(Model):
                     if (
                         not isinstance(body, Contour)
                         or body.playback == PlaybackMode.once
+                        or body.repeat_count is not None
                     ):
                         ports.add('done')
                     if isinstance(body, Contour):
@@ -307,6 +311,8 @@ class ContourState(Model):
     phase: Literal['idle', 'on', 'release'] = 'idle'
     start_value: FiniteScalar
     position: MotionPosition
+    traversals: int = 0
+    complete_coordinate: control.Rational | None = None
 
 
 class StageState(Model):
@@ -319,6 +325,7 @@ class StageState(Model):
     cursor_order: int = -1
     completed: bool = False
     complete_value: FiniteScalar | None = None
+    traversals: int = 0
 
 
 class MotionState(Model):
@@ -418,6 +425,47 @@ def _contour_coordinate(
     return max(Fraction(0), min(Fraction(1), coordinate))
 
 
+def _repeat_crossings(
+    body: Contour, position: MotionPosition, at: Fraction, remaining: int
+) -> tuple[int, Fraction | None]:
+    start, end = _loop_bounds(body)
+    width = end - start
+    coordinate = position.coordinate
+    target = _coordinate_at(position, at)
+    if position.paused or not position.rate or target == coordinate:
+        return 0, None
+    if position.direction == 1:
+        first = (
+            end + max(0, floor((coordinate - end) / width) + 1) * width
+            if body.loop_start is not None
+            else floor(coordinate) + 1
+        )
+        crossed = max(0, floor((target - first) / width) + 1)
+        boundary = first + (remaining - 1) * width
+    else:
+        first = (
+            end + (ceil((coordinate - end) / width) - 1) * width
+            if body.loop_start is not None
+            else ceil(coordinate) - 1
+        )
+        crossed = (
+            max(0, floor((first - target) / width) + 1)
+            if body.loop_start is None or first >= end
+            else 0
+        )
+        boundary = first - (remaining - 1) * width
+    return min(crossed, remaining), boundary if crossed >= remaining else None
+
+
+def _repeat_boundary_coordinate(
+    body: Contour, boundary: Fraction, direction: int
+) -> Fraction:
+    if body.playback == PlaybackMode.loop:
+        start, end = _loop_bounds(body)
+        return end if direction == 1 else start
+    return _contour_coordinate(boundary, body)
+
+
 def _initial_position(body: Hold | Cycle | Contour, at: Fraction) -> MotionPosition:
     if isinstance(body, Cycle):
         assert isinstance(body.rate, Fraction)
@@ -478,8 +526,23 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
         return MotionValue(value=body.initial, weight=1, status='idle')
     segments = body.release if state.phase == 'release' else body.segments
     duration = sum((s.duration for s in segments), Fraction(0))
+    complete_coordinate = state.complete_coordinate
+    if (
+        complete_coordinate is None
+        and state.phase == 'on'
+        and body.repeat_count is not None
+    ):
+        _, boundary = _repeat_crossings(
+            body, state.position, at, body.repeat_count - state.traversals
+        )
+        if boundary is not None:
+            complete_coordinate = _repeat_boundary_coordinate(
+                body, boundary, state.position.direction
+            )
     coordinate = (
-        _contour_coordinate(
+        complete_coordinate
+        if complete_coordinate is not None
+        else _contour_coordinate(
             _coordinate_at(state.position, at), body, state.phase != 'on'
         )
         if duration
@@ -489,7 +552,9 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
         envelope.Curve(initial=state.start_value, segments=segments),
         coordinate * duration,
     )
-    if state.phase == 'on' and body.playback != PlaybackMode.once:
+    if complete_coordinate is not None:
+        status = 'complete'
+    elif state.phase == 'on' and body.playback != PlaybackMode.once:
         status = 'running'
     elif coordinate < 1:
         status = 'running'
@@ -605,6 +670,25 @@ def motion_event(
         position = _position_at(runtime.position, event.at)
         phase = runtime.phase
         start_value = runtime.start_value
+        traversals = runtime.traversals
+        complete_coordinate = runtime.complete_coordinate
+        if (
+            phase == 'on'
+            and complete_coordinate is None
+            and motion.body.repeat_count is not None
+        ):
+            crossed, boundary = _repeat_crossings(
+                motion.body,
+                runtime.position,
+                event.at,
+                motion.body.repeat_count - traversals,
+            )
+            traversals += crossed
+            if boundary is not None:
+                position = position.model_copy(update={'coordinate': boundary})
+                complete_coordinate = _repeat_boundary_coordinate(
+                    motion.body, boundary, runtime.position.direction
+                )
         observed = _contour_value(motion.body, runtime, event.at)
         if event.action == 'note_on':
             active = observed.status in ('running', 'held')
@@ -616,6 +700,8 @@ def motion_event(
                     else motion.body.initial
                 )
                 phase = 'on'
+                traversals = 0
+                complete_coordinate = None
                 position = position.model_copy(
                     update={
                         'coordinate': Fraction(0),
@@ -653,6 +739,8 @@ def motion_event(
                 phase=phase,
                 start_value=start_value,
                 position=position,
+                traversals=traversals,
+                complete_coordinate=complete_coordinate,
             )
         )
     raise ValueError('motion state does not match its definition')
@@ -736,6 +824,19 @@ def _advance_stages(
                 'position': _position_at(state.position, time),
             }
         )
+        contour = next(s.motion for s in body.stages if s.name == stage)
+        if (
+            isinstance(contour, Contour)
+            and contour.repeat_count is not None
+            and port == ('cycle' if contour.playback == PlaybackMode.loop else 'turned')
+        ):
+            state = state.model_copy(update={'traversals': state.traversals + 1})
+        final_repeat = (
+            isinstance(contour, Contour)
+            and contour.repeat_count is not None
+            and state.traversals == contour.repeat_count
+            and port == ('cycle' if contour.playback == PlaybackMode.loop else 'turned')
+        )
         emitted.append(
             MotionOutputEvent(
                 at=time,
@@ -744,8 +845,33 @@ def _advance_stages(
                 activation=activation,
             )
         )
+        if final_repeat:
+            assert isinstance(contour, Contour)
+            start, end = _loop_bounds(contour)
+            if (
+                contour.playback == PlaybackMode.ping_pong
+                and (state.position.coordinate - end) / (end - start) % 2 == 1
+            ):
+                emitted.append(
+                    MotionOutputEvent(
+                        at=time, port='cycle', stage=stage, activation=activation
+                    )
+                )
+            emitted.append(
+                MotionOutputEvent(
+                    at=time, port='stage.done', stage=stage, activation=activation
+                )
+            )
         state, output = _stage_transition(body, state, time, f'stage.{port}')
         emitted.extend(output)
+        if final_repeat and state.stage == stage and state.activation == activation:
+            state, output = _stage_transition(body, state, time, 'stage.done')
+            emitted.extend(output)
+            if state.stage == stage and state.activation == activation:
+                value = _stage_value(body, state, time).value
+                state = state.model_copy(
+                    update={'completed': True, 'complete_value': value}
+                )
         if len(emitted) > 4096:
             raise ValueError('Motion event capacity exceeded')
     if inclusive:
@@ -1041,11 +1167,16 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
     curve = envelope.Curve(initial=state.entry_value, segments=stage.segments)
     duration = sum((s.duration for s in stage.segments), Fraction(0))
     bounded = _contour_coordinate(coordinate, stage)
+    complete = stage.repeat_count is not None and state.traversals >= stage.repeat_count
+    if complete:
+        bounded = _repeat_boundary_coordinate(stage, coordinate, position.direction)
     value = envelope.curve_at(curve, bounded * duration)
     return MotionValue(
         value=value,
         weight=1,
-        status='running'
+        status='complete'
+        if complete
+        else 'running'
         if stage.playback != PlaybackMode.once or bounded < 1
         else 'held',
     )

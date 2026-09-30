@@ -2812,6 +2812,19 @@
           ],
           "default": null,
           "title": "Loop End"
+        },
+        "repeat_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat Count"
         }
       },
       "required": [
