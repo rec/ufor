@@ -2,6 +2,7 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
+from math import ceil
 from typing import Annotated, Self
 
 from pydantic import BeforeValidator, Field, model_validator
@@ -69,6 +70,47 @@ class TempoMap(Model):
         if not point.running:
             return point.beat
         return point.beat + (seconds - point.at_seconds) * point.bpm / 60
+
+    def quantized_beat(self, seconds: Fraction, division: Fraction) -> Fraction:
+        if division <= 0:
+            raise ValueError('beat division must be positive')
+        beat = self.beat_at(seconds)
+        return ceil(beat / division) * division
+
+    def time_for_beat(self, beat: Fraction, after: Fraction) -> Fraction | None:
+        """Resolve a pending target beat, or cancel it at the first host seek."""
+        self.beat_at(after)
+        for index, point in enumerate(self.points):
+            following = self.points[index + 1] if index + 1 < len(self.points) else None
+            if following is not None and following.at_seconds <= after:
+                continue
+            start = max(after, point.at_seconds)
+            current = (
+                point.beat + (start - point.at_seconds) * point.bpm / 60
+                if point.running
+                else point.beat
+            )
+            if beat < current:
+                raise ValueError('pending beat precedes the clock position')
+            if point.running:
+                reached = point.at_seconds + (beat - point.beat) * 60 / point.bpm
+                if reached >= start and (
+                    following is None or reached <= following.at_seconds
+                ):
+                    if following is None or reached < following.at_seconds:
+                        return reached
+            if following is None:
+                return None
+            boundary_beat = (
+                point.beat + (following.at_seconds - point.at_seconds) * point.bpm / 60
+                if point.running
+                else point.beat
+            )
+            if following.beat != boundary_beat:
+                raise ValueError('pending beat cancelled by transport seek')
+            if point.running and reached == following.at_seconds:
+                return reached
+        return None
 
 
 class ControlEvent(Model):
