@@ -97,3 +97,45 @@ def test_beat_contour_follows_host_tempo_and_preserves_authored_unit() -> None:
         )
     with pytest.raises(ValidationError, match='conflicts with its suffix'):
         Segment.model_validate({'duration': '4 s', 'duration_unit': 'beats', 'to': 1})
+
+
+def test_quantized_beat_keeps_its_target_through_tempo_change_and_stop() -> None:
+    clock = TempoMap.model_validate(
+        {
+            'points': [
+                {'at_seconds': '0', 'beat': '0', 'bpm': '120'},
+                {'at_seconds': '1', 'beat': '2', 'bpm': '60'},
+                {'at_seconds': '2', 'beat': '3', 'bpm': '60', 'running': False},
+                {'at_seconds': '3', 'beat': '3', 'bpm': '90'},
+            ]
+        }
+    )
+    target = clock.quantized_beat(Fraction(3, 4), Fraction(1))
+    assert target == 2
+    assert clock.time_for_beat(target, Fraction(3, 4)) == 1
+    assert clock.quantized_beat(Fraction(1), Fraction(1)) == 2
+    assert clock.time_for_beat(Fraction(4), Fraction(7, 4)) == Fraction(11, 3)
+    assert clock.time_for_beat(Fraction(3), Fraction(5, 2)) == 3
+    assert clock.time_for_beat(Fraction(4), Fraction(5, 2)) == Fraction(11, 3)
+    with pytest.raises(ValueError, match='positive'):
+        clock.quantized_beat(Fraction(0), Fraction(0))
+
+
+def test_pending_quantized_beat_is_cancelled_on_transport_seek() -> None:
+    clock = TempoMap.model_validate(
+        {
+            'points': [
+                {'at_seconds': '0', 'beat': '0', 'bpm': '120'},
+                {'at_seconds': '1', 'beat': '2', 'bpm': '120', 'running': False},
+                {'at_seconds': '2', 'beat': '8', 'bpm': '120'},
+            ]
+        }
+    )
+    target = clock.quantized_beat(Fraction(3, 4), Fraction(4))
+    assert target == 4
+    with pytest.raises(ValueError, match='transport seek'):
+        clock.time_for_beat(target, Fraction(3, 4))
+    stopped = TempoMap.model_validate(
+        {'points': [{'at_seconds': '0', 'beat': '0', 'bpm': '120', 'running': False}]}
+    )
+    assert stopped.time_for_beat(Fraction(1), Fraction(0)) is None
