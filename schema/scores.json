@@ -2788,6 +2788,30 @@
           },
           "title": "Markers",
           "type": "array"
+        },
+        "loop_start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop Start"
+        },
+        "loop_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop End"
         }
       },
       "required": [
