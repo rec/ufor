@@ -4,6 +4,15 @@ import pytest
 from pydantic import ValidationError
 
 from ufor.control import TempoMap
+from ufor.motion import (
+    Contour,
+    MotionEvent,
+    MotionUse,
+    initial_motion,
+    motion_at,
+    motion_event,
+)
+from ufor.segments import Segment
 
 
 def test_host_tempo_map_preserves_exact_beats_through_tempo_stop_and_seek() -> None:
@@ -47,3 +56,44 @@ def test_host_tempo_map_rejects_ambiguous_ordering_and_nonpositive_rate() -> Non
         TempoMap.model_validate(
             {'points': [{'at_seconds': '0', 'beat': '0', 'bpm': '120'}]}
         ).beat_at(Fraction(-1))
+
+
+def test_beat_contour_follows_host_tempo_and_preserves_authored_unit() -> None:
+    clock = TempoMap.model_validate(
+        {
+            'points': [
+                {'at_seconds': '0', 'beat': '0', 'bpm': '120'},
+                {'at_seconds': '1', 'beat': '2', 'bpm': '60'},
+            ]
+        }
+    )
+    motion = MotionUse.model_validate(
+        {
+            'clock': 'beats',
+            'body': {
+                'kind': 'contour',
+                'segments': [{'duration': '4 beat', 'to': 1}],
+            },
+        }
+    )
+    assert motion.model_dump(mode='json')['body']['segments'][0]['duration'] == '4 beat'
+    state = motion_event(
+        motion,
+        initial_motion(motion, Fraction(0)),
+        MotionEvent(at=Fraction(0), ordinal=0, action='note_on'),
+    )
+    assert motion_at(motion, state, clock.beat_at(Fraction(1))).value == 0.5
+    assert motion_at(motion, state, clock.beat_at(Fraction(2))).value == 0.75
+    assert isinstance(motion.body, Contour)
+    with pytest.raises(ValidationError, match='must match its clock'):
+        MotionUse.model_validate(
+            {
+                'clock': 'beats',
+                'body': {
+                    'kind': 'contour',
+                    'segments': [{'duration': '4 s', 'to': 1}],
+                },
+            }
+        )
+    with pytest.raises(ValidationError, match='conflicts with its suffix'):
+        Segment.model_validate({'duration': '4 s', 'duration_unit': 'beats', 'to': 1})

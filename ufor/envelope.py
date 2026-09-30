@@ -44,6 +44,11 @@ class Envelope(Model):
 
     @model_validator(mode='after')
     def levels_match_polarity(self) -> Self:
+        if any(
+            s.duration_unit.value != self.clock.value
+            for s in [*self.segments, *self.release]
+        ):
+            raise ValueError('envelope segment units must match its clock')
         if any(not -1 <= s.to <= 1 for s in [*self.segments, *self.release]):
             raise ValueError('triggered envelope levels must be in [-1, 1]')
         if (

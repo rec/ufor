@@ -3409,6 +3409,14 @@
       "title": "DownloadLocation",
       "type": "object"
     },
+    "DurationUnit": {
+      "enum": [
+        "seconds",
+        "beats"
+      ],
+      "title": "DurationUnit",
+      "type": "string"
+    },
     "EndKind": {
       "enum": [
         "duration",
@@ -10455,6 +10463,10 @@
           "default": 0,
           "title": "Curve",
           "type": "number"
+        },
+        "duration_unit": {
+          "$ref": "#/$defs/DurationUnit",
+          "default": "seconds"
         }
       },
       "required": [

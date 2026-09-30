@@ -510,17 +510,17 @@
         "clock": "beats",
         "segments": [
           {
-            "duration": "1/3 s",
+            "duration": "1/3 beat",
             "to": 1
           },
           {
-            "duration": "1/3 s",
+            "duration": "1/3 beat",
             "to": 0.5
           }
         ],
         "release": [
           {
-            "duration": "1/3 s",
+            "duration": "1/3 beat",
             "to": 0
           }
         ]
