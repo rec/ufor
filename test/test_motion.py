@@ -578,6 +578,27 @@ def test_staged_loop_cycle_port_can_enter_another_stage() -> None:
     assert result.value.value == 0.75
 
 
+@pytest.mark.parametrize(
+    'motion',
+    [
+        Contour(
+            segments=[Segment(duration=Fraction(1), to=1)],
+            markers=[Marker(name='done', position=Fraction(1, 2))],
+        ),
+        Cycle(
+            rate=Fraction(1),
+            markers=[Marker(name='done', position=Fraction(1, 2))],
+        ),
+    ],
+)
+def test_staged_marker_cannot_claim_completion_port(motion: Contour | Cycle) -> None:
+    with pytest.raises(ValidationError, match='reserved for completion'):
+        Stages(
+            initial_stage='moving',
+            stages=[Stage(name='moving', motion=motion)],
+        )
+
+
 def test_contour_reverses_through_segments_without_recapturing_start() -> None:
     motion = MotionUse(
         body=Contour(
