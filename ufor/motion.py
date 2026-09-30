@@ -99,6 +99,8 @@ class Contour(Model):
     retrigger: Retrigger = Retrigger.current
     playback: PlaybackMode = PlaybackMode.once
     markers: list[Marker] = Field(default_factory=list)
+    loop_start: Identifier | None = None
+    loop_end: Identifier | None = None
 
     @model_validator(mode='after')
     def levels_match_polarity(self) -> Self:
@@ -111,6 +113,18 @@ class Contour(Model):
         if self.polarity == control.Polarity.unipolar and min(levels) < 0:
             raise ValueError('unipolar contour levels must be in [0, 1]')
         unique((m.name for m in self.markers), 'contour marker')
+        if (self.loop_start is None) != (self.loop_end is None):
+            raise ValueError('contour loop boundaries must be named together')
+        if self.loop_start is not None:
+            if self.playback == PlaybackMode.once:
+                raise ValueError('once contours cannot name loop boundaries')
+            positions = {m.name: m.position for m in self.markers}
+            if self.loop_start not in positions or self.loop_end not in positions:
+                raise ValueError('contour loop boundary marker is unknown')
+            if positions[self.loop_start] >= positions[self.loop_end]:
+                raise ValueError('contour loop start must precede its end')
+            if any(m.position > positions[self.loop_end] for m in self.markers):
+                raise ValueError('contour markers cannot follow its loop end')
         return self
 
 
@@ -375,7 +389,27 @@ def _contour_rate(segments: list[Segment]) -> Fraction:
     return Fraction(1, 1) / duration if duration else Fraction(0)
 
 
-def _contour_coordinate(coordinate: Fraction, mode: PlaybackMode) -> Fraction:
+def _loop_bounds(body: Contour) -> tuple[Fraction, Fraction]:
+    if body.loop_start is None or body.loop_end is None:
+        return Fraction(0), Fraction(1)
+    positions = {m.name: m.position for m in body.markers}
+    return positions[body.loop_start], positions[body.loop_end]
+
+
+def _contour_coordinate(
+    coordinate: Fraction, body: Contour, release: bool = False
+) -> Fraction:
+    mode = PlaybackMode.once if release else body.playback
+    start, end = _loop_bounds(body)
+    if start or end != 1:
+        if coordinate < end:
+            return max(Fraction(0), coordinate)
+        width = end - start
+        if mode == PlaybackMode.loop:
+            return start + (coordinate - end) % width
+        if mode == PlaybackMode.ping_pong:
+            position = (coordinate - end) % (2 * width)
+            return end - position if position <= width else start + position - width
     if mode == PlaybackMode.loop:
         return coordinate % 1
     if mode == PlaybackMode.ping_pong:
@@ -446,8 +480,7 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
     duration = sum((s.duration for s in segments), Fraction(0))
     coordinate = (
         _contour_coordinate(
-            _coordinate_at(state.position, at),
-            body.playback if state.phase == 'on' else PlaybackMode.once,
+            _coordinate_at(state.position, at), body, state.phase != 'on'
         )
         if duration
         else Fraction(1)
@@ -763,6 +796,8 @@ def _next_stage_event(
                 candidates.append(
                     (state.at + (1 - start) / position.rate, len(stage.markers), 'done')
                 )
+        elif stage.loop_start is not None:
+            candidates.extend(_named_loop_candidates(stage, state))
         else:
             period = 1 if stage.playback == PlaybackMode.loop else 2
             for index, marker in enumerate(stage.markers):
@@ -851,6 +886,80 @@ def _next_stage_event(
     )
 
 
+def _named_loop_candidates(
+    stage: Contour, state: StageState
+) -> list[tuple[Fraction, int, str]]:
+    start, end = _loop_bounds(stage)
+    width = end - start
+    position = state.position
+    coordinate = position.coordinate
+    forward = position.direction == 1
+    period = width if stage.playback == PlaybackMode.loop else 2 * width
+    candidates: list[tuple[Fraction, int, str]] = []
+
+    def add(target: Fraction, order: int, port: str) -> None:
+        if (target > coordinate if forward else target < coordinate) or (
+            target == coordinate
+            and state.cursor_order >= 0
+            and (
+                order > state.cursor_order
+                if forward
+                else state.cursor_order < len(stage.markers)
+                and order < state.cursor_order
+            )
+        ):
+            candidates.append(
+                (state.at + abs(target - coordinate) / position.rate, order, port)
+            )
+
+    def repeat(base: Fraction, order: int, port: str) -> None:
+        turn = (
+            max(0, floor((coordinate - base) / period) + 1)
+            if forward
+            else ceil((coordinate - base) / period) - 1
+        )
+        if turn >= 0:
+            add(base + turn * period, order, port)
+        if coordinate >= base and (coordinate - base) % period == 0:
+            add(coordinate, order, port)
+
+    for order, marker in enumerate(stage.markers):
+        add(marker.position, order, marker.name)
+        if marker.position < start:
+            continue
+        if stage.playback == PlaybackMode.loop:
+            base = end + (marker.position - start)
+            repeat(base if marker.position < end else base + width, order, marker.name)
+        else:
+            if marker.position < end:
+                repeat(end + end - marker.position, order, marker.name)
+            if marker.position > start:
+                repeat(end + width + marker.position - start, order, marker.name)
+
+    order = len(stage.markers)
+    boundary = (
+        max(0, floor((coordinate - end) / width) + 1)
+        if forward
+        else ceil((coordinate - end) / width) - 1
+    )
+    if boundary >= 0:
+        target = end + boundary * width
+        add(target, order, 'cycle' if stage.playback == PlaybackMode.loop else 'turned')
+        if stage.playback == PlaybackMode.ping_pong and boundary % 2 == 1:
+            add(target, order + 1, 'cycle')
+    if coordinate >= end and (coordinate - end) % width == 0:
+        boundary = int((coordinate - end) / width)
+        add(
+            coordinate,
+            order,
+            'cycle' if stage.playback == PlaybackMode.loop else 'turned',
+        )
+        if stage.playback == PlaybackMode.ping_pong and boundary % 2 == 1:
+            if state.cursor_order == order:
+                candidates.append((state.at, order + 1, 'cycle'))
+    return candidates
+
+
 def _stage_transition(
     body: Stages, state: StageState, at: Fraction, event: str
 ) -> tuple[StageState, list[MotionOutputEvent]]:
@@ -929,7 +1038,7 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
         return MotionValue(value=value, weight=1, status='running')
     curve = envelope.Curve(initial=state.entry_value, segments=stage.segments)
     duration = sum((s.duration for s in stage.segments), Fraction(0))
-    bounded = _contour_coordinate(coordinate, stage.playback)
+    bounded = _contour_coordinate(coordinate, stage)
     value = envelope.curve_at(curve, bounded * duration)
     return MotionValue(
         value=value,
