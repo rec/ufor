@@ -162,7 +162,10 @@ class Stages(Model):
             ):
                 raise ValueError('stage contours need positive duration and no release')
             if isinstance(body, Contour) and body.playback != PlaybackMode.once:
-                raise ValueError('staged contour playback requires once mode')
+                if any(m.position in (0, 1) for m in body.markers):
+                    raise ValueError('looping contour markers must be interior')
+                if any(m.name in ('turned', 'cycle') for m in body.markers):
+                    raise ValueError('looping contour marker names are reserved')
         for transition in self.transitions:
             if any(n not in names for n in transition.from_stages):
                 raise ValueError('transition references an unknown source stage')
@@ -177,16 +180,26 @@ class Stages(Model):
                 'stage.done',
             ) and not transition.event.startswith(('cue.', 'stage.')):
                 raise ValueError('transition event is unsupported')
-            if (
-                transition.event.startswith('stage.')
-                and transition.event != 'stage.done'
-            ):
+            if transition.event.startswith('stage.'):
                 port = transition.event.removeprefix('stage.')
                 for name in transition.from_stages:
                     body = next(s.motion for s in self.stages if s.name == name)
-                    if not isinstance(body, (Cycle, Contour)) or port not in {
-                        m.name for m in body.markers
-                    }:
+                    ports = (
+                        {m.name for m in body.markers}
+                        if isinstance(body, (Cycle, Contour))
+                        else set()
+                    )
+                    if (
+                        not isinstance(body, Contour)
+                        or body.playback == PlaybackMode.once
+                    ):
+                        ports.add('done')
+                    if isinstance(body, Contour):
+                        if body.playback != PlaybackMode.once:
+                            ports.add('cycle')
+                            if body.playback == PlaybackMode.ping_pong:
+                                ports.add('turned')
+                    if port not in ports:
                         raise ValueError(
                             'transition references an unknown stage marker'
                         )
@@ -626,7 +639,11 @@ def advance_motion(
             if event.action in ('seek', 'shift') and isinstance(stage, Hold):
                 raise ValueError('hold stages do not accept position events')
             position = _position_command(_position_at(current.position, at), event)
-            if event.action == 'shift' and isinstance(stage, Contour):
+            if (
+                event.action == 'shift'
+                and isinstance(stage, Contour)
+                and stage.playback == PlaybackMode.once
+            ):
                 position = position.model_copy(
                     update={
                         'coordinate': max(
@@ -716,25 +733,79 @@ def _next_stage_event(
     start = position.coordinate
     forward = position.direction == 1
     if isinstance(stage, Contour):
-        for index, marker in enumerate(stage.markers):
-            target = marker.position
-            if (target > start if forward else target < start) or (
-                target == start
-                and state.cursor_order >= 0
-                and (
-                    index > state.cursor_order
-                    if forward
-                    else index < state.cursor_order
-                )
+        if stage.playback == PlaybackMode.once:
+            for index, marker in enumerate(stage.markers):
+                target = marker.position
+                if (target > start if forward else target < start) or (
+                    target == start
+                    and state.cursor_order >= 0
+                    and (
+                        index > state.cursor_order
+                        if forward
+                        else index < state.cursor_order
+                    )
+                ):
+                    time = state.at + abs(target - start) / position.rate
+                    candidates.append((time, index, marker.name))
+            if forward and (
+                start < 1
+                or (start == 1 and 0 <= state.cursor_order < len(stage.markers))
             ):
-                time = state.at + abs(target - start) / position.rate
-                candidates.append((time, index, marker.name))
-        if forward and (
-            start < 1 or (start == 1 and 0 <= state.cursor_order < len(stage.markers))
-        ):
+                candidates.append(
+                    (state.at + (1 - start) / position.rate, len(stage.markers), 'done')
+                )
+        else:
+            period = 1 if stage.playback == PlaybackMode.loop else 2
+            for index, marker in enumerate(stage.markers):
+                offsets = (
+                    [marker.position]
+                    if period == 1
+                    else [marker.position, 2 - marker.position]
+                )
+                for offset in offsets:
+                    turn = (
+                        floor((start - offset) / period) + 1
+                        if forward
+                        else ceil((start - offset) / period) - 1
+                    )
+                    target = turn * period + offset
+                    candidates.append(
+                        (
+                            state.at + abs(target - start) / position.rate,
+                            index,
+                            marker.name,
+                        )
+                    )
+                    if (
+                        state.cursor_order >= 0
+                        and (start - offset) % period == 0
+                        and (
+                            index > state.cursor_order
+                            if forward
+                            else index < state.cursor_order
+                        )
+                    ):
+                        candidates.append((state.at, index, marker.name))
+            boundary = floor(start) + 1 if forward else ceil(start) - 1
+            order = len(stage.markers)
             candidates.append(
-                (state.at + (1 - start) / position.rate, len(stage.markers), 'done')
+                (
+                    state.at + abs(boundary - start) / position.rate,
+                    order,
+                    'cycle' if period == 1 else 'turned',
+                )
             )
+            if period == 2 and boundary % 2 == 0:
+                candidates.append(
+                    (
+                        state.at + abs(boundary - start) / position.rate,
+                        order + 1,
+                        'cycle',
+                    )
+                )
+            if period == 2 and start.denominator == 1 and start % 2 == 0:
+                if state.cursor_order == order:
+                    candidates.append((state.at, order + 1, 'cycle'))
     else:
         assert isinstance(stage, Cycle)
         for index, marker in enumerate(stage.markers):
@@ -758,7 +829,17 @@ def _next_stage_event(
     ]
     if not available:
         return None
-    return min(available) if forward else min(available, key=lambda c: (c[0], -c[1]))
+    return (
+        min(available)
+        if forward
+        else min(
+            available,
+            key=lambda c: (
+                c[0],
+                c[1] if c[2] in ('turned', 'cycle') else -c[1],
+            ),
+        )
+    )
 
 
 def _stage_transition(
@@ -839,10 +920,14 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
         return MotionValue(value=value, weight=1, status='running')
     curve = envelope.Curve(initial=state.entry_value, segments=stage.segments)
     duration = sum((s.duration for s in stage.segments), Fraction(0))
-    bounded = max(Fraction(0), min(Fraction(1), coordinate))
+    bounded = _contour_coordinate(coordinate, stage.playback)
     value = envelope.curve_at(curve, bounded * duration)
     return MotionValue(
-        value=value, weight=1, status='running' if bounded < 1 else 'held'
+        value=value,
+        weight=1,
+        status='running'
+        if stage.playback != PlaybackMode.once or bounded < 1
+        else 'held',
     )
 
 

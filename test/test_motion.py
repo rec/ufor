@@ -435,6 +435,136 @@ def test_looping_contour_shift_keeps_unwrapped_position() -> None:
     assert motion_at(motion, state, Fraction(1, 2)).value == 0
 
 
+@pytest.mark.parametrize(
+    ('mode', 'ports'),
+    [
+        (
+            PlaybackMode.loop,
+            [
+                (Fraction(1, 4), 'quarter'),
+                (Fraction(1), 'cycle'),
+                (Fraction(5, 4), 'quarter'),
+                (Fraction(2), 'cycle'),
+                (Fraction(9, 4), 'quarter'),
+            ],
+        ),
+        (
+            PlaybackMode.ping_pong,
+            [
+                (Fraction(1, 4), 'quarter'),
+                (Fraction(1), 'turned'),
+                (Fraction(7, 4), 'quarter'),
+                (Fraction(2), 'turned'),
+                (Fraction(2), 'cycle'),
+                (Fraction(9, 4), 'quarter'),
+            ],
+        ),
+    ],
+)
+def test_staged_contour_playback_orders_markers_and_boundaries(
+    mode: PlaybackMode, ports: list[tuple[Fraction, str]]
+) -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[
+                Stage(
+                    name='sweep',
+                    motion=Contour(
+                        segments=[Segment(duration=Fraction(1), to=1)],
+                        playback=mode,
+                        markers=[Marker(name='quarter', position=Fraction(1, 4))],
+                    ),
+                )
+            ],
+        )
+    )
+    result = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(9, 4))
+    assert [(e.at, e.port) for e in result.events] == ports
+    assert result.value.value == 0.25
+    assert result.value.status == 'running'
+    assert advance_motion(motion, result.state, Fraction(5, 2)).events == []
+
+
+@pytest.mark.parametrize(
+    ('mode', 'captured'),
+    [(PlaybackMode.loop, 0.25), (PlaybackMode.ping_pong, 0.75)],
+)
+def test_staged_loop_releases_immediately_from_current_value(
+    mode: PlaybackMode, captured: float
+) -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[
+                Stage(
+                    name='sweep',
+                    motion=Contour(
+                        segments=[Segment(duration=Fraction(1), to=1)],
+                        playback=mode,
+                    ),
+                ),
+                Stage(
+                    name='release',
+                    motion=Contour(
+                        initial='current',
+                        segments=[Segment(duration=Fraction(1), to=0)],
+                    ),
+                ),
+            ],
+            transitions=[
+                StageTransition(
+                    **{
+                        'from': ['sweep'],
+                        'event': 'note_off',
+                        'action': EnterStage(stage='release'),
+                    }
+                )
+            ],
+        )
+    )
+    release = MotionEvent(at=Fraction(5, 4), ordinal=0, action='note_off')
+    result = advance_motion(
+        motion, initial_motion(motion, Fraction(0)), release.at, release
+    )
+    assert result.state.runtime.stage == 'release'
+    assert result.value.value == captured
+    assert advance_motion(
+        motion, result.state, Fraction(7, 4)
+    ).value.value == pytest.approx(captured / 2)
+
+
+def test_staged_loop_cycle_port_can_enter_another_stage() -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[
+                Stage(
+                    name='sweep',
+                    motion=Contour(
+                        segments=[Segment(duration=Fraction(1), to=1)],
+                        playback=PlaybackMode.loop,
+                    ),
+                ),
+                Stage(name='held', motion=Hold(value=0.75)),
+            ],
+            transitions=[
+                StageTransition(
+                    **{
+                        'from': ['sweep'],
+                        'event': 'stage.cycle',
+                        'action': EnterStage(stage='held'),
+                    }
+                )
+            ],
+        )
+    )
+    result = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(2))
+    assert [(e.at, e.port) for e in result.events] == [(Fraction(1), 'cycle')]
+    assert result.state.runtime.stage == 'held'
+    assert result.value.value == 0.75
+
+
 def test_contour_reverses_through_segments_without_recapturing_start() -> None:
     motion = MotionUse(
         body=Contour(
