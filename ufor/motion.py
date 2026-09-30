@@ -155,6 +155,10 @@ class Stages(Model):
             raise ValueError('initial stage cannot capture a current value')
         for stage in self.stages:
             body = stage.motion
+            if isinstance(body, (Cycle, Contour)) and any(
+                m.name == 'done' for m in body.markers
+            ):
+                raise ValueError('stage marker name done is reserved for completion')
             if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
                 raise ValueError('stage cycle rate must be a literal')
             if isinstance(body, Contour) and (
