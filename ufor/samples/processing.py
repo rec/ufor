@@ -11,7 +11,7 @@ from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
 from ..modulation import Modulation, Target, Unit
-from ..motion import Contour, Cycle, MotionUse, Stages
+from ..motion import Contour, Cycle, MotionUse, PlaybackMode, Stages
 from . import enums
 from .controls import ControlDeclaration
 
@@ -191,6 +191,18 @@ class SoundSettings(Model):
                     for stage in origin.body.stages
                     for marker in getattr(stage.motion, 'markers', [])
                 }
+                if any(
+                    isinstance(s.motion, Contour)
+                    and s.motion.playback != PlaybackMode.once
+                    for s in origin.body.stages
+                ):
+                    ports.add('cycle')
+                if any(
+                    isinstance(s.motion, Contour)
+                    and s.motion.playback == PlaybackMode.ping_pong
+                    for s in origin.body.stages
+                ):
+                    ports.add('turned')
                 if connection.port not in ports:
                     raise ValueError(
                         'Motion event connection references an unknown port'
