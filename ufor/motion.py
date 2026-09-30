@@ -232,6 +232,11 @@ class MotionUse(Model):
             raise ValueError('inline cycle rate cannot reference a public parameter')
         if isinstance(self.body, Contour) and self.body.initial == 'current':
             raise ValueError('current contour initial requires a parent stage')
+        if isinstance(self.body, Contour) and any(
+            s.duration_unit.value != self.clock.value
+            for s in [*self.body.segments, *self.body.release]
+        ):
+            raise ValueError('contour segment units must match its clock')
         return self
 
 
