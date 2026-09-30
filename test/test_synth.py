@@ -1,4 +1,5 @@
 import json
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -6,6 +7,7 @@ from pydantic import ValidationError
 
 import ufor.synth_trace
 from ufor.codec import parse_score, score_schema, score_toml
+from ufor.control import TempoMap
 from ufor.events import ControlChange, MotionChange, Release, Trigger
 from ufor.instrument_trace import (
     LifecycleSnapshot,
@@ -64,6 +66,71 @@ def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
             offset=-0.25,
         )
     ]
+
+
+def test_synth_trace_quantizes_motion_command_after_other_boundary_events() -> None:
+    document = SynthInstrumentScore.model_validate(fixture())
+    clock = TempoMap.model_validate(
+        {
+            'points': [
+                {'at_seconds': '0', 'beat': '0', 'bpm': '120'},
+                {'at_seconds': '1/4', 'beat': '1/2', 'bpm': '60'},
+            ]
+        }
+    )
+    queued = MotionChange(
+        tick=12000,
+        ordinal=0,
+        name='swell',
+        part='main',
+        trigger_id='note-a',
+        action='pause',
+        quantize_beats=Fraction(1),
+    )
+    immediate = queued.model_copy(
+        update={'tick': 36000, 'action': 'resume', 'quantize_beats': None}
+    )
+    result = ufor.synth_trace.prepare(
+        document.body,
+        [queued, immediate],
+        seed=0,
+        tempo_map=clock,
+        sample_rate=48000,
+    )
+    assert [(a.tick, a.ordinal, a.action) for a in result.actions] == [
+        (36000, 0, 'resume'),
+        (36000, 1, 'pause'),
+    ]
+    with pytest.raises(ValueError, match='host tempo map'):
+        ufor.synth_trace.prepare(document.body, [queued], seed=0)
+
+
+def test_synth_trace_cancels_pending_motion_command_on_transport_seek() -> None:
+    document = SynthInstrumentScore.model_validate(fixture())
+    clock = TempoMap.model_validate(
+        {
+            'points': [
+                {'at_seconds': '0', 'beat': '0', 'bpm': '120'},
+                {'at_seconds': '1/2', 'beat': '1', 'bpm': '120', 'running': False},
+                {'at_seconds': '1', 'beat': '8', 'bpm': '120'},
+            ]
+        }
+    )
+    queued = MotionChange(
+        tick=12000,
+        ordinal=0,
+        name='swell',
+        part='main',
+        trigger_id='note-a',
+        action='pause',
+        quantize_beats=Fraction(4),
+    )
+    assert (
+        ufor.synth_trace.prepare(
+            document.body, [queued], seed=0, tempo_map=clock, sample_rate=48000
+        ).actions
+        == []
+    )
 
 
 def test_synth_instrument_validates_controls_and_voice_routes() -> None:

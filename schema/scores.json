@@ -6620,6 +6620,20 @@
           ],
           "default": null,
           "title": "Offset"
+        },
+        "quantize_beats": {
+          "anyOf": [
+            {
+              "format": "fraction",
+              "gt": 0,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Quantize Beats"
         }
       },
       "required": [

@@ -7,6 +7,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, field_validator, model_validator
 
 from .base import Identifier, Model
+from .control import Rational
 
 
 class Event(Model):
@@ -178,6 +179,7 @@ class MotionChange(Event):
     action: Literal['pause', 'resume', 'reverse', 'seek', 'shift']
     position: float | None = Field(default=None, ge=0, le=1)
     offset: float | None = Field(default=None, allow_inf_nan=False)
+    quantize_beats: Rational | None = Field(default=None, gt=0)
 
     @model_validator(mode='after')
     def seek_payload(self) -> Self:

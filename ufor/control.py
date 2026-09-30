@@ -45,6 +45,10 @@ class TempoPoint(Model):
     running: bool = True
 
 
+class TransportSeekError(ValueError):
+    """A queued musical target was invalidated by a host transport jump."""
+
+
 class TempoMap(Model):
     """Host-resolved quarter-note positions, including stops and transport seeks."""
 
@@ -107,7 +111,7 @@ class TempoMap(Model):
                 else point.beat
             )
             if following.beat != boundary_beat:
-                raise ValueError('pending beat cancelled by transport seek')
+                raise TransportSeekError('pending beat cancelled by transport seek')
             if point.running and reached == following.at_seconds:
                 return reached
         return None
