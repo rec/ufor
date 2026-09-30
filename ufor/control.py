@@ -2,9 +2,9 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from typing import Annotated
+from typing import Annotated, Self
 
-from pydantic import BeforeValidator, Field
+from pydantic import BeforeValidator, Field, model_validator
 
 from .base import Model
 
@@ -35,6 +35,40 @@ def rational(value: object) -> Fraction:
 
 
 Rational = Annotated[Fraction, BeforeValidator(rational)]
+
+
+class TempoPoint(Model):
+    at_seconds: Rational = Field(ge=0)
+    beat: Rational
+    bpm: Rational = Field(gt=0)
+    running: bool = True
+
+
+class TempoMap(Model):
+    """Host-resolved quarter-note positions, including stops and transport seeks."""
+
+    points: list[TempoPoint] = Field(min_length=1)
+
+    @model_validator(mode='after')
+    def ordered_points(self) -> Self:
+        if self.points[0].at_seconds != 0 or any(
+            b.at_seconds <= a.at_seconds
+            for a, b in zip(self.points, self.points[1:], strict=False)
+        ):
+            raise ValueError('tempo points must start at zero and increase in time')
+        return self
+
+    def beat_at(self, seconds: Fraction) -> Fraction:
+        if seconds < 0:
+            raise ValueError('clock time must be nonnegative')
+        point = self.points[0]
+        for candidate in self.points[1:]:
+            if candidate.at_seconds > seconds:
+                break
+            point = candidate
+        if not point.running:
+            return point.beat
+        return point.beat + (seconds - point.at_seconds) * point.bpm / 60
 
 
 class ControlEvent(Model):
