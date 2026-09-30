@@ -141,6 +141,19 @@ def test_voice_motion_event_connections_validate_ports_and_cues() -> None:
     raw['event_connections'][0]['port'] = 'stage.missing'
     with pytest.raises(ValidationError, match='unknown port'):
         SoundSettings.model_validate(raw)
+    raw['motions']['source']['body']['stages'][2]['motion'] = {
+        'kind': 'contour',
+        'segments': [{'duration': '1 s', 'to': 1}],
+        'markers': [{'name': 'peak', 'position': '1/2'}],
+        'playback': 'loop',
+    }
+    raw['event_connections'][0]['port'] = 'cycle'
+    assert SoundSettings.model_validate(raw).event_connections[0].port == 'cycle'
+    raw['event_connections'][0]['port'] = 'turned'
+    with pytest.raises(ValidationError, match='unknown port'):
+        SoundSettings.model_validate(raw)
+    raw['motions']['source']['body']['stages'][2]['motion']['playback'] = 'ping_pong'
+    assert SoundSettings.model_validate(raw).event_connections[0].port == 'turned'
 
 
 def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
