@@ -124,7 +124,7 @@ Before handing one to a renderer, resolve the selected score explicitly:
 from ufor.library_files import read_library
 
 library = read_library(config_path)
-instrument = library.materialize("my library:my instrument")
+instrument = library.materialize('my library:my instrument')
 ```
 
 `materialize` returns a fully validated score with independent inline Motion
