@@ -2778,6 +2778,10 @@
           "$ref": "#/$defs/Retrigger",
           "default": "current"
         },
+        "playback": {
+          "$ref": "#/$defs/ufor__motion__PlaybackMode",
+          "default": "once"
+        },
         "markers": {
           "items": {
             "$ref": "#/$defs/Marker"
@@ -8188,20 +8192,12 @@
           "default": "forward"
         },
         "mode": {
-          "$ref": "#/$defs/PlaybackMode",
+          "$ref": "#/$defs/ufor__samples__enums__PlaybackMode",
           "default": "while_held"
         }
       },
       "title": "Playback",
       "type": "object"
-    },
-    "PlaybackMode": {
-      "enum": [
-        "while_held",
-        "one_shot"
-      ],
-      "title": "PlaybackMode",
-      "type": "string"
     },
     "Point": {
       "additionalProperties": false,
@@ -11031,7 +11027,7 @@
         "mode": {
           "anyOf": [
             {
-              "$ref": "#/$defs/PlaybackMode"
+              "$ref": "#/$defs/ufor__samples__enums__PlaybackMode"
             },
             {
               "type": "null"
@@ -12726,6 +12722,23 @@
         "step"
       ],
       "title": "Interpolation",
+      "type": "string"
+    },
+    "ufor__motion__PlaybackMode": {
+      "enum": [
+        "once",
+        "loop",
+        "ping_pong"
+      ],
+      "title": "PlaybackMode",
+      "type": "string"
+    },
+    "ufor__samples__enums__PlaybackMode": {
+      "enum": [
+        "while_held",
+        "one_shot"
+      ],
+      "title": "PlaybackMode",
       "type": "string"
     },
     "ufor__samples__processing__ControlBinding": {

@@ -1,5 +1,6 @@
 """Portable definitions for reusable control motions."""
 
+from enum import StrEnum, auto
 from fractions import Fraction
 from math import ceil, floor
 from typing import Annotated, Literal, Self
@@ -52,6 +53,12 @@ class Hold(Model):
     value: FiniteScalar = 0.0
 
 
+class PlaybackMode(StrEnum):
+    once = auto()
+    loop = auto()
+    ping_pong = auto()
+
+
 class Cycle(Model):
     kind: Literal['cycle'] = 'cycle'
     shape: Waveform = Waveform.sine
@@ -90,6 +97,7 @@ class Contour(Model):
     polarity: control.Polarity = control.Polarity.unipolar
     hold: bool = True
     retrigger: Retrigger = Retrigger.current
+    playback: PlaybackMode = PlaybackMode.once
     markers: list[Marker] = Field(default_factory=list)
 
     @model_validator(mode='after')
@@ -153,6 +161,8 @@ class Stages(Model):
                 body.release or not sum(s.duration for s in body.segments)
             ):
                 raise ValueError('stage contours need positive duration and no release')
+            if isinstance(body, Contour) and body.playback != PlaybackMode.once:
+                raise ValueError('staged contour playback requires once mode')
         for transition in self.transitions:
             if any(n not in names for n in transition.from_stages):
                 raise ValueError('transition references an unknown source stage')
@@ -321,6 +331,8 @@ def contour_envelope(motion: MotionUse) -> envelope.Envelope:
     body = motion.body
     if not isinstance(body, Contour):
         raise ValueError('motion is not a contour')
+    if body.playback != PlaybackMode.once:
+        raise ValueError('looping contours cannot be converted to envelopes')
     if body.initial == 'current':
         raise ValueError('contour current value needs stage entry')
     return envelope.Envelope(
@@ -339,6 +351,15 @@ def contour_envelope(motion: MotionUse) -> envelope.Envelope:
 def _contour_rate(segments: list[Segment]) -> Fraction:
     duration = sum((s.duration for s in segments), Fraction(0))
     return Fraction(1, 1) / duration if duration else Fraction(0)
+
+
+def _contour_coordinate(coordinate: Fraction, mode: PlaybackMode) -> Fraction:
+    if mode == PlaybackMode.loop:
+        return coordinate % 1
+    if mode == PlaybackMode.ping_pong:
+        position = coordinate % 2
+        return position if position <= 1 else 2 - position
+    return max(Fraction(0), min(Fraction(1), coordinate))
 
 
 def _initial_position(body: Hold | Cycle | Contour, at: Fraction) -> MotionPosition:
@@ -402,7 +423,10 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
     segments = body.release if state.phase == 'release' else body.segments
     duration = sum((s.duration for s in segments), Fraction(0))
     coordinate = (
-        max(Fraction(0), min(Fraction(1), _coordinate_at(state.position, at)))
+        _contour_coordinate(
+            _coordinate_at(state.position, at),
+            body.playback if state.phase == 'on' else PlaybackMode.once,
+        )
         if duration
         else Fraction(1)
     )
@@ -410,7 +434,9 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
         envelope.Curve(initial=state.start_value, segments=segments),
         coordinate * duration,
     )
-    if coordinate < 1:
+    if state.phase == 'on' and body.playback != PlaybackMode.once:
+        status = 'running'
+    elif coordinate < 1:
         status = 'running'
     elif state.phase == 'on' and body.hold and body.release:
         status = 'held'
@@ -555,7 +581,9 @@ def motion_event(
                 )
         else:
             position = _position_command(position, event)
-            if event.action == 'shift':
+            if event.action == 'shift' and (
+                phase == 'release' or motion.body.playback == PlaybackMode.once
+            ):
                 position = position.model_copy(
                     update={
                         'coordinate': max(
