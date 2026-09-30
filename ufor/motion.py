@@ -904,8 +904,10 @@ def _named_loop_candidates(
             and (
                 order > state.cursor_order
                 if forward
-                else state.cursor_order < len(stage.markers)
-                and order < state.cursor_order
+                else (
+                    state.cursor_order < len(stage.markers)
+                    and (order < state.cursor_order or order == len(stage.markers))
+                )
             )
         ):
             candidates.append(
@@ -929,7 +931,7 @@ def _named_loop_candidates(
             continue
         if stage.playback == PlaybackMode.loop:
             base = end + (marker.position - start)
-            repeat(base if marker.position < end else base + width, order, marker.name)
+            repeat(base, order, marker.name)
         else:
             if marker.position < end:
                 repeat(end + end - marker.position, order, marker.name)

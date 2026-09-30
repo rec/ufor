@@ -599,6 +599,108 @@ def test_staged_marker_cannot_claim_completion_port(motion: Contour | Cycle) -> 
         )
 
 
+@pytest.mark.parametrize(
+    ('mode', 'boundary_events', 'value'),
+    [
+        (
+            PlaybackMode.loop,
+            [
+                (Fraction(1, 4), 'start'),
+                (Fraction(3, 4), 'start'),
+                (Fraction(3, 4), 'end'),
+                (Fraction(3, 4), 'cycle'),
+                (Fraction(5, 4), 'start'),
+                (Fraction(5, 4), 'end'),
+                (Fraction(5, 4), 'cycle'),
+            ],
+            0.25,
+        ),
+        (
+            PlaybackMode.ping_pong,
+            [
+                (Fraction(1, 4), 'start'),
+                (Fraction(3, 4), 'end'),
+                (Fraction(3, 4), 'turned'),
+                (Fraction(5, 4), 'start'),
+                (Fraction(5, 4), 'turned'),
+                (Fraction(5, 4), 'cycle'),
+            ],
+            0.25,
+        ),
+    ],
+)
+def test_named_contour_loop_boundaries_preserve_markers_and_events(
+    mode: PlaybackMode,
+    boundary_events: list[tuple[Fraction, str]],
+    value: float,
+) -> None:
+    contour = Contour(
+        segments=[Segment(duration=Fraction(1), to=1)],
+        playback=mode,
+        markers=[
+            Marker(name='start', position=Fraction(1, 4)),
+            Marker(name='end', position=Fraction(3, 4)),
+        ],
+        loop_start='start',
+        loop_end='end',
+    )
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[Stage(name='sweep', motion=contour)],
+        )
+    )
+    result = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(5, 4))
+    assert [(e.at, e.port) for e in result.events] == boundary_events
+    assert result.value.value == value
+    standalone = MotionUse(body=contour)
+    started = motion_event(
+        standalone,
+        initial_motion(standalone, Fraction(0)),
+        MotionEvent(at=Fraction(0), ordinal=0, action='note_on'),
+    )
+    assert motion_at(standalone, started, Fraction(1)).value == 0.5
+
+
+def test_named_loop_reverse_orders_boundary_markers_before_cycle() -> None:
+    motion = MotionUse(
+        body=Stages(
+            initial_stage='sweep',
+            stages=[
+                Stage(
+                    name='sweep',
+                    motion=Contour(
+                        segments=[Segment(duration=Fraction(1), to=1)],
+                        playback=PlaybackMode.loop,
+                        markers=[
+                            Marker(name='start', position=Fraction(1, 4)),
+                            Marker(name='end', position=Fraction(3, 4)),
+                        ],
+                        loop_start='start',
+                        loop_end='end',
+                    ),
+                )
+            ],
+        )
+    )
+    forward = advance_motion(motion, initial_motion(motion, Fraction(0)), Fraction(1))
+    reversed_state = advance_motion(
+        motion,
+        forward.state,
+        Fraction(1),
+        MotionEvent(at=Fraction(1), ordinal=0, action='reverse'),
+    ).state
+    result = advance_motion(motion, reversed_state, Fraction(5, 4))
+    assert [(e.at, e.port) for e in result.events] == [
+        (Fraction(5, 4), 'end'),
+        (Fraction(5, 4), 'start'),
+        (Fraction(5, 4), 'cycle'),
+    ]
+    assert (
+        MotionState.model_validate_json(result.state.model_dump_json()) == result.state
+    )
+
+
 def test_contour_reverses_through_segments_without_recapturing_start() -> None:
     motion = MotionUse(
         body=Contour(
