@@ -1,10 +1,13 @@
 """Portable semantic actions for prepared synth-instrument performances."""
 
+from fractions import Fraction
+from math import ceil
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
 from .base import Identifier, Model, unique
+from .control import TempoMap, TransportSeekError
 from .events import (
     ControlChange,
     LFOChange,
@@ -88,7 +91,11 @@ class SynthTrace(Model):
 
 
 def prepare(
-    instrument: SynthInstrument, events: list[PerformanceEvent], seed: int
+    instrument: SynthInstrument,
+    events: list[PerformanceEvent],
+    seed: int,
+    tempo_map: TempoMap | None = None,
+    sample_rate: int | None = None,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -96,6 +103,43 @@ def prepare(
         raise ValueError('articulation preparation is unsupported')
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))
     unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
+    if any(
+        isinstance(e, MotionChange) and e.quantize_beats is not None for e in events
+    ):
+        if tempo_map is None or type(sample_rate) is not int or sample_rate <= 0:
+            raise ValueError(
+                'quantized Motion commands require a host tempo map and sample rate'
+            )
+        occupied: dict[int, int] = {}
+        for event in events:
+            occupied[event.tick] = max(occupied.get(event.tick, -1), event.ordinal)
+        scheduled: list[PerformanceEvent] = []
+        moved: list[tuple[int, MotionChange]] = []
+        for event in events:
+            if not isinstance(event, MotionChange) or event.quantize_beats is None:
+                scheduled.append(event)
+                continue
+            instrument.validate_event(event)
+            at = Fraction(event.tick, sample_rate)
+            target = tempo_map.quantized_beat(at, event.quantize_beats)
+            try:
+                dispatch = tempo_map.time_for_beat(target, at)
+            except TransportSeekError:
+                continue
+            if dispatch is None:
+                continue
+            tick = ceil(dispatch * sample_rate)
+            if tick == event.tick:
+                scheduled.append(event)
+            else:
+                moved.append((tick, event))
+        for tick, event in moved:
+            ordinal = occupied.get(tick, -1) + 1
+            occupied[tick] = ordinal
+            scheduled.append(
+                event.model_copy(update={'tick': tick, 'ordinal': ordinal})
+            )
+        events = sorted(scheduled, key=lambda e: (e.tick, e.ordinal))
     actions: list[Action] = []
     voices: list[ActiveVoice] = []
     triggers: list[ActiveTrigger] = []
