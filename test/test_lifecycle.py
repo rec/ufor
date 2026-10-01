@@ -176,6 +176,98 @@ def test_oversized_trigger_batch_is_rejected(kind: str) -> None:
         )
 
 
+def test_voice_pool_retires_only_its_oldest_voice() -> None:
+    result = prepare(
+        'sample',
+        [
+            {
+                'name': 'low',
+                'voice_pool': 'shared',
+                'mapping': {
+                    'lowest_key': 60,
+                    'highest_key': 60,
+                    'pitch_tracking': False,
+                },
+            },
+            {
+                'name': 'high',
+                'voice_pool': 'shared',
+                'mapping': {
+                    'lowest_key': 62,
+                    'highest_key': 62,
+                    'pitch_tracking': False,
+                },
+            },
+            {
+                'name': 'other',
+                'voice_pool': 'other',
+                'mapping': {
+                    'lowest_key': 64,
+                    'highest_key': 64,
+                    'pitch_tracking': False,
+                },
+            },
+        ],
+        [
+            Trigger(tick=0, ordinal=0, part='part', trigger_id='one', key=60),
+            Trigger(tick=1, ordinal=1, part='part', trigger_id='two', key=62),
+            Trigger(tick=2, ordinal=2, part='part', trigger_id='three', key=64),
+            Trigger(tick=3, ordinal=3, part='part', trigger_id='four', key=60),
+        ],
+        voice_pools=[
+            {
+                'name': 'shared',
+                'policy': {'maximum_voices': 2, 'overflow': 'replace_oldest'},
+            },
+            {'name': 'other', 'policy': {'maximum_voices': 1}},
+        ],
+    )
+    retired = [a for a in result.actions if isinstance(a, VoiceRetirement)]
+    assert [(a.tick, a.voice_id, a.cause, a.action) for a in retired] == [
+        (3, 'voice-0', 'voice_limit', 'stop')
+    ]
+    assert [v.voice_id for v in result.snapshots[-1].voices] == [
+        'voice-1',
+        'voice-2',
+        'voice-3',
+    ]
+
+
+def test_voice_pool_rejects_unknown_reference() -> None:
+    with pytest.raises(ValueError, match='unknown voice pool'):
+        prepare('sample', [{'name': 'voice', 'voice_pool': 'missing'}], [])
+
+
+def test_voice_pool_capacity_is_per_part() -> None:
+    result = prepare(
+        'sample',
+        [{'name': 'voice', 'voice_pool': 'shared'}],
+        [
+            Trigger(tick=0, ordinal=0, part='left', trigger_id='one', key=60),
+            Trigger(tick=1, ordinal=1, part='right', trigger_id='two', key=60),
+        ],
+        voice_pools=[{'name': 'shared', 'policy': {'maximum_voices': 1}}],
+    )
+    assert not any(isinstance(a, VoiceRetirement) for a in result.actions)
+    assert [v.voice_id for v in result.snapshots[-1].voices] == [
+        'voice-0',
+        'voice-1',
+    ]
+
+
+def test_voice_pool_rejects_oversized_layer_batch() -> None:
+    with pytest.raises(ValueError, match='trigger batch exceeds voice pool shared'):
+        prepare(
+            'sample',
+            [
+                {'name': 'left', 'voice_pool': 'shared'},
+                {'name': 'right', 'voice_pool': 'shared'},
+            ],
+            [Trigger(tick=0, ordinal=0, part='part', trigger_id='one', key=60)],
+            voice_pools=[{'name': 'shared', 'policy': {'maximum_voices': 1}}],
+        )
+
+
 @pytest.mark.parametrize('kind', ['sample', 'synth'])
 def test_preparation_rejects_unimplemented_articulations(kind: str) -> None:
     with pytest.raises(ValueError, match='articulation preparation is unsupported'):
@@ -377,6 +469,7 @@ def prepare(
     templates: list[dict[str, object]],
     events: list[PerformanceEvent],
     settings: dict[str, object] | None = None,
+    voice_pools: list[dict[str, object]] | None = None,
 ) -> trace.SampleTrace | synth_trace.SynthTrace:
     values = [
         {
@@ -397,6 +490,7 @@ def prepare(
     instrument = SampleInstrument.model_validate(
         {
             'settings': settings or {},
+            'voice_pools': voice_pools or [],
             'slices': [{'name': 'sample', 'asset': 'sample', 'end_frame': 48000}],
             'slots': [{'slice': 'sample', **v} for v in values],
         }

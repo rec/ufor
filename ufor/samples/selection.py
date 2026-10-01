@@ -246,6 +246,11 @@ class VoicePolicy(Model):
     overflow: enums.VoiceOverflow = enums.VoiceOverflow.release_oldest
 
 
+class VoicePool(Model):
+    name: Identifier
+    policy: VoicePolicy
+
+
 class Sustain(Model):
     control: Identifier
     threshold: UnitInterval = Field(default=0.5, gt=0)

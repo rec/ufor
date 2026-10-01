@@ -353,6 +353,14 @@ ends them. Ties use trigger ordinal. Explicit chokes take precedence over this
 general policy. These are player requirements; the format does not provide a
 voice engine.
 
+Named `body.voice_pools` provide independent per-part capacities for selected
+sample slots. Each slot may reference one pool through `voice_pool`; unpooled
+slots do not consume its capacity. A pool uses the same `VoicePolicy` settings,
+but applies them only to active voices from its slots in that part. On a trigger,
+chokes run first, then pool policies, then the instrument-wide policy. A
+simultaneous batch larger than its pool capacity is rejected rather than
+silently dropping a new layer.
+
 Articulation IDs and references are unique and checked. Keyswitches are latched
 or momentary and may consume their trigger. Control selectors use disjoint
 inclusive ranges inside the declared control domain. The intended player keeps
