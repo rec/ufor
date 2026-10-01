@@ -39,6 +39,14 @@ def test_host_tempo_map_preserves_exact_beats_through_tempo_stop_and_seek() -> N
     ]
     restored = TempoMap.model_validate_json(clock.model_dump_json())
     assert restored.beat_at(Fraction(7, 2)) == Fraction(35, 4)
+    assert [clock.elapsed_beats(Fraction(0), Fraction(n)) for n in range(5)] == [
+        Fraction(0),
+        Fraction(2),
+        Fraction(3),
+        Fraction(3),
+        Fraction(9, 2),
+    ]
+    assert clock.elapsed_beats(Fraction(1, 2), Fraction(7, 2)) == Fraction(11, 4)
 
 
 def test_host_tempo_map_rejects_ambiguous_ordering_and_nonpositive_rate() -> None:

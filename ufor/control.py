@@ -75,6 +75,21 @@ class TempoMap(Model):
             return point.beat
         return point.beat + (seconds - point.at_seconds) * point.bpm / 60
 
+    def elapsed_beats(self, start: Fraction, end: Fraction) -> Fraction:
+        """Integrate running musical time without counting transport jumps."""
+        if start < 0 or end < start:
+            raise ValueError('clock interval must be ordered and nonnegative')
+        elapsed = Fraction(0)
+        for index, point in enumerate(self.points):
+            following = self.points[index + 1] if index + 1 < len(self.points) else None
+            left = max(start, point.at_seconds)
+            right = min(end, following.at_seconds) if following else end
+            if point.running and right > left:
+                elapsed += (right - left) * point.bpm / 60
+            if following is None or following.at_seconds >= end:
+                break
+        return elapsed
+
     def quantized_beat(self, seconds: Fraction, division: Fraction) -> Fraction:
         if division <= 0:
             raise ValueError('beat division must be positive')
