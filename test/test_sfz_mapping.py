@@ -3,7 +3,7 @@ from typing import Literal
 import pytest
 
 from ufor import sfz
-from ufor.samples.enums import ChokeMode
+from ufor.samples.enums import ChokeMode, VoiceOverflow
 from ufor.samples.instrument import SampleInstrumentScore
 from ufor.samples.metadata import AudioMetadata
 from ufor.samples.processing import ChannelRoute
@@ -342,10 +342,87 @@ def test_silent_region_reports_unsupported_choke_behavior() -> None:
     assert 'choke other voices' in result.unimplemented[0].reason
 
 
+def test_sfz_polyphony_maps_group_with_diagnosed_default() -> None:
+    text = (
+        '<group> group=7 polyphony=2 '
+        '<region> sample=sample.wav key=60 '
+        '<region> sample=sample.wav key=61'
+    )
+    default = _compile(text)
+    accepted = _compile(text, polyphony_overflow='oldest_immediate')
+
+    assert default.instrument is not None
+    assert not default.complete
+    assert [i.location.opcode for i in default.unimplemented] == ['polyphony']
+    assert 'oldest-immediate' in default.unimplemented[0].reason
+    assert accepted.complete
+    assert accepted.instrument is not None
+    assert accepted.instrument.body.voice_pools[0].name == 'sfz-group-7'
+    assert accepted.instrument.body.voice_pools[0].policy.maximum_voices == 2
+    assert (
+        accepted.instrument.body.voice_pools[0].policy.overflow
+        == VoiceOverflow.replace_oldest
+    )
+    assert {s.voice_pool for s in accepted.instrument.body.slots} == {'sfz-group-7'}
+
+
+def test_sfz_polyphony_keeps_conflicting_limits_and_legato_visible() -> None:
+    conflict = _compile(
+        '<region> sample=sample.wav group=2 polyphony=2 key=60 '
+        '<region> sample=sample.wav group=2 polyphony=3 key=61',
+        polyphony_overflow='oldest_immediate',
+    )
+    legato = _compile(
+        '<region> sample=sample.wav polyphony=legato_high',
+        polyphony_overflow='oldest_immediate',
+    )
+
+    assert conflict.instrument is not None
+    assert conflict.instrument.body.voice_pools == []
+    assert [i.location.opcode for i in conflict.unimplemented] == [
+        'polyphony',
+        'polyphony',
+    ]
+    assert legato.instrument is not None
+    assert legato.instrument.body.voice_pools == []
+    assert [i.location.opcode for i in legato.unimplemented] == ['polyphony']
+
+
+def test_sfz_polyphony_reports_simultaneous_layers_above_limit() -> None:
+    result = _compile(
+        '<group> polyphony=1 '
+        '<region> sample=sample.wav key=60 '
+        '<region> sample=sample.wav key=60',
+        polyphony_overflow='oldest_immediate',
+    )
+
+    assert result.instrument is not None
+    assert len(result.instrument.body.voice_pools) == 1
+    assert [i.location.opcode for i in result.unimplemented] == ['polyphony']
+    assert 'simultaneous region layers' in result.unimplemented[0].reason
+
+
+def test_sfz_polyphony_distinguishes_unnumbered_group_headers() -> None:
+    result = _compile(
+        '<group> polyphony=1 <region> sample=sample.wav key=60\n'
+        '<group> polyphony=2 <region> sample=sample.wav key=61',
+        polyphony_overflow='oldest_immediate',
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    assert len(result.instrument.body.voice_pools) == 2
+    assert (
+        result.instrument.body.slots[0].voice_pool
+        != result.instrument.body.slots[1].voice_pool
+    )
+
+
 def _compile(
     text: str,
     output_channels: list[str] | None = None,
     sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
+    polyphony_overflow: Literal['diagnose', 'oldest_immediate'] = 'diagnose',
     sample_channels: int = 1,
 ) -> sfz.SfzCompileResult:
     return sfz.compile_instrument(
@@ -366,4 +443,5 @@ def _compile(
         output_timebase=Timebase(name='output', rate=Rate(numerator=48000)),
         output_channels=output_channels or ['mono'],
         sequence_counter=sequence_counter,
+        polyphony_overflow=polyphony_overflow,
     )
