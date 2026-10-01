@@ -53,11 +53,14 @@ def compile_instrument(
     output_timebase: Timebase,
     output_channels: list[str],
     sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
+    polyphony_overflow: Literal['diagnose', 'oldest_immediate'] = 'diagnose',
     midi_binding: SfzMidiBindingRequest | None = None,
 ) -> SfzCompileResult:
     """Build a native document from parsed text and caller-supplied asset facts."""
     if sequence_counter not in ('reject', 'all_note_ons'):
         raise ValueError(f'Unknown SFZ sequence counter rule: {sequence_counter}')
+    if polyphony_overflow not in ('diagnose', 'oldest_immediate'):
+        raise ValueError(f'Unknown SFZ polyphony overflow rule: {polyphony_overflow}')
     paths = sample_paths(source)
     if missing := [p for p in paths if p not in assets]:
         raise ValueError(f'Missing audio metadata for SFZ samples: {missing}')
@@ -96,6 +99,7 @@ def compile_instrument(
     unimplemented = list(source.unimplemented)
     slots: list[SampleSlot] = []
     slices: list[playback.Slice] = []
+    slot_regions: list[ParsedRegion] = []
     choke_targets: dict[str, dict[str, enums.ChokeMode]] = {}
     for region in source.regions:
         values = {o.opcode: o.value for o in region.opcodes}
@@ -126,6 +130,10 @@ def compile_instrument(
                 slot = SampleSlot.model_validate(slot.model_dump() | metadata)
             slots.append(slot)
             slices.append(sample_slice)
+            slot_regions.append(region)
+    slots, voice_pools = _polyphony_pools(
+        slots, slot_regions, unimplemented, polyphony_overflow
+    )
     document = None
     if slots:
         document = SampleInstrumentScore.model_validate(
@@ -160,6 +168,7 @@ def compile_instrument(
                     ),
                     slots=slots,
                     slices=slices,
+                    voice_pools=voice_pools,
                 ),
             )
             | source.instrument_metadata
@@ -171,6 +180,97 @@ def compile_instrument(
         binding=binding if document is not None else None,
         unimplemented=unimplemented,
     )
+
+
+def _polyphony_pools(
+    slots: list[SampleSlot],
+    regions: list[ParsedRegion],
+    unimplemented: list[UnimplementedFeature],
+    overflow: Literal['diagnose', 'oldest_immediate'],
+) -> tuple[list[SampleSlot], list[selection.VoicePool]]:
+    groups: dict[str, list[tuple[int, ParsedOpcode | None]]] = {}
+    for index, region in enumerate(regions):
+        values = {o.opcode: o.value for o in region.opcodes}
+        declaration = next(
+            (o for o in reversed(region.opcodes) if o.opcode == 'polyphony'), None
+        )
+        group = _group(values.get('group'))
+        if 'group' in values and group is None:
+            group = 'sfz-group-0'
+        elif group is None:
+            group = (
+                f'sfz-header-{declaration.line}-{declaration.column}'
+                if declaration is not None and declaration.header == 'group'
+                else 'sfz-group-0'
+            )
+        groups.setdefault(group, []).append((index, declaration))
+
+    pools: list[selection.VoicePool] = []
+    for group, members in groups.items():
+        declarations = [o for _, o in members if o is not None]
+        if not declarations:
+            continue
+        values = {o.value for o in declarations}
+        if any(o is None for _, o in members) or len(values) != 1:
+            reason = 'Conflicting or missing SFZ polyphony limits within one group'
+        elif (value := next(iter(values))) in (
+            'legato_high',
+            'legato_last',
+            'legato_low',
+        ):
+            reason = 'SFZ legato polyphony requires a native note-priority model'
+        else:
+            maximum = _integer(value, 'polyphony', minimum=1)
+            pools.append(
+                selection.VoicePool(
+                    name=group,
+                    policy=selection.VoicePolicy(
+                        maximum_voices=maximum,
+                        overflow=enums.VoiceOverflow.replace_oldest,
+                    ),
+                )
+            )
+            for index, _ in members:
+                slots[index] = slots[index].model_copy(update={'voice_pool': group})
+            reason = (
+                'SFZ polyphony uses assumed oldest-immediate voice retirement; '
+                'pass polyphony_overflow=oldest_immediate to accept it'
+            )
+            oversized = _oversized_polyphony_batch(
+                [slots[index] for index, _ in members], maximum
+            )
+            if overflow == 'oldest_immediate' and not oversized:
+                continue
+            if overflow == 'oldest_immediate':
+                reason = 'SFZ polyphony limit can reject simultaneous region layers'
+            elif oversized:
+                reason += '; limit can reject simultaneous region layers'
+        seen: set[tuple[int, int]] = set()
+        for declaration in declarations:
+            location = declaration.line, declaration.column
+            if location not in seen:
+                _add_unimplemented(unimplemented, declaration, reason)
+                seen.add(location)
+    return slots, pools
+
+
+def _oversized_polyphony_batch(slots: list[SampleSlot], maximum: int) -> bool:
+    for trigger in {s.trigger for s in slots}:
+        for key in range(128):
+            for velocity in range(128):
+                if (
+                    sum(
+                        s.trigger == trigger
+                        and s.mapping.lowest_key <= key <= s.mapping.highest_key
+                        and s.mapping.minimum_velocity
+                        <= velocity / 127
+                        <= s.mapping.maximum_velocity
+                        for s in slots
+                    )
+                    > maximum
+                ):
+                    return True
+    return False
 
 
 def _midi_binding(

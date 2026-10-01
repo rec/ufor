@@ -119,6 +119,12 @@ def support_table() -> str:
         '`ambiguous` requires an explicit player-semantics choice. '
         'The other classifications are reported as unsupported.',
         '',
+        'Numeric `polyphony` imports as a group-scoped voice pool using '
+        'oldest-immediate retirement. By default, the instrument is retained '
+        'with a diagnostic; `polyphony_overflow="oldest_immediate"` accepts '
+        'the choice. Conflicting limits, legato values, and limits that may '
+        'reject simultaneous layers remain diagnosed.',
+        '',
         '| Kind | Name | Version | Classification |',
         '| --- | --- | --- | --- |',
     ]
@@ -197,6 +203,7 @@ PARSABLE_OPCODES = {
     'pitch_keycenter',
     'pitch_keytrack',
     'pitch_veltrack',
+    'polyphony',
     'region_label',
     'sample',
     'sample_fadeout',
@@ -244,7 +251,7 @@ ASSET_OPCODES = {
     'loop_end',
     'md5',
 }
-AMBIGUOUS_OPCODES = {'seq_length', 'seq_position'}
+AMBIGUOUS_OPCODES = {'polyphony', 'seq_length', 'seq_position'}
 CONDITIONAL_BINDING_OPCODES = {'lochan', 'hichan'}
 AMP_VELOCITY_CURVE = re.compile(r'amp_velcurve_(\d+)')
 STANDARD_OPCODES: dict[str, tuple[str, str]] = {

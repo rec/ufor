@@ -4,6 +4,8 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 
 `supported` entries may have value-specific constraints. `asset_metadata` requires measured or verified sample facts. `ambiguous` requires an explicit player-semantics choice. The other classifications are reported as unsupported.
 
+Numeric `polyphony` imports as a group-scoped voice pool using oldest-immediate retirement. By default, the instrument is retained with a diagnostic; `polyphony_overflow="oldest_immediate"` accepts the choice. Conflicting limits, legato values, and limits that may reject simultaneous layers remain diagnosed.
+
 | Kind | Name | Version | Classification |
 | --- | --- | --- | --- |
 | Header | `<region>` | SFZ v1 | supported |
@@ -375,7 +377,7 @@ Generated from `ufor.sfz.registry` using the [SFZ Format catalog](https://sfzfor
 | Opcode | `pitchlfo_fade` | SFZ v1 | new_model |
 | Opcode | `pitchlfo_freq` | SFZ v1 | new_model |
 | Opcode | `pkf_2p` | SFZ v2 | new_model |
-| Opcode | `polyphony` | SFZ v2 | new_model |
+| Opcode | `polyphony` | SFZ v2 | ambiguous |
 | Opcode | `position` | SFZ v1 | new_model |
 | Opcode | `release_key` | SFZ v2 | new_model |
 | Opcode | `resonance` | SFZ v1 | new_model |
