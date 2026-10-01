@@ -100,6 +100,8 @@ def prepare(
     sustain: dict[Identifier, bool] = {}
     next_voice = 0
     groups = {g.name: g for g in instrument.groups}
+    pools = {p.name: p.policy for p in instrument.voice_pools}
+    slot_pools = {s.name: s.voice_pool for s in instrument.slots}
     slices = {s.name: s for s in instrument.slices}
     selections = {s.name: s for s in instrument.settings.selections}
     playback_modes = {
@@ -214,6 +216,33 @@ def prepare(
                 raise ValueError(
                     'combined fade and envelope-release chokes are unsupported'
                 )
+        for pool_name in sorted({s.voice_pool for s in slots if s.voice_pool}):
+            pool_slots = [s for s in slots if s.voice_pool == pool_name]
+            policy = pools[pool_name]
+            if len(pool_slots) > policy.maximum_voices:
+                raise ValueError(f'trigger batch exceeds voice pool {pool_name} limit')
+            pool_voices = [
+                v
+                for v in voices
+                if v.part == part and slot_pools[v.template] == pool_name
+            ]
+            if policy.same_key != enums.SameKey.stack:
+                for voice in [v for v in pool_voices if v.key == key]:
+                    action = (
+                        'release'
+                        if policy.same_key == enums.SameKey.release
+                        else 'stop'
+                    )
+                    retire(voice, event, RetirementCause.same_key, action)
+                    pool_voices.remove(voice)
+            while len(pool_voices) + len(pool_slots) > policy.maximum_voices:
+                voice = pool_voices.pop(0)
+                action = (
+                    'release'
+                    if policy.overflow == enums.VoiceOverflow.release_oldest
+                    else 'stop'
+                )
+                retire(voice, event, RetirementCause.voice_limit, action)
         policy = instrument.settings.voice_policy
         if policy is not None and any(
             s.trigger == enums.TriggerKind.start for s in slots

@@ -38,6 +38,7 @@ from .selection import (
     SequencePosition,
     Sustain,
     VoicePolicy,
+    VoicePool,
 )
 from .variation import Variation
 
@@ -107,6 +108,7 @@ class SampleSlot(SoundSettings):
     microphone: Identifier | None = None
     alignment_frames: int = Field(default=0, strict=True)
     choke_group: Identifier | None = None
+    voice_pool: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)
     crossfades: list[LayerCrossfade] = Field(default_factory=list)
     trigger: enums.TriggerKind = enums.TriggerKind.start
@@ -232,6 +234,7 @@ class SampleInstrument(Model):
     slices: list[Slice] = Field(min_length=1)
     settings: SampleSettings
     groups: list[SlotGroup] = Field(default_factory=list)
+    voice_pools: list[VoicePool] = Field(default_factory=list)
     slots: list[SampleSlot] = Field(min_length=1)
 
     @model_validator(mode='after')
@@ -239,9 +242,11 @@ class SampleInstrument(Model):
         unique((s.name for s in self.slots), 'slot ID')
         unique((s.name for s in self.slices), 'slice ID')
         unique((g.name for g in self.groups), 'slot group ID')
+        unique((p.name for p in self.voice_pools), 'voice pool ID')
         slices = {s.name: s for s in self.slices}
         selections = {s.name for s in self.settings.selections}
         slot_groups = {g.name: g for g in self.groups}
+        voice_pools = {p.name for p in self.voice_pools}
         choke_groups = {s.choke_group for s in self.slots if s.choke_group is not None}
         articulations = (
             set(self.settings.articulations.ids)
@@ -265,6 +270,10 @@ class SampleInstrument(Model):
             sample_slice = slices[slot.slice]
             if slot.group is not None and slot.group not in slot_groups:
                 raise ValueError(f'Slot {slot.name}: unknown group {slot.group}')
+            if slot.voice_pool is not None and slot.voice_pool not in voice_pools:
+                raise ValueError(
+                    f'Slot {slot.name}: unknown voice pool {slot.voice_pool}'
+                )
             group = slot_groups.get(slot.group) if slot.group is not None else None
             effective = effective_settings(slot, group)
             effective.validate_controls(self.settings.controls)

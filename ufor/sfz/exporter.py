@@ -81,6 +81,13 @@ def _instrument_issues(
     document: SampleInstrumentScore, issues: list[UnimplementedFeature]
 ) -> None:
     instrument = document.body.settings
+    for i, pool in enumerate(document.body.voice_pools):
+        _issue(
+            issues,
+            f'body.voice_pools[{i}]',
+            pool,
+            'Voice pools have no exact SFZ conversion',
+        )
     if instrument.voice_policy is not None:
         _issue(
             issues,

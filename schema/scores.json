@@ -9644,6 +9644,13 @@
           "title": "Groups",
           "type": "array"
         },
+        "voice_pools": {
+          "items": {
+            "$ref": "#/$defs/VoicePool"
+          },
+          "title": "Voice Pools",
+          "type": "array"
+        },
         "slots": {
           "items": {
             "$ref": "#/$defs/SampleSlot"
@@ -10137,6 +10144,18 @@
           ],
           "default": null,
           "title": "Choke Group"
+        },
+        "voice_pool": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voice Pool"
         },
         "chokes": {
           "items": {
@@ -12547,6 +12566,24 @@
         "maximum_voices"
       ],
       "title": "VoicePolicy",
+      "type": "object"
+    },
+    "VoicePool": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "policy": {
+          "$ref": "#/$defs/VoicePolicy"
+        }
+      },
+      "required": [
+        "name",
+        "policy"
+      ],
+      "title": "VoicePool",
       "type": "object"
     },
     "VolumeFileLocation": {
