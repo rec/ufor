@@ -695,6 +695,22 @@ def test_voice_policy_round_trips_through_toml() -> None:
     assert parse_score(score_toml(document)) == document
 
 
+def test_voice_pool_round_trips_and_is_reported_by_sfz_export() -> None:
+    raw = fixture()
+    raw['body']['voice_pools'] = [{'name': 'drums', 'policy': {'maximum_voices': 2}}]
+    raw['body']['slots'][0]['voice_pool'] = 'drums'
+    document = SampleInstrumentScore.model_validate(raw)
+
+    assert parse_score(score_toml(document)) == document
+    exported = sfz.write(document)
+    assert not exported.complete
+    assert any(
+        f.location.path == 'body.voice_pools[0]'
+        for f in exported.unimplemented
+        if f.location.kind == 'instrument'
+    )
+
+
 def test_end_fade_round_trips_through_toml() -> None:
     raw = fixture()
     raw['body']['slots'][0]['playback']['end_fade_seconds'] = 0.25
