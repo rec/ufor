@@ -114,6 +114,7 @@ class Arpeggiator(Model):
     ] = Ascending()
     rhythm: Annotated[Grid | Euclidean | SourceRhythm, Field(discriminator='kind')]
     gate: Rational = Field(default=Fraction(4, 5), ge=0)
+    retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)
 
