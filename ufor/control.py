@@ -90,6 +90,25 @@ class TempoMap(Model):
                 break
         return elapsed
 
+    def time_for_elapsed_beat(self, beat: Fraction) -> Fraction | None:
+        """Find the first host time reaching a local running-beat position."""
+        if beat < 0:
+            raise ValueError('elapsed beat must be nonnegative')
+        elapsed = Fraction(0)
+        for index, point in enumerate(self.points):
+            following = self.points[index + 1] if index + 1 < len(self.points) else None
+            if beat == elapsed:
+                return point.at_seconds
+            if point.running:
+                duration = (
+                    following.at_seconds - point.at_seconds if following else None
+                )
+                reached = (beat - elapsed) * 60 / point.bpm
+                if duration is None or reached <= duration:
+                    return point.at_seconds + reached
+                elapsed += duration * point.bpm / 60
+        return None
+
     def quantized_beat(self, seconds: Fraction, division: Fraction) -> Fraction:
         if division <= 0:
             raise ValueError('beat division must be positive')

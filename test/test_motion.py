@@ -95,6 +95,26 @@ def staged_motion() -> MotionUse:
     )
 
 
+def test_stage_contour_durations_match_the_motion_clock() -> None:
+    body = {
+        'kind': 'stages',
+        'initial_stage': 'attack',
+        'stages': [
+            {
+                'name': 'attack',
+                'motion': {
+                    'kind': 'contour',
+                    'segments': [{'duration': '1 beat', 'to': 1}],
+                },
+            }
+        ],
+    }
+    motion = MotionUse.model_validate({'clock': 'beats', 'body': body})
+    assert motion.clock.value == 'beats'
+    with pytest.raises(ValidationError, match='stage contour segment units'):
+        MotionUse.model_validate({'clock': 'seconds', 'body': body})
+
+
 def test_voice_motion_event_connections_validate_ports_and_cues() -> None:
     source = staged_motion()
     destination = MotionUse(
