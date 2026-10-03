@@ -275,6 +275,7 @@ class Patch(Model):
                 or target.start != 'event'
                 or target.release
                 or target.playback != PlaybackMode.once
+                or target.retrigger != Retrigger.current
             ):
                 raise ValueError('patch event target must be an event-start Contour')
         return self
