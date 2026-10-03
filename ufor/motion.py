@@ -184,6 +184,8 @@ class Stages(Model):
                 raise ValueError('stage marker name done is reserved for completion')
             if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
                 raise ValueError('stage cycle rate must be a literal')
+            if isinstance(body, Contour) and body.start == 'event':
+                raise ValueError('stage contours start on stage entry')
             if isinstance(body, Contour) and (
                 body.release or not sum(s.duration for s in body.segments)
             ):

@@ -383,6 +383,22 @@ def test_patch_marker_can_start_waiting_contour() -> None:
     body['motions']['accent']['retrigger'] = 'reset'
     with pytest.raises(ValidationError, match='event-start Contour'):
         MotionScore.model_validate({'name': 'accent', 'title': 'Accent', 'body': body})
+    with pytest.raises(ValidationError, match='stage contours start on stage entry'):
+        Stages.model_validate(
+            {
+                'initial_stage': 'accent',
+                'stages': [
+                    {
+                        'name': 'accent',
+                        'motion': {
+                            'kind': 'contour',
+                            'start': 'event',
+                            'segments': [{'duration': '1 s', 'to': 1}],
+                        },
+                    }
+                ],
+            }
+        )
 
 
 @pytest.mark.parametrize(
