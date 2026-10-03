@@ -7305,6 +7305,45 @@
       "title": "MotionUse",
       "type": "object"
     },
+    "MusicianAssignmentObservation": {
+      "additionalProperties": false,
+      "properties": {
+        "observed_at": {
+          "title": "Observed At",
+          "type": "string"
+        },
+        "source_name": {
+          "minLength": 1,
+          "title": "Source Name",
+          "type": "string"
+        },
+        "musician": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Musician"
+        },
+        "channels": {
+          "items": {
+            "type": "integer"
+          },
+          "title": "Channels",
+          "type": "array"
+        }
+      },
+      "required": [
+        "observed_at",
+        "source_name"
+      ],
+      "title": "MusicianAssignmentObservation",
+      "type": "object"
+    },
     "NoiseVoice": {
       "additionalProperties": false,
       "properties": {
@@ -9715,6 +9754,13 @@
             "$ref": "#/$defs/ClockObservation"
           },
           "title": "Clock Observations",
+          "type": "array"
+        },
+        "musician_assignments": {
+          "items": {
+            "$ref": "#/$defs/MusicianAssignmentObservation"
+          },
+          "title": "Musician Assignments",
           "type": "array"
         },
         "unfinished_files": {

@@ -17,6 +17,7 @@ from ufor.recording import (
     AudioStream,
     EventStream,
     Gap,
+    MusicianAssignmentObservation,
     Recording,
     RecordingScore,
     UnmappedAudioFragment,
@@ -78,6 +79,41 @@ def test_recording_round_trip_preserves_project_name() -> None:
     )
 
     assert parse_score(score_toml(value)).body.project_name == 'x18-show'
+
+
+def test_recording_round_trip_preserves_musician_assignment_history() -> None:
+    value = recording()
+    observations = [
+        MusicianAssignmentObservation(
+            observed_at='2026-09-04T12:00:00Z',
+            source_name='desk',
+            musician='mike',
+            channels=[1, 2],
+        ),
+        MusicianAssignmentObservation(
+            observed_at='2026-09-04T12:00:02Z',
+            source_name='desk',
+            musician=None,
+            channels=[],
+        ),
+    ]
+    value = value.model_copy(
+        update={
+            'body': value.body.model_copy(update={'musician_assignments': observations})
+        }
+    )
+
+    assert parse_score(score_toml(value)).body.musician_assignments == observations
+
+
+def test_musician_assignment_rejects_unsorted_channels() -> None:
+    with pytest.raises(ValidationError, match='unique and ascending'):
+        MusicianAssignmentObservation(
+            observed_at='2026-09-04T12:00:00Z',
+            source_name='desk',
+            musician='mike',
+            channels=[2, 1],
+        )
 
 
 def test_recording_rejects_unknown_assets() -> None:

@@ -43,8 +43,16 @@ sealed merely because their declarations are stable.
 | `body.journal` | Asset ID of the preserved capture journal |
 | `body.streams` | Typed audio or event streams, each with a local ID and original opaque `source_id` |
 | `body.clock_observations` | Optional source/session tick observations with uncertainty and timing source; no automatic drift fit |
+| `body.musician_assignments` | Ordered, wall-clock-observed musician assignments by source and one-based input channels; an entry without a musician clears that source |
 | `body.unfinished_files` | Original stream ID, original journal path, and observed opening timestamp; these are evidence, not verified asset references |
 | `body.continued_from`, `continued_at` | Previous and following `recording.toml` paths, resolved relative to this score; they may cross volume roots |
+
+`musician_assignments` starts with any assignments observed at session start and
+then follows journal order. Each observation gives a source name, a musician
+identifier, one-based channels, and an observed wall-clock time. An observation
+with no musician and no channels clears that source's assignment. Timestamps
+are not exact audio-frame boundaries. The score contains identifiers, not the
+musicians' identity records or the recorder's track-naming policy.
 
 Audio streams have an `AudioType`, native `end` frame, captured fragments, and
 explicit gaps. A fragment references an asset and records `asset_start`, stream

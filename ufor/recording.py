@@ -177,6 +177,23 @@ class UnfinishedFile(Model):
     observed_opened_at: str
 
 
+class MusicianAssignmentObservation(Model):
+    observed_at: str
+    source_name: str = Field(min_length=1)
+    musician: Identifier | None = None
+    channels: list[int] = Field(default_factory=list)
+
+    @model_validator(mode='after')
+    def assignment(self) -> Self:
+        if bool(self.musician) != bool(self.channels):
+            raise ValueError('a musician assignment requires musician and channels')
+        if any(channel <= 0 for channel in self.channels):
+            raise ValueError('musician channels must be positive')
+        if self.channels != sorted(set(self.channels)):
+            raise ValueError('musician channels must be unique and ascending')
+        return self
+
+
 class Recording(Model):
     state: Literal['sealed', 'open']
     project_name: str | None = None
@@ -186,6 +203,9 @@ class Recording(Model):
     journal: Identifier | None = None
     streams: list[Annotated[AudioStream | EventStream, Field(discriminator='kind')]]
     clock_observations: list[ClockObservation] = Field(default_factory=list)
+    musician_assignments: list[MusicianAssignmentObservation] = Field(
+        default_factory=list
+    )
     unfinished_files: list[UnfinishedFile] = Field(default_factory=list)
     continued_from: str | None = None
     continued_at: list[str] = Field(default_factory=list)
