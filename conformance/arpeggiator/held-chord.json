@@ -1,0 +1,18 @@
+{
+  "capture_id": "held",
+  "timebase": {"name": "ticks", "rate": {"numerator": 480}},
+  "end_tick": 480,
+  "events": [
+    {"kind": "trigger", "tick": 0, "ordinal": 0, "part": "keys", "trigger_id": "c", "key": 60},
+    {"kind": "trigger", "tick": 0, "ordinal": 1, "part": "keys", "trigger_id": "e", "key": 64},
+    {"kind": "trigger", "tick": 0, "ordinal": 2, "part": "keys", "trigger_id": "g", "key": 67},
+    {"kind": "release", "tick": 480, "ordinal": 0, "part": "keys", "trigger_id": "c"},
+    {"kind": "release", "tick": 480, "ordinal": 1, "part": "keys", "trigger_id": "e"},
+    {"kind": "release", "tick": 480, "ordinal": 2, "part": "keys", "trigger_id": "g"}
+  ],
+  "notes": [
+    {"capture_id": "held", "note_id": "c", "onset_tick": 0, "gate_end_tick": 480, "cell_end_tick": 480, "onset_event": 0, "release_event": 3, "key": 60, "velocity": 1.0},
+    {"capture_id": "held", "note_id": "e", "onset_tick": 0, "gate_end_tick": 480, "cell_end_tick": 480, "onset_event": 1, "release_event": 4, "key": 64, "velocity": 1.0},
+    {"capture_id": "held", "note_id": "g", "onset_tick": 0, "gate_end_tick": 480, "cell_end_tick": 480, "onset_event": 2, "release_event": 5, "key": 67, "velocity": 1.0}
+  ]
+}
