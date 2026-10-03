@@ -257,6 +257,80 @@ def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
         SoundSettings.model_validate(raw)
 
 
+def test_patch_named_outputs_select_child_signal_domains() -> None:
+    raw = {
+        'motions': {
+            'gesture': {
+                'body': {
+                    'kind': 'patch',
+                    'motions': {
+                        'amp': {
+                            'kind': 'contour',
+                            'segments': [{'duration': '1 s', 'to': 1}],
+                        },
+                        'vibrato': {'kind': 'cycle', 'rate': '5'},
+                    },
+                    'outputs': {'level': 'amp', 'pitch': 'vibrato'},
+                }
+            }
+        },
+        'modulation': {
+            'sources': [
+                {'name': 'level', 'scope': 'voice', 'minimum': 0, 'maximum': 1},
+                {'name': 'pitch', 'scope': 'voice', 'minimum': -1, 'maximum': 1},
+            ]
+        },
+        'bindings': [
+            {
+                'name': 'level',
+                'kind': 'motion',
+                'reference': 'gesture',
+                'output': 'level',
+            },
+            {
+                'name': 'pitch',
+                'kind': 'motion',
+                'reference': 'gesture',
+                'output': 'pitch',
+            },
+        ],
+    }
+    settings = SoundSettings.model_validate(raw)
+    assert SoundSettings.model_validate_json(settings.model_dump_json()) == settings
+    raw['bindings'][1]['output'] = 'missing'
+    with pytest.raises(ValidationError, match='requires a named output'):
+        SoundSettings.model_validate(raw)
+    raw['bindings'][1]['output'] = 'pitch'
+    raw['modulation']['sources'][0]['minimum'] = -1
+    with pytest.raises(ValidationError, match='source scope and domain'):
+        SoundSettings.model_validate(raw)
+
+
+def test_patch_output_and_clock_references_are_validated() -> None:
+    body = {
+        'kind': 'patch',
+        'motions': {
+            'amp': {
+                'kind': 'contour',
+                'segments': [{'duration': '1 beat', 'to': 1}],
+            }
+        },
+        'outputs': {'level': 'amp'},
+    }
+    score = MotionScore.model_validate(
+        {'name': 'gesture', 'title': 'Gesture', 'body': body}
+    )
+    assert parse_score(score_toml(score)) == score
+    assert isinstance(MotionUse(clock='beats', body=score.body).body, type(score.body))
+    with pytest.raises(ValidationError, match='patch contour segment units'):
+        MotionUse(body=score.body)
+    body['outputs']['level'] = 'missing'
+    with pytest.raises(ValidationError, match='unknown child Motion'):
+        MotionScore.model_validate(
+            {'name': 'gesture', 'title': 'Gesture', 'body': body}
+        )
+
+
 @pytest.mark.parametrize(
     ('body', 'expected'),
     [

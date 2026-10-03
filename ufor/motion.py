@@ -233,11 +233,37 @@ class Stages(Model):
         return self
 
 
+class Patch(Model):
+    kind: Literal['patch'] = 'patch'
+    motions: dict[
+        Identifier, Annotated[Cycle | Contour | Stages, Field(discriminator='kind')]
+    ] = Field(min_length=1)
+    outputs: dict[Identifier, Identifier] = Field(min_length=1)
+
+    @model_validator(mode='after')
+    def selected_motions(self) -> Self:
+        if any(name not in self.motions for name in self.outputs.values()):
+            raise ValueError('patch output references an unknown child Motion')
+        if any(
+            isinstance(body, Cycle) and isinstance(body.rate, ParameterReference)
+            for body in self.motions.values()
+        ):
+            raise ValueError('patch cycle rates must be literals')
+        if any(
+            isinstance(body, Contour) and body.initial == 'current'
+            for body in self.motions.values()
+        ):
+            raise ValueError('patch contours need explicit initial values')
+        return self
+
+
 class MotionUse(Model):
     scope: control.Scope = control.Scope.voice
     clock: control.Clock = control.Clock.seconds
     position_driver: PositionDriver = PositionDriver.elapsed
-    body: Annotated[Cycle | Contour | Stages, Field(discriminator='kind')] | None = None
+    body: (
+        Annotated[Cycle | Contour | Stages | Patch, Field(discriminator='kind')] | None
+    ) = None
     score: ScoreReference | None = None
     parameters: dict[Identifier, float] = Field(default_factory=dict)
     origin: MotionOrigin | None = None
@@ -282,6 +308,23 @@ class MotionUse(Model):
             for segment in stage.motion.segments
         ):
             raise ValueError('stage contour segment units must match its clock')
+        if isinstance(self.body, Patch):
+            for child in self.body.motions.values():
+                contours = (
+                    [child]
+                    if isinstance(child, Contour)
+                    else [
+                        s.motion for s in child.stages if isinstance(s.motion, Contour)
+                    ]
+                    if isinstance(child, Stages)
+                    else []
+                )
+                if any(
+                    segment.duration_unit.value != self.clock.value
+                    for contour in contours
+                    for segment in [*contour.segments, *contour.release]
+                ):
+                    raise ValueError('patch contour segment units must match its clock')
         return self
 
 
@@ -1227,7 +1270,7 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
 class MotionScore(Score):
     kind: Literal['motion'] = 'motion'
     parameters: dict[Identifier, MotionParameter] = Field(default_factory=dict)
-    body: Annotated[Cycle | Contour | Stages, Field(discriminator='kind')]
+    body: Annotated[Cycle | Contour | Stages | Patch, Field(discriminator='kind')]
 
     @model_validator(mode='after')
     def public_parameters(self) -> Self:

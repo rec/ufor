@@ -11,7 +11,7 @@ from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
 from ..modulation import Modulation, Target, Unit
-from ..motion import Contour, Cycle, MotionUse, PlaybackMode, Stages
+from ..motion import Contour, Cycle, MotionUse, Patch, PlaybackMode, Stages
 from . import enums
 from .controls import ControlDeclaration
 
@@ -137,6 +137,7 @@ class GeneratorBinding(Model):
     name: Identifier
     kind: Literal['motion'] = 'motion'
     reference: Identifier
+    output: Identifier | None = None
     release_timing: ReleaseTiming = ReleaseTiming.event
 
 
@@ -244,13 +245,23 @@ class SoundSettings(Model):
                         f'Unknown local motion source: {binding.reference}'
                     )
                 generator = self.motions[binding.reference]
+                if isinstance(generator.body, Patch):
+                    if (
+                        binding.output is None
+                        or binding.output not in generator.body.outputs
+                    ):
+                        raise ValueError('Patch binding requires a named output')
+                    selected = generator.body.motions[
+                        generator.body.outputs[binding.output]
+                    ]
+                else:
+                    if binding.output is not None and generator.score is None:
+                        raise ValueError('Only Patch bindings select named outputs')
+                    selected = generator.body
                 if (
                     binding.release_timing == ReleaseTiming.voice
                     and generator.body is not None
-                    and (
-                        not isinstance(generator.body, Contour)
-                        or not generator.body.release
-                    )
+                    and (not isinstance(selected, Contour) or not selected.release)
                 ):
                     raise ValueError(
                         'Voice release timing requires a releasing contour'
@@ -261,8 +272,8 @@ class SoundSettings(Model):
                     continue
                 minimum = (
                     0
-                    if isinstance(generator.body, Contour)
-                    and generator.body.polarity == control.Polarity.unipolar
+                    if isinstance(selected, Contour)
+                    and selected.polarity == control.Polarity.unipolar
                     else -1
                 )
                 if (source.scope, source.minimum, source.maximum) != (
