@@ -1,0 +1,10 @@
+{
+  "capture_id": "sample",
+  "timebase": {"name": "frames", "rate": {"numerator": 48000}},
+  "end_tick": 48000,
+  "notes": [
+    {"capture_id": "sample", "note_id": "a", "onset_tick": 0, "gate_end_tick": 16000, "cell_end_tick": 16000, "selection_key": 60, "region": {"name": "a", "asset": "voice", "start_frame": 0, "end_frame": 16000}},
+    {"capture_id": "sample", "note_id": "b", "onset_tick": 16000, "gate_end_tick": 32000, "cell_end_tick": 32000, "selection_key": 62, "region": {"name": "b", "asset": "voice", "start_frame": 16000, "end_frame": 32000}},
+    {"capture_id": "sample", "note_id": "c", "onset_tick": 32000, "gate_end_tick": 48000, "cell_end_tick": 48000, "selection_key": 64, "region": {"name": "c", "asset": "voice", "start_frame": 32000, "end_frame": 48000}}
+  ]
+}
