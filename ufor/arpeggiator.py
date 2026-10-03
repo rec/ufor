@@ -42,6 +42,11 @@ class Ascending(Model):
     repeats: int = Field(default=1, strict=True, ge=1)
 
 
+class Descending(Model):
+    kind: Literal['descending'] = 'descending'
+    key: Literal['pitch', 'selection_key'] = 'pitch'
+
+
 class Played(Model):
     kind: Literal['played'] = 'played'
     direction: Literal['forward', 'reverse'] = 'forward'
@@ -104,9 +109,9 @@ class Arpeggiator(Model):
         HeldBank | LatchedBank | HistoryBank | RegionsBank,
         Field(discriminator='kind'),
     ] = HeldBank()
-    selection: Annotated[Ascending | Played | Walk, Field(discriminator='kind')] = (
-        Ascending()
-    )
+    selection: Annotated[
+        Ascending | Descending | Played | Walk, Field(discriminator='kind')
+    ] = Ascending()
     rhythm: Annotated[Grid | Euclidean | SourceRhythm, Field(discriminator='kind')]
     gate: Rational = Field(default=Fraction(4, 5), ge=0)
     expression: Expression = Expression()

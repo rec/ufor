@@ -552,6 +552,7 @@
           "discriminator": {
             "mapping": {
               "ascending": "#/$defs/Ascending",
+              "descending": "#/$defs/Descending",
               "played": "#/$defs/Played",
               "walk": "#/$defs/Walk"
             },
@@ -560,6 +561,9 @@
           "oneOf": [
             {
               "$ref": "#/$defs/Ascending"
+            },
+            {
+              "$ref": "#/$defs/Descending"
             },
             {
               "$ref": "#/$defs/Played"
@@ -3565,6 +3569,28 @@
         "rate"
       ],
       "title": "Cycle",
+      "type": "object"
+    },
+    "Descending": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "descending",
+          "default": "descending",
+          "title": "Kind",
+          "type": "string"
+        },
+        "key": {
+          "default": "pitch",
+          "enum": [
+            "pitch",
+            "selection_key"
+          ],
+          "title": "Key",
+          "type": "string"
+        }
+      },
+      "title": "Descending",
       "type": "object"
     },
     "Direction": {
