@@ -1,0 +1,32 @@
+from fractions import Fraction
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from ufor.arpeggiator import ArpeggiatorScore, Ascending, Grid, HeldBank
+from ufor.codec import parse_score, score_toml
+
+
+@pytest.mark.parametrize('name', ['up', 'wind-memory', 'five-in-eight', 'sample-notes'])
+def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
+    text = Path(f'conformance/arpeggiator/{name}.toml').read_text()
+    score = parse_score(text)
+    assert isinstance(score, ArpeggiatorScore)
+    assert score.name == name
+    assert parse_score(score_toml(score)) == score
+
+
+def test_simple_profile_has_the_declared_defaults() -> None:
+    score = parse_score(Path('conformance/arpeggiator/up.toml').read_text())
+    assert isinstance(score, ArpeggiatorScore)
+    assert score.body.bank == HeldBank()
+    assert score.body.selection == Ascending()
+    assert score.body.rhythm == Grid(step='1/4 beat')
+    assert score.body.gate == Fraction(4, 5)
+
+
+@pytest.mark.parametrize('step', ['0 beat', '-1 beat', '1/0 beat', '1/4', 'abc beat'])
+def test_grid_rejects_invalid_beat_durations(step: str) -> None:
+    with pytest.raises(ValidationError, match='positive rational beat duration'):
+        Grid(step=step)

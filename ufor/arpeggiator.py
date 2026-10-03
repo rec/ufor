@@ -1,0 +1,130 @@
+"""Portable arpeggiator profiles, independent of MIDI and audio devices."""
+
+from fractions import Fraction
+from typing import Annotated, Literal, Self
+
+from pydantic import Field, field_validator, model_validator
+
+from .base import Model
+from .control import Rational
+from .score import Score
+from .selector import parse_selector
+
+
+class HeldBank(Model):
+    kind: Literal['held'] = 'held'
+
+
+class LatchedBank(Model):
+    kind: Literal['latched'] = 'latched'
+    update: Literal['replace', 'add', 'toggle'] = 'replace'
+
+
+class HistoryBank(Model):
+    kind: Literal['history'] = 'history'
+    notes: int = Field(default=8, strict=True, ge=1)
+    publish: Literal['step'] = 'step'
+
+
+class RegionsBank(Model):
+    kind: Literal['regions'] = 'regions'
+    reference: str
+
+    @field_validator('reference')
+    @classmethod
+    def canonical_reference(cls, value: str) -> str:
+        return str(parse_selector(value))
+
+
+class Ascending(Model):
+    kind: Literal['ascending'] = 'ascending'
+    key: Literal['pitch', 'selection_key'] = 'pitch'
+    repeats: int = Field(default=1, strict=True, ge=1)
+
+
+class Played(Model):
+    kind: Literal['played'] = 'played'
+    direction: Literal['forward', 'reverse'] = 'forward'
+
+
+class Walk(Model):
+    kind: Literal['walk'] = 'walk'
+    moves: list[int] = Field(min_length=1)
+    weights: list[int] = Field(min_length=1)
+    boundary: Literal['wrap'] = 'wrap'
+
+    @model_validator(mode='after')
+    def weighted_moves(self) -> Self:
+        if len(self.moves) != len(self.weights) or any(w <= 0 for w in self.weights):
+            raise ValueError('walk weights must be positive and match moves')
+        return self
+
+
+class Grid(Model):
+    kind: Literal['grid'] = 'grid'
+    step: str
+
+    @field_validator('step')
+    @classmethod
+    def beat_step(cls, value: str) -> str:
+        return _beat_step(value)
+
+
+class Euclidean(Model):
+    kind: Literal['euclidean'] = 'euclidean'
+    steps: int = Field(strict=True, ge=1)
+    pulses: int = Field(strict=True, ge=0)
+    rotation: int = Field(default=0, strict=True)
+    step: str
+
+    @field_validator('step')
+    @classmethod
+    def beat_step(cls, value: str) -> str:
+        return _beat_step(value)
+
+    @model_validator(mode='after')
+    def pulse_count(self) -> Self:
+        if self.pulses > self.steps:
+            raise ValueError('pulses must not exceed steps')
+        return self
+
+
+class SourceRhythm(Model):
+    kind: Literal['source'] = 'source'
+
+
+class Expression(Model):
+    source: Literal['current', 'recorded'] = 'current'
+    timing: Literal['original', 'fit'] = 'original'
+    gaps: Literal['carry', 'omit'] = 'omit'
+
+
+class Arpeggiator(Model):
+    bank: Annotated[
+        HeldBank | LatchedBank | HistoryBank | RegionsBank,
+        Field(discriminator='kind'),
+    ] = HeldBank()
+    selection: Annotated[Ascending | Played | Walk, Field(discriminator='kind')] = (
+        Ascending()
+    )
+    rhythm: Annotated[Grid | Euclidean | SourceRhythm, Field(discriminator='kind')]
+    gate: Rational = Field(default=Fraction(4, 5), ge=0)
+    expression: Expression = Expression()
+    seed: int | None = Field(default=None, strict=True)
+
+
+class ArpeggiatorScore(Score):
+    kind: Literal['arpeggiator'] = 'arpeggiator'
+    body: Arpeggiator
+
+
+def _beat_step(value: str) -> str:
+    if not value.endswith(' beat'):
+        raise ValueError('step must be a positive rational beat duration')
+    try:
+        step = Fraction(value.removesuffix(' beat'))
+    except (ValueError, ZeroDivisionError) as error:
+        raise ValueError('step must be a positive rational beat duration') from error
+    if step <= 0:
+        raise ValueError('step must be a positive rational beat duration')
+    return f'{step} beat'

@@ -1,0 +1,9 @@
+kind = "arpeggiator"
+name = "wind-memory"
+title = "Remember eight gestures"
+
+[body]
+bank = { kind = "history", notes = 8, publish = "step" }
+selection = { kind = "played", direction = "reverse" }
+rhythm = { kind = "grid", step = "1/2 beat" }
+expression = { source = "recorded", timing = "fit", gaps = "carry" }

@@ -4,6 +4,7 @@ from typing import Annotated
 
 from pydantic import Field
 
+from .arpeggiator import ArpeggiatorScore
 from .arrangement import ArrangementScore
 from .automation import AutomationScore
 from .binding import BindingScore
@@ -22,7 +23,8 @@ from .slideshow import SlideshowScore
 from .synth import SynthInstrumentScore
 
 ScoreValue = Annotated[
-    ArrangementScore
+    ArpeggiatorScore
+    | ArrangementScore
     | AutomationScore
     | BindingScore
     | PerformanceBindingScore
