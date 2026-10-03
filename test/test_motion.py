@@ -401,6 +401,81 @@ def test_patch_marker_can_start_waiting_contour() -> None:
         )
 
 
+@pytest.mark.parametrize('child_kind', ['cycle', 'stages'])
+def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
+    child = {
+        'kind': 'cycle',
+        'rate': '1',
+        'markers': [{'name': 'peak', 'position': '1/4'}],
+    }
+    if child_kind == 'stages':
+        child = {
+            'kind': 'stages',
+            'initial_stage': 'playing',
+            'stages': [{'name': 'playing', 'motion': child}],
+        }
+    body = {
+        'kind': 'patch',
+        'motions': {'pulse': child},
+        'outputs': {'signal': 'pulse'},
+        'event_outputs': {'strike': 'pulse.peak'},
+    }
+    patch = MotionUse.model_validate({'body': body})
+    assert MotionUse.model_validate_json(patch.model_dump_json()) == patch
+    settings = {
+        'motions': {
+            'patch': {'body': body},
+            'level': {
+                'body': {
+                    'kind': 'stages',
+                    'initial_stage': 'waiting',
+                    'stages': [
+                        {'name': 'waiting', 'motion': {'kind': 'hold'}},
+                        {'name': 'bright', 'motion': {'kind': 'hold', 'value': 1}},
+                    ],
+                    'transitions': [
+                        {
+                            'from': ['waiting'],
+                            'event': 'cue.brighten',
+                            'action': {'kind': 'enter', 'stage': 'bright'},
+                        }
+                    ],
+                }
+            },
+        },
+        'bindings': [
+            {
+                'name': 'patch',
+                'kind': 'motion',
+                'reference': 'patch',
+                'output': 'signal',
+            },
+            {'name': 'level', 'kind': 'motion', 'reference': 'level'},
+        ],
+        'modulation': {
+            'sources': [
+                {'name': 'patch', 'scope': 'voice', 'minimum': -1, 'maximum': 1},
+                {'name': 'level', 'scope': 'voice', 'minimum': -1, 'maximum': 1},
+            ]
+        },
+        'event_connections': [
+            {
+                'source': 'patch',
+                'port': 'strike',
+                'destination': 'level',
+                'cue': 'brighten',
+            }
+        ],
+    }
+    assert SoundSettings.model_validate(settings)
+    if child_kind == 'stages':
+        body['event_outputs']['strike'] = 'pulse.stage.done'
+        assert MotionUse.model_validate({'body': body})
+    body['event_outputs']['strike'] = 'pulse.missing'
+    with pytest.raises(ValidationError, match='unknown child event'):
+        MotionUse.model_validate({'body': body})
+
+
 @pytest.mark.parametrize(
     ('body', 'expected'),
     [
