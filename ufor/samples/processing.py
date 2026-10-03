@@ -220,6 +220,7 @@ class SoundSettings(Model):
             or self.envelope.polarity != control.Polarity.unipolar
         ):
             raise ValueError('Amplitude envelope must be unipolar and voice scoped')
+        patch_release_timings: dict[tuple[str, str], ReleaseTiming] = {}
         for binding in self.bindings:
             source = sources[binding.name]
             if isinstance(binding, EventBinding):
@@ -254,6 +255,15 @@ class SoundSettings(Model):
                     selected = generator.body.motions[
                         generator.body.outputs[binding.output]
                     ]
+                    child = (binding.reference, generator.body.outputs[binding.output])
+                    if (
+                        child in patch_release_timings
+                        and patch_release_timings[child] != binding.release_timing
+                    ):
+                        raise ValueError(
+                            'Patch child outputs require one release timing'
+                        )
+                    patch_release_timings[child] = binding.release_timing
                 else:
                     if binding.output is not None and generator.score is None:
                         raise ValueError('Only Patch bindings select named outputs')
