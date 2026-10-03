@@ -6830,6 +6830,10 @@
           "$ref": "#/$defs/Clock",
           "default": "seconds"
         },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
         "body": {
           "anyOf": [
             {
@@ -8303,6 +8307,14 @@
       ],
       "title": "Position",
       "type": "object"
+    },
+    "PositionDriver": {
+      "enum": [
+        "elapsed",
+        "transport"
+      ],
+      "title": "PositionDriver",
+      "type": "string"
     },
     "PresetScore": {
       "additionalProperties": false,

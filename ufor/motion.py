@@ -59,6 +59,11 @@ class PlaybackMode(StrEnum):
     ping_pong = auto()
 
 
+class PositionDriver(StrEnum):
+    elapsed = auto()
+    transport = auto()
+
+
 class Cycle(Model):
     kind: Literal['cycle'] = 'cycle'
     shape: Waveform = Waveform.sine
@@ -231,6 +236,7 @@ class Stages(Model):
 class MotionUse(Model):
     scope: control.Scope = control.Scope.voice
     clock: control.Clock = control.Clock.seconds
+    position_driver: PositionDriver = PositionDriver.elapsed
     body: Annotated[Cycle | Contour | Stages, Field(discriminator='kind')] | None = None
     score: ScoreReference | None = None
     parameters: dict[Identifier, float] = Field(default_factory=dict)
@@ -238,6 +244,20 @@ class MotionUse(Model):
 
     @model_validator(mode='after')
     def one_definition(self) -> Self:
+        if self.position_driver == PositionDriver.transport and (
+            self.clock != control.Clock.beats
+            or self.body is not None
+            and (
+                not isinstance(self.body, Cycle)
+                or self.body.reset != Reset.transport
+                or self.body.delay != 0
+                or self.body.fade_in != 0
+            )
+        ):
+            raise ValueError(
+                'transport position requires a beat-clock Cycle with '
+                'transport reset and no onset fade'
+            )
         if (self.body is None) == (self.score is None):
             raise ValueError('MotionUse requires exactly one body or score reference')
         if self.score is None and self.parameters:
@@ -619,6 +639,19 @@ def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
 def motion_at(motion: MotionUse, state: MotionState, at: Fraction) -> MotionValue:
     if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
         position = state.runtime.position
+        if motion.position_driver == PositionDriver.transport:
+            assert isinstance(motion.body.rate, Fraction)
+            return MotionValue(
+                value=motion.body.center
+                + motion.body.depth
+                * shape_value(
+                    motion.body.shape,
+                    (motion.body.phase + motion.body.rate * at) % 1,
+                    motion.body.duty_cycle,
+                ),
+                weight=1.0,
+                status='running',
+            )
         coordinate = _coordinate_at(position, at)
         age = _age_at(position, at)
         if age < motion.body.delay:
@@ -646,6 +679,8 @@ def motion_at(motion: MotionUse, state: MotionState, at: Fraction) -> MotionValu
 def motion_event(
     motion: MotionUse, state: MotionState, event: MotionEvent
 ) -> MotionState:
+    if motion.position_driver == PositionDriver.transport:
+        raise ValueError('transport-position Cycle does not accept phase commands')
     if isinstance(motion.body, Stages) and isinstance(state.runtime, StageState):
         return advance_motion(motion, state, event.at, event).state
     if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
@@ -1214,6 +1249,7 @@ def instantiate_motion(
     scope: control.Scope = control.Scope.voice,
     clock: control.Clock = control.Clock.seconds,
     origin: MotionOrigin | None = None,
+    position_driver: PositionDriver = PositionDriver.elapsed,
 ) -> MotionUse:
     values = parameters or {}
     if values.keys() - score.parameters.keys():
@@ -1227,4 +1263,10 @@ def instantiate_motion(
                 f'motion parameter {body.rate.parameter} is outside its range'
             )
         body = Cycle.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
-    return MotionUse(scope=scope, clock=clock, body=body, origin=origin)
+    return MotionUse(
+        scope=scope,
+        clock=clock,
+        position_driver=position_driver,
+        body=body,
+        origin=origin,
+    )
