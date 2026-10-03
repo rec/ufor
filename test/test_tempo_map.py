@@ -47,6 +47,13 @@ def test_host_tempo_map_preserves_exact_beats_through_tempo_stop_and_seek() -> N
         Fraction(9, 2),
     ]
     assert clock.elapsed_beats(Fraction(1, 2), Fraction(7, 2)) == Fraction(11, 4)
+    assert [clock.time_for_elapsed_beat(Fraction(n)) for n in range(5)] == [
+        Fraction(0),
+        Fraction(1, 2),
+        Fraction(1),
+        Fraction(2),
+        Fraction(11, 3),
+    ]
 
 
 def test_host_tempo_map_rejects_ambiguous_ordering_and_nonpositive_rate() -> None:

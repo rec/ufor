@@ -255,6 +255,13 @@ class MotionUse(Model):
             for s in [*self.body.segments, *self.body.release]
         ):
             raise ValueError('contour segment units must match its clock')
+        if isinstance(self.body, Stages) and any(
+            segment.duration_unit.value != self.clock.value
+            for stage in self.body.stages
+            if isinstance(stage.motion, Contour)
+            for segment in stage.motion.segments
+        ):
+            raise ValueError('stage contour segment units must match its clock')
         return self
 
 
