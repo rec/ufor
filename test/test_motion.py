@@ -401,6 +401,53 @@ def test_patch_marker_can_start_waiting_contour() -> None:
         )
 
 
+def test_patch_marker_cues_child_stages() -> None:
+    body = {
+        'kind': 'patch',
+        'motions': {
+            'clock': {
+                'kind': 'cycle',
+                'rate': '2',
+                'markers': [{'name': 'peak', 'position': '1/4'}],
+            },
+            'level': {
+                'kind': 'stages',
+                'initial_stage': 'waiting',
+                'stages': [
+                    {'name': 'waiting', 'motion': {'kind': 'hold'}},
+                    {'name': 'bright', 'motion': {'kind': 'hold', 'value': 1}},
+                ],
+                'transitions': [
+                    {
+                        'from': ['waiting'],
+                        'event': 'cue.brighten',
+                        'action': {'kind': 'enter', 'stage': 'bright'},
+                    }
+                ],
+            },
+        },
+        'outputs': {'value': 'level'},
+        'events': [
+            {
+                'source': 'clock.peak',
+                'target': 'level',
+                'action': 'cue',
+                'cue': 'brighten',
+            }
+        ],
+    }
+    score = MotionScore.model_validate(
+        {'name': 'gesture', 'title': 'Gesture', 'body': body}
+    )
+    assert parse_score(score_toml(score)) == score
+    body['events'][0]['cue'] = 'missing'
+    with pytest.raises(ValidationError, match='matching stage transition'):
+        MotionUse.model_validate({'body': body})
+    body['events'][0].pop('cue')
+    with pytest.raises(ValidationError, match='require a cue name'):
+        MotionUse.model_validate({'body': body})
+
+
 @pytest.mark.parametrize('child_kind', ['cycle', 'stages'])
 def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
     child = {
