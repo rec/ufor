@@ -304,6 +304,16 @@ def test_patch_named_outputs_select_child_signal_domains() -> None:
     raw['modulation']['sources'][0]['minimum'] = -1
     with pytest.raises(ValidationError, match='source scope and domain'):
         SoundSettings.model_validate(raw)
+    raw['modulation']['sources'][0]['minimum'] = 0
+    raw['modulation']['sources'][1]['minimum'] = 0
+    raw['motions']['gesture']['body']['outputs']['pitch'] = 'amp'
+    raw['motions']['gesture']['body']['motions']['amp']['release'] = [
+        {'duration': '1 s', 'to': 0}
+    ]
+    assert SoundSettings.model_validate(raw)
+    raw['bindings'][1]['release_timing'] = 'voice'
+    with pytest.raises(ValidationError, match='one release timing'):
+        SoundSettings.model_validate(raw)
 
 
 def test_patch_output_and_clock_references_are_validated() -> None:
