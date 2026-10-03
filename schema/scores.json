@@ -8560,6 +8560,13 @@
           "title": "Outputs",
           "type": "object"
         },
+        "event_outputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Event Outputs",
+          "type": "object"
+        },
         "events": {
           "items": {
             "$ref": "#/$defs/PatchEventConnection"

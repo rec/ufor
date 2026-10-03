@@ -236,6 +236,26 @@ class Stages(Model):
         return self
 
 
+def stage_event_ports(body: Stages) -> set[str]:
+    ports = {'done', 'stage.done'} | {
+        marker.name
+        for stage in body.stages
+        for marker in getattr(stage.motion, 'markers', [])
+    }
+    if any(
+        isinstance(stage.motion, Contour) and stage.motion.playback != PlaybackMode.once
+        for stage in body.stages
+    ):
+        ports.add('cycle')
+    if any(
+        isinstance(stage.motion, Contour)
+        and stage.motion.playback == PlaybackMode.ping_pong
+        for stage in body.stages
+    ):
+        ports.add('turned')
+    return ports
+
+
 class PatchEventConnection(Model):
     source: str = Field(min_length=3)
     target: Identifier
@@ -248,12 +268,26 @@ class Patch(Model):
         Identifier, Annotated[Cycle | Contour | Stages, Field(discriminator='kind')]
     ] = Field(min_length=1)
     outputs: dict[Identifier, Identifier] = Field(min_length=1)
+    event_outputs: dict[Identifier, str] = Field(default_factory=dict)
     events: list[PatchEventConnection] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def selected_motions(self) -> Self:
         if any(name not in self.motions for name in self.outputs.values()):
             raise ValueError('patch output references an unknown child Motion')
+        for source in self.event_outputs.values():
+            child, separator, port = source.partition('.')
+            body = self.motions.get(child)
+            if not separator or not port:
+                raise ValueError('patch event output must name a child event')
+            if isinstance(body, Cycle):
+                ports = {marker.name for marker in body.markers}
+            elif isinstance(body, Stages):
+                ports = stage_event_ports(body)
+            else:
+                ports = set()
+            if port not in ports:
+                raise ValueError('patch event output references an unknown child event')
         if any(
             isinstance(body, Cycle) and isinstance(body.rate, ParameterReference)
             for body in self.motions.values()
@@ -335,14 +369,21 @@ class MotionUse(Model):
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
-            if self.body.events and (
+            cycle_sources = {
+                connection.source.partition('.')[0] for connection in self.body.events
+            } | {
+                source.partition('.')[0]
+                for source in self.body.event_outputs.values()
+                if isinstance(self.body.motions[source.partition('.')[0]], Cycle)
+            }
+            if cycle_sources and (
                 self.clock != control.Clock.seconds or self.scope != control.Scope.voice
             ):
                 raise ValueError(
                     'patch marker connections require simple voice seconds Cycles'
                 )
-            for connection in self.body.events:
-                child = self.body.motions[connection.source.partition('.')[0]]
+            for child_name in cycle_sources:
+                child = self.body.motions[child_name]
                 assert isinstance(child, Cycle)
                 if (
                     child.rate == 0

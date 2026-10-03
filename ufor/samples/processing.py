@@ -10,8 +10,9 @@ from pydantic import Field, StrictBool, model_validator
 from .. import control, modulation
 from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
 from ..envelope import Envelope
+from ..lfo import Reset
 from ..modulation import Modulation, Target, Unit
-from ..motion import Contour, Cycle, MotionUse, Patch, PlaybackMode, Stages
+from ..motion import Contour, Cycle, MotionUse, Patch, Stages, stage_event_ports
 from . import enums
 from .controls import ControlDeclaration
 
@@ -185,25 +186,24 @@ class SoundSettings(Model):
             ):
                 raise ValueError('Motion event connections require voice scope')
             if origin.body is not None:
-                if not isinstance(origin.body, Stages):
-                    raise ValueError('Motion event source must have stages')
-                ports = {'done', 'stage.done'} | {
-                    marker.name
-                    for stage in origin.body.stages
-                    for marker in getattr(stage.motion, 'markers', [])
-                }
-                if any(
-                    isinstance(s.motion, Contour)
-                    and s.motion.playback != PlaybackMode.once
-                    for s in origin.body.stages
-                ):
-                    ports.add('cycle')
-                if any(
-                    isinstance(s.motion, Contour)
-                    and s.motion.playback == PlaybackMode.ping_pong
-                    for s in origin.body.stages
-                ):
-                    ports.add('turned')
+                if isinstance(origin.body, Patch):
+                    ports = origin.body.event_outputs.keys()
+                elif isinstance(origin.body, Stages):
+                    ports = stage_event_ports(origin.body)
+                elif isinstance(origin.body, Cycle):
+                    if (
+                        origin.clock != control.Clock.seconds
+                        or origin.body.rate == 0
+                        or origin.body.reset != Reset.trigger
+                        or origin.body.delay
+                        or origin.body.fade_in
+                    ):
+                        raise ValueError(
+                            'Cycle event source requires a simple seconds clock'
+                        )
+                    ports = {marker.name for marker in origin.body.markers}
+                else:
+                    raise ValueError('Motion event source has no event ports')
                 if connection.port not in ports:
                     raise ValueError(
                         'Motion event connection references an unknown port'
