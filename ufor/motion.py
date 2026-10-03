@@ -309,10 +309,19 @@ class Patch(Model):
             source, separator, port = connection.source.partition('.')
             origin = self.motions.get(source)
             target = self.motions.get(connection.target)
-            if not separator or '.' in port or not isinstance(origin, Cycle):
-                raise ValueError('patch event source must name a Cycle marker')
-            if port not in {marker.name for marker in origin.markers}:
-                raise ValueError('patch event source references an unknown marker')
+            if not separator or not port:
+                raise ValueError('patch event source must name a child event')
+            if isinstance(origin, Cycle):
+                ports = {marker.name for marker in origin.markers}
+            elif isinstance(origin, Stages) and connection.action == 'cue':
+                ports = stage_event_ports(origin)
+            else:
+                raise ValueError('patch event source cannot emit this command')
+            if port not in ports:
+                raise ValueError(
+                    'patch event source references an unknown '
+                    + ('marker' if isinstance(origin, Cycle) else 'stage event')
+                )
             if connection.action == 'start':
                 if (
                     not isinstance(target, Contour)
@@ -385,15 +394,22 @@ class MotionUse(Model):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
             cycle_sources = {
-                connection.source.partition('.')[0] for connection in self.body.events
+                name
+                for connection in self.body.events
+                if isinstance(
+                    self.body.motions[name := connection.source.partition('.')[0]],
+                    Cycle,
+                )
             } | {
                 source.partition('.')[0]
                 for source in self.body.event_outputs.values()
                 if isinstance(self.body.motions[source.partition('.')[0]], Cycle)
             }
-            if cycle_sources and (
-                self.clock != control.Clock.seconds or self.scope != control.Scope.voice
-            ):
+            if (
+                self.body.events or cycle_sources
+            ) and self.scope != control.Scope.voice:
+                raise ValueError('patch event connections require voice scope')
+            if cycle_sources and self.clock != control.Clock.seconds:
                 raise ValueError(
                     'patch marker connections require simple voice seconds Cycles'
                 )
