@@ -5301,6 +5301,18 @@
           "title": "Reference",
           "type": "string"
         },
+        "output": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Output"
+        },
         "release_timing": {
           "$ref": "#/$defs/ReleaseTiming",
           "default": "event"
@@ -7163,6 +7175,7 @@
             "mapping": {
               "contour": "#/$defs/Contour",
               "cycle": "#/$defs/Cycle",
+              "patch": "#/$defs/Patch",
               "stages": "#/$defs/Stages"
             },
             "propertyName": "kind"
@@ -7176,6 +7189,9 @@
             },
             {
               "$ref": "#/$defs/Stages"
+            },
+            {
+              "$ref": "#/$defs/Patch"
             }
           ],
           "title": "Body"
@@ -7211,6 +7227,7 @@
                 "mapping": {
                   "contour": "#/$defs/Contour",
                   "cycle": "#/$defs/Cycle",
+                  "patch": "#/$defs/Patch",
                   "stages": "#/$defs/Stages"
                 },
                 "propertyName": "kind"
@@ -7224,6 +7241,9 @@
                 },
                 {
                   "$ref": "#/$defs/Stages"
+                },
+                {
+                  "$ref": "#/$defs/Patch"
                 }
               ]
             },
@@ -8438,6 +8458,57 @@
         }
       },
       "title": "PartyMode",
+      "type": "object"
+    },
+    "Patch": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "patch",
+          "default": "patch",
+          "title": "Kind",
+          "type": "string"
+        },
+        "motions": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "contour": "#/$defs/Contour",
+                "cycle": "#/$defs/Cycle",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/Cycle"
+              },
+              {
+                "$ref": "#/$defs/Contour"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              }
+            ]
+          },
+          "minProperties": 1,
+          "title": "Motions",
+          "type": "object"
+        },
+        "outputs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "minProperties": 1,
+          "title": "Outputs",
+          "type": "object"
+        }
+      },
+      "required": [
+        "motions",
+        "outputs"
+      ],
+      "title": "Patch",
       "type": "object"
     },
     "PerformanceBinding": {
