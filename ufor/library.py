@@ -127,6 +127,7 @@ class Library:
                 value.scope,
                 value.clock,
                 MotionOrigin(identity=key, sha256=self.entries[key].sha256),
+                value.position_driver,
             )
         if isinstance(value, BaseModel):
             return value.model_copy(

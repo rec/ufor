@@ -115,6 +115,54 @@ def test_stage_contour_durations_match_the_motion_clock() -> None:
         MotionUse.model_validate({'clock': 'seconds', 'body': body})
 
 
+def test_transport_position_cycle_follows_song_beats_across_seek() -> None:
+    motion = MotionUse.model_validate(
+        {
+            'clock': 'beats',
+            'position_driver': 'transport',
+            'body': {
+                'kind': 'cycle',
+                'shape': 'triangle',
+                'rate': '1/4',
+                'reset': 'transport',
+            },
+        }
+    )
+    state = initial_motion(motion, Fraction(0))
+    assert motion_at(motion, state, Fraction(0)).value == -1
+    assert motion_at(motion, state, Fraction(1)).value == 0
+    assert motion_at(motion, state, Fraction(2)).value == 1
+    assert motion_at(motion, state, Fraction(1)).value == 0
+    with pytest.raises(ValueError, match='does not accept phase commands'):
+        motion_event(
+            motion, state, MotionEvent(at=Fraction(1), ordinal=0, action='reset')
+        )
+    with pytest.raises(ValidationError, match='transport position requires'):
+        MotionUse.model_validate(
+            {
+                'clock': 'beats',
+                'position_driver': 'transport',
+                'body': {'kind': 'cycle', 'rate': '1'},
+            }
+        )
+    reference = MotionUse.model_validate(
+        {
+            'clock': 'beats',
+            'position_driver': 'transport',
+            'score': {'selector': 'pulse'},
+        }
+    )
+    score = MotionScore(
+        name='pulse',
+        title='Pulse',
+        body=Cycle(rate=Fraction(1, 4), reset='transport'),
+    )
+    resolved = instantiate_motion(
+        score, clock=reference.clock, position_driver=reference.position_driver
+    )
+    assert resolved.position_driver == reference.position_driver
+
+
 def test_voice_motion_event_connections_validate_ports_and_cues() -> None:
     source = staged_motion()
     destination = MotionUse(
