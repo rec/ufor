@@ -2955,6 +2955,15 @@
           "default": 0.0,
           "title": "Initial"
         },
+        "start": {
+          "default": "activation",
+          "enum": [
+            "activation",
+            "event"
+          ],
+          "title": "Start",
+          "type": "string"
+        },
         "segments": {
           "items": {
             "$ref": "#/$defs/Segment"
@@ -8511,6 +8520,13 @@
           "minProperties": 1,
           "title": "Outputs",
           "type": "object"
+        },
+        "events": {
+          "items": {
+            "$ref": "#/$defs/PatchEventConnection"
+          },
+          "title": "Events",
+          "type": "array"
         }
       },
       "required": [
@@ -8518,6 +8534,32 @@
         "outputs"
       ],
       "title": "Patch",
+      "type": "object"
+    },
+    "PatchEventConnection": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "minLength": 3,
+          "title": "Source",
+          "type": "string"
+        },
+        "target": {
+          "title": "Target",
+          "type": "string"
+        },
+        "action": {
+          "const": "start",
+          "default": "start",
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "source",
+        "target"
+      ],
+      "title": "PatchEventConnection",
       "type": "object"
     },
     "PerformanceBinding": {

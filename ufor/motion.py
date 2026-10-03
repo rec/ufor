@@ -97,6 +97,7 @@ class Cycle(Model):
 class Contour(Model):
     kind: Literal['contour'] = 'contour'
     initial: FiniteScalar | Literal['current'] = 0.0
+    start: Literal['activation', 'event'] = 'activation'
     segments: list[Segment] = Field(min_length=1)
     release: list[Segment] = Field(default_factory=list)
     polarity: control.Polarity = control.Polarity.unipolar
@@ -233,12 +234,19 @@ class Stages(Model):
         return self
 
 
+class PatchEventConnection(Model):
+    source: str = Field(min_length=3)
+    target: Identifier
+    action: Literal['start'] = 'start'
+
+
 class Patch(Model):
     kind: Literal['patch'] = 'patch'
     motions: dict[
         Identifier, Annotated[Cycle | Contour | Stages, Field(discriminator='kind')]
     ] = Field(min_length=1)
     outputs: dict[Identifier, Identifier] = Field(min_length=1)
+    events: list[PatchEventConnection] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def selected_motions(self) -> Self:
@@ -254,6 +262,21 @@ class Patch(Model):
             for body in self.motions.values()
         ):
             raise ValueError('patch contours need explicit initial values')
+        for connection in self.events:
+            source, separator, port = connection.source.partition('.')
+            origin = self.motions.get(source)
+            target = self.motions.get(connection.target)
+            if not separator or '.' in port or not isinstance(origin, Cycle):
+                raise ValueError('patch event source must name a Cycle marker')
+            if port not in {marker.name for marker in origin.markers}:
+                raise ValueError('patch event source references an unknown marker')
+            if (
+                not isinstance(target, Contour)
+                or target.start != 'event'
+                or target.release
+                or target.playback != PlaybackMode.once
+            ):
+                raise ValueError('patch event target must be an event-start Contour')
         return self
 
 
@@ -309,6 +332,24 @@ class MotionUse(Model):
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
+            if self.body.events and (
+                self.clock != control.Clock.seconds or self.scope != control.Scope.voice
+            ):
+                raise ValueError(
+                    'patch marker connections require simple voice seconds Cycles'
+                )
+            for connection in self.body.events:
+                child = self.body.motions[connection.source.partition('.')[0]]
+                assert isinstance(child, Cycle)
+                if (
+                    child.rate == 0
+                    or child.reset != Reset.trigger
+                    or child.delay
+                    or child.fade_in
+                ):
+                    raise ValueError(
+                        'patch marker connections require simple voice seconds Cycles'
+                    )
             for child in self.body.motions.values():
                 contours = (
                     [child]
@@ -330,6 +371,7 @@ class MotionUse(Model):
 
 class MotionEvent(control.ControlEvent):
     action: Literal[
+        'start',
         'note_on',
         'note_off',
         'reset',
@@ -666,7 +708,9 @@ def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
     return MotionState(
         runtime=ContourState(
             at=at,
-            phase='idle' if motion.body.release else 'on',
+            phase=(
+                'idle' if motion.body.release or motion.body.start == 'event' else 'on'
+            ),
             start_value=motion.body.initial,
             position=_initial_position(motion.body, at).model_copy(
                 update={
@@ -775,7 +819,9 @@ def motion_event(
                     motion.body, boundary, runtime.position.direction
                 )
         observed = _contour_value(motion.body, runtime, event.at)
-        if event.action == 'note_on':
+        if event.action == 'start' or (
+            event.action == 'note_on' and motion.body.start == 'activation'
+        ):
             active = observed.status in ('running', 'held')
             if not active or motion.body.retrigger != Retrigger.ignore:
                 assert isinstance(motion.body.initial, float)

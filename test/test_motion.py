@@ -341,6 +341,46 @@ def test_patch_output_and_clock_references_are_validated() -> None:
         )
 
 
+def test_patch_marker_can_start_waiting_contour() -> None:
+    body = {
+        'kind': 'patch',
+        'motions': {
+            'clock': {
+                'kind': 'cycle',
+                'rate': '2',
+                'markers': [{'name': 'peak', 'position': '1/4'}],
+            },
+            'accent': {
+                'kind': 'contour',
+                'start': 'event',
+                'segments': [{'duration': '1/4 s', 'to': 1}],
+            },
+        },
+        'events': [{'source': 'clock.peak', 'target': 'accent', 'action': 'start'}],
+        'outputs': {'value': 'accent'},
+    }
+    score = MotionScore.model_validate(
+        {'name': 'accent', 'title': 'Accent', 'body': body}
+    )
+    assert parse_score(score_toml(score)) == score
+    contour = MotionUse(body=score.body.motions['accent'])
+    state = initial_motion(contour, Fraction(0))
+    assert motion_at(contour, state, Fraction(1)).value == 0
+    state = motion_event(
+        contour,
+        state,
+        MotionEvent(at=Fraction(1, 8), ordinal=0, action='start'),
+    )
+    assert motion_at(contour, state, Fraction(1, 4)).value == 0.5
+    body['events'][0]['source'] = 'clock.missing'
+    with pytest.raises(ValidationError, match='unknown marker'):
+        MotionScore.model_validate({'name': 'accent', 'title': 'Accent', 'body': body})
+    body['events'][0]['source'] = 'clock.peak'
+    body['motions']['accent']['start'] = 'activation'
+    with pytest.raises(ValidationError, match='event-start Contour'):
+        MotionScore.model_validate({'name': 'accent', 'title': 'Accent', 'body': body})
+
+
 @pytest.mark.parametrize(
     ('body', 'expected'),
     [
