@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor.arpeggiator import ArpeggiatorScore, Ascending, Grid, HeldBank
+from ufor.arpeggiator import ArpeggiatorScore, Ascending, Descending, Grid, HeldBank
 from ufor.codec import parse_score, score_toml
 
 
@@ -24,6 +24,21 @@ def test_simple_profile_has_the_declared_defaults() -> None:
     assert score.body.selection == Ascending()
     assert score.body.rhythm == Grid(step='1/4 beat')
     assert score.body.gate == Fraction(4, 5)
+
+
+def test_descending_profile_is_supported() -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'down',
+            'title': 'Down',
+            'body': {
+                'selection': {'kind': 'descending'},
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+            },
+        }
+    )
+    assert score.body.selection == Descending()
+    assert parse_score(score_toml(score)) == score
 
 
 @pytest.mark.parametrize('step', ['0 beat', '-1 beat', '1/0 beat', '1/4', 'abc beat'])
