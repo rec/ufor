@@ -511,6 +511,170 @@
       "title": "AnimationScore",
       "type": "object"
     },
+    "Arpeggiator": {
+      "additionalProperties": false,
+      "properties": {
+        "bank": {
+          "default": {
+            "kind": "held"
+          },
+          "discriminator": {
+            "mapping": {
+              "held": "#/$defs/HeldBank",
+              "history": "#/$defs/HistoryBank",
+              "latched": "#/$defs/LatchedBank",
+              "regions": "#/$defs/RegionsBank"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/HeldBank"
+            },
+            {
+              "$ref": "#/$defs/LatchedBank"
+            },
+            {
+              "$ref": "#/$defs/HistoryBank"
+            },
+            {
+              "$ref": "#/$defs/RegionsBank"
+            }
+          ],
+          "title": "Bank"
+        },
+        "selection": {
+          "default": {
+            "kind": "ascending",
+            "key": "pitch",
+            "repeats": 1
+          },
+          "discriminator": {
+            "mapping": {
+              "ascending": "#/$defs/Ascending",
+              "played": "#/$defs/Played",
+              "walk": "#/$defs/Walk"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Ascending"
+            },
+            {
+              "$ref": "#/$defs/Played"
+            },
+            {
+              "$ref": "#/$defs/Walk"
+            }
+          ],
+          "title": "Selection"
+        },
+        "rhythm": {
+          "discriminator": {
+            "mapping": {
+              "euclidean": "#/$defs/Euclidean",
+              "grid": "#/$defs/Grid",
+              "source": "#/$defs/SourceRhythm"
+            },
+            "propertyName": "kind"
+          },
+          "oneOf": [
+            {
+              "$ref": "#/$defs/Grid"
+            },
+            {
+              "$ref": "#/$defs/Euclidean"
+            },
+            {
+              "$ref": "#/$defs/SourceRhythm"
+            }
+          ],
+          "title": "Rhythm"
+        },
+        "gate": {
+          "default": "4/5",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Gate",
+          "type": "string"
+        },
+        "expression": {
+          "$ref": "#/$defs/Expression",
+          "default": {
+            "source": "current",
+            "timing": "original",
+            "gaps": "omit"
+          }
+        },
+        "seed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Seed"
+        }
+      },
+      "required": [
+        "rhythm"
+      ],
+      "title": "Arpeggiator",
+      "type": "object"
+    },
+    "ArpeggiatorScore": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "const": "recs",
+          "default": "recs",
+          "title": "Format",
+          "type": "string"
+        },
+        "version": {
+          "const": 4,
+          "default": 4,
+          "title": "Version",
+          "type": "integer"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "title": {
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "tags": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Tags",
+          "type": "array"
+        },
+        "kind": {
+          "const": "arpeggiator",
+          "default": "arpeggiator",
+          "title": "Kind",
+          "type": "string"
+        },
+        "body": {
+          "$ref": "#/$defs/Arpeggiator"
+        }
+      },
+      "required": [
+        "name",
+        "title",
+        "body"
+      ],
+      "title": "ArpeggiatorScore",
+      "type": "object"
+    },
     "Arrangement": {
       "additionalProperties": false,
       "properties": {
@@ -740,6 +904,34 @@
         "default"
       ],
       "title": "Articulations",
+      "type": "object"
+    },
+    "Ascending": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "ascending",
+          "default": "ascending",
+          "title": "Kind",
+          "type": "string"
+        },
+        "key": {
+          "default": "pitch",
+          "enum": [
+            "pitch",
+            "selection_key"
+          ],
+          "title": "Key",
+          "type": "string"
+        },
+        "repeats": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Repeats",
+          "type": "integer"
+        }
+      },
+      "title": "Ascending",
       "type": "object"
     },
     "Asset": {
@@ -3674,6 +3866,43 @@
       "title": "EqualizerBand",
       "type": "object"
     },
+    "Euclidean": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "euclidean",
+          "default": "euclidean",
+          "title": "Kind",
+          "type": "string"
+        },
+        "steps": {
+          "minimum": 1,
+          "title": "Steps",
+          "type": "integer"
+        },
+        "pulses": {
+          "minimum": 0,
+          "title": "Pulses",
+          "type": "integer"
+        },
+        "rotation": {
+          "default": 0,
+          "title": "Rotation",
+          "type": "integer"
+        },
+        "step": {
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "steps",
+        "pulses",
+        "step"
+      ],
+      "title": "Euclidean",
+      "type": "object"
+    },
     "EventBinding": {
       "additionalProperties": false,
       "properties": {
@@ -4091,6 +4320,40 @@
         }
       },
       "title": "ExponentialFade",
+      "type": "object"
+    },
+    "Expression": {
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "default": "current",
+          "enum": [
+            "current",
+            "recorded"
+          ],
+          "title": "Source",
+          "type": "string"
+        },
+        "timing": {
+          "default": "original",
+          "enum": [
+            "original",
+            "fit"
+          ],
+          "title": "Timing",
+          "type": "string"
+        },
+        "gaps": {
+          "default": "omit",
+          "enum": [
+            "carry",
+            "omit"
+          ],
+          "title": "Gaps",
+          "type": "string"
+        }
+      },
+      "title": "Expression",
       "type": "object"
     },
     "FM": {
@@ -5098,6 +5361,26 @@
       "title": "GreyCode",
       "type": "object"
     },
+    "Grid": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "grid",
+          "default": "grid",
+          "title": "Kind",
+          "type": "string"
+        },
+        "step": {
+          "title": "Step",
+          "type": "string"
+        }
+      },
+      "required": [
+        "step"
+      ],
+      "title": "Grid",
+      "type": "object"
+    },
     "HalvesRainbow": {
       "additionalProperties": false,
       "properties": {
@@ -5181,6 +5464,44 @@
         }
       },
       "title": "Hamiltonian",
+      "type": "object"
+    },
+    "HeldBank": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "held",
+          "default": "held",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "title": "HeldBank",
+      "type": "object"
+    },
+    "HistoryBank": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "history",
+          "default": "history",
+          "title": "Kind",
+          "type": "string"
+        },
+        "notes": {
+          "default": 8,
+          "minimum": 1,
+          "title": "Notes",
+          "type": "integer"
+        },
+        "publish": {
+          "const": "step",
+          "default": "step",
+          "title": "Publish",
+          "type": "string"
+        }
+      },
+      "title": "HistoryBank",
       "type": "object"
     },
     "Hold": {
@@ -5819,6 +6140,29 @@
         }
       },
       "title": "LarsonScanner",
+      "type": "object"
+    },
+    "LatchedBank": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "latched",
+          "default": "latched",
+          "title": "Kind",
+          "type": "string"
+        },
+        "update": {
+          "default": "replace",
+          "enum": [
+            "replace",
+            "add",
+            "toggle"
+          ],
+          "title": "Update",
+          "type": "string"
+        }
+      },
+      "title": "LatchedBank",
       "type": "object"
     },
     "Layout": {
@@ -7931,6 +8275,7 @@
               "discriminator": {
                 "mapping": {
                   "animation": "#/$defs/AnimationScore",
+                  "arpeggiator": "#/$defs/ArpeggiatorScore",
                   "arrangement": "#/$defs/ArrangementScore",
                   "automation": "#/$defs/AutomationScore",
                   "binding": "#/$defs/BindingScore",
@@ -7951,6 +8296,9 @@
                 "propertyName": "kind"
               },
               "oneOf": [
+                {
+                  "$ref": "#/$defs/ArpeggiatorScore"
+                },
                 {
                   "$ref": "#/$defs/ArrangementScore"
                 },
@@ -8260,6 +8608,28 @@
         }
       },
       "title": "Playback",
+      "type": "object"
+    },
+    "Played": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "played",
+          "default": "played",
+          "title": "Kind",
+          "type": "string"
+        },
+        "direction": {
+          "default": "forward",
+          "enum": [
+            "forward",
+            "reverse"
+          ],
+          "title": "Direction",
+          "type": "string"
+        }
+      },
+      "title": "Played",
       "type": "object"
     },
     "Point": {
@@ -9316,6 +9686,26 @@
         "body"
       ],
       "title": "RecordingScore",
+      "type": "object"
+    },
+    "RegionsBank": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "regions",
+          "default": "regions",
+          "title": "Kind",
+          "type": "string"
+        },
+        "reference": {
+          "title": "Reference",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reference"
+      ],
+      "title": "RegionsBank",
       "type": "object"
     },
     "RelativeFileLocation": {
@@ -11202,6 +11592,19 @@
       "title": "SourceKind",
       "type": "string"
     },
+    "SourceRhythm": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "source",
+          "default": "source",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "title": "SourceRhythm",
+      "type": "object"
+    },
     "Stage": {
       "additionalProperties": false,
       "properties": {
@@ -12638,6 +13041,45 @@
       "title": "VolumeFileLocation",
       "type": "object"
     },
+    "Walk": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "walk",
+          "default": "walk",
+          "title": "Kind",
+          "type": "string"
+        },
+        "moves": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Moves",
+          "type": "array"
+        },
+        "weights": {
+          "items": {
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Weights",
+          "type": "array"
+        },
+        "boundary": {
+          "const": "wrap",
+          "default": "wrap",
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "moves",
+        "weights"
+      ],
+      "title": "Walk",
+      "type": "object"
+    },
     "Wave": {
       "additionalProperties": false,
       "properties": {
@@ -12924,6 +13366,7 @@
   "discriminator": {
     "mapping": {
       "animation": "#/$defs/AnimationScore",
+      "arpeggiator": "#/$defs/ArpeggiatorScore",
       "arrangement": "#/$defs/ArrangementScore",
       "automation": "#/$defs/AutomationScore",
       "binding": "#/$defs/BindingScore",
@@ -12944,6 +13387,9 @@
     "propertyName": "kind"
   },
   "oneOf": [
+    {
+      "$ref": "#/$defs/ArpeggiatorScore"
+    },
     {
       "$ref": "#/$defs/ArrangementScore"
     },

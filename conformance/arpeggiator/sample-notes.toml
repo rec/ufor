@@ -1,0 +1,9 @@
+kind = "arpeggiator"
+name = "sample-notes"
+title = "A recording as a keyboard"
+
+[body]
+bank = { kind = "regions", reference = "phrases:spoken-scale" }
+selection = { kind = "ascending", key = "selection_key", repeats = 1 }
+rhythm = { kind = "source" }
+expression = { source = "recorded", timing = "original", gaps = "carry" }

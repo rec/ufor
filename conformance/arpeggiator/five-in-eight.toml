@@ -1,0 +1,9 @@
+kind = "arpeggiator"
+name = "five-in-eight"
+title = "Five attacks, walking through the bank"
+
+[body]
+bank = { kind = "latched", update = "replace" }
+selection = { kind = "walk", moves = [-1, 1, 2], weights = [1, 3, 1], boundary = "wrap" }
+rhythm = { kind = "euclidean", steps = 8, pulses = 5, rotation = 0, step = "1/4 beat" }
+seed = 47
