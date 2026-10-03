@@ -603,6 +603,15 @@
           "title": "Gate",
           "type": "string"
         },
+        "retrigger": {
+          "default": "on_empty",
+          "enum": [
+            "on_empty",
+            "bank_edit"
+          ],
+          "title": "Retrigger",
+          "type": "string"
+        },
         "expression": {
           "$ref": "#/$defs/Expression",
           "default": {

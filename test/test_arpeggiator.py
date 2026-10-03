@@ -24,6 +24,21 @@ def test_simple_profile_has_the_declared_defaults() -> None:
     assert score.body.selection == Ascending()
     assert score.body.rhythm == Grid(step='1/4 beat')
     assert score.body.gate == Fraction(4, 5)
+    assert score.body.retrigger == 'on_empty'
+
+
+def test_bank_edit_retrigger_round_trips() -> None:
+    data = {
+        'name': 'restart-on-edit',
+        'title': 'Restart on chord edit',
+        'body': {
+            'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+            'retrigger': 'bank_edit',
+        },
+    }
+    score = ArpeggiatorScore.model_validate(data)
+    assert score.body.retrigger == 'bank_edit'
+    assert parse_score(score_toml(score)) == score
 
 
 def test_descending_profile_is_supported() -> None:
