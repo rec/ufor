@@ -449,7 +449,7 @@ def test_patch_marker_cues_child_stages() -> None:
 
 
 @pytest.mark.parametrize('source_kind', ['marker', 'stage.done'])
-def test_patch_stage_event_cues_child_stages(source_kind: str) -> None:
+def test_patch_stage_event_commands_children(source_kind: str) -> None:
     port = 'peak' if source_kind == 'marker' else 'stage.done'
     clock = {
         'kind': 'stages',
@@ -509,10 +509,22 @@ def test_patch_stage_event_cues_child_stages(source_kind: str) -> None:
     body['events'][0]['source'] = 'clock.missing'
     with pytest.raises(ValidationError, match='unknown stage event'):
         MotionUse.model_validate({'body': body})
-    body['events'][0]['source'] = 'clock.stage.done'
+    body['motions']['accent'] = {
+        'kind': 'contour',
+        'start': 'event',
+        'segments': [{'duration': '1/4 s', 'to': 1}],
+    }
+    body['outputs'] = {'value': 'accent'}
+    body['events'][0]['source'] = f'clock.{port}'
+    body['events'][0]['target'] = 'accent'
     body['events'][0]['action'] = 'start'
     body['events'][0].pop('cue')
-    with pytest.raises(ValidationError, match='cannot emit this command'):
+    score = MotionScore.model_validate(
+        {'name': 'gesture', 'title': 'Gesture', 'body': body}
+    )
+    assert parse_score(score_toml(score)) == score
+    body['motions']['accent']['start'] = 'activation'
+    with pytest.raises(ValidationError, match='event-start Contour'):
         MotionUse.model_validate({'body': body})
 
 

@@ -313,7 +313,7 @@ class Patch(Model):
                 raise ValueError('patch event source must name a child event')
             if isinstance(origin, Cycle):
                 ports = {marker.name for marker in origin.markers}
-            elif isinstance(origin, Stages) and connection.action == 'cue':
+            elif isinstance(origin, Stages):
                 ports = stage_event_ports(origin)
             else:
                 raise ValueError('patch event source cannot emit this command')
