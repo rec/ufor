@@ -8595,10 +8595,25 @@
           "type": "string"
         },
         "action": {
-          "const": "start",
           "default": "start",
+          "enum": [
+            "start",
+            "cue"
+          ],
           "title": "Action",
           "type": "string"
+        },
+        "cue": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cue"
         }
       },
       "required": [

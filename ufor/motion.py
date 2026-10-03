@@ -259,7 +259,14 @@ def stage_event_ports(body: Stages) -> set[str]:
 class PatchEventConnection(Model):
     source: str = Field(min_length=3)
     target: Identifier
-    action: Literal['start'] = 'start'
+    action: Literal['start', 'cue'] = 'start'
+    cue: Identifier | None = None
+
+    @model_validator(mode='after')
+    def cue_payload(self) -> Self:
+        if (self.action == 'cue') != (self.cue is not None):
+            raise ValueError('only cue connections require a cue name')
+        return self
 
 
 class Patch(Model):
@@ -306,14 +313,22 @@ class Patch(Model):
                 raise ValueError('patch event source must name a Cycle marker')
             if port not in {marker.name for marker in origin.markers}:
                 raise ValueError('patch event source references an unknown marker')
-            if (
-                not isinstance(target, Contour)
-                or target.start != 'event'
-                or target.release
-                or target.playback != PlaybackMode.once
-                or target.retrigger != Retrigger.current
+            if connection.action == 'start':
+                if (
+                    not isinstance(target, Contour)
+                    or target.start != 'event'
+                    or target.release
+                    or target.playback != PlaybackMode.once
+                    or target.retrigger != Retrigger.current
+                ):
+                    raise ValueError(
+                        'patch start target must be an event-start Contour'
+                    )
+            elif not isinstance(target, Stages) or not any(
+                transition.event == f'cue.{connection.cue}'
+                for transition in target.transitions
             ):
-                raise ValueError('patch event target must be an event-start Contour')
+                raise ValueError('patch cue target has no matching stage transition')
         return self
 
 
