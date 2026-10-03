@@ -448,6 +448,74 @@ def test_patch_marker_cues_child_stages() -> None:
         MotionUse.model_validate({'body': body})
 
 
+@pytest.mark.parametrize('source_kind', ['marker', 'stage.done'])
+def test_patch_stage_event_cues_child_stages(source_kind: str) -> None:
+    port = 'peak' if source_kind == 'marker' else 'stage.done'
+    clock = {
+        'kind': 'stages',
+        'initial_stage': 'playing',
+        'stages': [
+            {
+                'name': 'playing',
+                'motion': {
+                    'kind': 'cycle',
+                    'rate': '2',
+                    'markers': [{'name': 'peak', 'position': '1/4'}],
+                }
+                if source_kind == 'marker'
+                else {
+                    'kind': 'contour',
+                    'segments': [{'duration': '1/4 s', 'to': 1}],
+                },
+            }
+        ],
+    }
+    body = {
+        'kind': 'patch',
+        'motions': {
+            'clock': clock,
+            'level': {
+                'kind': 'stages',
+                'initial_stage': 'waiting',
+                'stages': [
+                    {'name': 'waiting', 'motion': {'kind': 'hold'}},
+                    {'name': 'bright', 'motion': {'kind': 'hold', 'value': 1}},
+                ],
+                'transitions': [
+                    {
+                        'from': ['waiting'],
+                        'event': 'cue.brighten',
+                        'action': {'kind': 'enter', 'stage': 'bright'},
+                    }
+                ],
+            },
+        },
+        'outputs': {'value': 'level'},
+        'events': [
+            {
+                'source': f'clock.{port}',
+                'target': 'level',
+                'action': 'cue',
+                'cue': 'brighten',
+            }
+        ],
+    }
+    score = MotionScore.model_validate(
+        {'name': 'gesture', 'title': 'Gesture', 'body': body}
+    )
+    assert parse_score(score_toml(score)) == score
+    with pytest.raises(ValidationError, match='voice scope'):
+        MotionUse.model_validate({'body': body, 'scope': 'part'})
+    body['events'][0]['source'] = 'clock.missing'
+    with pytest.raises(ValidationError, match='unknown stage event'):
+        MotionUse.model_validate({'body': body})
+    body['events'][0]['source'] = 'clock.stage.done'
+    body['events'][0]['action'] = 'start'
+    body['events'][0].pop('cue')
+    with pytest.raises(ValidationError, match='cannot emit this command'):
+        MotionUse.model_validate({'body': body})
+
+
 @pytest.mark.parametrize('child_kind', ['cycle', 'stages'])
 def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
     child = {
