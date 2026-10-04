@@ -29,6 +29,7 @@ def opcode_support(name: str) -> tuple[Support, str | None, str | None]:
     version, category = entry if entry is not None else (None, None)
     if (
         canonical in PARSABLE_OPCODES
+        or CONTROLLER_CONDITION.fullmatch(canonical)
         or name == 'amp_velcurve_N'
         or AMP_VELOCITY_CURVE.fullmatch(canonical)
     ):
@@ -207,6 +208,10 @@ PARSABLE_OPCODES = {
     'region_label',
     'sample',
     'sample_fadeout',
+    'sw_default',
+    'sw_hikey',
+    'sw_last',
+    'sw_lokey',
     'seq_length',
     'seq_position',
     'transpose',
@@ -254,6 +259,7 @@ ASSET_OPCODES = {
 AMBIGUOUS_OPCODES = {'polyphony', 'seq_length', 'seq_position'}
 CONDITIONAL_BINDING_OPCODES = {'lochan', 'hichan'}
 AMP_VELOCITY_CURVE = re.compile(r'amp_velcurve_(\d+)')
+CONTROLLER_CONDITION = re.compile(r'(lo|hi)cc(\d+)')
 STANDARD_OPCODES: dict[str, tuple[str, str]] = {
     '#define': ('SFZ v2', 'Instrument Settings'),
     'amp_attack': ('SFZ v2', 'Modulation/Envelope Generators'),

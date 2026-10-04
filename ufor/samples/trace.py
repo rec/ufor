@@ -89,8 +89,12 @@ def prepare(
 ) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering."""
     instrument = SampleInstrument.model_validate(instrument.model_dump())
-    if instrument.settings.articulations is not None:
-        raise ValueError('articulation preparation is unsupported')
+    articulations = instrument.settings.articulations
+    if articulations is not None:
+        if articulations.controls:
+            raise ValueError('control-driven articulations are unsupported')
+        if any(k.behavior != enums.KeyBehavior.latched for k in articulations.keys):
+            raise ValueError('momentary keyswitches are unsupported')
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))
     unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
     actions: list[Action] = []
@@ -117,6 +121,16 @@ def prepare(
         event: PerformanceEvent,
     ) -> list[SampleSlot]:
         nonlocal state
+        articulations = instrument.settings.articulations
+        active = (
+            state.articulations.get(part, articulations.default)
+            if articulations is not None
+            else None
+        )
+        controls = state.controls.get(part, {})
+        if isinstance(event, Trigger):
+            controls = controls | event.controls
+        control_defaults = instrument.settings.controls
         random_value = random_range_value(
             seed, part, getattr(event, 'trigger_id', None), event.tick, event.ordinal
         )
@@ -126,6 +140,13 @@ def prepare(
             if s.trigger == kind
             and s.mapping.lowest_key <= key <= s.mapping.highest_key
             and s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+            and (not s.articulations or active in s.articulations)
+            and all(
+                c.minimum_value
+                <= controls.get(c.control, control_defaults[c.control].default)
+                <= c.maximum_value
+                for c in s.control_conditions
+            )
             and (
                 s.sequence is None
                 or (state.note_on_counts.get(part, 0) - 1) % s.sequence.length + 1
@@ -381,6 +402,16 @@ def prepare(
                     trigger_id=event.trigger_id,
                 )
             )
+            if event.scope == 'part' and event.part is not None:
+                state = state.model_copy(
+                    update={
+                        'controls': state.controls
+                        | {
+                            event.part: state.controls.get(event.part, {})
+                            | {event.control: event.value}
+                        }
+                    }
+                )
             sustain_definition = instrument.settings.sustain
             if (
                 sustain_definition is not None
@@ -508,6 +539,16 @@ def prepare(
                             )
                     update_trigger(trigger, logical_released=True)
         elif isinstance(event, Trigger):
+            switches = instrument.settings.articulations
+            switch = (
+                next((s for s in switches.keys if s.key == event.key), None)
+                if switches is not None
+                else None
+            )
+            if switch is not None:
+                articulations = dict(state.articulations)
+                articulations[event.part] = switch.articulation
+                state = state.model_copy(update={'articulations': articulations})
             previous = next(
                 (
                     t
@@ -541,12 +582,16 @@ def prepare(
                     event.part: state.note_on_counts.get(event.part, 0) + 1
                 }
                 state = state.model_copy(update={'note_on_counts': counts})
-            selected = selected_slots(
-                event.part,
-                enums.TriggerKind.start,
-                event.key,
-                event.velocity,
-                event,
+            selected = (
+                []
+                if switch is not None and switch.consume
+                else selected_slots(
+                    event.part,
+                    enums.TriggerKind.start,
+                    event.key,
+                    event.velocity,
+                    event,
+                )
             )
             triggers.append(
                 ActiveTrigger(

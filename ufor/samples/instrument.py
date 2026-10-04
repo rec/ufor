@@ -33,6 +33,7 @@ from .processing import ChannelRoute, EventBinding, SoundSettings, spatial_bound
 from .selection import (
     Articulations,
     Choke,
+    ControlCondition,
     RandomRange,
     Selection,
     SequencePosition,
@@ -113,6 +114,7 @@ class SampleSlot(SoundSettings):
     crossfades: list[LayerCrossfade] = Field(default_factory=list)
     trigger: enums.TriggerKind = enums.TriggerKind.start
     articulations: list[Identifier] = Field(default_factory=list)
+    control_conditions: list[ControlCondition] = Field(default_factory=list)
     variation: Variation = Variation()
 
     @field_validator(
@@ -151,6 +153,7 @@ class SampleSlot(SoundSettings):
             raise ValueError('sequence position requires a start trigger')
         unique(self.tags, 'tag')
         unique(self.articulations, 'articulation reference')
+        unique((c.control for c in self.control_conditions), 'control condition')
         unique((c.group for c in self.chokes), 'choke target')
         unique(((c.input, c.output) for c in self.channels), 'channel route')
         unique(
@@ -333,6 +336,10 @@ class SampleInstrument(Model):
                 raise ValueError(
                     f'Slot {slot.name}: unknown articulations {sorted(missing)}'
                 )
+            for condition in slot.control_conditions:
+                declared = self.settings.require_control(condition.control)
+                declared.validate_value(condition.minimum_value)
+                declared.validate_value(condition.maximum_value)
             for choke in slot.chokes:
                 if choke.group not in choke_groups:
                     raise ValueError(

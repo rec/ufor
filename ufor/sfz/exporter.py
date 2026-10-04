@@ -845,6 +845,13 @@ def _slot_issues(
             articulation,
             'Instrument articulations require an external SFZ input binding',
         )
+    for i, condition in enumerate(slot.control_conditions):
+        _issue(
+            issues,
+            f'{path}.control_conditions[{i}]',
+            condition,
+            'Control conditions require an external SFZ controller binding',
+        )
     for name, value in slot.motions.items():
         _issue(
             issues,

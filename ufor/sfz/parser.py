@@ -18,6 +18,7 @@ from .model import (
 )
 from .registry import (
     AMP_VELOCITY_CURVE,
+    CONTROLLER_CONDITION,
     OPCODE_ALIASES,
     PARSABLE_OPCODES,
     Support,
@@ -245,8 +246,10 @@ def _parse(text: str) -> tuple[list[ParsedRegion], list[UnimplementedFeature]]:
         if not value and not (current == 'control' and name == 'default_path'):
             raise ValueError(f'SFZ opcode has no value: {opcode}')
         canonical = OPCODE_ALIASES.get(name, name)
-        supported = canonical in PARSABLE_OPCODES or AMP_VELOCITY_CURVE.fullmatch(
-            canonical
+        supported = (
+            canonical in PARSABLE_OPCODES
+            or AMP_VELOCITY_CURVE.fullmatch(canonical)
+            or CONTROLLER_CONDITION.fullmatch(canonical)
         )
         if current == 'control':
             if name != 'default_path':

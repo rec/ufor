@@ -41,7 +41,7 @@ from .parser import (
     _sfz_issue_position,
     sample_paths,
 )
-from .registry import AMP_VELOCITY_CURVE, OPCODE_ALIASES
+from .registry import AMP_VELOCITY_CURVE, CONTROLLER_CONDITION, OPCODE_ALIASES
 
 
 def compile_instrument(
@@ -97,6 +97,15 @@ def compile_instrument(
             )
         )
     unimplemented = list(source.unimplemented)
+    articulations = _keyswitches(source.regions, unimplemented)
+    controller_numbers = {
+        int(match.group(2))
+        for region in source.regions
+        for opcode in region.opcodes
+        if (match := CONTROLLER_CONDITION.fullmatch(opcode.opcode))
+    }
+    if any(number > 127 for number in controller_numbers):
+        raise ValueError('SFZ controller number must be between 0 and 127')
     slots: list[SampleSlot] = []
     slices: list[playback.Slice] = []
     slot_regions: list[ParsedRegion] = []
@@ -123,6 +132,7 @@ def compile_instrument(
                 unimplemented,
                 sequence_counter,
                 choke_targets,
+                articulations,
             )
         ) is not None:
             slot, sample_slice = result
@@ -163,8 +173,14 @@ def compile_instrument(
                 ],
                 body=SampleInstrument(
                     settings=SampleSettings(
-                        controls={'sustain': controls.ControlDeclaration()},
+                        controls={'sustain': controls.ControlDeclaration()}
+                        | {
+                            f'cc-{number}': controls.ControlDeclaration()
+                            for number in controller_numbers
+                            if number != 64
+                        },
                         sustain=selection.Sustain(control='sustain'),
+                        articulations=articulations,
                     ),
                     slots=slots,
                     slices=slices,
@@ -173,12 +189,76 @@ def compile_instrument(
             )
             | source.instrument_metadata
         )
-    binding = _midi_binding(source, name, title, midi_binding, unimplemented)
+    binding = _midi_binding(
+        source, name, title, midi_binding, unimplemented, controller_numbers
+    )
     unimplemented.sort(key=_sfz_issue_position)
     return SfzCompileResult(
         instrument=document,
         binding=binding if document is not None else None,
         unimplemented=unimplemented,
+    )
+
+
+def _keyswitches(
+    regions: list[ParsedRegion], unimplemented: list[UnimplementedFeature]
+) -> selection.Articulations | None:
+    keys: set[int] = set()
+    ranges: set[tuple[int, int]] = set()
+    defaults: set[int] = set()
+    switches: dict[tuple[int, int], ParsedOpcode] = {}
+    default_declarations: dict[tuple[int, int], ParsedOpcode] = {}
+    missing_range = False
+    for region in regions:
+        values = {o.opcode: o.value for o in region.opcodes}
+        declarations = {o.opcode: o for o in region.opcodes}
+        if 'sw_default' in values:
+            defaults.add(_key(values['sw_default'], 'sw_default'))
+            opcode = declarations['sw_default']
+            default_declarations[(opcode.line, opcode.column)] = opcode
+        if 'sw_last' not in values:
+            continue
+        keys.add(_key(values['sw_last'], 'sw_last'))
+        opcode = declarations['sw_last']
+        switches[(opcode.line, opcode.column)] = opcode
+        if 'sw_lokey' not in values or 'sw_hikey' not in values:
+            missing_range = True
+            continue
+        ranges.add(
+            (
+                _key(values['sw_lokey'], 'sw_lokey'),
+                _key(values['sw_hikey'], 'sw_hikey'),
+            )
+        )
+    if not keys:
+        return None
+    if missing_range or len(ranges) != 1:
+        reason = (
+            'SFZ sw_last requires sw_lokey and sw_hikey'
+            if missing_range
+            else 'SFZ keyswitch ranges differ between regions'
+        )
+        for opcode in switches.values():
+            _add_unimplemented(unimplemented, opcode, reason)
+        return None
+    if len(defaults) > 1:
+        for opcode in default_declarations.values():
+            _add_unimplemented(unimplemented, opcode, 'SFZ keyswitch defaults conflict')
+        return None
+    low, high = next(iter(ranges))
+    if low > high or any(not low <= key <= high for key in keys | defaults):
+        raise ValueError('SFZ keyswitch keys and default must lie within the range')
+    default = next(iter(defaults)) if defaults else None
+    return selection.Articulations(
+        ids=[f'sfz-switch-{key}' for key in sorted(keys)],
+        default=f'sfz-switch-{default}' if default in keys else None,
+        keys=[
+            selection.KeySwitch(
+                key=key,
+                articulation=f'sfz-switch-{key}' if key in keys else None,
+            )
+            for key in range(low, high + 1)
+        ],
     )
 
 
@@ -279,9 +359,11 @@ def _midi_binding(
     title: str,
     request: SfzMidiBindingRequest | None,
     unimplemented: list[UnimplementedFeature],
+    controller_numbers: set[int],
 ) -> PerformanceBindingScore | None:
     ranges: set[tuple[int, int]] = set()
     declarations: dict[tuple[int, int], ParsedOpcode] = {}
+    conditions: dict[tuple[int, int], ParsedOpcode] = {}
     for region in source.regions:
         values = {o.opcode: o.value for o in region.opcodes}
         low = _integer(values.get('lochan', '1'), 'lochan', minimum=1, maximum=16)
@@ -292,6 +374,8 @@ def _midi_binding(
         for opcode in region.opcodes:
             if opcode.opcode in ('lochan', 'hichan'):
                 declarations[(opcode.line, opcode.column)] = opcode
+            if CONTROLLER_CONDITION.fullmatch(opcode.opcode):
+                conditions[(opcode.line, opcode.column)] = opcode
     if request is None or len(ranges) > 1:
         reason = (
             'SFZ MIDI channel range requires an external controller binding'
@@ -300,6 +384,14 @@ def _midi_binding(
         )
         for opcode in declarations.values():
             _add_unimplemented(unimplemented, opcode, reason)
+        if conditions:
+            reason = (
+                'SFZ controller condition requires a MIDI binding request'
+                if request is None
+                else 'SFZ controller condition has no shared MIDI channel binding'
+            )
+            for opcode in conditions.values():
+                _add_unimplemented(unimplemented, opcode, reason)
         return None
     if not ranges:
         return None
@@ -314,7 +406,11 @@ def _midi_binding(
                     channels=list(range(low, high + 1)),
                     part=request.part,
                     repeated_key_release=request.repeated_key_release,
-                    controllers=[MidiController(number=64, control='sustain')],
+                    controllers=[MidiController(number=64, control='sustain')]
+                    + [
+                        MidiController(number=n, control=f'cc-{n}')
+                        for n in sorted(controller_numbers - {64})
+                    ],
                 )
             ],
         ),
@@ -358,6 +454,7 @@ def _slot(
     unimplemented: list[UnimplementedFeature],
     sequence_counter: Literal['reject', 'all_note_ons'],
     choke_targets: dict[str, dict[str, enums.ChokeMode]],
+    articulations: selection.Articulations | None,
 ) -> tuple[SampleSlot, playback.Slice] | None:
     values: dict[str, str] = {}
     declarations: dict[str, ParsedOpcode] = {}
@@ -435,6 +532,43 @@ def _slot(
         'mapping': mapping,
         'channels': _channel_routes(metadata.channels, output_channels),
     }
+    if articulations is not None and 'sw_last' in values:
+        kwargs['articulations'] = [f'sfz-switch-{_key(values["sw_last"], "sw_last")}']
+    conditions = []
+    for number in sorted(
+        {
+            int(match.group(2))
+            for name in values
+            if (match := CONTROLLER_CONDITION.fullmatch(name))
+        }
+    ):
+        low = _integer(
+            values.get(f'locc{number}', '0'), f'locc{number}', minimum=0, maximum=127
+        )
+        high = _integer(
+            values.get(f'hicc{number}', '127'),
+            f'hicc{number}',
+            minimum=0,
+            maximum=127,
+        )
+        conditions.append(
+            selection.ControlCondition(
+                control='sustain' if number == 64 else f'cc-{number}',
+                minimum_value=low / 127,
+                maximum_value=high / 127,
+            )
+        )
+    if conditions:
+        if values.get('trigger') in ('release', 'release_key'):
+            for name, opcode in declarations.items():
+                if CONTROLLER_CONDITION.fullmatch(name):
+                    _add_unimplemented(
+                        unimplemented,
+                        opcode,
+                        'Release controller condition requires the note-on value',
+                    )
+        else:
+            kwargs['control_conditions'] = conditions
     if 'width' in values:
         width = _number(values['width'], 'width')
         if not -100 <= width <= 100:

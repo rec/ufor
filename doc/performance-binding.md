@@ -41,7 +41,10 @@ explicit repeated-key rule and a sustain-pedal mapping.
 SFZ import can return this score alongside the instrument when the caller
 supplies `SfzMidiBindingRequest` with the destination instrument reference,
 part, and repeated-key release rule. The import maps SFZ's shared inclusive
-`lochan`/`hichan` range and the standard sustain pedal CC 64. Without a request,
-channel opcodes remain source-located diagnostics. Different channel ranges in
+`lochan`/`hichan` range, the standard sustain pedal CC 64, and the CCs used by
+`loccN`/`hiccN` note-on conditions. Those conditions become inclusive native
+control ranges; a missing CC begins at the declared control default of zero.
+Without a request, channel opcodes and controller conditions remain
+source-located diagnostics. Different channel ranges in
 different regions cannot be represented by one instrument-level MIDI channel
 filter, so they also remain diagnostics rather than being silently merged.

@@ -620,6 +620,13 @@ also records future player obligations such as articulation and audio completion
 Process equal-time inputs in ordinal order, including controls, keyswitches,
 trigger creation, and releases. Do not batch by event kind. A pedal change
 before release at one tick can change whether that release is deferred.
+Sample articulation keyswitches are part-local. A latched switch remains active
+after its key is released; a consumed switch produces no sample voice. With no
+declared default, articulation-gated slots remain silent until selected. A
+switch key with no assigned articulation clears the current selection. Slot
+control conditions are inclusive and read the last part-scoped value, or the
+declared control default until a change arrives. Preparation snapshots retain
+both the selected articulation and the last part control values.
 Legato is a host performance policy that may omit a trigger; it is not inferred
 by an envelope from another key's activity. Pitch changes do not mutate a
 trigger's selection key or select another sample retrospectively.

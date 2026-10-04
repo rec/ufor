@@ -894,7 +894,15 @@
           "type": "array"
         },
         "default": {
-          "type": "string",
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
           "title": "Default"
         },
         "keys": {
@@ -913,8 +921,7 @@
         }
       },
       "required": [
-        "ids",
-        "default"
+        "ids"
       ],
       "title": "Articulations",
       "type": "object"
@@ -3179,6 +3186,35 @@
         "timeline_start"
       ],
       "title": "ControlClip",
+      "type": "object"
+    },
+    "ControlCondition": {
+      "additionalProperties": false,
+      "description": "Inclusive eligibility range for a named control at an event boundary.",
+      "properties": {
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "minimum_value": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum Value",
+          "type": "number"
+        },
+        "maximum_value": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum Value",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control"
+      ],
+      "title": "ControlCondition",
       "type": "object"
     },
     "ControlCrossfade": {
@@ -5970,8 +6006,16 @@
           "type": "integer"
         },
         "articulation": {
-          "title": "Articulation",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Articulation"
         },
         "behavior": {
           "$ref": "#/$defs/KeyBehavior",
@@ -5984,8 +6028,7 @@
         }
       },
       "required": [
-        "key",
-        "articulation"
+        "key"
       ],
       "title": "KeySwitch",
       "type": "object"
@@ -10813,6 +10856,13 @@
             "type": "string"
           },
           "title": "Articulations",
+          "type": "array"
+        },
+        "control_conditions": {
+          "items": {
+            "$ref": "#/$defs/ControlCondition"
+          },
+          "title": "Control Conditions",
           "type": "array"
         },
         "variation": {

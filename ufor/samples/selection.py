@@ -82,6 +82,8 @@ class SelectionState(Model):
     seed: int = Field(strict=True, ge=0, lt=2**64)
     sequences: list[SelectionSequence] = Field(default_factory=list)
     note_on_counts: dict[Identifier, int] = Field(default_factory=dict)
+    articulations: dict[Identifier, Identifier | None] = Field(default_factory=dict)
+    controls: dict[Identifier, dict[Identifier, Bipolar]] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def unique_sequences(self) -> Self:
@@ -258,7 +260,7 @@ class Sustain(Model):
 
 class KeySwitch(Model):
     key: NoteKey
-    articulation: Identifier
+    articulation: Identifier | None = None
     behavior: enums.KeyBehavior = enums.KeyBehavior.latched
     consume: StrictBool = True
 
@@ -276,9 +278,23 @@ class ControlSwitch(Model):
         return self
 
 
+class ControlCondition(Model):
+    """Inclusive eligibility range for a named control at an event boundary."""
+
+    control: Identifier
+    minimum_value: Bipolar = 0.0
+    maximum_value: Bipolar = 1.0
+
+    @model_validator(mode='after')
+    def ordered_range(self) -> Self:
+        if self.minimum_value > self.maximum_value:
+            raise ValueError('minimum_value must not exceed maximum_value')
+        return self
+
+
 class Articulations(Model):
     ids: list[Identifier] = Field(min_length=1)
-    default: Identifier
+    default: Identifier | None = None
     keys: list[KeySwitch] = Field(default_factory=list)
     controls: list[ControlSwitch] = Field(default_factory=list)
 
@@ -291,7 +307,7 @@ class Articulations(Model):
             *(k.articulation for k in self.keys),
             *(c.articulation for c in self.controls),
         ]
-        if missing := set(references).difference(self.ids):
+        if missing := {r for r in references if r is not None} - set(self.ids):
             raise ValueError(f'Unknown articulations: {sorted(missing)}')
         previous: ControlSwitch | None = None
         for switch in sorted(self.controls, key=lambda c: (c.control, c.minimum_value)):

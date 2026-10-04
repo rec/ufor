@@ -3,11 +3,97 @@ from typing import Literal
 import pytest
 
 from ufor import sfz
+from ufor.events import ControlChange, Release, Trigger
+from ufor.interface import ScoreReference
+from ufor.samples import trace
 from ufor.samples.enums import ChokeMode, VoiceOverflow
 from ufor.samples.instrument import SampleInstrumentScore
 from ufor.samples.metadata import AudioMetadata
 from ufor.samples.processing import ChannelRoute
+from ufor.sfz.model import SfzMidiBindingRequest
 from ufor.time import Rate, Timebase
+
+
+def test_sfz_sticky_keyswitches_select_regions_and_clear_on_unmapped_key() -> None:
+    result = _compile(
+        '<global> sw_lokey=24 sw_hikey=26 sw_default=24 '
+        '<region> sample=sample.wav key=60 sw_last=24 '
+        '<region> sample=sample.wav key=60 sw_last=26'
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    events = [
+        Trigger(tick=0, ordinal=0, part='main', trigger_id='first', key=60),
+        Trigger(tick=1, ordinal=1, part='main', trigger_id='switch', key=26),
+        Release(tick=2, ordinal=2, part='main', trigger_id='switch'),
+        Trigger(tick=3, ordinal=3, part='main', trigger_id='second', key=60),
+        Trigger(tick=4, ordinal=4, part='main', trigger_id='clear', key=25),
+        Trigger(tick=5, ordinal=5, part='main', trigger_id='third', key=60),
+    ]
+    prepared = trace.prepare(result.instrument.body, events, seed=1)
+
+    starts = [a for a in prepared.actions if isinstance(a, trace.VoiceStart)]
+    assert [(a.tick, a.template) for a in starts] == [
+        (0, 'region-1'),
+        (3, 'region-2'),
+    ]
+    assert prepared.snapshots[-1].selection.articulations == {'main': None}
+
+
+def test_sfz_controller_condition_uses_part_cc_and_midi_binding() -> None:
+    result = _compile(
+        '<region> sample=sample.wav key=60 locc74=64 hicc74=127',
+        midi_binding=SfzMidiBindingRequest(
+            instrument=ScoreReference(path='instrument.toml'),
+            part='main',
+            repeated_key_release='newest',
+        ),
+    )
+
+    assert result.complete
+    assert result.instrument is not None
+    assert result.binding is not None
+    assert [(c.number, c.control) for c in result.binding.body.midi[0].controllers] == [
+        (64, 'sustain'),
+        (74, 'cc-74'),
+    ]
+    prepared = trace.prepare(
+        result.instrument.body,
+        [
+            Trigger(tick=0, ordinal=0, part='main', trigger_id='before', key=60),
+            ControlChange(
+                tick=1,
+                ordinal=1,
+                part='main',
+                scope='part',
+                control='cc-74',
+                value=64 / 127,
+            ),
+            Trigger(tick=2, ordinal=2, part='main', trigger_id='after', key=60),
+        ],
+        seed=1,
+    )
+
+    starts = [a for a in prepared.actions if isinstance(a, trace.VoiceStart)]
+    assert [(a.tick, a.template) for a in starts] == [(2, 'region-1')]
+
+
+def test_sfz_keyswitch_without_range_remains_diagnosed() -> None:
+    result = _compile('<region> sample=sample.wav sw_last=24')
+
+    assert result.instrument is not None
+    assert not result.complete
+    assert [i.location.opcode for i in result.unimplemented] == ['sw_last']
+
+
+def test_sfz_controller_condition_without_binding_remains_diagnosed() -> None:
+    result = _compile('<region> sample=sample.wav locc74=64')
+
+    assert result.instrument is not None
+    assert not result.complete
+    assert result.instrument.body.slots[0].control_conditions[0].control == 'cc-74'
+    assert [i.location.opcode for i in result.unimplemented] == ['locc74']
 
 
 def test_pitch_alias_and_tune_follow_inheritance_order() -> None:
@@ -71,6 +157,23 @@ def test_release_random_range_requires_the_original_note_on_draw() -> None:
         'hirand',
     ]
     assert all('note-on draw' in i.reason for i in result.unimplemented)
+
+
+def test_release_controller_condition_requires_the_note_on_value() -> None:
+    result = _compile(
+        '<region> sample=sample.wav trigger=release locc7=64',
+        midi_binding=SfzMidiBindingRequest(
+            instrument=ScoreReference(path='instrument.toml'),
+            part='part',
+            repeated_key_release='newest',
+        ),
+    )
+
+    assert not result.complete
+    assert result.instrument is not None
+    assert not result.instrument.body.slots[0].control_conditions
+    assert [i.location.opcode for i in result.unimplemented] == ['locc7']
+    assert 'note-on value' in result.unimplemented[0].reason
 
 
 def test_sfz_sample_end_fade_round_trips() -> None:
@@ -424,6 +527,7 @@ def _compile(
     sequence_counter: Literal['reject', 'all_note_ons'] = 'reject',
     polyphony_overflow: Literal['diagnose', 'oldest_immediate'] = 'diagnose',
     sample_channels: int = 1,
+    midi_binding: SfzMidiBindingRequest | None = None,
 ) -> sfz.SfzCompileResult:
     return sfz.compile_instrument(
         sfz.parse(text),
@@ -444,4 +548,5 @@ def _compile(
         output_channels=output_channels or ['mono'],
         sequence_counter=sequence_counter,
         polyphony_overflow=polyphony_overflow,
+        midi_binding=midi_binding,
     )

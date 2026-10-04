@@ -423,11 +423,11 @@ Numeric `polyphony` imports as a group-scoped voice pool using oldest-immediate 
 | Opcode | `strings_number` | SFZ v2 | new_model |
 | Opcode | `strings_wet_onccN` | SFZ v2 | new_model |
 | Opcode | `sustain_sw` | SFZ v2 | controller_binding |
-| Opcode | `sw_default` | SFZ v2 | controller_binding |
+| Opcode | `sw_default` | SFZ v2 | supported |
 | Opcode | `sw_down` | SFZ v1 | controller_binding |
-| Opcode | `sw_hikey` | SFZ v1 | controller_binding |
-| Opcode | `sw_last` | SFZ v1 | controller_binding |
-| Opcode | `sw_lokey` | SFZ v1 | controller_binding |
+| Opcode | `sw_hikey` | SFZ v1 | supported |
+| Opcode | `sw_last` | SFZ v1 | supported |
+| Opcode | `sw_lokey` | SFZ v1 | supported |
 | Opcode | `sw_previous` | SFZ v1 | controller_binding |
 | Opcode | `sw_up` | SFZ v1 | controller_binding |
 | Opcode | `sw_vel` | SFZ v1 | controller_binding |

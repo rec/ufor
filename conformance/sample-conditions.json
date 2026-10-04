@@ -1,0 +1,40 @@
+{
+  "description": "Latched keyswitches and controller ranges are selected independently for each part at note-on boundaries. Unmapped switch keys clear the active articulation.",
+  "settings": {
+    "controls": {"openness": {}},
+    "articulations": {
+      "ids": ["soft"],
+      "default": "soft",
+      "keys": [
+        {"key": 24, "articulation": "soft"},
+        {"key": 25, "articulation": null}
+      ]
+    }
+  },
+  "templates": [
+    {
+      "name": "soft-open",
+      "articulations": ["soft"],
+      "control_conditions": [
+        {"control": "openness", "minimum_value": 0.5, "maximum_value": 1.0}
+      ]
+    }
+  ],
+  "events": [
+    {"kind": "control_change", "tick": 0, "ordinal": 0, "scope": "part", "part": "left", "control": "openness", "value": 0.5},
+    {"kind": "trigger", "tick": 1, "ordinal": 0, "part": "left", "trigger_id": "first", "key": 60},
+    {"kind": "trigger", "tick": 2, "ordinal": 0, "part": "right", "trigger_id": "closed", "key": 60},
+    {"kind": "trigger", "tick": 3, "ordinal": 0, "part": "left", "trigger_id": "clear", "key": 25},
+    {"kind": "trigger", "tick": 4, "ordinal": 0, "part": "left", "trigger_id": "silent", "key": 60},
+    {"kind": "trigger", "tick": 5, "ordinal": 0, "part": "left", "trigger_id": "restore", "key": 24},
+    {"kind": "trigger", "tick": 6, "ordinal": 0, "part": "left", "trigger_id": "second", "key": 60}
+  ],
+  "voice_starts": [
+    {"tick": 1, "part": "left", "template": "soft-open"},
+    {"tick": 6, "part": "left", "template": "soft-open"}
+  ],
+  "selection": {
+    "articulations": {"left": "soft"},
+    "controls": {"left": {"openness": 0.5}}
+  }
+}

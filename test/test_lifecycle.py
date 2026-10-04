@@ -268,15 +268,129 @@ def test_voice_pool_rejects_oversized_layer_batch() -> None:
         )
 
 
-@pytest.mark.parametrize('kind', ['sample', 'synth'])
-def test_preparation_rejects_unimplemented_articulations(kind: str) -> None:
+def test_synth_preparation_rejects_unimplemented_articulations() -> None:
     with pytest.raises(ValueError, match='articulation preparation is unsupported'):
         prepare(
-            kind,
+            'synth',
             [{'name': 'voice'}],
             [],
             {'articulations': {'ids': ['normal'], 'default': 'normal'}},
         )
+
+
+@pytest.mark.parametrize(
+    ('switches', 'message'),
+    [
+        (
+            {'keys': [{'key': 24, 'articulation': 'soft', 'behavior': 'momentary'}]},
+            'momentary keyswitches',
+        ),
+        (
+            {
+                'controls': [
+                    {
+                        'control': 'style',
+                        'minimum_value': 0,
+                        'maximum_value': 1,
+                        'articulation': 'soft',
+                    }
+                ]
+            },
+            'control-driven articulations',
+        ),
+    ],
+)
+def test_sample_preparation_rejects_unimplemented_articulation_modes(
+    switches: dict[str, object], message: str
+) -> None:
+    with pytest.raises(ValueError, match=message):
+        prepare(
+            'sample',
+            [{'name': 'voice'}],
+            [],
+            {
+                'controls': {'style': {}},
+                'articulations': {'ids': ['soft'], 'default': 'soft', **switches},
+            },
+        )
+
+
+def test_sample_keyswitch_latches_by_part_without_a_default() -> None:
+    result = prepare(
+        'sample',
+        [
+            {'name': 'soft', 'articulations': ['soft']},
+            {'name': 'hard', 'articulations': ['hard']},
+        ],
+        [
+            Trigger(tick=0, ordinal=0, part='left', trigger_id='before', key=60),
+            Trigger(tick=1, ordinal=1, part='left', trigger_id='switch', key=24),
+            Release(tick=2, ordinal=2, part='left', trigger_id='switch'),
+            Trigger(tick=3, ordinal=3, part='left', trigger_id='after', key=60),
+            Trigger(tick=4, ordinal=4, part='right', trigger_id='other', key=60),
+        ],
+        {
+            'articulations': {
+                'ids': ['soft', 'hard'],
+                'keys': [
+                    {'key': 24, 'articulation': 'soft'},
+                    {'key': 25, 'articulation': 'hard'},
+                ],
+            }
+        },
+    )
+
+    starts = [a for a in result.actions if isinstance(a, trace.VoiceStart)]
+    assert [(a.tick, a.template) for a in starts] == [(3, 'soft')]
+    assert result.snapshots[-1].selection.articulations == {'left': 'soft'}
+
+
+def test_sample_controller_conditions_use_last_part_value() -> None:
+    result = prepare(
+        'sample',
+        [
+            {
+                'name': 'open',
+                'control_conditions': [
+                    {'control': 'openness', 'minimum_value': 64 / 127}
+                ],
+            }
+        ],
+        [
+            Trigger(tick=0, ordinal=0, part='left', trigger_id='before', key=60),
+            ControlChange(
+                tick=1,
+                ordinal=1,
+                part='left',
+                scope='part',
+                control='openness',
+                value=64 / 127,
+            ),
+            Trigger(tick=2, ordinal=2, part='left', trigger_id='after', key=60),
+            Trigger(tick=3, ordinal=3, part='right', trigger_id='other', key=60),
+        ],
+        {'controls': {'openness': {}}},
+    )
+
+    starts = [a for a in result.actions if isinstance(a, trace.VoiceStart)]
+    assert [(a.tick, a.template) for a in starts] == [(2, 'open')]
+    assert result.snapshots[-1].selection.controls == {'left': {'openness': 64 / 127}}
+
+
+def test_sample_conditions_match_portable_vectors() -> None:
+    case = json.loads(
+        (Path(__file__).parents[1] / 'conformance/sample-conditions.json').read_text()
+    )
+    events = TypeAdapter(list[PerformanceEvent]).validate_python(case['events'])
+    result = prepare('sample', case['templates'], events, case['settings'])
+    starts = [a for a in result.actions if isinstance(a, trace.VoiceStart)]
+    assert [
+        {'tick': a.tick, 'part': a.part, 'template': a.template} for a in starts
+    ] == case['voice_starts']
+    assert (
+        result.snapshots[-1].selection.model_dump(include={'articulations', 'controls'})
+        == case['selection']
+    )
 
 
 def test_synth_action_serialization_preserves_voice_settings() -> None:
