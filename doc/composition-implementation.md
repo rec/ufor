@@ -216,5 +216,4 @@ The codec entry points are `parse_score`, `score_toml`, and `score_schema`.
 Version 2 is rejected; migrate metadata explicitly and retain the previous file
 when it is production material. Media payloads are unchanged. Recs' two production
 recordings retain their version-2 metadata under `migration/recording-v2.toml`.
-Network ports and ordinary filesystem names are unaffected. Recs SFZ metadata
-comments use version 2 for the renamed name/title fields.
+Network ports and ordinary filesystem names are unaffected.

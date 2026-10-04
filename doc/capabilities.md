@@ -15,7 +15,6 @@ calculations, and host rendering are separate stages.
 | Light animation | Layouts, arbitrary components, effects, composition and wiring | Pure geometry/color calculations and composition checks | Frame production, device output and Lyte integration |
 | Fixture control | Parameter domains, byte encodings, cues, raw captures and patch metadata | Domain checks, physical footprint/collision checks | Sending DMX/Art-Net, synchronization and physical device validation |
 | Slideshow and broadcast | Images/video, captions, transitions, accompaniment, sections, cue rules and run records | Selection filtering, local validation and transitive provisional broadcast timing | Decoding, display, audio playback, live cue delivery and capture |
-| SFZ | Source metadata and supported opcode conversion | Pure compile/export with explicit unsupported-feature reports | File discovery, sample inspection and audio rendering |
 
 Sample and synth traces are tied to the original definition. They are not
 self-contained rendering plans. Instrument snapshots describe logical state,

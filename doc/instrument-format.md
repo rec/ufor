@@ -1,10 +1,10 @@
 # Sample instrument format
 
-The native `instrument` score, sample models, source bindings, and pure SFZ
-conversion are implemented in Ufor. `ufor.codec` reads and writes this profile
+The native `instrument` score, sample models, and source bindings are
+implemented in uFor. `ufor.codec` reads and writes this profile
 alongside recordings, sequences, arrangements, tunings, scales, oscillators,
-envelopes, and LFOs. The defining modules are `ufor.samples.*` and `ufor.sfz`.
-Recs owns file access and asset inspection; it no longer owns parallel models.
+envelopes, and LFOs. The defining modules are `ufor.samples.*`.
+[safaz](https://github.com/rec/safaz) owns SFZ conversion and asset inspection.
 
 This includes format validation, scalar controls, and pure sample/synth lifecycle
 preparation. Traces require the original definition; audio generation and host
@@ -248,9 +248,9 @@ channels = ["left", "right"]
 audio = true
 ```
 
-The [SFZ input](../conformance/instrument.sfz) and
-[complete native result](../conformance/instrument.json) form a portable
-conversion case with explicit synthetic metadata. They cover 44.1/48 kHz
+The [native example](../conformance/instrument.json) is a portable instrument
+case with explicit synthetic metadata. safaz owns the corresponding SFZ
+conversion fixture. It covers 44.1/48 kHz
 separation, exact envelope times, slice endpoints, and velocity mapping without
 loading or generating audio. JSON Schema lives in
 [scores.json](../schema/scores.json).
@@ -528,44 +528,10 @@ together. Combined ranges must stay within [-1,1], including neutral amounts
 during delayed/fading LFO activation. No clipping or automatic normalization is
 part of the instrument format.
 
-## SFZ and application ownership
+## SFZ conversion
 
-The `ufor.sfz` package keeps the existing `parse`, `sample_paths`,
-`compile_instrument`, and `write` entry points. `parser.py` handles source text
-and metadata, `compiler.py` builds the native instrument, `exporter.py` writes
-representable SFZ, and `model.py` holds their shared result and diagnostic
-types. This split does not change the SFZ conversion rules below.
-
-`ufor.sfz.parse(text)` produces parsed regions and diagnostics.
-`sample_paths(source)` lists safe relative sample references.
-`compile_instrument(source, name=..., title=..., assets=..., output_timebase=...,
-output_channels=...)` accepts `ufor.samples.metadata.AudioMetadata` facts
-supplied by the caller and produces a `SampleInstrumentScore` where possible.
-All of these operations are pure. Unsupported opcodes retain source locations;
-missing or malformed required data fails explicitly.
-
-SFZ's fixed DAHDSR becomes four on-segments and a release segment. Delay/attack/
-hold curves are 0; decay/release are -5. SFZ decimal durations become exact
-fractions. Export accepts that representable shape and reports general envelopes
-as unsupported. Velocity response becomes the shared typed multiplier route.
-SFZ inclusive endpoints become exclusive native slice/loop ends and reverse on
-export. Imported channel maps are identity or the standard mono-to-stereo law.
-SFZ `off_by` identifies the existing voice to stop when a new region in the
-named `group` starts. Import maps this victim-side rule to native trigger-side
-`chokes`; export reverses that mapping and diagnoses graphs SFZ cannot express.
-
-`ufor.sfz.write(score)` returns text and diagnostics without opening files.
-Unsafe sample syntax, custom channel maps, named controls/generators, selections,
-nonrepresentable routes/envelopes and other losses are reported. Diagnostics
-use native `body.slots[...]` / `body.settings...` paths. A partial export must
-not be treated as complete. Recs' metadata comment namespace remains understood.
-
-`recs.recsam.sfz.read(path)` is the application adapter. It checks resolved path
-containment, reads/decodes metadata, inspects embedded WAV loops, hashes the
-existing file, and passes those facts to Ufor. Its explicit application default
-is 48 kHz stereo output; callers may select another supported output layout/rate.
-It does not generate audio. `recs/recsam/` now contains only this adapter and
-asset I/O, plus an empty package marker.
+[Safaz](https://github.com/rec/safaz) owns SFZ conversion and sample-file
+inspection. It consumes the native instrument models described here.
 
 ## Updating old declarations
 

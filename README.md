@@ -15,7 +15,7 @@ Today, Ufor covers:
 - User score libraries, literal selectors, Python declarations and reusable presets.
 - Audio recordings and arrangements; MIDI, OSC, keystrokes and performance events.
 - Tunings, scales and oscillator definitions, with fractional ratios and Scala import.
-- Sample instruments, asset slices and SFZ conversion.
+- Sample instruments and asset slices; [safaz](https://github.com/rec/safaz) owns SFZ conversion.
 - Segment envelopes, LFOs and typed modulation routes.
 - Scalar timeline automation for gain, frequency and logical gates, with explicit units.
 - Light animation descriptions, arbitrary component counts, layouts and wiring,

@@ -300,7 +300,7 @@ sample-and-hold sources, audio-rate realization, band-limiting, continuous rate
 automation, generic graph execution, and a sampler remain deferred.
 
 Shared performance events and typed modulation routes are now implemented.
-The native instrument and SFZ cutover is implemented in
+The native instrument cutover is implemented in
 [the instrument format](instrument-format.md). Sample settings use these exact
 envelope/LFO definitions and the shared route evaluator; the old Recsam models
 are removed. Pure instrument lifecycle preparation is implemented; final DSP and

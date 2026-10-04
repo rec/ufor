@@ -3,7 +3,7 @@
 Import symbols from their defining modules. Names below are canonical; there are
 no compatibility aliases for the earlier API. The serialized score kind
 `instrument` and format marker `recs` remain unchanged. `recs` identifies the
-historical wire format, not the producer; SFZ output identifies Ufor.
+historical wire format, not the producer. safaz owns SFZ conversion.
 
 | Task | Defining modules and entry points |
 | --- | --- |
@@ -19,7 +19,6 @@ historical wire format, not the producer; SFZ output identifies Ufor.
 | Prepare instrument lifecycles | `samples.trace.prepare` returns `SampleTrace`; `synth_trace.prepare` returns `SynthTrace`; `instrument_trace` owns common actions and `LifecycleSnapshot` |
 | Evolve instrument controls | `samples.controls.initial_control`, `control_event`, `control_at`; `instrument_trace.TriggerContext` preserves onset initialization |
 | Realize scalar instrument pitch | `synth.frequency` consumes prepared Hz and final routed cents; `samples.playback.pitch_ratio` combines tracked pitch, tuning, and resolved variation |
-| Convert SFZ text | `sfz.compile_instrument` returns `SfzCompileResult`; `sfz.write` returns `SfzExportResult`; neither function opens files |
 | Work with pitch | `tuning`, `scale`, `scala`, `oscillator`; `number.PitchNumber`, `cents_to_ratio`, `ratio_to_cents` preserve explicit arithmetic intent |
 | Declare finite scalar fields | `base.FiniteScalar`; `base.NoteKey` is a strict integer musical selection key, independent of rendered pitch |
 | Describe lights | `lights` owns layouts/contracts, `light_animation` composes effects, `effects` contains light effect definitions, `light_math` evaluates geometry/color scalars |

@@ -15,6 +15,16 @@ from ufor.samples.instrument import (
 )
 
 
+def test_mirror_loop_rejects_crossfade() -> None:
+    with pytest.raises(ValidationError, match='Mirror loops cannot crossfade'):
+        playback.Loop(
+            start_frame=10,
+            end_frame=100,
+            direction='mirror',
+            crossfade_frames=4,
+        )
+
+
 def test_slot_playback_end_fade_round_trips() -> None:
     value = playback.SlotPlayback(end_fade_seconds=0.25)
 

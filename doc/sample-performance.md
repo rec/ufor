@@ -139,11 +139,7 @@ between parts and appear in `SelectionState.note_on_counts` in snapshots.
 
 This is the explicit `all_note_ons` counter rule. It is distinct from the
 eligible-candidate counters of named selection sets and may produce silent
-steps. SFZ import reports `seq_length` and `seq_position` as unsupported by
-default; callers must explicitly request `sequence_counter='all_note_ons'` to
-interpret them using this rule. It is not a claim that all SFZ players count
-identically. SFZ export writes the corresponding opcodes but reports that the
-player-dependent counter rule cannot be guaranteed by the file.
+steps. Source-format conversion rules belong to safaz.
 
 ## Random Range Conditions
 
