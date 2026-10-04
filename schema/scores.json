@@ -579,6 +579,7 @@
             "mapping": {
               "euclidean": "#/$defs/Euclidean",
               "grid": "#/$defs/Grid",
+              "pattern": "#/$defs/Pattern",
               "source": "#/$defs/SourceRhythm"
             },
             "propertyName": "kind"
@@ -592,6 +593,9 @@
             },
             {
               "$ref": "#/$defs/SourceRhythm"
+            },
+            {
+              "$ref": "#/$defs/Pattern"
             }
           ],
           "title": "Rhythm"
@@ -5596,6 +5600,32 @@
       "title": "HistoryBank",
       "type": "object"
     },
+    "HitStep": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "title": "Duration",
+          "type": "string"
+        },
+        "kind": {
+          "const": "hit",
+          "default": "hit",
+          "title": "Kind",
+          "type": "string"
+        },
+        "repeats": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Repeats",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "duration"
+      ],
+      "title": "HitStep",
+      "type": "object"
+    },
     "Hold": {
       "additionalProperties": false,
       "properties": {
@@ -8666,6 +8696,48 @@
       "title": "PatchEventConnection",
       "type": "object"
     },
+    "Pattern": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "pattern",
+          "default": "pattern",
+          "title": "Kind",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "hit": "#/$defs/HitStep",
+                "rest": "#/$defs/RestStep",
+                "tie": "#/$defs/TieStep"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/HitStep"
+              },
+              {
+                "$ref": "#/$defs/RestStep"
+              },
+              {
+                "$ref": "#/$defs/TieStep"
+              }
+            ]
+          },
+          "minItems": 1,
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "steps"
+      ],
+      "title": "Pattern",
+      "type": "object"
+    },
     "PerformanceBinding": {
       "additionalProperties": false,
       "properties": {
@@ -10102,6 +10174,26 @@
         "cutoff_hz"
       ],
       "title": "ResonantFilter",
+      "type": "object"
+    },
+    "RestStep": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "title": "Duration",
+          "type": "string"
+        },
+        "kind": {
+          "const": "rest",
+          "default": "rest",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration"
+      ],
+      "title": "RestStep",
       "type": "object"
     },
     "Retrigger": {
@@ -12658,6 +12750,26 @@
         "end"
       ],
       "title": "TickRange",
+      "type": "object"
+    },
+    "TieStep": {
+      "additionalProperties": false,
+      "properties": {
+        "duration": {
+          "title": "Duration",
+          "type": "string"
+        },
+        "kind": {
+          "const": "tie",
+          "default": "tie",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "required": [
+        "duration"
+      ],
+      "title": "TieStep",
       "type": "object"
     },
     "Timebase": {

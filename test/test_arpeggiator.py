@@ -8,7 +8,9 @@ from ufor.arpeggiator import ArpeggiatorScore, Ascending, Descending, Grid, Held
 from ufor.codec import parse_score, score_toml
 
 
-@pytest.mark.parametrize('name', ['up', 'wind-memory', 'five-in-eight', 'sample-notes'])
+@pytest.mark.parametrize(
+    'name', ['up', 'wind-memory', 'five-in-eight', 'sample-notes', 'custom-steps']
+)
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
     text = Path(f'conformance/arpeggiator/{name}.toml').read_text()
     score = parse_score(text)
@@ -60,3 +62,24 @@ def test_descending_profile_is_supported() -> None:
 def test_grid_rejects_invalid_beat_durations(step: str) -> None:
     with pytest.raises(ValidationError, match='positive rational beat duration'):
         Grid(step=step)
+
+
+@pytest.mark.parametrize(
+    'steps',
+    [
+        [],
+        [{'kind': 'hit', 'duration': '0 beat'}],
+        [{'kind': 'hit', 'duration': '1/4 beat', 'repeats': 0}],
+        [{'kind': 'hit', 'duration': '1/4 beat', 'repeats': 1.5}],
+        [{'kind': 'tie', 'duration': '1/4 beat', 'repeats': 2}],
+    ],
+)
+def test_pattern_rejects_invalid_steps(steps: list[dict[str, object]]) -> None:
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {
+                'name': 'pattern',
+                'title': 'Pattern',
+                'body': {'rhythm': {'kind': 'pattern', 'steps': steps}},
+            }
+        )

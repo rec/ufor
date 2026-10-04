@@ -98,6 +98,35 @@ class SourceRhythm(Model):
     kind: Literal['source'] = 'source'
 
 
+class RhythmStep(Model):
+    duration: str
+
+    @field_validator('duration')
+    @classmethod
+    def beat_duration(cls, value: str) -> str:
+        return _beat_step(value)
+
+
+class HitStep(RhythmStep):
+    kind: Literal['hit'] = 'hit'
+    repeats: int = Field(default=1, strict=True, ge=1)
+
+
+class RestStep(RhythmStep):
+    kind: Literal['rest'] = 'rest'
+
+
+class TieStep(RhythmStep):
+    kind: Literal['tie'] = 'tie'
+
+
+class Pattern(Model):
+    kind: Literal['pattern'] = 'pattern'
+    steps: list[
+        Annotated[HitStep | RestStep | TieStep, Field(discriminator='kind')]
+    ] = Field(min_length=1)
+
+
 class Expression(Model):
     source: Literal['current', 'recorded'] = 'current'
     timing: Literal['original', 'fit'] = 'original'
@@ -112,7 +141,9 @@ class Arpeggiator(Model):
     selection: Annotated[
         Ascending | Descending | Played | Walk, Field(discriminator='kind')
     ] = Ascending()
-    rhythm: Annotated[Grid | Euclidean | SourceRhythm, Field(discriminator='kind')]
+    rhythm: Annotated[
+        Grid | Euclidean | SourceRhythm | Pattern, Field(discriminator='kind')
+    ]
     gate: Rational = Field(default=Fraction(4, 5), ge=0)
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
