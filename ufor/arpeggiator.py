@@ -57,6 +57,8 @@ class Walk(Model):
     moves: list[int] = Field(min_length=1)
     weights: list[int] = Field(min_length=1)
     boundary: Literal['wrap'] = 'wrap'
+    start: Literal['lowest', 'move'] = 'lowest'
+    on_remove: Literal['lowest', 'rank'] = 'lowest'
 
     @model_validator(mode='after')
     def weighted_moves(self) -> Self:
@@ -145,9 +147,19 @@ class Arpeggiator(Model):
         Grid | Euclidean | SourceRhythm | Pattern, Field(discriminator='kind')
     ]
     gate: Rational = Field(default=Fraction(4, 5), ge=0)
+    probability: Rational = Field(default=Fraction(1), ge=0, le=1)
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)
+
+    @model_validator(mode='after')
+    def seeded_probability(self) -> Self:
+        random_walk = isinstance(self.selection, Walk) and len(self.selection.moves) > 1
+        if (0 < self.probability < 1 or random_walk) and self.seed is None:
+            raise ValueError(
+                'random probability or weighted walk requires an explicit seed'
+            )
+        return self
 
 
 class ArpeggiatorScore(Score):

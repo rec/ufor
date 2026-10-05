@@ -9,7 +9,15 @@ from ufor.codec import parse_score, score_toml
 
 
 @pytest.mark.parametrize(
-    'name', ['up', 'wind-memory', 'five-in-eight', 'sample-notes', 'custom-steps']
+    'name',
+    [
+        'up',
+        'wind-memory',
+        'five-in-eight',
+        'sample-notes',
+        'custom-steps',
+        'weighted-walk',
+    ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
     text = Path(f'conformance/arpeggiator/{name}.toml').read_text()
@@ -83,3 +91,34 @@ def test_pattern_rejects_invalid_steps(steps: list[dict[str, object]]) -> None:
                 'body': {'rhythm': {'kind': 'pattern', 'steps': steps}},
             }
         )
+
+
+@pytest.mark.parametrize('probability', ['-1/2', '3/2', '1/2'])
+def test_probability_rejects_out_of_range_or_unseeded_choices(probability: str) -> None:
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {
+                'name': 'chance',
+                'title': 'Chance',
+                'body': {
+                    'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                    'probability': probability,
+                },
+            }
+        )
+
+
+def test_seeded_probability_round_trips() -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'chance',
+            'title': 'Chance',
+            'body': {
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                'probability': '1/3',
+                'seed': 42,
+            },
+        }
+    )
+    assert score.body.probability == Fraction(1, 3)
+    assert parse_score(score_toml(score)) == score

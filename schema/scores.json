@@ -607,6 +607,14 @@
           "title": "Gate",
           "type": "string"
         },
+        "probability": {
+          "default": "1",
+          "format": "fraction",
+          "ge": 0,
+          "le": 1,
+          "title": "Probability",
+          "type": "string"
+        },
         "retrigger": {
           "default": "on_empty",
           "enum": [
@@ -13448,6 +13456,24 @@
           "const": "wrap",
           "default": "wrap",
           "title": "Boundary",
+          "type": "string"
+        },
+        "start": {
+          "default": "lowest",
+          "enum": [
+            "lowest",
+            "move"
+          ],
+          "title": "Start",
+          "type": "string"
+        },
+        "on_remove": {
+          "default": "lowest",
+          "enum": [
+            "lowest",
+            "rank"
+          ],
+          "title": "On Remove",
           "type": "string"
         }
       },
