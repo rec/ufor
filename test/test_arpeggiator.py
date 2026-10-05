@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from ufor.arpeggiator import (
     ArpeggiatorScore,
     Ascending,
+    Choice,
     Descending,
     Grid,
     HeldBank,
@@ -29,6 +30,7 @@ from ufor.codec import parse_score, score_toml
         'outside-in',
         'index-pattern',
         'shuffle',
+        'choice',
     ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
@@ -69,6 +71,40 @@ def test_shuffle_requires_a_seed_and_round_trips_all_policies() -> None:
     }
     score = ArpeggiatorScore.model_validate(data)
     assert parse_score(score_toml(score)) == score
+
+
+def test_choice_requires_seed_and_round_trips_policies() -> None:
+    score = parse_score(Path('conformance/arpeggiator/choice.toml').read_text())
+    assert isinstance(score, ArpeggiatorScore)
+    assert isinstance(score.body.selection, Choice)
+    assert Choice().weights == [1]
+    assert score.body.selection.extend == 'ones'
+    assert score.body.selection.no_repeat is False
+    data = score.model_dump()
+    data['body']['seed'] = None
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(data)
+    data['body']['seed'] = 42
+    data['body']['selection'] = {
+        'kind': 'choice',
+        'weights': [4, 1],
+        'extend': 'repeat',
+        'no_repeat': True,
+    }
+    score = ArpeggiatorScore.model_validate(data)
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize('weights', [[], [0], [-1], [1.5], [True], ['1'], [2**32]])
+def test_choice_requires_positive_u32_weights(weights: list[object]) -> None:
+    with pytest.raises(ValidationError):
+        Choice.model_validate({'weights': weights})
+
+
+@pytest.mark.parametrize('option,value', [('extend', 'last'), ('no_repeat', 1)])
+def test_choice_rejects_invalid_policies(option: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        Choice.model_validate({option: value})
 
 
 @pytest.mark.parametrize(

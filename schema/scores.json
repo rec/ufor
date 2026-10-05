@@ -571,6 +571,7 @@
             "mapping": {
               "alternating": "#/$defs/Alternating",
               "ascending": "#/$defs/Ascending",
+              "choice": "#/$defs/Choice",
               "descending": "#/$defs/Descending",
               "index_pattern": "#/$defs/IndexPattern",
               "inside_out": "#/$defs/InsideOut",
@@ -605,6 +606,9 @@
             },
             {
               "$ref": "#/$defs/Shuffle"
+            },
+            {
+              "$ref": "#/$defs/Choice"
             },
             {
               "$ref": "#/$defs/Walk"
@@ -2296,6 +2300,46 @@
         "gain"
       ],
       "title": "ChannelRoute",
+      "type": "object"
+    },
+    "Choice": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "choice",
+          "default": "choice",
+          "title": "Kind",
+          "type": "string"
+        },
+        "weights": {
+          "default": [
+            1
+          ],
+          "items": {
+            "maximum": 4294967295,
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Weights",
+          "type": "array"
+        },
+        "extend": {
+          "default": "ones",
+          "enum": [
+            "ones",
+            "repeat"
+          ],
+          "title": "Extend",
+          "type": "string"
+        },
+        "no_repeat": {
+          "default": false,
+          "title": "No Repeat",
+          "type": "boolean"
+        }
+      },
+      "title": "Choice",
       "type": "object"
     },
     "Choke": {
