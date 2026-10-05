@@ -572,6 +572,8 @@
               "alternating": "#/$defs/Alternating",
               "ascending": "#/$defs/Ascending",
               "descending": "#/$defs/Descending",
+              "inside_out": "#/$defs/InsideOut",
+              "outside_in": "#/$defs/OutsideIn",
               "played": "#/$defs/Played",
               "walk": "#/$defs/Walk"
             },
@@ -589,6 +591,12 @@
             },
             {
               "$ref": "#/$defs/Alternating"
+            },
+            {
+              "$ref": "#/$defs/InsideOut"
+            },
+            {
+              "$ref": "#/$defs/OutsideIn"
             },
             {
               "$ref": "#/$defs/Walk"
@@ -5830,6 +5838,19 @@
       "title": "InputSelection",
       "type": "object"
     },
+    "InsideOut": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "inside_out",
+          "default": "inside_out",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "title": "InsideOut",
+      "type": "object"
+    },
     "Interference": {
       "additionalProperties": false,
       "properties": {
@@ -8148,6 +8169,19 @@
         "output"
       ],
       "title": "OutputSelection",
+      "type": "object"
+    },
+    "OutsideIn": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "outside_in",
+          "default": "outside_in",
+          "title": "Kind",
+          "type": "string"
+        }
+      },
+      "title": "OutsideIn",
       "type": "object"
     },
     "PacketTraffic": {

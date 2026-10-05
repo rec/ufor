@@ -57,6 +57,14 @@ class Alternating(Model, frozen=True):
     repeat_endpoints: bool = Field(default=False, strict=True)
 
 
+class InsideOut(Model, frozen=True):
+    kind: Literal['inside_out'] = 'inside_out'
+
+
+class OutsideIn(Model, frozen=True):
+    kind: Literal['outside_in'] = 'outside_in'
+
+
 class Walk(Model):
     kind: Literal['walk'] = 'walk'
     moves: list[int] = Field(min_length=1)
@@ -146,7 +154,7 @@ class Arpeggiator(Model):
         Field(discriminator='kind'),
     ] = HeldBank()
     selection: Annotated[
-        Ascending | Descending | Played | Alternating | Walk,
+        Ascending | Descending | Played | Alternating | InsideOut | OutsideIn | Walk,
         Field(discriminator='kind'),
     ] = Ascending()
     rhythm: Annotated[

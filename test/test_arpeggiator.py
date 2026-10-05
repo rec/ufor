@@ -18,6 +18,8 @@ from ufor.codec import parse_score, score_toml
         'custom-steps',
         'weighted-walk',
         'alternating',
+        'inside-out',
+        'outside-in',
     ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
