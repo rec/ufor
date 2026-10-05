@@ -190,6 +190,24 @@
       "title": "Alternates",
       "type": "object"
     },
+    "Alternating": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "alternating",
+          "default": "alternating",
+          "title": "Kind",
+          "type": "string"
+        },
+        "repeat_endpoints": {
+          "default": false,
+          "title": "Repeat Endpoints",
+          "type": "boolean"
+        }
+      },
+      "title": "Alternating",
+      "type": "object"
+    },
     "Animation": {
       "additionalProperties": false,
       "properties": {
@@ -551,6 +569,7 @@
           },
           "discriminator": {
             "mapping": {
+              "alternating": "#/$defs/Alternating",
               "ascending": "#/$defs/Ascending",
               "descending": "#/$defs/Descending",
               "played": "#/$defs/Played",
@@ -567,6 +586,9 @@
             },
             {
               "$ref": "#/$defs/Played"
+            },
+            {
+              "$ref": "#/$defs/Alternating"
             },
             {
               "$ref": "#/$defs/Walk"

@@ -17,6 +17,7 @@ from ufor.codec import parse_score, score_toml
         'sample-notes',
         'custom-steps',
         'weighted-walk',
+        'alternating',
     ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
@@ -121,4 +122,22 @@ def test_seeded_probability_round_trips() -> None:
         }
     )
     assert score.body.probability == Fraction(1, 3)
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize('repeat_endpoints', [False, True])
+def test_alternating_endpoint_policy_round_trips(repeat_endpoints: bool) -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'alternating',
+            'title': 'Alternating',
+            'body': {
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                'selection': {
+                    'kind': 'alternating',
+                    'repeat_endpoints': repeat_endpoints,
+                },
+            },
+        }
+    )
     assert parse_score(score_toml(score)) == score

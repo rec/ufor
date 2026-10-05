@@ -52,6 +52,11 @@ class Played(Model):
     direction: Literal['forward', 'reverse'] = 'forward'
 
 
+class Alternating(Model, frozen=True):
+    kind: Literal['alternating'] = 'alternating'
+    repeat_endpoints: bool = Field(default=False, strict=True)
+
+
 class Walk(Model):
     kind: Literal['walk'] = 'walk'
     moves: list[int] = Field(min_length=1)
@@ -141,7 +146,8 @@ class Arpeggiator(Model):
         Field(discriminator='kind'),
     ] = HeldBank()
     selection: Annotated[
-        Ascending | Descending | Played | Walk, Field(discriminator='kind')
+        Ascending | Descending | Played | Alternating | Walk,
+        Field(discriminator='kind'),
     ] = Ascending()
     rhythm: Annotated[
         Grid | Euclidean | SourceRhythm | Pattern, Field(discriminator='kind')
