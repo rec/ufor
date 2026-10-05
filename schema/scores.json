@@ -572,6 +572,7 @@
               "alternating": "#/$defs/Alternating",
               "ascending": "#/$defs/Ascending",
               "descending": "#/$defs/Descending",
+              "index_pattern": "#/$defs/IndexPattern",
               "inside_out": "#/$defs/InsideOut",
               "outside_in": "#/$defs/OutsideIn",
               "played": "#/$defs/Played",
@@ -597,6 +598,9 @@
             },
             {
               "$ref": "#/$defs/OutsideIn"
+            },
+            {
+              "$ref": "#/$defs/IndexPattern"
             },
             {
               "$ref": "#/$defs/Walk"
@@ -5721,6 +5725,40 @@
         }
       },
       "title": "Hold",
+      "type": "object"
+    },
+    "IndexPattern": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "index_pattern",
+          "default": "index_pattern",
+          "title": "Kind",
+          "type": "string"
+        },
+        "indices": {
+          "items": {
+            "minimum": 0,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Indices",
+          "type": "array"
+        },
+        "boundary": {
+          "default": "wrap",
+          "enum": [
+            "wrap",
+            "rest"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "indices"
+      ],
+      "title": "IndexPattern",
       "type": "object"
     },
     "Input": {

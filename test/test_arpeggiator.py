@@ -20,6 +20,7 @@ from ufor.codec import parse_score, score_toml
         'alternating',
         'inside-out',
         'outside-in',
+        'index-pattern',
     ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
@@ -38,6 +39,25 @@ def test_simple_profile_has_the_declared_defaults() -> None:
     assert score.body.rhythm == Grid(step='1/4 beat')
     assert score.body.gate == Fraction(4, 5)
     assert score.body.retrigger == 'on_empty'
+
+
+@pytest.mark.parametrize('indices', [[], [-1], [1.5], [True], ['1']])
+def test_index_pattern_requires_nonnegative_integer_indices(
+    indices: list[object],
+) -> None:
+    from ufor.arpeggiator import IndexPattern
+
+    with pytest.raises(ValidationError):
+        IndexPattern.model_validate({'indices': indices})
+
+
+def test_index_pattern_boundary_defaults_to_wrap_and_accepts_rest() -> None:
+    from ufor.arpeggiator import IndexPattern
+
+    assert IndexPattern(indices=[0, 5]).boundary == 'wrap'
+    assert IndexPattern(indices=[0], boundary='rest').boundary == 'rest'
+    with pytest.raises(ValidationError):
+        IndexPattern.model_validate({'indices': [0], 'boundary': 'clamp'})
 
 
 def test_bank_edit_retrigger_round_trips() -> None:

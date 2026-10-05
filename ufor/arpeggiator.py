@@ -65,6 +65,12 @@ class OutsideIn(Model, frozen=True):
     kind: Literal['outside_in'] = 'outside_in'
 
 
+class IndexPattern(Model, frozen=True):
+    kind: Literal['index_pattern'] = 'index_pattern'
+    indices: list[Annotated[int, Field(strict=True, ge=0)]] = Field(min_length=1)
+    boundary: Literal['wrap', 'rest'] = 'wrap'
+
+
 class Walk(Model):
     kind: Literal['walk'] = 'walk'
     moves: list[int] = Field(min_length=1)
@@ -154,7 +160,14 @@ class Arpeggiator(Model):
         Field(discriminator='kind'),
     ] = HeldBank()
     selection: Annotated[
-        Ascending | Descending | Played | Alternating | InsideOut | OutsideIn | Walk,
+        Ascending
+        | Descending
+        | Played
+        | Alternating
+        | InsideOut
+        | OutsideIn
+        | IndexPattern
+        | Walk,
         Field(discriminator='kind'),
     ] = Ascending()
     rhythm: Annotated[
