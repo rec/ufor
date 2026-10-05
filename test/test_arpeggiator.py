@@ -4,7 +4,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor.arpeggiator import ArpeggiatorScore, Ascending, Descending, Grid, HeldBank
+from ufor.arpeggiator import (
+    ArpeggiatorScore,
+    Ascending,
+    Descending,
+    Grid,
+    HeldBank,
+    Shuffle,
+)
 from ufor.codec import parse_score, score_toml
 
 
@@ -21,6 +28,7 @@ from ufor.codec import parse_score, score_toml
         'inside-out',
         'outside-in',
         'index-pattern',
+        'shuffle',
     ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:
@@ -39,6 +47,36 @@ def test_simple_profile_has_the_declared_defaults() -> None:
     assert score.body.rhythm == Grid(step='1/4 beat')
     assert score.body.gate == Fraction(4, 5)
     assert score.body.retrigger == 'on_empty'
+
+
+def test_shuffle_requires_a_seed_and_round_trips_all_policies() -> None:
+    score = parse_score(Path('conformance/arpeggiator/shuffle.toml').read_text())
+    assert isinstance(score, ArpeggiatorScore)
+    assert isinstance(score.body.selection, Shuffle)
+    assert score.body.selection.mode == 'cycle'
+    assert score.body.selection.on_edit == 'restart'
+    assert score.body.selection.no_repeat is False
+    data = score.model_dump()
+    data['body']['seed'] = None
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(data)
+    data['body']['seed'] = 42
+    data['body']['selection'] = {
+        'kind': 'shuffle',
+        'mode': 'once',
+        'no_repeat': True,
+        'on_edit': 'preserve',
+    }
+    score = ArpeggiatorScore.model_validate(data)
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize(
+    'option,value', [('mode', 'random'), ('on_edit', 'append'), ('no_repeat', 1)]
+)
+def test_shuffle_rejects_invalid_policies(option: str, value: object) -> None:
+    with pytest.raises(ValidationError):
+        Shuffle.model_validate({option: value})
 
 
 @pytest.mark.parametrize('indices', [[], [-1], [1.5], [True], ['1']])

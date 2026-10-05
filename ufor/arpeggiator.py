@@ -71,6 +71,13 @@ class IndexPattern(Model, frozen=True):
     boundary: Literal['wrap', 'rest'] = 'wrap'
 
 
+class Shuffle(Model, frozen=True):
+    kind: Literal['shuffle'] = 'shuffle'
+    mode: Literal['once', 'cycle'] = 'cycle'
+    no_repeat: bool = Field(default=False, strict=True)
+    on_edit: Literal['restart', 'preserve'] = 'restart'
+
+
 class Walk(Model):
     kind: Literal['walk'] = 'walk'
     moves: list[int] = Field(min_length=1)
@@ -167,6 +174,7 @@ class Arpeggiator(Model):
         | InsideOut
         | OutsideIn
         | IndexPattern
+        | Shuffle
         | Walk,
         Field(discriminator='kind'),
     ] = Ascending()
@@ -182,9 +190,13 @@ class Arpeggiator(Model):
     @model_validator(mode='after')
     def seeded_probability(self) -> Self:
         random_walk = isinstance(self.selection, Walk) and len(self.selection.moves) > 1
-        if (0 < self.probability < 1 or random_walk) and self.seed is None:
+        if (
+            0 < self.probability < 1
+            or random_walk
+            or isinstance(self.selection, Shuffle)
+        ) and self.seed is None:
             raise ValueError(
-                'random probability or weighted walk requires an explicit seed'
+                'random probability, weighted walk, or shuffle requires a seed'
             )
         return self
 

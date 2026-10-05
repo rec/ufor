@@ -576,6 +576,7 @@
               "inside_out": "#/$defs/InsideOut",
               "outside_in": "#/$defs/OutsideIn",
               "played": "#/$defs/Played",
+              "shuffle": "#/$defs/Shuffle",
               "walk": "#/$defs/Walk"
             },
             "propertyName": "kind"
@@ -601,6 +602,9 @@
             },
             {
               "$ref": "#/$defs/IndexPattern"
+            },
+            {
+              "$ref": "#/$defs/Shuffle"
             },
             {
               "$ref": "#/$defs/Walk"
@@ -11638,6 +11642,42 @@
         "body"
       ],
       "title": "SequenceScore",
+      "type": "object"
+    },
+    "Shuffle": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "shuffle",
+          "default": "shuffle",
+          "title": "Kind",
+          "type": "string"
+        },
+        "mode": {
+          "default": "cycle",
+          "enum": [
+            "once",
+            "cycle"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "no_repeat": {
+          "default": false,
+          "title": "No Repeat",
+          "type": "boolean"
+        },
+        "on_edit": {
+          "default": "restart",
+          "enum": [
+            "restart",
+            "preserve"
+          ],
+          "title": "On Edit",
+          "type": "string"
+        }
+      },
+      "title": "Shuffle",
       "type": "object"
     },
     "Slice": {
