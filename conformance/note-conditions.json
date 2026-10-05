@@ -1,0 +1,47 @@
+{
+  "instrument": {
+    "kind": "sample_instrument",
+    "settings": {
+      "controls": {"sustain": {}},
+      "sustain": {"control": "sustain"},
+      "articulations": {"ids": [], "keys": [{"key": 24}, {"key": 25}]}
+    },
+    "slices": [{"name": "sample", "asset": "sample", "end_frame": 48000}],
+    "slots": [
+      {
+        "name": "held", "slice": "sample",
+        "mapping": {"lowest_key": 60, "highest_key": 64, "reference_pitch_hz": 261.625565},
+        "channels": [{"input": "mono", "output": "mono", "gain": 1}],
+        "key_conditions": [{"key": 24, "pressed": true}, {"key": 25, "pressed": false}]
+      },
+      {
+        "name": "previous", "slice": "sample",
+        "mapping": {"lowest_key": 60, "highest_key": 64, "reference_pitch_hz": 261.625565},
+        "channels": [{"input": "mono", "output": "mono", "gain": 1}],
+        "previous_key": 60
+      }
+    ]
+  },
+  "events": [
+    {"kind": "trigger", "tick": 0, "ordinal": 0, "part": "main", "trigger_id": "a", "key": 24},
+    {"kind": "trigger", "tick": 1, "ordinal": 1, "part": "main", "trigger_id": "b", "key": 24},
+    {"kind": "trigger", "tick": 2, "ordinal": 2, "part": "main", "trigger_id": "n0", "key": 60},
+    {"kind": "release", "tick": 3, "ordinal": 3, "part": "main", "trigger_id": "a"},
+    {"kind": "trigger", "tick": 4, "ordinal": 4, "part": "main", "trigger_id": "n1", "key": 64},
+    {"kind": "trigger", "tick": 5, "ordinal": 5, "part": "main", "trigger_id": "c", "key": 25},
+    {"kind": "trigger", "tick": 6, "ordinal": 6, "part": "main", "trigger_id": "n2", "key": 60},
+    {"kind": "release", "tick": 7, "ordinal": 7, "part": "main", "trigger_id": "c"},
+    {"kind": "control_change", "tick": 8, "ordinal": 8, "part": "main", "scope": "part", "control": "sustain", "value": 1},
+    {"kind": "release", "tick": 9, "ordinal": 9, "part": "main", "trigger_id": "b"},
+    {"kind": "trigger", "tick": 10, "ordinal": 10, "part": "main", "trigger_id": "n3", "key": 64},
+    {"kind": "trigger", "tick": 11, "ordinal": 11, "part": "other", "trigger_id": "o", "key": 60},
+    {"kind": "trigger", "tick": 12, "ordinal": 12, "part": "main", "trigger_id": "n4", "key": 60},
+    {"kind": "release", "tick": 13, "ordinal": 13, "part": "main", "trigger_id": "n4"},
+    {"kind": "trigger", "tick": 14, "ordinal": 14, "part": "main", "trigger_id": "n5", "key": 64},
+    {"kind": "trigger", "tick": 15, "ordinal": 15, "part": "other", "trigger_id": "switch", "key": 24},
+    {"kind": "trigger", "tick": 16, "ordinal": 16, "part": "other", "trigger_id": "o2", "key": 60}
+  ],
+  "starts": [[2, "held"], [4, "held"], [4, "previous"], [10, "previous"], [14, "previous"], [16, "held"]],
+  "previous_keys": {"main": 64, "other": 60},
+  "held_keys": {"main": {"n0": 60, "n1": 64, "n2": 60, "n3": 64, "n5": 64}, "other": {"o": 60, "switch": 24, "o2": 60}}
+}

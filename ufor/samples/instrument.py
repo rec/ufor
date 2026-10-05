@@ -34,6 +34,8 @@ from .selection import (
     Articulations,
     Choke,
     ControlCondition,
+    ControlTrigger,
+    KeyCondition,
     RandomRange,
     Selection,
     SequencePosition,
@@ -115,6 +117,9 @@ class SampleSlot(SoundSettings):
     trigger: enums.TriggerKind = enums.TriggerKind.start
     articulations: list[Identifier] = Field(default_factory=list)
     control_conditions: list[ControlCondition] = Field(default_factory=list)
+    key_conditions: list[KeyCondition] = Field(default_factory=list)
+    previous_key: base.NoteKey | None = None
+    control_trigger: ControlTrigger | None = None
     variation: Variation = Variation()
 
     @field_validator(
@@ -154,6 +159,19 @@ class SampleSlot(SoundSettings):
         unique(self.tags, 'tag')
         unique(self.articulations, 'articulation reference')
         unique((c.control for c in self.control_conditions), 'control condition')
+        unique(((c.key, c.pressed) for c in self.key_conditions), 'key condition')
+        if (self.trigger == enums.TriggerKind.control) != (
+            self.control_trigger is not None
+        ):
+            raise ValueError('control triggers require a control_trigger declaration')
+        if self.control_trigger is not None and (
+            self.sequence is not None
+            or self.random_range is not None
+            or self.crossfades
+        ):
+            raise ValueError(
+                'control triggers do not support sequence, random ranges, or crossfades'
+            )
         unique((c.group for c in self.chokes), 'choke target')
         unique(((c.input, c.output) for c in self.channels), 'channel route')
         unique(
@@ -284,6 +302,10 @@ class SampleInstrument(Model):
                 sources = {s.name: s for s in sound_settings.modulation.sources}
                 for binding in sound_settings.bindings:
                     if isinstance(binding, EventBinding) and binding.kind == 'key':
+                        if slot.control_trigger is not None:
+                            raise ValueError(
+                                'Control-triggered voices have no note key'
+                            )
                         source = sources[binding.name]
                         if (
                             not source.minimum
@@ -316,6 +338,14 @@ class SampleInstrument(Model):
                         'exceeds [-1, 1]'
                     )
             selection = effective_selection(slot, group)
+            if slot.control_trigger is not None:
+                declared = self.settings.require_control(slot.control_trigger.control)
+                declared.validate_value(slot.control_trigger.minimum_value)
+                declared.validate_value(slot.control_trigger.maximum_value)
+                if selection is not None:
+                    raise ValueError(
+                        'control triggers do not support alternate selections'
+                    )
             if selection is not None and selection not in selections:
                 raise ValueError(f'Slot {slot.name}: unknown selection {selection}')
             if slot.take is not None:

@@ -21,6 +21,7 @@ class LoopMode(StrEnum):
 
 class TriggerKind(StrEnum):
     start = auto()
+    control = auto()
     release = auto()
     logical_release = auto()
     sustain_press = auto()

@@ -39,7 +39,7 @@ class VoiceStart(TraceAction):
     part: Identifier
     trigger_id: Identifier | None
     template: Identifier
-    key: int
+    key: int | None
     pitch_hz: float | None = None
 
 
@@ -114,7 +114,7 @@ class ActiveVoice(Model):
     part: Identifier
     trigger_id: Identifier | None
     template: Identifier
-    key: int
+    key: int | None
     template_trigger: enums.TriggerKind = enums.TriggerKind.start
     choke_group: Identifier | None = None
 

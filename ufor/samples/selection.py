@@ -84,6 +84,8 @@ class SelectionState(Model):
     note_on_counts: dict[Identifier, int] = Field(default_factory=dict)
     articulations: dict[Identifier, Identifier | None] = Field(default_factory=dict)
     controls: dict[Identifier, dict[Identifier, Bipolar]] = Field(default_factory=dict)
+    held_keys: dict[Identifier, dict[Identifier, NoteKey]] = Field(default_factory=dict)
+    previous_keys: dict[Identifier, NoteKey] = Field(default_factory=dict)
 
     @model_validator(mode='after')
     def unique_sequences(self) -> Self:
@@ -292,8 +294,22 @@ class ControlCondition(Model):
         return self
 
 
+class KeyCondition(Model):
+    """Require a key to be physically pressed or released in this part."""
+
+    key: NoteKey
+    pressed: StrictBool
+
+
+class ControlTrigger(ControlCondition):
+    """Start a voice on each matching part-control message, without a note."""
+
+    pitch_hz: float = Field(strict=True, gt=0, allow_inf_nan=False)
+    velocity: UnitInterval
+
+
 class Articulations(Model):
-    ids: list[Identifier] = Field(min_length=1)
+    ids: list[Identifier]
     default: Identifier | None = None
     keys: list[KeySwitch] = Field(default_factory=list)
     controls: list[ControlSwitch] = Field(default_factory=list)

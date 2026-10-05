@@ -42,6 +42,7 @@ from .variation import ResolvedVariation, resolve
 
 
 class VoiceStart(LifecycleVoiceStart):
+    velocity: float = Field(default=1, ge=0, le=1)
     slice: Identifier
     start_frame: int
     alignment_frames: int
@@ -116,7 +117,7 @@ def prepare(
     def selected_slots(
         part: Identifier,
         kind: enums.TriggerKind,
-        key: int,
+        key: int | None,
         velocity: float,
         event: PerformanceEvent,
     ) -> list[SampleSlot]:
@@ -138,9 +139,28 @@ def prepare(
             s
             for s in instrument.slots
             if s.trigger == kind
-            and s.mapping.lowest_key <= key <= s.mapping.highest_key
-            and s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+            and (key is None or s.mapping.lowest_key <= key <= s.mapping.highest_key)
+            and (
+                key is None
+                or s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+            )
+            and (
+                s.control_trigger is None
+                or isinstance(event, ControlChange)
+                and s.control_trigger.control == event.control
+                and s.control_trigger.minimum_value
+                <= event.value
+                <= s.control_trigger.maximum_value
+            )
             and (not s.articulations or active in s.articulations)
+            and all(
+                (c.key in state.held_keys.get(part, {}).values()) == c.pressed
+                for c in s.key_conditions
+            )
+            and (
+                s.previous_key is None
+                or state.previous_keys.get(part) == s.previous_key
+            )
             and all(
                 c.minimum_value
                 <= controls.get(c.control, control_defaults[c.control].default)
@@ -172,6 +192,7 @@ def prepare(
                 if effective_selection(s, groups.get(s.group)) == selection.name
             ]
             if candidates:
+                assert key is not None
                 choice, state = choose(
                     selection,
                     state,
@@ -207,8 +228,9 @@ def prepare(
         event: PerformanceEvent,
         part: Identifier,
         trigger_id: Identifier | None,
-        key: int,
+        key: int | None,
         pitch_hz: float | None = None,
+        velocity: float = 1,
     ) -> None:
         nonlocal next_voice
         for voice in list(voices):
@@ -247,7 +269,7 @@ def prepare(
                 for v in voices
                 if v.part == part and slot_pools[v.template] == pool_name
             ]
-            if policy.same_key != enums.SameKey.stack:
+            if key is not None and policy.same_key != enums.SameKey.stack:
                 for voice in [v for v in pool_voices if v.key == key]:
                     action = (
                         'release'
@@ -266,11 +288,12 @@ def prepare(
                 retire(voice, event, RetirementCause.voice_limit, action)
         policy = instrument.settings.voice_policy
         if policy is not None and any(
-            s.trigger == enums.TriggerKind.start for s in slots
+            s.trigger in (enums.TriggerKind.start, enums.TriggerKind.control)
+            for s in slots
         ):
             if len(slots) > policy.maximum_voices:
                 raise ValueError('trigger batch exceeds maximum_voices')
-            if policy.same_key != enums.SameKey.stack:
+            if key is not None and policy.same_key != enums.SameKey.stack:
                 for voice in [v for v in voices if v.part == part and v.key == key]:
                     action = (
                         'release'
@@ -286,6 +309,11 @@ def prepare(
                 )
                 retire(voices[0], event, RetirementCause.voice_limit, action)
         for slot in slots:
+            voice_velocity = event.velocity if isinstance(event, Trigger) else velocity
+            voice_pitch = event.pitch_hz if isinstance(event, Trigger) else pitch_hz
+            if slot.control_trigger is not None:
+                voice_velocity = slot.control_trigger.velocity
+                voice_pitch = slot.control_trigger.pitch_hz
             voice_id = f'voice-{next_voice}'
             next_voice += 1
             sample_slice = slices[slot.slice]
@@ -311,7 +339,8 @@ def prepare(
                     trigger_id=trigger_id,
                     template=slot.name,
                     key=key,
-                    pitch_hz=event.pitch_hz if isinstance(event, Trigger) else pitch_hz,
+                    velocity=voice_velocity,
+                    pitch_hz=voice_pitch,
                     slice=slot.slice,
                     start_frame=sample_slice.start_frame + slot.alignment_frames,
                     alignment_frames=slot.alignment_frames,
@@ -347,6 +376,7 @@ def prepare(
                 part,
                 None,
                 key,
+                velocity=event.value,
             )
 
     def update_trigger(trigger: ActiveTrigger, **changes: object) -> ActiveTrigger:
@@ -451,6 +481,7 @@ def prepare(
                                     trigger.trigger_id,
                                     trigger.key,
                                     trigger.pitch_hz,
+                                    velocity=trigger.velocity,
                                 )
                                 for voice in list(start_voices(trigger)):
                                     if (
@@ -466,6 +497,16 @@ def prepare(
                                     )
                             update_trigger(trigger, logical_released=True)
                     start_sustain(enums.TriggerKind.sustain_release, event, part)
+            if event.scope == 'part' and event.part is not None:
+                start_slots(
+                    selected_slots(
+                        event.part, enums.TriggerKind.control, None, 1, event
+                    ),
+                    event,
+                    event.part,
+                    None,
+                    None,
+                )
         elif isinstance(event, Release):
             trigger = next(
                 (
@@ -485,6 +526,12 @@ def prepare(
                     )
                 )
             elif not trigger.physically_released:
+                if any(s.key_conditions for s in instrument.slots):
+                    held = dict(state.held_keys.get(trigger.part, {}))
+                    held.pop(trigger.trigger_id, None)
+                    state = state.model_copy(
+                        update={'held_keys': state.held_keys | {trigger.part: held}}
+                    )
                 trigger = update_trigger(trigger, physically_released=True)
                 if start_voices(trigger):
                     start_slots(
@@ -500,6 +547,7 @@ def prepare(
                         trigger.trigger_id,
                         trigger.key,
                         trigger.pitch_hz,
+                        velocity=trigger.velocity,
                     )
                 pressed = sustain.get(
                     trigger.part,
@@ -524,6 +572,7 @@ def prepare(
                             trigger.trigger_id,
                             trigger.key,
                             trigger.pitch_hz,
+                            velocity=trigger.velocity,
                         )
                         for voice in list(start_voices(trigger)):
                             if (
@@ -564,6 +613,16 @@ def prepare(
                 ):
                     raise ValueError('trigger ID is still active in this part')
                 triggers.remove(previous)
+            if any(s.key_conditions for s in instrument.slots):
+                state = state.model_copy(
+                    update={
+                        'held_keys': state.held_keys
+                        | {
+                            event.part: state.held_keys.get(event.part, {})
+                            | {event.trigger_id: event.key}
+                        }
+                    }
+                )
             actions.append(
                 TriggerContext(
                     tick=event.tick,
@@ -604,6 +663,12 @@ def prepare(
                 )
             )
             start_slots(selected, event, event.part, event.trigger_id, event.key)
+            if any(s.previous_key is not None for s in instrument.slots):
+                state = state.model_copy(
+                    update={
+                        'previous_keys': state.previous_keys | {event.part: event.key}
+                    }
+                )
     return SampleTrace(
         seed=seed,
         actions=actions,

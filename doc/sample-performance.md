@@ -51,8 +51,8 @@ recoverable preparation failure without inventing a voice.
 
 The trace deliberately excludes audio blocks, interpolation positions, filter
 delay elements, oscillator phase buffers, and generated audio. Those remain
-renderer choices. Articulation execution is unsupported and both preparers reject
-instruments declaring articulations. A trace is not proof that a renderer supports
+renderer choices. The sample preparer supports latched key articulations and
+rejects momentary and control-driven articulations. A trace is not proof that a renderer supports
 every feature in its definition.
 
 Input events are processed in increasing `(tick, ordinal)` order; duplicate
@@ -62,6 +62,45 @@ independent of punctuation in part/template/trigger names. A trigger ID cannot b
 reused until logically released and no longer owning a logical voice in the trace.
 The current preparer receives no audio-exhaustion feedback, so one-shot and release
 voices remain logically active unless explicitly retired.
+
+## Note and control selection conditions
+
+Each slot's `key_conditions` requires every named key to be physically pressed
+or released in the event's part. `SelectionState.held_keys` maps each part's
+still-pressed trigger IDs to keys, so overlapping presses remain held until all
+matching releases arrive. A press is recorded before note-on selection and a
+release before release selection. Sustain does not retain physical presses.
+Conditions combine with articulation and control conditions; they select new
+voices without changing voices already playing. An articulation declaration may
+have an empty `ids` list and consumed keys with no articulation, allowing switch
+notes to be consumed independently of sticky selection.
+
+A slot's optional `previous_key` requires the preceding note-on key in its part.
+`SelectionState.previous_keys` starts empty, is checked before recording the
+current note-on, and includes consumed switches and unmatched note-ons. History
+survives releases and silence. Native release conditions consult current history;
+source formats must diagnose release-history rules without a verified equivalent.
+
+A slot with `trigger="control"` requires `control_trigger`: a declared named
+control, inclusive range, explicit `pitch_hz`, and explicit `velocity`. It starts
+on every matching part-scoped `ControlChange`, including repeated values. The
+control value is updated before selection. Instrument- and trigger-scoped changes
+do not start these voices. Defaults do not generate events. Ordinary control,
+key, and articulation conditions evaluate the current part state.
+
+Control voices require one-shot playback and have no note key or trigger ID;
+their `voice_start` records `key=null`, `trigger_id=null`, and the authored pitch
+and velocity. Existing chokes and voice limits apply, while same-key rules do
+not. They do not update previous keys, physical presses, or note-on counters, and
+note releases, sustain, or leaving the controller range do not release them.
+Sequence positions, random ranges, alternate selections, and crossfades are
+outside this first control-trigger model. The reference preparer still has no
+audio-completion feedback: the consumer finishes one-shots naturally, while the
+trace retains their logical voices until an explicit choke or voice limit.
+
+The portable [note-condition vectors](../conformance/note-conditions.json) and
+[control-trigger vectors](../conformance/control-triggers.json) define the exact
+selection, overlap, part isolation, and retirement results.
 
 ## Alternate Sample Selection
 

@@ -923,7 +923,6 @@
           "items": {
             "type": "string"
           },
-          "minItems": 1,
           "title": "Ids",
           "type": "array"
         },
@@ -3368,6 +3367,48 @@
         "articulation"
       ],
       "title": "ControlSwitch",
+      "type": "object"
+    },
+    "ControlTrigger": {
+      "additionalProperties": false,
+      "description": "Start a voice on each matching part-control message, without a note.",
+      "properties": {
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "minimum_value": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum Value",
+          "type": "number"
+        },
+        "maximum_value": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum Value",
+          "type": "number"
+        },
+        "pitch_hz": {
+          "exclusiveMinimum": 0,
+          "title": "Pitch Hz",
+          "type": "number"
+        },
+        "velocity": {
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Velocity",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control",
+        "pitch_hz",
+        "velocity"
+      ],
+      "title": "ControlTrigger",
       "type": "object"
     },
     "ControlType": {
@@ -5942,6 +5983,26 @@
       ],
       "title": "KeyBehavior",
       "type": "string"
+    },
+    "KeyCondition": {
+      "additionalProperties": false,
+      "description": "Require a key to be physically pressed or released in this part.",
+      "properties": {
+        "key": {
+          "title": "Key",
+          "type": "integer"
+        },
+        "pressed": {
+          "title": "Pressed",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "key",
+        "pressed"
+      ],
+      "title": "KeyCondition",
+      "type": "object"
     },
     "KeyCrossfade": {
       "additionalProperties": false,
@@ -10987,6 +11048,36 @@
           "title": "Control Conditions",
           "type": "array"
         },
+        "key_conditions": {
+          "items": {
+            "$ref": "#/$defs/KeyCondition"
+          },
+          "title": "Key Conditions",
+          "type": "array"
+        },
+        "previous_key": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Previous Key"
+        },
+        "control_trigger": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ControlTrigger"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "variation": {
           "$ref": "#/$defs/Variation",
           "default": {
@@ -13001,6 +13092,7 @@
     "TriggerKind": {
       "enum": [
         "start",
+        "control",
         "release",
         "logical_release",
         "sustain_press",

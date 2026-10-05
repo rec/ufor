@@ -1,0 +1,47 @@
+{
+  "instrument": {
+    "kind": "sample_instrument",
+    "settings": {"controls": {"pressure": {"default": 1}, "gate": {}}},
+    "slices": [{"name": "sample", "asset": "sample", "end_frame": 48000}],
+    "voice_pools": [{"name": "pedals", "policy": {"maximum_voices": 2, "overflow": "replace_oldest"}}],
+    "slots": [
+      {
+        "name": "pedal", "slice": "sample", "trigger": "control", "voice_pool": "pedals",
+        "mapping": {"lowest_key": 60, "highest_key": 60, "pitch_tracking": false},
+        "channels": [{"input": "mono", "output": "mono", "gain": 1}],
+        "playback": {"mode": "one_shot"},
+        "control_trigger": {"control": "pressure", "minimum_value": 0.5, "maximum_value": 1, "pitch_hz": 220, "velocity": 0.75}
+      },
+      {
+        "name": "layer", "slice": "sample", "trigger": "control", "voice_pool": "pedals",
+        "mapping": {"lowest_key": 60, "highest_key": 60, "pitch_tracking": false},
+        "channels": [{"input": "mono", "output": "mono", "gain": 1}],
+        "playback": {"mode": "one_shot"},
+        "control_conditions": [{"control": "gate", "minimum_value": 1}],
+        "control_trigger": {"control": "pressure", "minimum_value": 0.5, "maximum_value": 1, "pitch_hz": 440, "velocity": 1}
+      },
+      {
+        "name": "note", "slice": "sample",
+        "mapping": {"lowest_key": 60, "highest_key": 60, "reference_pitch_hz": 261.625565},
+        "channels": [{"input": "mono", "output": "mono", "gain": 1}],
+        "key_conditions": [{"key": 24, "pressed": true}], "previous_key": 60
+      }
+    ]
+  },
+  "events": [
+    {"kind": "trigger", "tick": 0, "ordinal": 0, "part": "main", "trigger_id": "note", "key": 60},
+    {"kind": "release", "tick": 1, "ordinal": 1, "part": "main", "trigger_id": "note"},
+    {"kind": "control_change", "tick": 2, "ordinal": 2, "part": "main", "scope": "part", "control": "pressure", "value": 0.75},
+    {"kind": "control_change", "tick": 3, "ordinal": 3, "part": "main", "scope": "part", "control": "pressure", "value": 0.75},
+    {"kind": "control_change", "tick": 4, "ordinal": 4, "scope": "instrument", "control": "pressure", "value": 0.75},
+    {"kind": "control_change", "tick": 5, "ordinal": 5, "part": "main", "trigger_id": "note", "scope": "trigger", "control": "pressure", "value": 0.75},
+    {"kind": "control_change", "tick": 6, "ordinal": 6, "part": "main", "scope": "part", "control": "gate", "value": 1},
+    {"kind": "control_change", "tick": 7, "ordinal": 7, "part": "main", "scope": "part", "control": "pressure", "value": 1},
+    {"kind": "control_change", "tick": 8, "ordinal": 8, "part": "main", "scope": "part", "control": "pressure", "value": 0},
+    {"kind": "control_change", "tick": 9, "ordinal": 9, "part": "other", "scope": "part", "control": "pressure", "value": 0.75}
+  ],
+  "starts": [[2, "pedal"], [3, "pedal"], [7, "pedal"], [7, "layer"], [9, "pedal"]],
+  "retirements": [[7, "voice_limit"], [7, "voice_limit"]],
+  "previous_keys": {"main": 60},
+  "held_keys": {"main": {}}
+}
