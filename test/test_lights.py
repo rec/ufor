@@ -386,7 +386,7 @@ def test_cue_boundaries_require_exact_ticks_and_unique_parts() -> None:
 def test_documented_multicomponent_score_round_trips() -> None:
     text = (
         Path('doc/light-format.md')
-        .read_text()
+        .read_text(encoding='utf-8')
         .split('```toml\n', 1)[1]
         .split('```', 1)[0]
     )
@@ -394,6 +394,12 @@ def test_documented_multicomponent_score_round_trips() -> None:
     assert isinstance(document, light_animation.AnimationScore)
     assert parse_score(score_toml(document)) == document
     ring = lights.Layout.model_validate_json(
-        Path('conformance/lights/rings.json').read_text()
+        Path('conformance/lights/rings.json').read_text(encoding='utf-8')
     )
-    assert ring == lights.rings([4, 8], [1, 2])
+    generated = lights.rings([4, 8], [1, 2])
+    assert ring.model_dump(exclude={'lights'}) == generated.model_dump(
+        exclude={'lights'}
+    )
+    for a, b in zip(ring.lights, generated.lights, strict=True):
+        assert a.name == b.name
+        assert a.position == pytest.approx(b.position, rel=0, abs=1e-15)

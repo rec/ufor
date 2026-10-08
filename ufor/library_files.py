@@ -1,6 +1,5 @@
 """Explicit filesystem and local Python loading for user score libraries."""
 
-import fcntl
 import os
 import sys
 from hashlib import sha256
@@ -17,6 +16,11 @@ from .library import Diagnostic, Entry, Library, State
 from .score import Score
 from .score_types import ScoreValue
 from .selector import LibraryConfig, LibraryRegistration, address
+
+if sys.platform == 'win32':
+    import msvcrt
+else:
+    import fcntl
 
 MAX_LIBRARY_FILES = 10000
 MAX_LIBRARY_FILE_BYTES = 16 * 1024 * 1024
@@ -179,34 +183,49 @@ def create_library(
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_name(f'{path.name}.lock')
     with lock_path.open('a+b') as lock:
-        fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        document = (
-            tomlkit.parse(path.read_text()) if path.exists() else tomlkit.document()
-        )
-        config = LibraryConfig.model_validate(document)
-        selected = (
-            expanded_path(str(root))
-            if root is not None
-            else Path.home() / '.config/ufor/scores'
-        )
-        registration = LibraryRegistration(name=name, root=str(selected))
-        updated = LibraryConfig(libraries=[*config.libraries, registration])
-        directory = selected if selected.is_absolute() else path.parent / selected
-        if directory.is_symlink():
-            raise ValueError('library root must not be a symlink')
-        directory.mkdir(parents=True, exist_ok=True)
-        if 'libraries' not in document:
-            document['libraries'] = tomlkit.aot()
-        table = tomlkit.table()
-        table.update(registration.model_dump())
-        document['libraries'].append(table)
-        _write_config(path, tomlkit.dumps(document))
-        return updated
+        if sys.platform == 'win32':
+            lock.seek(0)
+            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
+        else:
+            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
+        try:
+            document = (
+                tomlkit.parse(path.read_text(encoding='utf-8'))
+                if path.exists()
+                else tomlkit.document()
+            )
+            config = LibraryConfig.model_validate(document)
+            selected = (
+                expanded_path(str(root))
+                if root is not None
+                else Path.home() / '.config/ufor/scores'
+            )
+            registration = LibraryRegistration(name=name, root=str(selected))
+            updated = LibraryConfig(libraries=[*config.libraries, registration])
+            directory = selected if selected.is_absolute() else path.parent / selected
+            if directory.is_symlink():
+                raise ValueError('library root must not be a symlink')
+            directory.mkdir(parents=True, exist_ok=True)
+            if 'libraries' not in document:
+                document['libraries'] = tomlkit.aot()
+            table = tomlkit.table()
+            table.update(registration.model_dump())
+            document['libraries'].append(table)
+            _write_config(path, tomlkit.dumps(document))
+            return updated
+        finally:
+            if sys.platform == 'win32':
+                lock.seek(0)
+                msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
 
 
 def _write_config(path: Path, contents: str) -> None:
     temporary = NamedTemporaryFile(
-        mode='w', dir=path.parent, prefix=f'.{path.name}.', delete=False
+        mode='w',
+        encoding='utf-8',
+        dir=path.parent,
+        prefix=f'.{path.name}.',
+        delete=False,
     )
     temporary_path = Path(temporary.name)
     try:

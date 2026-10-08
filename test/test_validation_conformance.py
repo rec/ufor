@@ -14,7 +14,9 @@ from ufor.scale import Scale
 from ufor.slideshow import CaptionTrack, Transition
 
 CASES = json.loads(
-    (Path(__file__).parents[1] / 'conformance/validation.json').read_text()
+    (Path(__file__).parents[1] / 'conformance/validation.json').read_text(
+        encoding='utf-8'
+    )
 )
 MODELS = {
     'ScoreReference': ScoreReference,

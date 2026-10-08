@@ -244,10 +244,10 @@ def test_create_and_read_preserve_configuration_and_use_relative_roots(
 ) -> None:
     config = tmp_path / 'nested/library.toml'
     config.parent.mkdir()
-    config.write_text('# user comment\n')
+    config.write_text('# café\n', encoding='utf-8')
     library_files.create_library('local', Path('scores'), config)
     library_files.create_library('second', Path('../second'), config)
-    assert '# user comment' in config.read_text()
+    assert '# café' in config.read_text(encoding='utf-8')
     assert (tmp_path / 'nested/scores').is_dir()
     assert (tmp_path / 'second').is_dir()
     save(tmp_path / 'nested/scores/z.toml', oscillator('z'))
@@ -337,6 +337,7 @@ def test_default_config_is_optional_and_explicit_config_is_exclusive(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv('HOME', str(tmp_path))
+    monkeypatch.setenv('USERPROFILE', str(tmp_path))
     assert library_files.read_library().find() == []
     assert not (tmp_path / '.config').exists()
     library_files.create_library('default')
