@@ -60,9 +60,20 @@ unchanged banks, and publication of an empty bank do not notify. Overdub,
 replacement, and undo notify if they change the eligible bank to a nonempty one.
 Readiness is independent of density or whether that step emits a note.
 
+`cycle` marks the first step of each authored rhythm loop, including its first
+loop: an Euclidean rhythm repeats every `steps` opportunities, and a custom
+pattern repeats after its last cell. Variable cell durations determine the exact
+boundary beat. Plain grids have no authored loop and emit no `cycle`. Rotation
+changes Euclidean hit positions, not loop boundaries. Rests, ties, empty banks,
+density rejection, and chord edits do not shift these boundaries. Pause preserves
+phase; Start and seeks use the relocated rhythm index without replaying crossed
+boundaries. Each event carries the boundary step's time, index, and bank revision.
+Order is `capture_ready` when present, `cycle` when present, then `step` and its
+outcome. This event describes rhythm loops, independently of selector traversal.
+
 The output batch contains at most 4096 events. Reserve two event slots before
-admitting a step, or three when it includes `capture_ready`, so the publication
-notification, step, and outcome are admitted together. If full, skip new step
+admitting a step, plus one for each `capture_ready` or `cycle`, so notifications,
+step, and outcome are admitted together. If full, skip new step
 admissions and their notifications while keeping the published bank and owned
 releases; draining the batch reports `exhausted = true` and permits subsequent
 steps. No skipped attacks or notifications are replayed. Hosts drain after each
