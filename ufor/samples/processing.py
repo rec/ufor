@@ -147,6 +147,7 @@ class MotionEventConnection(Model):
     port: str = Field(min_length=1)
     destination: Identifier
     cue: Identifier
+    every: int = Field(default=1, ge=1, strict=True)
 
 
 Binding = Annotated[

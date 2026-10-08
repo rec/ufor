@@ -1,5 +1,13 @@
 # Choosing a control representation
 
+Motion event connections, including internal Patch connections, accept `every`
+as a positive integer (default `1`). Each connection forwards its first matching
+event, then every nth matching event: `every = 3` forwards 1, 4, 7. Nonmatching
+ports do not advance the count. Counts belong to each connection and voice,
+reset on voice activation, and survive snapshots; stage transitions, contour
+restarts, and render-block boundaries do not reset them. Division filters
+delivery, not the source Motion's emitted events or named event outputs.
+
 Choose by what drives the value and who owns its lifetime. These models describe
 different operations; none is a replacement for all the others.
 

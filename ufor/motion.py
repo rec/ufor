@@ -261,6 +261,7 @@ class PatchEventConnection(Model):
     target: Identifier
     action: Literal['start', 'cue'] = 'start'
     cue: Identifier | None = None
+    every: int = Field(default=1, ge=1, strict=True)
 
     @model_validator(mode='after')
     def cue_payload(self) -> Self:

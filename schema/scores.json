@@ -7321,6 +7321,12 @@
     "MotionEventConnection": {
       "additionalProperties": false,
       "properties": {
+        "every": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Every",
+          "type": "integer"
+        },
         "source": {
           "title": "Source",
           "type": "string"
@@ -8869,6 +8875,12 @@
     "PatchEventConnection": {
       "additionalProperties": false,
       "properties": {
+        "every": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Every",
+          "type": "integer"
+        },
         "source": {
           "minLength": 3,
           "title": "Source",
