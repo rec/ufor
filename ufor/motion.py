@@ -2,7 +2,9 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from math import ceil, floor
+from functools import cached_property
+from graphlib import CycleError, TopologicalSorter
+from math import ceil, floor, isfinite
 from typing import Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
@@ -273,17 +275,93 @@ class PatchEventConnection(Model):
         return self
 
 
+class Sum(Model, frozen=True):
+    kind: Literal['sum'] = 'sum'
+    inputs: list[Identifier] = Field(min_length=2)
+
+
+class Product(Model, frozen=True):
+    kind: Literal['product'] = 'product'
+    inputs: list[Identifier] = Field(min_length=2)
+
+
+class Affine(Model, frozen=True):
+    kind: Literal['affine'] = 'affine'
+    input: Identifier
+    scale: FiniteScalar = 1.0
+    offset: FiniteScalar = 0.0
+
+
 class Patch(Model):
     kind: Literal['patch'] = 'patch'
     motions: dict[
-        Identifier, Annotated[Cycle | Contour | Stages, Field(discriminator='kind')]
+        Identifier,
+        Annotated[
+            Cycle | Contour | Stages | Sum | Product | Affine,
+            Field(discriminator='kind'),
+        ],
     ] = Field(min_length=1)
     outputs: dict[Identifier, Identifier] = Field(min_length=1)
     event_outputs: dict[Identifier, str] = Field(default_factory=dict)
     events: list[PatchEventConnection] = Field(default_factory=list)
 
+    @cached_property
+    def signal_order(self) -> list[str]:
+        graph = {
+            n: b.inputs
+            if isinstance(b, (Sum, Product))
+            else [b.input]
+            if isinstance(b, Affine)
+            else []
+            for n, b in self.motions.items()
+        }
+        if any(i not in graph for d in graph.values() for i in d):
+            raise ValueError('patch signal input references an unknown child')
+        try:
+            return list(TopologicalSorter(graph).static_order())
+        except CycleError:
+            raise ValueError('patch signal dependencies contain a cycle') from None
+
+    @cached_property
+    def signal_ranges(self) -> dict[str, tuple[float, float]]:
+        ranges: dict[str, tuple[float, float]] = {}
+        for name in self.signal_order:
+            body = self.motions[name]
+            if isinstance(body, Sum):
+                minimum, maximum = 0.0, 0.0
+                for source in body.inputs:
+                    lower, upper = ranges[source]
+                    minimum += lower
+                    maximum += upper
+            elif isinstance(body, Product):
+                minimum, maximum = 1.0, 1.0
+                for source in body.inputs:
+                    lower, upper = ranges[source]
+                    values = [
+                        minimum * lower,
+                        minimum * upper,
+                        maximum * lower,
+                        maximum * upper,
+                    ]
+                    minimum, maximum = min(values), max(values)
+            elif isinstance(body, Affine):
+                values = [body.offset + body.scale * v for v in ranges[body.input]]
+                minimum, maximum = min(values), max(values)
+            else:
+                minimum, maximum = (
+                    (0.0, 1.0)
+                    if isinstance(body, Contour)
+                    and body.polarity == control.Polarity.unipolar
+                    else (-1.0, 1.0)
+                )
+            if not isfinite(minimum) or not isfinite(maximum):
+                raise ValueError('patch signal range is not finite')
+            ranges[name] = minimum, maximum
+        return ranges
+
     @model_validator(mode='after')
     def selected_motions(self) -> Self:
+        _ = self.signal_ranges
         if any(name not in self.motions for name in self.outputs.values()):
             raise ValueError('patch output references an unknown child Motion')
         for source in self.event_outputs.values():
@@ -343,6 +421,18 @@ class Patch(Model):
             ):
                 raise ValueError('patch cue target has no matching stage transition')
         return self
+
+
+def transform_value(body: Sum | Product | Affine, signals: dict[str, float]) -> float:
+    if isinstance(body, Affine):
+        return body.offset + body.scale * signals[body.input]
+    value = 0.0 if isinstance(body, Sum) else 1.0
+    for name in body.inputs:
+        if isinstance(body, Sum):
+            value += signals[name]
+        else:
+            value *= signals[name]
+    return value
 
 
 class MotionUse(Model):

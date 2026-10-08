@@ -20,7 +20,17 @@ from ..base import (
 from ..envelope import Envelope
 from ..lfo import Reset
 from ..modulation import Modulation, Target, Unit
-from ..motion import Contour, Cycle, MotionUse, Patch, Stages, stage_event_ports
+from ..motion import (
+    Affine,
+    Contour,
+    Cycle,
+    MotionUse,
+    Patch,
+    Product,
+    Stages,
+    Sum,
+    stage_event_ports,
+)
 from . import enums
 from .controls import ControlDeclaration
 
@@ -298,6 +308,22 @@ class SoundSettings(Model):
                     and selected.polarity == control.Polarity.unipolar
                     else -1
                 )
+                if isinstance(generator.body, Patch) and isinstance(
+                    selected, (Sum, Product, Affine)
+                ):
+                    assert binding.output is not None
+                    minimum, maximum = generator.body.signal_ranges[
+                        generator.body.outputs[binding.output]
+                    ]
+                    if (
+                        source.scope != generator.scope
+                        or source.minimum > minimum
+                        or source.maximum < maximum
+                    ):
+                        raise ValueError(
+                            'Patch output range exceeds its declared source domain'
+                        )
+                    continue
                 if (source.scope, source.minimum, source.maximum) != (
                     generator.scope,
                     minimum,

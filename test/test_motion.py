@@ -7,6 +7,7 @@ from pydantic import ValidationError
 from ufor.codec import parse_score, score_toml
 from ufor.library_files import read_library
 from ufor.motion import (
+    Affine,
     Contour,
     Cycle,
     EnterStage,
@@ -19,16 +20,20 @@ from ufor.motion import (
     MotionState,
     MotionUse,
     ParameterReference,
+    Patch,
     PlaybackMode,
+    Product,
     Stage,
     Stages,
     StageTransition,
+    Sum,
     advance_motion,
     contour_envelope,
     initial_motion,
     instantiate_motion,
     motion_at,
     motion_event,
+    transform_value,
 )
 from ufor.samples.processing import ReleaseTiming, SoundSettings
 from ufor.segments import Segment
@@ -254,6 +259,75 @@ def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
     raw['motions']['motion']['body'] = {'kind': 'cycle', 'rate': '1'}
     raw['modulation']['sources'][0]['minimum'] = -1
     with pytest.raises(ValidationError, match='releasing contour'):
+        SoundSettings.model_validate(raw)
+
+
+def test_patch_transforms_follow_dependencies_without_clipping() -> None:
+    patch = Patch(
+        motions={
+            'output': Affine(input='combined', scale=-0.5, offset=0.25),
+            'combined': Sum(inputs=['shaped', 'carrier']),
+            'shaped': Product(inputs=['carrier', 'envelope']),
+            'carrier': Cycle(rate=1),
+            'envelope': Contour(segments=[Segment(duration=1, to=1)]),
+        },
+        outputs={'signal': 'output'},
+    )
+    values = {'carrier': 1.0, 'envelope': 0.5}
+    for name in patch.signal_order:
+        if isinstance(body := patch.motions[name], (Sum, Product, Affine)):
+            values[name] = transform_value(body, values)
+    assert values['combined'] == 1.5
+    assert values['output'] == -0.5
+    assert patch.signal_ranges['output'] == (-0.75, 1.25)
+    assert Patch.model_validate_json(patch.model_dump_json()) == patch
+
+
+@pytest.mark.parametrize(
+    ('inputs', 'message'),
+    [(['missing', 'carrier'], 'unknown child'), (['output', 'carrier'], 'cycle')],
+)
+def test_patch_transform_dependencies_are_validated(
+    inputs: list[str], message: str
+) -> None:
+    with pytest.raises(ValidationError, match=message):
+        Patch(
+            motions={'carrier': Cycle(rate=1), 'output': Sum(inputs=inputs)},
+            outputs={'signal': 'output'},
+        )
+
+
+def test_patch_transformed_output_requires_a_covering_source_domain() -> None:
+    raw = {
+        'motions': {
+            'patch': {
+                'body': {
+                    'kind': 'patch',
+                    'motions': {
+                        'cycle': {'kind': 'cycle', 'rate': '1'},
+                        'sum': {'kind': 'sum', 'inputs': ['cycle', 'cycle']},
+                    },
+                    'outputs': {'signal': 'sum'},
+                }
+            }
+        },
+        'bindings': [
+            {
+                'name': 'signal',
+                'kind': 'motion',
+                'reference': 'patch',
+                'output': 'signal',
+            }
+        ],
+        'modulation': {
+            'sources': [
+                {'name': 'signal', 'scope': 'voice', 'minimum': -2, 'maximum': 2}
+            ]
+        },
+    }
+    assert SoundSettings.model_validate(raw)
+    raw['modulation']['sources'][0]['maximum'] = 1
+    with pytest.raises(ValidationError, match='exceeds its declared source domain'):
         SoundSettings.model_validate(raw)
 
 

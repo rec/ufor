@@ -8853,7 +8853,10 @@
               "mapping": {
                 "contour": "#/$defs/Contour",
                 "cycle": "#/$defs/Cycle",
-                "stages": "#/$defs/Stages"
+                "stages": "#/$defs/Stages",
+                "affine": "#/$defs/Affine",
+                "product": "#/$defs/Product",
+                "sum": "#/$defs/Sum"
               },
               "propertyName": "kind"
             },
@@ -8866,6 +8869,15 @@
               },
               {
                 "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/Sum"
+              },
+              {
+                "$ref": "#/$defs/Product"
+              },
+              {
+                "$ref": "#/$defs/Affine"
               }
             ]
           },
@@ -14140,6 +14152,84 @@
         }
       },
       "title": "Transposition",
+      "type": "object"
+    },
+    "Affine": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "affine",
+          "default": "affine",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "scale": {
+          "default": 1.0,
+          "title": "Scale",
+          "type": "number"
+        },
+        "offset": {
+          "default": 0.0,
+          "title": "Offset",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "title": "Affine",
+      "type": "object"
+    },
+    "Product": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "product",
+          "default": "product",
+          "title": "Kind",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "inputs"
+      ],
+      "title": "Product",
+      "type": "object"
+    },
+    "Sum": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "sum",
+          "default": "sum",
+          "title": "Kind",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "inputs"
+      ],
+      "title": "Sum",
       "type": "object"
     }
   },

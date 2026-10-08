@@ -1,5 +1,19 @@
 # Choosing a control representation
 
+Patch signal graphs may contain `sum` and `product` nodes with at least two named
+`inputs`, and `affine` nodes with one named `input`, `scale` (default 1), and
+`offset` (default 0). Inputs can name primitive children or other transforms.
+Named outputs may select any node. Preparation rejects unknown inputs, feedback
+cycles, nonfinite inferred ranges, and output source domains that do not cover
+the inferred range. A wider declared domain is allowed; transforms do not clip.
+
+Evaluate dependencies before consumers, retaining authored input order within a
+sum or product. Each primitive child has one shared state, regardless of how
+many nodes or outputs consume it. Transform inputs use a Cycle's value times its
+delay/fade weight, so an inactive Cycle contributes zero; affine's offset still
+applies. Contour and Stages inputs have weight one. Transform outputs have weight
+one and then pass through ordinary modulation mapping.
+
 Motion event connections, including internal Patch connections, accept `every`
 as a positive integer (default `1`) and `offset` as a nonnegative integer (default
 `0`). Each connection skips `offset` matching events initially, then forwards
