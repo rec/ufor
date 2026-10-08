@@ -298,6 +298,15 @@ class SampleInstrument(Model):
             group = slot_groups.get(slot.group) if slot.group is not None else None
             effective = effective_settings(slot, group)
             effective.validate_controls(self.settings.controls)
+            if (
+                effective.processing.filters
+                and self.settings.processing.filters
+                and effective.processing.filter_order
+                != self.settings.processing.filter_order
+            ):
+                raise ValueError(
+                    f'Slot {slot.name}: active filter chains require the same order'
+                )
             for sound_settings in (self.settings, effective):
                 sources = {s.name: s for s in sound_settings.modulation.sources}
                 for binding in sound_settings.bindings:

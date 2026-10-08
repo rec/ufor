@@ -756,6 +756,37 @@ def test_preparation_revalidates_edited_instrument_collections() -> None:
         trace.prepare(instrument, [], seed=42)
 
 
+@pytest.mark.parametrize('order', list(processing.FilterOrder))
+def test_filter_order_round_trips_with_processing(
+    order: processing.FilterOrder,
+) -> None:
+    value = processing.Processing(filter_order=order)
+    assert processing.Processing.model_validate_json(value.model_dump_json()) == value
+    assert value.filter_order == order
+    assert (
+        processing.Processing().filter_order == processing.FilterOrder.before_amplitude
+    )
+
+
+def test_active_sample_filter_chains_reject_conflicting_orders() -> None:
+    filter = {'name': 'tone', 'response': 'lowpass', 'cutoff_hz': 1000}
+    raw = document(
+        slot={'processing': {'filters': [filter], 'filter_order': 'after_amplitude'}},
+        instrument={'processing': {'filters': [filter]}},
+    )
+    with pytest.raises(ValueError, match='active filter chains require the same order'):
+        SampleInstrument.model_validate(raw)
+
+
+def test_empty_instrument_filter_chain_does_not_override_slot_order() -> None:
+    value = SampleInstrument.model_validate(
+        document(slot={'processing': {'filter_order': 'after_amplitude'}})
+    )
+    assert (
+        value.slots[0].processing.filter_order == processing.FilterOrder.after_amplitude
+    )
+
+
 def document(
     slot: dict[str, object] | None = None, instrument: dict[str, object] | None = None
 ) -> dict[str, object]:

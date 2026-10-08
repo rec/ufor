@@ -4697,7 +4697,8 @@
             "pan": 0.0,
             "stereo_balance": 0.0,
             "equalizer": [],
-            "filters": []
+            "filters": [],
+            "filter_order": "before_amplitude"
           }
         },
         "envelope": {
@@ -7695,7 +7696,8 @@
             "pan": 0.0,
             "stereo_balance": 0.0,
             "equalizer": [],
-            "filters": []
+            "filters": [],
+            "filter_order": "before_amplitude"
           }
         },
         "envelope": {
@@ -9452,6 +9454,10 @@
           },
           "title": "Filters",
           "type": "array"
+        },
+        "filter_order": {
+          "$ref": "#/$defs/FilterOrder",
+          "default": "before_amplitude"
         }
       },
       "title": "Processing",
@@ -10878,7 +10884,8 @@
             "pan": 0.0,
             "stereo_balance": 0.0,
             "equalizer": [],
-            "filters": []
+            "filters": [],
+            "filter_order": "before_amplitude"
           }
         },
         "envelope": {
@@ -11024,7 +11031,8 @@
             "pan": 0.0,
             "stereo_balance": 0.0,
             "equalizer": [],
-            "filters": []
+            "filters": [],
+            "filter_order": "before_amplitude"
           }
         },
         "envelope": {
@@ -12177,7 +12185,8 @@
             "pan": 0.0,
             "stereo_balance": 0.0,
             "equalizer": [],
-            "filters": []
+            "filters": [],
+            "filter_order": "before_amplitude"
           }
         },
         "envelope": {
@@ -12974,7 +12983,8 @@
             "pan": 0.0,
             "stereo_balance": 0.0,
             "equalizer": [],
-            "filters": []
+            "filters": [],
+            "filter_order": "before_amplitude"
           }
         },
         "envelope": {
@@ -14360,6 +14370,14 @@
       ],
       "title": "Threshold",
       "type": "object"
+    },
+    "FilterOrder": {
+      "enum": [
+        "before_amplitude",
+        "after_amplitude"
+      ],
+      "title": "FilterOrder",
+      "type": "string"
     }
   },
   "discriminator": {

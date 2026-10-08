@@ -435,9 +435,23 @@ cutoff or Q preserve `s1` and `s2`; do not reset, interpolate coefficients, or a
 hidden smoothing. Declared control-source smoothing still applies before mapping.
 Filter identity, response, order, and stage count are fixed for a voice. Stages
 cascade in order, with all stages of one filter using the same resolved values.
-Filter each oscillator/sample source channel before the amplitude envelope,
-gain, routing, and mixing. For samples, apply the effective slot/group filter
+`processing.filter_order` selects `before_amplitude` (the default) or
+`after_amplitude` for each voice's complete filter chain. The amplitude stage
+includes the amplitude envelope, velocity gain, volume, and changing amplitude
+controls. Pan, channel routing, and mixing follow the chain in either order.
+The order is fixed for the voice and is not a modulation target.
+For samples, apply the effective slot/group filter
 list first, then the instrument filter list, both independently per voice.
+Active slot/group and instrument filter lists must declare the same order;
+conflicting orders are invalid. An empty list imposes no ordering requirement.
+The setting inherits with the complete `processing` category.
+For example, this processing declaration filters the amplitude-shaped source:
+
+```json
+{"filter_order": "after_amplitude", "filters": [
+  {"name": "tone", "response": "lowpass", "cutoff_hz": 1000, "q": 1}
+]}
+```
 Identical local filter IDs in those lists retain separate parameter namespaces
 and states. Stops and source/envelope completion discard all filter state; no
 extra filter tail extends a voice's lifetime.
