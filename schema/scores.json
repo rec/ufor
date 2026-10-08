@@ -7321,6 +7321,12 @@
     "MotionEventConnection": {
       "additionalProperties": false,
       "properties": {
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
         "every": {
           "default": 1,
           "minimum": 1,
@@ -8875,6 +8881,12 @@
     "PatchEventConnection": {
       "additionalProperties": false,
       "properties": {
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        },
         "every": {
           "default": 1,
           "minimum": 1,

@@ -148,6 +148,7 @@ class MotionEventConnection(Model):
     destination: Identifier
     cue: Identifier
     every: int = Field(default=1, ge=1, strict=True)
+    offset: int = Field(default=0, ge=0, strict=True)
 
 
 Binding = Annotated[

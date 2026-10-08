@@ -1,8 +1,11 @@
 # Choosing a control representation
 
 Motion event connections, including internal Patch connections, accept `every`
-as a positive integer (default `1`). Each connection forwards its first matching
-event, then every nth matching event: `every = 3` forwards 1, 4, 7. Nonmatching
+as a positive integer (default `1`) and `offset` as a nonnegative integer (default
+`0`). Each connection skips `offset` matching events initially, then forwards
+every nth matching event. For `every = 3`, offsets 0, 1, and 2 forward 1, 4, 7;
+2, 5, 8; and 3, 6, 9, respectively. Offsets may exceed `every`: offset 4 starts
+at event 5, not event 2. Nonmatching
 ports do not advance the count. Counts belong to each connection and voice,
 reset on voice activation, and survive snapshots; stage transitions, contour
 restarts, and render-block boundaries do not reset them. Division filters

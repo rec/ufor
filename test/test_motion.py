@@ -373,6 +373,7 @@ def test_patch_marker_can_start_waiting_contour() -> None:
     )
     assert motion_at(contour, state, Fraction(1, 4)).value == 0.5
     body['events'][0]['every'] = 3
+    body['events'][0]['offset'] = 2
     divided = MotionScore.model_validate(
         {'name': 'accent', 'title': 'Accent', 'body': body}
     )
@@ -384,6 +385,15 @@ def test_patch_marker_can_start_waiting_contour() -> None:
                 {'name': 'accent', 'title': 'Accent', 'body': body}
             )
     body['events'][0]['every'] = 1
+    for offset in (-1, 1.5, True):
+        body['events'][0]['offset'] = offset
+        with pytest.raises(ValidationError):
+            MotionScore.model_validate(
+                {'name': 'accent', 'title': 'Accent', 'body': body}
+            )
+    body['events'][0]['offset'] = 4
+    MotionScore.model_validate({'name': 'accent', 'title': 'Accent', 'body': body})
+    body['events'][0]['offset'] = 0
     body['events'][0]['source'] = 'clock.missing'
     with pytest.raises(ValidationError, match='unknown marker'):
         MotionScore.model_validate({'name': 'accent', 'title': 'Accent', 'body': body})
