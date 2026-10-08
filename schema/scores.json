@@ -7502,7 +7502,8 @@
               "contour": "#/$defs/Contour",
               "cycle": "#/$defs/Cycle",
               "patch": "#/$defs/Patch",
-              "stages": "#/$defs/Stages"
+              "stages": "#/$defs/Stages",
+              "sample_hold": "#/$defs/SampleHold"
             },
             "propertyName": "kind"
           },
@@ -7515,6 +7516,9 @@
             },
             {
               "$ref": "#/$defs/Stages"
+            },
+            {
+              "$ref": "#/$defs/SampleHold"
             },
             {
               "$ref": "#/$defs/Patch"
@@ -7554,6 +7558,7 @@
                   "contour": "#/$defs/Contour",
                   "cycle": "#/$defs/Cycle",
                   "patch": "#/$defs/Patch",
+                  "sample_hold": "#/$defs/SampleHold",
                   "stages": "#/$defs/Stages"
                 },
                 "propertyName": "kind"
@@ -7567,6 +7572,9 @@
                 },
                 {
                   "$ref": "#/$defs/Stages"
+                },
+                {
+                  "$ref": "#/$defs/SampleHold"
                 },
                 {
                   "$ref": "#/$defs/Patch"
@@ -8856,7 +8864,8 @@
                 "stages": "#/$defs/Stages",
                 "affine": "#/$defs/Affine",
                 "product": "#/$defs/Product",
-                "sum": "#/$defs/Sum"
+                "sum": "#/$defs/Sum",
+                "sample_hold": "#/$defs/SampleHold"
               },
               "propertyName": "kind"
             },
@@ -8869,6 +8878,9 @@
               },
               {
                 "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
               },
               {
                 "$ref": "#/$defs/Sum"
@@ -8945,7 +8957,8 @@
           "default": "start",
           "enum": [
             "start",
-            "cue"
+            "cue",
+            "sample"
           ],
           "title": "Action",
           "type": "string"
@@ -14230,6 +14243,33 @@
         "inputs"
       ],
       "title": "Sum",
+      "type": "object"
+    },
+    "SampleHold": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "sample_hold",
+          "default": "sample_hold",
+          "title": "Kind",
+          "type": "string"
+        },
+        "minimum": {
+          "default": -1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "title": "SampleHold",
       "type": "object"
     }
   },

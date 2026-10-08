@@ -1,5 +1,22 @@
 # Choosing a control representation
 
+`sample_hold` is a voice-owned, event-driven scalar Motion, usable directly or
+inside a Patch. Its `minimum` and `maximum` default to -1 and 1 and must be
+ordered within [-1, 1]. It draws once at voice activation, holds that value,
+and draws again only on Patch connections with `action = "sample"`. Cycle
+markers and Stages event ports can drive those connections; division,
+probability, and seconds-based delay have their usual delivery semantics.
+SampleHold does not emit events or advance with elapsed time or beats.
+
+Each named Motion and voice has an independent SplitMix64 stream. Engines
+initialize it from `motion_key XOR stream_key(0, name + ":sample-hold")`, then
+advance it for every draw, including when the two bounds are equal. Map the
+high 53 bits to `minimum + (maximum-minimum) * (word >> 11) / 2**53`.
+Standalone reference calls accept that derived stream seed through
+`initial_motion(..., seed=...)`. Seeks, reversals, pause/resume and note-off do
+not draw or rewind the stream. Snapshots preserve the held value and stream
+state. Rewinding randomness requires snapshot restore, not clock reversal.
+
 Patch signal graphs may contain `sum` and `product` nodes with at least two named
 `inputs`, and `affine` nodes with one named `input`, `scale` (default 1), and
 `offset` (default 0). Inputs can name primitive children or other transforms.

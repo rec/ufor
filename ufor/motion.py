@@ -9,7 +9,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from . import control, envelope, lfo
+from . import control, envelope, lfo, motion_random
 from .base import FiniteScalar, Identifier, Model, UnitInterval, unique
 from .envelope import Retrigger
 from .interface import ScoreReference
@@ -261,7 +261,7 @@ def stage_event_ports(body: Stages) -> set[str]:
 class PatchEventConnection(Model):
     source: str = Field(min_length=3)
     target: Identifier
-    action: Literal['start', 'cue'] = 'start'
+    action: Literal['start', 'cue', 'sample'] = 'start'
     cue: Identifier | None = None
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
@@ -272,6 +272,18 @@ class PatchEventConnection(Model):
     def cue_payload(self) -> Self:
         if (self.action == 'cue') != (self.cue is not None):
             raise ValueError('only cue connections require a cue name')
+        return self
+
+
+class SampleHold(Model, frozen=True):
+    kind: Literal['sample_hold'] = 'sample_hold'
+    minimum: FiniteScalar = Field(default=-1.0, ge=-1, le=1)
+    maximum: FiniteScalar = Field(default=1.0, ge=-1, le=1)
+
+    @model_validator(mode='after')
+    def output_range(self) -> Self:
+        if self.minimum > self.maximum:
+            raise ValueError('sample-and-hold minimum must not exceed maximum')
         return self
 
 
@@ -297,7 +309,7 @@ class Patch(Model):
     motions: dict[
         Identifier,
         Annotated[
-            Cycle | Contour | Stages | Sum | Product | Affine,
+            Cycle | Contour | Stages | SampleHold | Sum | Product | Affine,
             Field(discriminator='kind'),
         ],
     ] = Field(min_length=1)
@@ -404,7 +416,10 @@ class Patch(Model):
                     'patch event source references an unknown '
                     + ('marker' if isinstance(origin, Cycle) else 'stage event')
                 )
-            if connection.action == 'start':
+            if connection.action == 'sample':
+                if not isinstance(target, SampleHold):
+                    raise ValueError('patch sample target must be a SampleHold')
+            elif connection.action == 'start':
                 if (
                     not isinstance(target, Contour)
                     or target.start != 'event'
@@ -440,7 +455,10 @@ class MotionUse(Model):
     clock: control.Clock = control.Clock.seconds
     position_driver: PositionDriver = PositionDriver.elapsed
     body: (
-        Annotated[Cycle | Contour | Stages | Patch, Field(discriminator='kind')] | None
+        Annotated[
+            Cycle | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
+        ]
+        | None
     ) = None
     score: ScoreReference | None = None
     parameters: dict[Identifier, float] = Field(default_factory=dict)
@@ -474,6 +492,8 @@ class MotionUse(Model):
             raise ValueError('inline cycle rate cannot reference a public parameter')
         if isinstance(self.body, Contour) and self.body.initial == 'current':
             raise ValueError('current contour initial requires a parent stage')
+        if isinstance(self.body, SampleHold) and self.scope != control.Scope.voice:
+            raise ValueError('sample-and-hold requires voice scope')
         if isinstance(self.body, Contour) and any(
             s.duration_unit.value != self.clock.value
             for s in [*self.body.segments, *self.body.release]
@@ -487,6 +507,11 @@ class MotionUse(Model):
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
+            if (
+                any(isinstance(b, SampleHold) for b in self.body.motions.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('sample-and-hold requires voice scope')
             cycle_sources = {
                 name
                 for connection in self.body.events
@@ -541,6 +566,7 @@ class MotionUse(Model):
 class MotionEvent(control.ControlEvent):
     action: Literal[
         'start',
+        'sample',
         'note_on',
         'note_off',
         'reset',
@@ -609,8 +635,15 @@ class StageState(Model):
     traversals: int = 0
 
 
+class SampleHoldState(Model):
+    at: control.Rational
+    ordinal: int = -1
+    value: FiniteScalar
+    random_state: int = Field(ge=0, lt=2**64)
+
+
 class MotionState(Model):
-    runtime: CycleState | ContourState | StageState
+    runtime: CycleState | ContourState | StageState | SampleHoldState
 
 
 class MotionValue(Model):
@@ -846,7 +879,17 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
     return MotionValue(value=value, weight=1, status=status)
 
 
-def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
+def initial_motion(motion: MotionUse, at: Fraction, *, seed: int = 0) -> MotionState:
+    if isinstance(motion.body, SampleHold):
+        random_state, word = motion_random.random_word(seed)
+        return MotionState(
+            runtime=SampleHoldState(
+                at=at,
+                value=motion.body.minimum
+                + (motion.body.maximum - motion.body.minimum) * ((word >> 11) / 2**53),
+                random_state=random_state,
+            )
+        )
     if isinstance(motion.body, Cycle):
         assert isinstance(motion.body.rate, Fraction)
         return MotionState(
@@ -893,6 +936,12 @@ def initial_motion(motion: MotionUse, at: Fraction) -> MotionState:
 
 
 def motion_at(motion: MotionUse, state: MotionState, at: Fraction) -> MotionValue:
+    if isinstance(motion.body, SampleHold) and isinstance(
+        state.runtime, SampleHoldState
+    ):
+        if at < state.runtime.at:
+            raise ValueError('sample-and-hold observation precedes its state')
+        return MotionValue(value=state.runtime.value, weight=1.0, status='held')
     if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
         position = state.runtime.position
         if motion.position_driver == PositionDriver.transport:
@@ -935,6 +984,37 @@ def motion_at(motion: MotionUse, state: MotionState, at: Fraction) -> MotionValu
 def motion_event(
     motion: MotionUse, state: MotionState, event: MotionEvent
 ) -> MotionState:
+    if isinstance(motion.body, SampleHold) and isinstance(
+        state.runtime, SampleHoldState
+    ):
+        control.check_order(state.runtime.at, state.runtime.ordinal, event)
+        if event.action not in (
+            'sample',
+            'note_on',
+            'note_off',
+            'pause',
+            'resume',
+            'seek',
+            'shift',
+            'reverse',
+        ):
+            raise ValueError('sample-and-hold does not accept this event')
+        runtime = state.runtime
+        if event.action == 'sample':
+            random_state, word = motion_random.random_word(runtime.random_state)
+            runtime = runtime.model_copy(
+                update={
+                    'value': motion.body.minimum
+                    + (motion.body.maximum - motion.body.minimum)
+                    * ((word >> 11) / 2**53),
+                    'random_state': random_state,
+                }
+            )
+        return MotionState(
+            runtime=runtime.model_copy(
+                update={'at': event.at, 'ordinal': event.ordinal}
+            )
+        )
     if motion.position_driver == PositionDriver.transport:
         raise ValueError('transport-position Cycle does not accept phase commands')
     if isinstance(motion.body, Stages) and isinstance(state.runtime, StageState):
@@ -942,6 +1022,8 @@ def motion_event(
     if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
         if event.action == 'cue':
             raise ValueError('cycles do not accept cue events')
+        if event.action == 'sample':
+            raise ValueError('cycles do not accept sample events')
         control.check_order(state.runtime.at, state.runtime.ordinal, event)
         position = _position_at(state.runtime.position, event.at)
         if event.action in ('note_on', 'reset', 'transport'):
@@ -961,7 +1043,7 @@ def motion_event(
             runtime=CycleState(at=event.at, ordinal=event.ordinal, position=position)
         )
     if isinstance(motion.body, Contour) and isinstance(state.runtime, ContourState):
-        if event.action in ('cue', 'reset', 'transport', 'rate'):
+        if event.action in ('cue', 'reset', 'transport', 'rate', 'sample'):
             raise ValueError('contours do not accept this event')
         control.check_order(state.runtime.at, state.runtime.ordinal, event)
         runtime = state.runtime
@@ -1485,7 +1567,9 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
 class MotionScore(Score):
     kind: Literal['motion'] = 'motion'
     parameters: dict[Identifier, MotionParameter] = Field(default_factory=dict)
-    body: Annotated[Cycle | Contour | Stages | Patch, Field(discriminator='kind')]
+    body: Annotated[
+        Cycle | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
+    ]
 
     @model_validator(mode='after')
     def public_parameters(self) -> Self:

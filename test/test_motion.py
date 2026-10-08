@@ -23,6 +23,8 @@ from ufor.motion import (
     Patch,
     PlaybackMode,
     Product,
+    SampleHold,
+    SampleHoldState,
     Stage,
     Stages,
     StageTransition,
@@ -260,6 +262,87 @@ def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
     raw['modulation']['sources'][0]['minimum'] = -1
     with pytest.raises(ValidationError, match='releasing contour'):
         SoundSettings.model_validate(raw)
+
+
+def test_sample_hold_draws_only_on_sample_events_and_restores_its_stream() -> None:
+    motion = MotionUse(body=SampleHold(minimum=0.2, maximum=0.8))
+    state = initial_motion(motion, Fraction(0), seed=123)
+    assert isinstance(state.runtime, SampleHoldState)
+    first = motion_at(motion, state, Fraction(10))
+    assert 0.2 <= first.value < 0.8
+    assert first.weight == 1
+    for i, fields in enumerate(
+        [
+            {'action': 'note_on'},
+            {'action': 'note_off'},
+            {'action': 'reverse'},
+            {'action': 'seek', 'position': '1/4'},
+            {'action': 'pause'},
+            {'action': 'resume'},
+        ]
+    ):
+        state = motion_event(
+            motion,
+            state,
+            MotionEvent.model_validate({'at': str(i), 'ordinal': 0, **fields}),
+        )
+        assert motion_at(motion, state, Fraction(i)).value == first.value
+    snapshot = MotionState.model_validate_json(state.model_dump_json())
+    event = MotionEvent(at=Fraction(6), ordinal=0, action='sample')
+    second = motion_event(motion, state, event)
+    assert motion_at(motion, second, Fraction(6)).value != first.value
+    assert motion_event(motion, snapshot, event) == second
+    assert initial_motion(motion, Fraction(0), seed=123) != initial_motion(
+        motion, Fraction(0), seed=124
+    )
+
+
+def test_patch_sample_commands_select_only_sample_hold_children() -> None:
+    patch = Patch.model_validate(
+        {
+            'motions': {
+                'clock': {
+                    'kind': 'cycle',
+                    'rate': '1',
+                    'markers': [{'name': 'pulse', 'position': '1/2'}],
+                },
+                'random': {'kind': 'sample_hold'},
+            },
+            'outputs': {'value': 'random'},
+            'events': [
+                {
+                    'source': 'clock.pulse',
+                    'target': 'random',
+                    'action': 'sample',
+                    'every': 3,
+                    'offset': 1,
+                    'probability': 0.5,
+                    'delay': '1/8',
+                }
+            ],
+        }
+    )
+    assert Patch.model_validate_json(patch.model_dump_json()) == patch
+    score = MotionScore(name='random', title='Random', body=patch)
+    assert parse_score(score_toml(score)) == score
+    raw = patch.model_dump(mode='json')
+    raw['events'][0]['target'] = 'clock'
+    with pytest.raises(ValidationError, match='sample target'):
+        Patch.model_validate(raw)
+    with pytest.raises(ValidationError, match='voice scope'):
+        MotionUse(body=patch, scope='instrument')
+    with pytest.raises(ValidationError, match='minimum'):
+        SampleHold(minimum=0.5, maximum=0.25)
+
+
+def test_sample_hold_with_equal_bounds_is_constant_but_advances_draws() -> None:
+    motion = MotionUse(body=SampleHold(minimum=0.5, maximum=0.5))
+    initial = initial_motion(motion, Fraction(0))
+    sampled = motion_event(
+        motion, initial, MotionEvent(at=Fraction(1), ordinal=0, action='sample')
+    )
+    assert initial.runtime != sampled.runtime
+    assert motion_at(motion, sampled, Fraction(1)).value == 0.5
 
 
 def test_patch_transforms_follow_dependencies_without_clipping() -> None:
