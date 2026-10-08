@@ -8888,6 +8888,7 @@
                 "cycle": "#/$defs/Cycle",
                 "stages": "#/$defs/Stages",
                 "affine": "#/$defs/Affine",
+                "quantize": "#/$defs/Quantize",
                 "product": "#/$defs/Product",
                 "sum": "#/$defs/Sum",
                 "sample_hold": "#/$defs/SampleHold",
@@ -8917,6 +8918,9 @@
               },
               {
                 "$ref": "#/$defs/Affine"
+              },
+              {
+                "$ref": "#/$defs/Quantize"
               },
               {
                 "$ref": "#/$defs/Threshold"
@@ -9606,6 +9610,37 @@
         "delivery"
       ],
       "title": "PythonProviderLocation",
+      "type": "object"
+    },
+    "Quantize": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "quantize",
+          "default": "quantize",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "step": {
+          "exclusiveMinimum": 0,
+          "title": "Step",
+          "type": "number"
+        },
+        "origin": {
+          "default": 0.0,
+          "title": "Origin",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "step"
+      ],
+      "title": "Quantize",
       "type": "object"
     },
     "Quantity": {

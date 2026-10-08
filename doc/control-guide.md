@@ -36,6 +36,13 @@ overshoot. The inferred output range includes any explicit initial value.
 Slew nodes are initially voice-owned; shared consumers read one state per node.
 Snapshots retain the previous output, and activation starts fresh on voice reuse.
 
+`quantize` Patch nodes round a named `input` to the nearest point on the grid
+`origin + n * step`. `step` is positive and finite; `origin` is finite and
+defaults to zero. Halfway values choose the higher point, including for negative
+inputs. There is no clipping, smoothing, state, or event emission. Inferred
+ranges quantize both input endpoints and must remain finite. For chromatic pitch,
+choose a step in the input signal's pitch units; no unit conversion is implicit.
+
 Patch signal graphs may contain `sum` and `product` nodes with at least two named
 `inputs`, and `affine` nodes with one named `input`, `scale` (default 1), and
 `offset` (default 0). Inputs can name primitive children or other transforms.

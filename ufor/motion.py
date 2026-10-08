@@ -304,6 +304,22 @@ class Affine(Model, frozen=True):
     offset: FiniteScalar = 0.0
 
 
+class Quantize(Model, frozen=True):
+    kind: Literal['quantize'] = 'quantize'
+    input: Identifier
+    step: FiniteScalar = Field(gt=0)
+    origin: FiniteScalar = 0.0
+
+
+def quantize_value(body: Quantize, value: float) -> float:
+    """Round to the nearest grid point, choosing the higher point at a tie."""
+    position = (value - body.origin) / body.step
+    if not isfinite(position):
+        raise ValueError('quantizer grid coordinate is not finite')
+    lower = floor(position)
+    return body.origin + (lower + (position - lower >= 0.5)) * body.step
+
+
 class Threshold(Model, frozen=True):
     kind: Literal['threshold'] = 'threshold'
     input: Identifier
@@ -361,6 +377,7 @@ class Patch(Model):
             | Sum
             | Product
             | Affine
+            | Quantize
             | Threshold
             | Slew,
             Field(discriminator='kind'),
@@ -376,7 +393,7 @@ class Patch(Model):
             n: b.inputs
             if isinstance(b, (Sum, Product))
             else [b.input]
-            if isinstance(b, (Affine, Threshold, Slew))
+            if isinstance(b, (Affine, Quantize, Threshold, Slew))
             else []
             for n, b in self.motions.items()
         }
@@ -409,6 +426,8 @@ class Patch(Model):
                         maximum * upper,
                     ]
                     minimum, maximum = min(values), max(values)
+            elif isinstance(body, Quantize):
+                minimum, maximum = (quantize_value(body, v) for v in ranges[body.input])
             elif isinstance(body, Threshold):
                 minimum, maximum = 0.0, 1.0
             elif isinstance(body, Slew):
@@ -504,7 +523,11 @@ class Patch(Model):
         return self
 
 
-def transform_value(body: Sum | Product | Affine, signals: dict[str, float]) -> float:
+def transform_value(
+    body: Sum | Product | Affine | Quantize, signals: dict[str, float]
+) -> float:
+    if isinstance(body, Quantize):
+        return quantize_value(body, signals[body.input])
     if isinstance(body, Affine):
         return body.offset + body.scale * signals[body.input]
     value = 0.0 if isinstance(body, Sum) else 1.0

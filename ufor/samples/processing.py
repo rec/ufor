@@ -27,6 +27,7 @@ from ..motion import (
     MotionUse,
     Patch,
     Product,
+    Quantize,
     Slew,
     Stages,
     Sum,
@@ -317,7 +318,7 @@ class SoundSettings(Model):
                     else -1
                 )
                 if isinstance(generator.body, Patch) and isinstance(
-                    selected, (Sum, Product, Affine, Threshold, Slew)
+                    selected, (Sum, Product, Affine, Quantize, Threshold, Slew)
                 ):
                     assert binding.output is not None
                     minimum, maximum = generator.body.signal_ranges[
