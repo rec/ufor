@@ -54,6 +54,24 @@ def test_port_batch_round_trip_preserves_event_order_and_overflow() -> None:
                 {'at': '1/4', 'port': 'hit', 'index': 1, 'revision': 2},
             ],
             'exhausted': True,
+            'notes': [
+                {
+                    'at': '1/4',
+                    'port': 'note_start',
+                    'occurrence': 0,
+                    'source': 'input:0',
+                    'key': 60,
+                    'velocity': 100,
+                },
+                {
+                    'at': '1/2',
+                    'port': 'note_end',
+                    'occurrence': 0,
+                    'source': 'input:0',
+                    'key': 60,
+                    'velocity': 20,
+                },
+            ],
         }
     )
     assert ArpeggiatorPortBatch.model_validate_json(batch.model_dump_json()) == batch

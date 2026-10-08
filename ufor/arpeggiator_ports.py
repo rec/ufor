@@ -64,6 +64,21 @@ class ArpeggiatorOutput(Model, frozen=True):
     revision: int = Field(ge=0, strict=True)
 
 
+class ArpeggiatorNotePort(StrEnum):
+    note_start = auto()
+    note_end = auto()
+
+
+class ArpeggiatorNoteEvent(Model, frozen=True):
+    at: Rational = Field(ge=0)
+    port: ArpeggiatorNotePort
+    occurrence: int = Field(ge=0, strict=True)
+    source: str = Field(min_length=1)
+    key: int = Field(ge=0, le=127, strict=True)
+    velocity: int = Field(ge=0, le=127, strict=True)
+
+
 class ArpeggiatorPortBatch(Model, frozen=True):
     events: list[ArpeggiatorOutput] = Field(default_factory=list, max_length=4096)
+    notes: list[ArpeggiatorNoteEvent] = Field(default_factory=list, max_length=4096)
     exhausted: bool = False

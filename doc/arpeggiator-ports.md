@@ -79,6 +79,25 @@ releases; draining the batch reports `exhausted = true` and permits subsequent
 steps. No skipped attacks or notifications are replayed. Hosts drain after each
 operation; the bank revision remains available in subsequent step events.
 
+The MIDI player's same batch also carries `notes`, a bounded list of realized
+`note_start`/`note_end` notifications. Each contains exact beat `at`, a unique
+player-local `occurrence`, source identity `source`, delivered MIDI `key`, and
+attack or release `velocity`. Held/latched sources use `input:ID`; captured sources
+use `CAPTURE:NOTE`. Repeats and repeated pitches get distinct occurrences; ends
+reuse their start's identity. A note end means a delivered MIDI release, not
+proof that a synth's release tail has finished. Controller samples do not create
+note events. Pure event engines leave `notes` empty.
+
+Notifications follow actual output order, including old end before new start at
+a handoff, zero-gate starts before their ends, and stop/clear/seek cleanup. Stale
+scheduled releases emit no duplicate end. There are at most 4096 undrained note
+events; admitting a start reserves space for its end. Exhaustion suppresses new
+output attacks and their gestures, while owned releases continue. The batch's
+`exhausted` flag covers either list; draining permits future attacks without
+replaying skipped ones. Python snapshots preserve occurrences, the sounding
+notification, and undrained lists. These notifications do not reconcile hardware
+state after snapshot restoration.
+
 These ports do not execute a Motion graph. The host owns graph evaluation and
 ordering, applies scalar samples before the target step, and routes output
 events after collecting them. Feedback must arrive at a later opportunity with
