@@ -51,8 +51,16 @@ For development, use Python 3.13+:
 
 ```sh
 uv sync
-uv run pytest -n auto --dist=worksteal
+uv run --locked pytest
 ```
+
+The full suite uses parallel workers and work stealing by default. Use
+`uv run --locked pytest -n 0` for small selections or serial debugging. On the
+measured 10-CPU development machine, eight workers and automatic selection both
+completed in about 4.4 seconds, so the automatic default is retained.
+Run one full suite at a time when also verifying safaz or enge.
+The manual [cross-platform workflow](.github/workflows/test.yml) checks the
+parallel default on Linux, Windows, and macOS.
 
 Extracted from Recs, Tuney and Lyte. MIT licensed.
 
