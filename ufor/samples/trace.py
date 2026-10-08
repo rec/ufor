@@ -4,6 +4,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
+from .. import motion_random
 from ..base import Identifier, Model, unique
 from ..events import (
     ControlChange,
@@ -347,6 +348,7 @@ def prepare(
                     channels=slot.channels,
                     settings=effective_settings(slot, groups.get(slot.group)),
                     variation=resolved_variation,
+                    motion_key=motion_random.stream_key(seed, voice_id),
                 )
             )
             voices.append(

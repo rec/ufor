@@ -8,7 +8,15 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, StrictBool, model_validator
 
 from .. import control, modulation
-from ..base import FiniteScalar, Frequency, Identifier, Model, Positive, unique
+from ..base import (
+    FiniteScalar,
+    Frequency,
+    Identifier,
+    Model,
+    Positive,
+    UnitInterval,
+    unique,
+)
 from ..envelope import Envelope
 from ..lfo import Reset
 from ..modulation import Modulation, Target, Unit
@@ -149,6 +157,7 @@ class MotionEventConnection(Model):
     cue: Identifier
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
+    probability: UnitInterval = 1.0
 
 
 Binding = Annotated[

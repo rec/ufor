@@ -41,6 +41,9 @@ class VoiceStart(TraceAction):
     template: Identifier
     key: int | None
     pitch_hz: float | None = None
+    motion_key: int = Field(
+        default=0, strict=True, ge=0, lt=2**64, exclude_if=lambda v: v == 0
+    )
 
 
 class VoiceRetirement(TraceAction):

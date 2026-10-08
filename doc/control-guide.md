@@ -11,6 +11,19 @@ reset on voice activation, and survive snapshots; stage transitions, contour
 restarts, and render-block boundaries do not reset them. Division filters
 delivery, not the source Motion's emitted events or named event outputs.
 
+`probability` (default `1`) gates events selected by `every` and `offset`.
+Zero blocks all selected events; one forwards all. Intermediate cutoffs draw once per
+selected event, independently per connection and voice, without changing the
+divider count. Prepared starts carry `motion_key`, derived from the trace seed
+and voice ID with domain-separated SHA-256. Connection streams combine it with
+the target Motion identity and authored connection position. SplitMix64 words
+use their high 53 bits and compare against `floor(probability * 2**53)`.
+Cutoffs zero and 2**53 consume no random words, including probabilities too
+small to produce a nonzero cutoff. Snapshots retain random state; voice
+activation initializes it, while child restarts and stage changes retain it.
+Reproducing the seed, voice identities, and connection order reproduces the
+pattern independently of render partitioning and voice-slot allocation.
+
 Choose by what drives the value and who owns its lifetime. These models describe
 different operations; none is a replacement for all the others.
 

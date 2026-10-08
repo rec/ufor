@@ -6,6 +6,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
+from . import motion_random
 from .base import Identifier, Model, unique
 from .control import TempoMap, TransportSeekError
 from .events import (
@@ -268,6 +269,7 @@ def prepare(
                     noise_key=stream_key(seed, voice_id)
                     if isinstance(template, NoiseVoice)
                     else None,
+                    motion_key=motion_random.stream_key(seed, voice_id),
                 )
             )
             voices.append(

@@ -374,6 +374,7 @@ def test_patch_marker_can_start_waiting_contour() -> None:
     assert motion_at(contour, state, Fraction(1, 4)).value == 0.5
     body['events'][0]['every'] = 3
     body['events'][0]['offset'] = 2
+    body['events'][0]['probability'] = 0.5
     divided = MotionScore.model_validate(
         {'name': 'accent', 'title': 'Accent', 'body': body}
     )
