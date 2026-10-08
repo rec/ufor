@@ -8888,7 +8888,8 @@
                 "affine": "#/$defs/Affine",
                 "product": "#/$defs/Product",
                 "sum": "#/$defs/Sum",
-                "sample_hold": "#/$defs/SampleHold"
+                "sample_hold": "#/$defs/SampleHold",
+                "threshold": "#/$defs/Threshold"
               },
               "propertyName": "kind"
             },
@@ -8913,6 +8914,9 @@
               },
               {
                 "$ref": "#/$defs/Affine"
+              },
+              {
+                "$ref": "#/$defs/Threshold"
               }
             ]
           },
@@ -14326,6 +14330,36 @@
       ],
       "title": "ExpressionLane",
       "type": "string"
+    },
+    "Threshold": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "threshold",
+          "default": "threshold",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "lower",
+        "upper"
+      ],
+      "title": "Threshold",
+      "type": "object"
     }
   },
   "discriminator": {

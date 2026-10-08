@@ -304,12 +304,37 @@ class Affine(Model, frozen=True):
     offset: FiniteScalar = 0.0
 
 
+class Threshold(Model, frozen=True):
+    kind: Literal['threshold'] = 'threshold'
+    input: Identifier
+    lower: FiniteScalar
+    upper: FiniteScalar
+
+    @model_validator(mode='after')
+    def hysteresis_window(self) -> Self:
+        if self.lower >= self.upper:
+            raise ValueError('threshold lower must be less than upper')
+        return self
+
+
+def threshold_value(
+    body: Threshold, value: float, previous: float | None
+) -> tuple[float, str | None]:
+    """Observe one grid sample; initialization is silent and deadband holds state."""
+    output = float(value >= body.upper) if previous is None else previous
+    if previous == 0 and value >= body.upper:
+        return 1.0, 'rising'
+    if previous == 1 and value <= body.lower:
+        return 0.0, 'falling'
+    return output, None
+
+
 class Patch(Model):
     kind: Literal['patch'] = 'patch'
     motions: dict[
         Identifier,
         Annotated[
-            Cycle | Contour | Stages | SampleHold | Sum | Product | Affine,
+            Cycle | Contour | Stages | SampleHold | Sum | Product | Affine | Threshold,
             Field(discriminator='kind'),
         ],
     ] = Field(min_length=1)
@@ -323,7 +348,7 @@ class Patch(Model):
             n: b.inputs
             if isinstance(b, (Sum, Product))
             else [b.input]
-            if isinstance(b, Affine)
+            if isinstance(b, (Affine, Threshold))
             else []
             for n, b in self.motions.items()
         }
@@ -356,6 +381,8 @@ class Patch(Model):
                         maximum * upper,
                     ]
                     minimum, maximum = min(values), max(values)
+            elif isinstance(body, Threshold):
+                minimum, maximum = 0.0, 1.0
             elif isinstance(body, Affine):
                 values = [body.offset + body.scale * v for v in ranges[body.input]]
                 minimum, maximum = min(values), max(values)
@@ -385,6 +412,8 @@ class Patch(Model):
                 ports = {marker.name for marker in body.markers}
             elif isinstance(body, Stages):
                 ports = stage_event_ports(body)
+            elif isinstance(body, Threshold):
+                ports = {'rising', 'falling'}
             else:
                 ports = set()
             if port not in ports:
@@ -409,6 +438,8 @@ class Patch(Model):
                 ports = {marker.name for marker in origin.markers}
             elif isinstance(origin, Stages):
                 ports = stage_event_ports(origin)
+            elif isinstance(origin, Threshold):
+                ports = {'rising', 'falling'}
             else:
                 raise ValueError('patch event source cannot emit this command')
             if port not in ports:
@@ -507,6 +538,11 @@ class MotionUse(Model):
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
+            if (
+                any(isinstance(b, Threshold) for b in self.body.motions.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('threshold requires voice scope')
             if (
                 any(isinstance(b, SampleHold) for b in self.body.motions.values())
                 and self.scope != control.Scope.voice

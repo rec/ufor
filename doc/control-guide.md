@@ -17,6 +17,16 @@ Standalone reference calls accept that derived stream seed through
 not draw or rewind the stream. Snapshots preserve the held value and stream
 state. Rewinding randomness requires snapshot restore, not clock reversal.
 
+`threshold` Patch nodes observe a named `input` once per sample frame. They
+expose a gate in [0, 1] and `rising`/`falling` event ports. `lower` must be less
+than `upper`: a low gate rises at or above `upper`, a high gate falls at or below
+`lower`, and the deadband retains state. Activation initializes high only at or
+above `upper`, without firing. Later discontinuities can fire. Connected commands
+are delivered on the following frame plus their declared seconds delay, after
+division and probability gating. Thresholds are initially voice-owned. Snapshots
+retain the gate and pending commands; changing render partitions does not change
+the observation grid. This does not estimate crossings between samples.
+
 Patch signal graphs may contain `sum` and `product` nodes with at least two named
 `inputs`, and `affine` nodes with one named `input`, `scale` (default 1), and
 `offset` (default 0). Inputs can name primitive children or other transforms.

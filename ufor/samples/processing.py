@@ -29,6 +29,7 @@ from ..motion import (
     Product,
     Stages,
     Sum,
+    Threshold,
     stage_event_ports,
 )
 from . import enums
@@ -52,6 +53,11 @@ class FilterResponse(enums.StrEnum):
 class FilterBoundary(enums.StrEnum):
     error = 'error'
     clamp = 'clamp'
+
+
+class FilterOrder(StrEnum):
+    before_amplitude = auto()
+    after_amplitude = auto()
 
 
 class FilterTolerance(Model):
@@ -87,6 +93,7 @@ class Processing(Model):
     stereo_balance: FiniteScalar = 0.0
     equalizer: list[EqualizerBand] = Field(default_factory=list)
     filters: list[ResonantFilter] = Field(default_factory=list)
+    filter_order: FilterOrder = FilterOrder.before_amplitude
 
     @model_validator(mode='after')
     def unique_bands(self) -> Self:
@@ -309,7 +316,7 @@ class SoundSettings(Model):
                     else -1
                 )
                 if isinstance(generator.body, Patch) and isinstance(
-                    selected, (Sum, Product, Affine)
+                    selected, (Sum, Product, Affine, Threshold)
                 ):
                     assert binding.output is not None
                     minimum, maximum = generator.body.signal_ranges[
