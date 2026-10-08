@@ -6,7 +6,9 @@ from pydantic import ValidationError
 from ufor.arpeggiator_ports import ArpeggiatorControl, ArpeggiatorPortBatch
 
 
-@pytest.mark.parametrize('port,value', [('gate', '3/2'), ('density', '2/3')])
+@pytest.mark.parametrize(
+    'port,value', [('gate', '3/2'), ('density', '2/3'), ('transposition', '-12')]
+)
 def test_port_controls_keep_exact_rationals(port: str, value: str) -> None:
     control = ArpeggiatorControl.model_validate({'port': port, 'value': value})
     assert control.value == Fraction(value)
@@ -21,6 +23,8 @@ def test_port_controls_keep_exact_rationals(port: str, value: str) -> None:
         ('density', '2'),
         ('other', '1'),
         ('gate', 0.5),
+        ('transposition', '1/2'),
+        ('transposition', str(2**63)),
     ],
 )
 def test_invalid_port_controls_are_rejected(port: str, value: object) -> None:

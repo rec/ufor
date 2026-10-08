@@ -175,6 +175,11 @@ class Expression(Model):
     gaps: Literal['carry', 'omit'] = 'omit'
 
 
+class Transposition(Model, frozen=True):
+    semitones: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
+    boundary: Literal['drop', 'fold', 'error'] = 'drop'
+
+
 class Arpeggiator(Model):
     bank: Annotated[
         HeldBank | LatchedBank | HistoryBank | PhraseBank | RegionsBank,
@@ -198,6 +203,7 @@ class Arpeggiator(Model):
     ]
     gate: Rational = Field(default=Fraction(4, 5), ge=0)
     probability: Rational = Field(default=Fraction(1), ge=0, le=1)
+    transposition: Transposition = Transposition()
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)

@@ -12,6 +12,14 @@ Inputs:
   probability. Fractional density requires an explicit preset seed and uses
   arpeg's existing named probability draw contract. Rejected hits do not advance
   note selection. Density replaces the preset probability rather than multiplying it.
+- `transposition`: signed 64-bit whole semitones, initially the preset's
+  `body.transposition.semitones` (default 0). Fractional offsets are rejected.
+  `body.transposition.boundary` is `drop` by default, or `fold` or `error`.
+  Drop skips the selected note and emits rest while advancing selection. Fold
+  shifts only out-of-range pitches by the fewest octaves needed to enter MIDI
+  0–127. Error reports an out-of-range selected pitch to the caller.
+  Source pitches and identities remain unchanged. Transposition is fixed when
+  the step is admitted, including all its repeats; sounding notes retain it.
 
 Outputs carry exact beat `at`, zero-based rhythm `index`, and bank `revision`.
 At each scheduled opportunity emit `step`, followed by `hit` if a source note
