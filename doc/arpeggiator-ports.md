@@ -52,10 +52,21 @@ was admitted, otherwise `rest`. Ties emit only `step`. Repeated attacks from one
 hit share one `hit` event. Gates and expression mappings already realized for
 sounding notes or pending repeats remain unchanged by subsequent controls.
 
+History and phrase banks emit `capture_ready` immediately before `step` when
+publication changes a nonempty eligible bank. Its time, index, and revision
+identify that publication boundary. Several captures published together produce
+one notification. Committing alone does not notify; unfinished recording,
+unchanged banks, and publication of an empty bank do not notify. Overdub,
+replacement, and undo notify if they change the eligible bank to a nonempty one.
+Readiness is independent of density or whether that step emits a note.
+
 The output batch contains at most 4096 events. Reserve two event slots before
-admitting a step. If full, skip new step admissions and keep executing owned
+admitting a step, or three when it includes `capture_ready`, so the publication
+notification, step, and outcome are admitted together. If full, skip new step
+admissions and their notifications while keeping the published bank and owned
 releases; draining the batch reports `exhausted = true` and permits subsequent
-steps. No skipped attacks are replayed. Hosts drain after each operation.
+steps. No skipped attacks or notifications are replayed. Hosts drain after each
+operation; the bank revision remains available in subsequent step events.
 
 These ports do not execute a Motion graph. The host owns graph evaluation and
 ordering, applies scalar samples before the target step, and routes output

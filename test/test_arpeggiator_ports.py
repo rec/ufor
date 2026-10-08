@@ -48,6 +48,7 @@ def test_port_batch_round_trip_preserves_event_order_and_overflow() -> None:
     batch = ArpeggiatorPortBatch.model_validate(
         {
             'events': [
+                {'at': '1/4', 'port': 'capture_ready', 'index': 1, 'revision': 2},
                 {'at': '1/4', 'port': 'step', 'index': 1, 'revision': 2},
                 {'at': '1/4', 'port': 'hit', 'index': 1, 'revision': 2},
             ],

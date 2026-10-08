@@ -20,6 +20,7 @@ class ArpeggiatorInputPort(StrEnum):
 
 
 class ArpeggiatorOutputPort(StrEnum):
+    capture_ready = auto()
     step = auto()
     hit = auto()
     rest = auto()
