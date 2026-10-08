@@ -21,6 +21,15 @@ Inputs:
   Source pitches and identities remain unchanged. Transposition is fixed when
   the step is admitted, including all its repeats; sounding notes retain it.
 
+- `selection_offset`: signed 64-bit whole ascending-pitch ranks, initially
+  `body.selection_offset.ranks` (default 0). Equal pitches use source identity
+  to break ties. The selector advances using its original choice, then the
+  offset selects a target from the current bank. Output uses the target's
+  identity, velocity, and recorded expression, followed by pitch transposition.
+  `body.selection_offset.boundary` defaults to `wrap`; `rest` skips targets
+  outside the bank. Skips advance the selector and emit rest. Density rejection
+  and rhythm rests still leave the selector untouched. Repeats retain one target.
+
 Outputs carry exact beat `at`, zero-based rhythm `index`, and bank `revision`.
 At each scheduled opportunity emit `step`, followed by `hit` if a source note
 was admitted, otherwise `rest`. Ties emit only `step`. Repeated attacks from one

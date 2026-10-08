@@ -668,6 +668,13 @@
             "boundary": "drop"
           }
         },
+        "selection_offset": {
+          "$ref": "#/$defs/SelectionOffset",
+          "default": {
+            "ranks": 0,
+            "boundary": "wrap"
+          }
+        },
         "retrigger": {
           "default": "on_empty",
           "enum": [
@@ -14270,6 +14277,29 @@
         }
       },
       "title": "SampleHold",
+      "type": "object"
+    },
+    "SelectionOffset": {
+      "additionalProperties": false,
+      "properties": {
+        "ranks": {
+          "default": 0,
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Ranks",
+          "type": "integer"
+        },
+        "boundary": {
+          "default": "wrap",
+          "enum": [
+            "wrap",
+            "rest"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "title": "SelectionOffset",
       "type": "object"
     }
   },

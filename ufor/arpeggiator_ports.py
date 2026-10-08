@@ -13,6 +13,7 @@ class ArpeggiatorInputPort(StrEnum):
     gate = auto()
     density = auto()
     transposition = auto()
+    selection_offset = auto()
 
 
 class ArpeggiatorOutputPort(StrEnum):
@@ -26,10 +27,18 @@ class ArpeggiatorControl(Model, frozen=True):
     value: Rational
 
     @model_validator(mode='after')
-    def density_range(self) -> Self:
-        if self.port == ArpeggiatorInputPort.transposition:
+    def port_range(self) -> Self:
+        if self.port in (
+            ArpeggiatorInputPort.transposition,
+            ArpeggiatorInputPort.selection_offset,
+        ):
             if self.value.denominator != 1 or not -(2**63) <= self.value < 2**63:
-                raise ValueError('transposition requires signed 64-bit whole semitones')
+                unit = (
+                    'semitones'
+                    if self.port == ArpeggiatorInputPort.transposition
+                    else 'ranks'
+                )
+                raise ValueError(f'{self.port} requires signed 64-bit whole {unit}')
         elif self.value < 0:
             raise ValueError('gate and density must be nonnegative')
         if self.port == ArpeggiatorInputPort.density and self.value > 1:
