@@ -541,6 +541,7 @@
               "held": "#/$defs/HeldBank",
               "history": "#/$defs/HistoryBank",
               "latched": "#/$defs/LatchedBank",
+              "phrase": "#/$defs/PhraseBank",
               "regions": "#/$defs/RegionsBank"
             },
             "propertyName": "kind"
@@ -554,6 +555,9 @@
             },
             {
               "$ref": "#/$defs/HistoryBank"
+            },
+            {
+              "$ref": "#/$defs/PhraseBank"
             },
             {
               "$ref": "#/$defs/RegionsBank"
@@ -7321,18 +7325,6 @@
     "MotionEventConnection": {
       "additionalProperties": false,
       "properties": {
-        "offset": {
-          "default": 0,
-          "minimum": 0,
-          "title": "Offset",
-          "type": "integer"
-        },
-        "every": {
-          "default": 1,
-          "minimum": 1,
-          "title": "Every",
-          "type": "integer"
-        },
         "source": {
           "title": "Source",
           "type": "string"
@@ -7349,6 +7341,18 @@
         "cue": {
           "title": "Cue",
           "type": "string"
+        },
+        "every": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Every",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
         }
       },
       "required": [
@@ -8881,18 +8885,6 @@
     "PatchEventConnection": {
       "additionalProperties": false,
       "properties": {
-        "offset": {
-          "default": 0,
-          "minimum": 0,
-          "title": "Offset",
-          "type": "integer"
-        },
-        "every": {
-          "default": 1,
-          "minimum": 1,
-          "title": "Every",
-          "type": "integer"
-        },
         "source": {
           "minLength": 3,
           "title": "Source",
@@ -8922,6 +8914,18 @@
           ],
           "default": null,
           "title": "Cue"
+        },
+        "every": {
+          "default": 1,
+          "minimum": 1,
+          "title": "Every",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
         }
       },
       "required": [
@@ -9055,6 +9059,25 @@
         "midi"
       ],
       "title": "PerformanceInputBinding",
+      "type": "object"
+    },
+    "PhraseBank": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "phrase",
+          "default": "phrase",
+          "title": "Kind",
+          "type": "string"
+        },
+        "publish": {
+          "const": "step",
+          "default": "step",
+          "title": "Publish",
+          "type": "string"
+        }
+      },
+      "title": "PhraseBank",
       "type": "object"
     },
     "PixelPingPong": {

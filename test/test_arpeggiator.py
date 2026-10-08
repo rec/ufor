@@ -31,6 +31,7 @@ from ufor.codec import parse_score, score_toml
         'index-pattern',
         'shuffle',
         'choice',
+        'phrase-wind',
     ],
 )
 def test_authored_arpeggiator_profiles_round_trip(name: str) -> None:

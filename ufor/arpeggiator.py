@@ -26,6 +26,11 @@ class HistoryBank(Model):
     publish: Literal['step'] = 'step'
 
 
+class PhraseBank(Model, frozen=True):
+    kind: Literal['phrase'] = 'phrase'
+    publish: Literal['step'] = 'step'
+
+
 class RegionsBank(Model):
     kind: Literal['regions'] = 'regions'
     reference: str
@@ -172,7 +177,7 @@ class Expression(Model):
 
 class Arpeggiator(Model):
     bank: Annotated[
-        HeldBank | LatchedBank | HistoryBank | RegionsBank,
+        HeldBank | LatchedBank | HistoryBank | PhraseBank | RegionsBank,
         Field(discriminator='kind'),
     ] = HeldBank()
     selection: Annotated[
