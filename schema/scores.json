@@ -7325,6 +7325,13 @@
     "MotionEventConnection": {
       "additionalProperties": false,
       "properties": {
+        "delay": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Delay",
+          "type": "string"
+        },
         "probability": {
           "default": 1.0,
           "maximum": 1,
@@ -8892,6 +8899,13 @@
     "PatchEventConnection": {
       "additionalProperties": false,
       "properties": {
+        "delay": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Delay",
+          "type": "string"
+        },
         "probability": {
           "default": 1.0,
           "maximum": 1,

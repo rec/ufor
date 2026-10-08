@@ -264,6 +264,7 @@ class PatchEventConnection(Model):
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
     probability: UnitInterval = 1.0
+    delay: control.Rational = Field(default=Fraction(0), ge=0)
 
     @model_validator(mode='after')
     def cue_payload(self) -> Self:

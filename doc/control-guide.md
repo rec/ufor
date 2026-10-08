@@ -24,6 +24,14 @@ activation initializes it, while child restarts and stage changes retain it.
 Reproducing the seed, voice identities, and connection order reproduces the
 pattern independently of render partitioning and voice-slot allocation.
 
+`delay` is a nonnegative rational number of seconds (default `0`), applied
+after division and probability gating. A forwarded command is delivered once at
+the source event time plus its delay, without testing its gates again. Pending
+commands belong to the voice, survive snapshots, and remain active during its
+release tail. Stopping or retiring that voice discards them. enge permits at most
+4096 pending delayed commands per voice and reports overflow instead of dropping
+events. Zero delay retains immediate delivery.
+
 Choose by what drives the value and who owns its lifetime. These models describe
 different operations; none is a replacement for all the others.
 

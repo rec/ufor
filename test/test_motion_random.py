@@ -1,5 +1,8 @@
+from fractions import Fraction
+
 import pytest
 
+from ufor.motion import PatchEventConnection
 from ufor.motion_random import random_word, stream_key
 from ufor.samples.processing import MotionEventConnection
 
@@ -34,3 +37,28 @@ def test_event_gate_rejects_invalid_probabilities(probability: float) -> None:
             cue='hit',
             probability=probability,
         )
+
+
+@pytest.mark.parametrize('delay', [-1, '-1/64', float('nan'), float('inf'), True])
+def test_event_connections_reject_invalid_delays(delay: object) -> None:
+    for model, fields in (
+        (PatchEventConnection, {'source': 'clock.pulse', 'target': 'accent'}),
+        (
+            MotionEventConnection,
+            {'source': 'clock', 'port': 'pulse', 'destination': 'accent', 'cue': 'hit'},
+        ),
+    ):
+        with pytest.raises(ValueError):
+            model.model_validate(fields | {'delay': delay})
+
+
+def test_event_connection_delays_preserve_exact_seconds() -> None:
+    connection = MotionEventConnection(
+        source='clock', port='pulse', destination='accent', cue='hit', delay='1/64'
+    )
+    assert connection.delay == Fraction(1, 64)
+    assert (
+        MotionEventConnection.model_validate_json(connection.model_dump_json())
+        == connection
+    )
+    assert PatchEventConnection(source='clock.pulse', target='accent').delay == 0
