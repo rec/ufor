@@ -1,5 +1,6 @@
 """Portable arpeggiator profiles, independent of MIDI and audio devices."""
 
+from enum import StrEnum, auto
 from fractions import Fraction
 from typing import Annotated, Literal, Self
 
@@ -169,10 +170,19 @@ class Pattern(Model):
     ] = Field(min_length=1)
 
 
+class ExpressionLane(StrEnum):
+    breath = auto()
+    bend = auto()
+    pressure = auto()
+
+
 class Expression(Model):
     source: Literal['current', 'recorded'] = 'current'
     timing: Literal['original', 'fit'] = 'original'
     gaps: Literal['carry', 'omit'] = 'omit'
+    lanes: dict[ExpressionLane, Literal['current', 'recorded', 'motion']] = Field(
+        default_factory=dict
+    )
 
 
 class Transposition(Model, frozen=True):

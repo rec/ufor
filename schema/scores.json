@@ -689,7 +689,8 @@
           "default": {
             "source": "current",
             "timing": "original",
-            "gaps": "omit"
+            "gaps": "omit",
+            "lanes": {}
           }
         },
         "seed": {
@@ -4584,6 +4585,21 @@
           ],
           "title": "Gaps",
           "type": "string"
+        },
+        "lanes": {
+          "additionalProperties": {
+            "enum": [
+              "current",
+              "recorded",
+              "motion"
+            ],
+            "type": "string"
+          },
+          "propertyNames": {
+            "$ref": "#/$defs/ExpressionLane"
+          },
+          "title": "Lanes",
+          "type": "object"
         }
       },
       "title": "Expression",
@@ -14301,6 +14317,15 @@
       },
       "title": "SelectionOffset",
       "type": "object"
+    },
+    "ExpressionLane": {
+      "enum": [
+        "breath",
+        "bend",
+        "pressure"
+      ],
+      "title": "ExpressionLane",
+      "type": "string"
     }
   },
   "discriminator": {

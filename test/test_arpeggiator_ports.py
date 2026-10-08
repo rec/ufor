@@ -33,6 +33,10 @@ def test_port_controls_keep_exact_rationals(port: str, value: str) -> None:
         ('transposition', str(2**63)),
         ('selection_offset', '1/2'),
         ('selection_offset', str(2**63)),
+        ('breath', '-1/100'),
+        ('pressure', '101/100'),
+        ('bend', '-101/100'),
+        ('bend', '101/100'),
     ],
 )
 def test_invalid_port_controls_are_rejected(port: str, value: object) -> None:

@@ -14,6 +14,9 @@ class ArpeggiatorInputPort(StrEnum):
     density = auto()
     transposition = auto()
     selection_offset = auto()
+    breath = auto()
+    bend = auto()
+    pressure = auto()
 
 
 class ArpeggiatorOutputPort(StrEnum):
@@ -28,7 +31,13 @@ class ArpeggiatorControl(Model, frozen=True):
 
     @model_validator(mode='after')
     def port_range(self) -> Self:
-        if self.port in (
+        if self.port in (ArpeggiatorInputPort.breath, ArpeggiatorInputPort.pressure):
+            if not 0 <= self.value <= 1:
+                raise ValueError('breath and pressure must be between zero and one')
+        elif self.port == ArpeggiatorInputPort.bend:
+            if not -1 <= self.value <= 1:
+                raise ValueError('bend must be between minus one and one')
+        elif self.port in (
             ArpeggiatorInputPort.transposition,
             ArpeggiatorInputPort.selection_offset,
         ):

@@ -31,6 +31,22 @@ Inputs:
   and rhythm rests still leave the selector untouched. Repeats retain one target.
 
 Outputs carry exact beat `at`, zero-based rhythm `index`, and bank `revision`.
+Expression controls are realized by the MIDI player, rather than queued by the
+pure step engines. `breath` and `pressure` accept exact normalized values in
+[0, 1]; `bend` accepts [-1, 1], the wheel position rather than a musical interval.
+`body.expression.lanes` chooses `current`, `recorded`, or `motion` per named lane.
+Unspecified lanes inherit `body.expression.source`. Held/latched banks cannot
+provide recorded lanes. A Motion sample requires the lane to declare `motion`.
+It immediately affects an owned sounding note, or is held during rests/pauses
+for the next onset. Samples survive pause, clear, and transport relocation.
+They remain distinct from the received MIDI capture ledger and current state.
+Unseen values are not initialized. Source combinations are not implemented.
+
+Normalize CC2 and channel pressure to 7-bit levels. Bend maps -1 to 0, 0 to 8192,
+and +1 to 16383, scaling negative and positive halves by 8192 and 8191 respectively.
+Round to the nearest integer, with half values upward. Keep exact Motion values
+in snapshots; the destination encoding alone quantizes them.
+
 At each scheduled opportunity emit `step`, followed by `hit` if a source note
 was admitted, otherwise `rest`. Ties emit only `step`. Repeated attacks from one
 hit share one `hit` event. Gates and expression mappings already realized for
