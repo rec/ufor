@@ -27,6 +27,15 @@ division and probability gating. Thresholds are initially voice-owned. Snapshots
 retain the gate and pending commands; changing render partitions does not change
 the observation grid. This does not estimate crossings between samples.
 
+`slew` Patch nodes limit movement of a named `input` with separate nonnegative
+`rise` and `fall` rates in signal units per second, independent of the input's
+beat clock. Zero prevents movement in that direction. The first sample equals
+the input unless an explicit `initial` value is supplied; rate limiting begins
+on the following sample. Each step approaches the current input without
+overshoot. The inferred output range includes any explicit initial value.
+Slew nodes are initially voice-owned; shared consumers read one state per node.
+Snapshots retain the previous output, and activation starts fresh on voice reuse.
+
 Patch signal graphs may contain `sum` and `product` nodes with at least two named
 `inputs`, and `affine` nodes with one named `input`, `scale` (default 1), and
 `offset` (default 0). Inputs can name primitive children or other transforms.

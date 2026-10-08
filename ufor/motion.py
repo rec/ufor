@@ -317,6 +317,26 @@ class Threshold(Model, frozen=True):
         return self
 
 
+class Slew(Model, frozen=True):
+    kind: Literal['slew'] = 'slew'
+    input: Identifier
+    rise: FiniteScalar = Field(ge=0)
+    fall: FiniteScalar = Field(ge=0)
+    initial: FiniteScalar | None = None
+
+
+def slew_value(
+    body: Slew, value: float, previous: float | None, seconds: Fraction
+) -> float:
+    """Limit one observation in signal units per second, without overshoot."""
+    if previous is None:
+        return value if body.initial is None else body.initial
+    elapsed = float(seconds)
+    if value >= previous:
+        return min(value, previous + body.rise * elapsed)
+    return max(value, previous - body.fall * elapsed)
+
+
 def threshold_value(
     body: Threshold, value: float, previous: float | None
 ) -> tuple[float, str | None]:
@@ -334,7 +354,15 @@ class Patch(Model):
     motions: dict[
         Identifier,
         Annotated[
-            Cycle | Contour | Stages | SampleHold | Sum | Product | Affine | Threshold,
+            Cycle
+            | Contour
+            | Stages
+            | SampleHold
+            | Sum
+            | Product
+            | Affine
+            | Threshold
+            | Slew,
             Field(discriminator='kind'),
         ],
     ] = Field(min_length=1)
@@ -348,7 +376,7 @@ class Patch(Model):
             n: b.inputs
             if isinstance(b, (Sum, Product))
             else [b.input]
-            if isinstance(b, (Affine, Threshold))
+            if isinstance(b, (Affine, Threshold, Slew))
             else []
             for n, b in self.motions.items()
         }
@@ -383,6 +411,13 @@ class Patch(Model):
                     minimum, maximum = min(values), max(values)
             elif isinstance(body, Threshold):
                 minimum, maximum = 0.0, 1.0
+            elif isinstance(body, Slew):
+                minimum, maximum = ranges[body.input]
+                if body.initial is not None:
+                    minimum, maximum = (
+                        min(minimum, body.initial),
+                        max(maximum, body.initial),
+                    )
             elif isinstance(body, Affine):
                 values = [body.offset + body.scale * v for v in ranges[body.input]]
                 minimum, maximum = min(values), max(values)
@@ -538,6 +573,11 @@ class MotionUse(Model):
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
+            if (
+                any(isinstance(b, Slew) for b in self.body.motions.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('slew requires voice scope')
             if (
                 any(isinstance(b, Threshold) for b in self.body.motions.values())
                 and self.scope != control.Scope.voice

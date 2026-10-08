@@ -8891,7 +8891,8 @@
                 "product": "#/$defs/Product",
                 "sum": "#/$defs/Sum",
                 "sample_hold": "#/$defs/SampleHold",
-                "threshold": "#/$defs/Threshold"
+                "threshold": "#/$defs/Threshold",
+                "slew": "#/$defs/Slew"
               },
               "propertyName": "kind"
             },
@@ -8919,6 +8920,9 @@
               },
               {
                 "$ref": "#/$defs/Threshold"
+              },
+              {
+                "$ref": "#/$defs/Slew"
               }
             ]
           },
@@ -14378,6 +14382,50 @@
       ],
       "title": "FilterOrder",
       "type": "string"
+    },
+    "Slew": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "slew",
+          "default": "slew",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "rise": {
+          "minimum": 0,
+          "title": "Rise",
+          "type": "number"
+        },
+        "fall": {
+          "minimum": 0,
+          "title": "Fall",
+          "type": "number"
+        },
+        "initial": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial"
+        }
+      },
+      "required": [
+        "input",
+        "rise",
+        "fall"
+      ],
+      "title": "Slew",
+      "type": "object"
     }
   },
   "discriminator": {
