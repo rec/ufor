@@ -1,12 +1,12 @@
 """Asset identity and locations, without acquiring or loading payloads."""
 
 from keyword import iskeyword
-from math import isfinite
 from pathlib import PurePosixPath, PureWindowsPath
 from typing import Annotated, Literal, Self
 from urllib.parse import SplitResult, urlsplit
 
 from pydantic import Field, field_validator, model_validator
+from reccy.configuration.validators import validate_json
 
 from .base import Identifier, Model
 
@@ -121,7 +121,7 @@ class PythonProviderLocation(Model):
     @field_validator('arguments', mode='before')
     @classmethod
     def json_arguments(cls, value: object) -> object:
-        _validate_json(value)
+        validate_json(value, label='provider arguments', strict=False)
         if not isinstance(value, dict):
             raise ValueError('provider arguments must be an object')
         return value
@@ -211,29 +211,3 @@ def _absolute_url(value: str) -> SplitResult:
 
 def _python_identifier(value: str) -> bool:
     return value.isidentifier() and not iskeyword(value)
-
-
-def _validate_json(value: object) -> None:
-    pending = [(value, 0)]
-    count = 0
-    while pending:
-        item, depth = pending.pop()
-        count += 1
-        if count > 10000 or depth > 64:
-            raise ValueError('provider arguments exceed 10000 values or 64 levels')
-        if item is None or isinstance(item, bool | str) or type(item) is int:
-            continue
-        if type(item) is float:
-            if not isfinite(item):
-                raise ValueError('provider arguments require finite numbers')
-            continue
-        if isinstance(item, list | dict):
-            if isinstance(item, dict):
-                if any(type(k) is not str for k in item):
-                    raise ValueError('provider argument object keys must be strings')
-                values = item.values()
-            else:
-                values = item
-            pending.extend((child, depth + 1) for child in values)
-            continue
-        raise ValueError('provider arguments must contain only JSON values')

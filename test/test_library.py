@@ -308,11 +308,11 @@ def test_failed_config_replacement_preserves_existing_file(
     def interrupt(source: Path, destination: Path) -> None:
         raise KeyboardInterrupt
 
-    monkeypatch.setattr(library_files.os, 'replace', interrupt)
+    monkeypatch.setattr(Path, 'replace', interrupt)
     with pytest.raises(KeyboardInterrupt):
         library_files.create_library('second', Path('second'), config)
     assert config.read_bytes() == before
-    assert not list(tmp_path.glob('.library.toml.*'))
+    assert not list(tmp_path.glob('.library-*.toml'))
 
 
 def test_concurrent_config_updates_keep_every_registration(tmp_path: Path) -> None:

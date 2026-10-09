@@ -1,26 +1,21 @@
 """Explicit filesystem and local Python loading for user score libraries."""
 
-import os
 import sys
 from hashlib import sha256
 from importlib.util import module_from_spec, spec_from_file_location
 from os.path import abspath
 from pathlib import Path
-from tempfile import NamedTemporaryFile
 from uuid import uuid4
 
 import tomlkit
 from pydantic import TypeAdapter
+from reccy.runtime.claims import ResourceClaim
+from reccy.runtime.files import atomic_output
 
 from .library import Diagnostic, Entry, Library, State
 from .score import Score
 from .score_types import ScoreValue
 from .selector import LibraryConfig, LibraryRegistration, address
-
-if sys.platform == 'win32':
-    import msvcrt
-else:
-    import fcntl
 
 MAX_LIBRARY_FILES = 10000
 MAX_LIBRARY_FILE_BYTES = 16 * 1024 * 1024
@@ -182,60 +177,32 @@ def create_library(
     path = configuration_path(config_path)
     path.parent.mkdir(parents=True, exist_ok=True)
     lock_path = path.with_name(f'{path.name}.lock')
-    with lock_path.open('a+b') as lock:
-        if sys.platform == 'win32':
-            lock.seek(0)
-            msvcrt.locking(lock.fileno(), msvcrt.LK_LOCK, 1)
-        else:
-            fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
-        try:
-            document = (
-                tomlkit.parse(path.read_text(encoding='utf-8'))
-                if path.exists()
-                else tomlkit.document()
-            )
-            config = LibraryConfig.model_validate(document)
-            selected = (
-                expanded_path(str(root))
-                if root is not None
-                else Path.home() / '.config/ufor/scores'
-            )
-            registration = LibraryRegistration(name=name, root=str(selected))
-            updated = LibraryConfig(libraries=[*config.libraries, registration])
-            directory = selected if selected.is_absolute() else path.parent / selected
-            if directory.is_symlink():
-                raise ValueError('library root must not be a symlink')
-            directory.mkdir(parents=True, exist_ok=True)
-            if 'libraries' not in document:
-                document['libraries'] = tomlkit.aot()
-            table = tomlkit.table()
-            table.update(registration.model_dump())
-            document['libraries'].append(table)
-            _write_config(path, tomlkit.dumps(document))
-            return updated
-        finally:
-            if sys.platform == 'win32':
-                lock.seek(0)
-                msvcrt.locking(lock.fileno(), msvcrt.LK_UNLCK, 1)
-
-
-def _write_config(path: Path, contents: str) -> None:
-    temporary = NamedTemporaryFile(
-        mode='w',
-        encoding='utf-8',
-        dir=path.parent,
-        prefix=f'.{path.name}.',
-        delete=False,
-    )
-    temporary_path = Path(temporary.name)
-    try:
-        with temporary:
-            temporary.write(contents)
-            temporary.flush()
-            os.fsync(temporary.fileno())
-        os.replace(temporary_path, path)
-    finally:
-        temporary_path.unlink(missing_ok=True)
+    with ResourceClaim(lock_path, timeout=None):
+        document = (
+            tomlkit.parse(path.read_text(encoding='utf-8'))
+            if path.exists()
+            else tomlkit.document()
+        )
+        config = LibraryConfig.model_validate(document)
+        selected = (
+            expanded_path(str(root))
+            if root is not None
+            else Path.home() / '.config/ufor/scores'
+        )
+        registration = LibraryRegistration(name=name, root=str(selected))
+        updated = LibraryConfig(libraries=[*config.libraries, registration])
+        directory = selected if selected.is_absolute() else path.parent / selected
+        if directory.is_symlink():
+            raise ValueError('library root must not be a symlink')
+        directory.mkdir(parents=True, exist_ok=True)
+        if 'libraries' not in document:
+            document['libraries'] = tomlkit.aot()
+        table = tomlkit.table()
+        table.update(registration.model_dump())
+        document['libraries'].append(table)
+        with atomic_output(path, sync=True) as temporary:
+            temporary.write_text(tomlkit.dumps(document), encoding='utf-8')
+        return updated
 
 
 def score_files(
