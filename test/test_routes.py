@@ -157,3 +157,30 @@ def test_portable_route_cases_and_declaration_order(case: Case) -> None:
         assert [v.value for v in result] == pytest.approx(
             [v.value for v in case.expected], abs=TOLERANCE, rel=0
         )
+
+
+@pytest.mark.parametrize('amount', [0, -1])
+def test_exponential_routes_reject_nonpositive_amounts(amount: float) -> None:
+    raw = deepcopy(DATA['definitions']['exponential'])
+    raw['routes'][0]['points'][0]['amount'] = amount
+    with pytest.raises(ValidationError, match='must be positive'):
+        modulation.Modulation.model_validate(raw)
+
+
+@pytest.mark.parametrize('value', [0, 0.25, 0.5, 0.75, 1])
+def test_decreasing_exponential_routes_preserve_continuous_ratios(value: float) -> None:
+    route = modulation.Route(
+        name='decreasing',
+        source='velocity',
+        target=modulation.Target(name='voice', parameter='frequency'),
+        operation=modulation.Operation.multiply,
+        unit=modulation.Unit.ratio,
+        interpolation=modulation.Interpolation.exponential,
+        points=[
+            modulation.Point(input=0, amount=4),
+            modulation.Point(input=1, amount=0.25),
+        ],
+    )
+    assert modulation.map_value(route, value) == pytest.approx(4 ** (1 - 2 * value))
+    constant = route.model_copy(update={'points': [route.points[0]]})
+    assert modulation.map_value(constant, value) == 4

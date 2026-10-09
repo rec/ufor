@@ -96,7 +96,12 @@ Mapping points have `input` and `amount`; inputs increase strictly and lie
 inside the source domain. A single point is constant. Outside the knot range,
 mapping holds the first/last amount, but the source value must still be inside
 its declared domain. `linear` interpolates between adjacent knots; `step`
-changes exactly at the next knot. Unknown IDs, duplicate source/route/target
+changes exactly at the next knot. `exponential` requires strictly positive
+amounts and interpolates their natural logarithms: at segment progress `t`,
+the amount is `exp((1-t)*log(a) + t*log(b))`. Increasing and decreasing segments
+are supported, including a constant single point. Activation weights retain
+the same neutral-value semantics after mapping as other interpolation modes.
+Unknown IDs, duplicate source/route/target
 identities, incompatible units, or ambiguous references are rejected.
 
 Each evaluation handles one resolved instance context. A voice parameter may

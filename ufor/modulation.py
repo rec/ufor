@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from itertools import pairwise
-from math import fsum, prod
+from math import exp, fsum, log, prod
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
@@ -32,6 +32,7 @@ class Operation(StrEnum):
 class Interpolation(StrEnum):
     linear = auto()
     step = auto()
+    exponential = auto()
 
 
 class Target(Model):
@@ -91,6 +92,10 @@ class Route(Model):
     def ordered_points(self) -> Self:
         if any(b.input <= a.input for a, b in pairwise(self.points)):
             raise ValueError('mapping inputs must be strictly increasing')
+        if self.interpolation == Interpolation.exponential and any(
+            p.amount <= 0 for p in self.points
+        ):
+            raise ValueError('exponential mapping amounts must be positive')
         return self
 
 
@@ -146,6 +151,10 @@ def map_value(route: Route, value: float) -> float:
             if route.interpolation == Interpolation.step:
                 return first.amount
             progress = (value - first.input) / (second.input - first.input)
+            if route.interpolation == Interpolation.exponential:
+                return exp(
+                    (1 - progress) * log(first.amount) + progress * log(second.amount)
+                )
             return first.amount + progress * (second.amount - first.amount)
     return route.points[-1].amount
 

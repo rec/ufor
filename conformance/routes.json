@@ -26,7 +26,8 @@
       "parameters": [{"target": {"name": "lamp", "parameter": "level"}, "unit": "normalized", "scope": "instrument", "minimum": 0, "maximum": 1, "default": 0}],
       "sources": [{"name": "switch", "scope": "instrument", "minimum": 0, "maximum": 1}],
       "routes": [{"name": "switch-level", "source": "switch", "target": {"name": "lamp", "parameter": "level"}, "operation": "add", "unit": "normalized", "interpolation": "step", "points": [{"input": 0.25, "amount": 0}, {"input": 0.5, "amount": 1}]}]
-    }
+    },
+    "exponential": {"parameters": [{"target": {"name": "voice", "parameter": "frequency"}, "unit": "hz", "scope": "voice", "minimum": 100, "maximum": 1600, "default": 400}], "sources": [{"name": "velocity", "scope": "voice", "minimum": 0, "maximum": 1}], "routes": [{"name": "velocity-frequency", "source": "velocity", "target": {"name": "voice", "parameter": "frequency"}, "operation": "multiply", "unit": "ratio", "interpolation": "exponential", "points": [{"input": 0.25, "amount": 0.25}, {"input": 0.5, "amount": 1}, {"input": 0.75, "amount": 4}]}]}
   },
   "cases": [
     {"name": "delayed LFO is neutral after mapping", "definition": "amplitude", "values": {"envelope": {"value": 0.5}, "tremolo": {"value": -1, "weight": 0}}, "expected": [{"target": {"name": "voice", "parameter": "amplitude"}, "value": 0.5}]},
@@ -38,6 +39,11 @@
     {"name": "map clamps before first knot", "definition": "step", "values": {"switch": {"value": 0}}, "expected": [{"target": {"name": "lamp", "parameter": "level"}, "value": 0}]},
     {"name": "step holds below transition", "definition": "step", "values": {"switch": {"value": 0.499}}, "expected": [{"target": {"name": "lamp", "parameter": "level"}, "value": 0}]},
     {"name": "step changes exactly at transition", "definition": "step", "values": {"switch": {"value": 0.5}}, "expected": [{"target": {"name": "lamp", "parameter": "level"}, "value": 1}]},
-    {"name": "map clamps after final knot", "definition": "step", "values": {"switch": {"value": 1}}, "expected": [{"target": {"name": "lamp", "parameter": "level"}, "value": 1}]}
+    {"name": "map clamps after final knot", "definition": "step", "values": {"switch": {"value": 1}}, "expected": [{"target": {"name": "lamp", "parameter": "level"}, "value": 1}]},
+    {"name": "exponential clamps below knots", "definition": "exponential", "values": {"velocity": {"value": 0, "weight": 1}}, "expected": [{"target": {"name": "voice", "parameter": "frequency"}, "value": 100}]},
+    {"name": "exponential geometric midpoint", "definition": "exponential", "values": {"velocity": {"value": 0.375, "weight": 1}}, "expected": [{"target": {"name": "voice", "parameter": "frequency"}, "value": 200}]},
+    {"name": "exponential upper midpoint", "definition": "exponential", "values": {"velocity": {"value": 0.625, "weight": 1}}, "expected": [{"target": {"name": "voice", "parameter": "frequency"}, "value": 800}]},
+    {"name": "exponential clamps above knots", "definition": "exponential", "values": {"velocity": {"value": 1, "weight": 1}}, "expected": [{"target": {"name": "voice", "parameter": "frequency"}, "value": 1600}]},
+    {"name": "exponential activation is weighted after mapping", "definition": "exponential", "values": {"velocity": {"value": 0.625, "weight": 0.5}}, "expected": [{"target": {"name": "voice", "parameter": "frequency"}, "value": 600}]}
   ]
 }
