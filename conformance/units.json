@@ -1,0 +1,23 @@
+{
+  "valid": [
+    {"unit": "second", "authored": "250ms", "canonical": "1/4"},
+    {"unit": "second", "authored": "1/3 ms", "canonical": "1/3000"},
+    {"unit": "second", "authored": "0:00.1", "canonical": "1/10"},
+    {"unit": "hertz", "authored": "2kHz", "canonical": "2000"},
+    {"unit": "beats_per_minute", "authored": "2 beat/s", "canonical": "120"},
+    {"unit": "beat", "authored": "1/3 beat", "canonical": "1/3"},
+    {"unit": "musical_cent", "authored": "1 semitone", "canonical": "100"},
+    {"unit": "frame", "authored": "9007199254740993 frame", "canonical": "9007199254740993"},
+    {"unit": "tick", "authored": "9007199254740993 tick", "canonical": "9007199254740993"},
+    {"unit": "byte", "authored": "2KiB", "canonical": "2048"},
+    {"unit": "meter", "authored": "2cm", "canonical": "1/50"}
+  ],
+  "invalid": [
+    {"unit": "second", "authored": "2Hz"},
+    {"unit": "hertz", "authored": "2ms"},
+    {"unit": "beat", "authored": "1s"},
+    {"unit": "tick", "authored": "1s"},
+    {"unit": "frame", "authored": "1s"},
+    {"unit": "byte", "authored": "1Hz"}
+  ]
+}

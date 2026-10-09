@@ -17,19 +17,46 @@
           "type": "string"
         },
         "start": {
-          "minimum": 0,
-          "title": "Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start"
         },
         "source_start": {
-          "minimum": 0,
-          "title": "Source Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Source Start"
         },
         "source_end": {
-          "exclusiveMinimum": 0,
-          "title": "Source End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Source End"
         }
       },
       "required": [
@@ -50,13 +77,52 @@
       "title": "Advance",
       "type": "string"
     },
+    "Affine": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "affine",
+          "default": "affine",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "scale": {
+          "default": 1.0,
+          "title": "Scale",
+          "type": "number"
+        },
+        "offset": {
+          "default": 0.0,
+          "title": "Offset",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "title": "Affine",
+      "type": "object"
+    },
     "AiredEvent": {
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "minimum": 0,
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -180,7 +246,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -1194,11 +1263,13 @@
         "frames": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -1216,20 +1287,47 @@
       "additionalProperties": false,
       "properties": {
         "asset_start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Asset Start",
-          "type": "integer"
+          "title": "Asset Start"
         },
         "start": {
-          "minimum": 0,
-          "title": "Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start"
         },
         "count": {
-          "minimum": 0,
-          "title": "Count",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Count"
         },
         "asset": {
           "title": "Asset",
@@ -1310,10 +1408,19 @@
           "type": "number"
         },
         "smoothing": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 10,
-          "minimum": 0,
-          "title": "Smoothing",
-          "type": "number"
+          "title": "Smoothing"
         }
       },
       "title": "AudioSpectrum",
@@ -1365,9 +1472,18 @@
           "$ref": "#/$defs/AudioType"
         },
         "end": {
-          "minimum": 0,
-          "title": "End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End"
         },
         "fragments": {
           "items": {
@@ -1554,6 +1670,9 @@
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "boolean"
@@ -1962,10 +2081,19 @@
           "type": "array"
         },
         "zone_size": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 8,
-          "exclusiveMinimum": 0,
-          "title": "Zone Size",
-          "type": "integer"
+          "title": "Zone Size"
         },
         "base_level": {
           "default": 0.55,
@@ -1982,10 +2110,19 @@
           "type": "number"
         },
         "flare_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.3,
-          "minimum": 0,
-          "title": "Flare Rate",
-          "type": "number"
+          "title": "Flare Rate"
         },
         "speed": {
           "default": 1.0,
@@ -2033,9 +2170,18 @@
           "type": "boolean"
         },
         "latency_ticks": {
-          "minimum": 0,
-          "title": "Latency Ticks",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Latency Ticks"
         }
       },
       "required": [
@@ -2053,14 +2199,32 @@
       "additionalProperties": false,
       "properties": {
         "start": {
-          "minimum": 0,
-          "title": "Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start"
         },
         "end": {
-          "exclusiveMinimum": 0,
-          "title": "End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End"
         },
         "language": {
           "minLength": 2,
@@ -2122,10 +2286,19 @@
           "title": "Asset"
         },
         "offset": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Offset",
-          "type": "integer"
+          "title": "Offset"
         }
       },
       "required": [
@@ -2194,16 +2367,34 @@
           "type": "number"
         },
         "generation_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 10.0,
-          "exclusiveMinimum": 0,
-          "title": "Generation Rate",
-          "type": "number"
+          "title": "Generation Rate"
         },
         "history_decay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.8,
-          "exclusiveMinimum": 0,
-          "title": "History Decay",
-          "type": "number"
+          "title": "History Decay"
         },
         "boundary_mode": {
           "default": "ring",
@@ -2258,6 +2449,9 @@
               "type": "number"
             },
             {
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -2268,6 +2462,9 @@
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "null"
@@ -2374,8 +2571,13 @@
         "fade_seconds": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "null"
@@ -2416,19 +2618,46 @@
           "type": "string"
         },
         "source_start": {
-          "minimum": 0,
-          "title": "Source Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Source Start"
         },
         "source_end": {
-          "exclusiveMinimum": 0,
-          "title": "Source End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Source End"
         },
         "timeline_start": {
-          "minimum": 0,
-          "title": "Timeline Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Timeline Start"
         },
         "gain": {
           "default": 1.0,
@@ -2467,11 +2696,13 @@
         "uncertainty_ticks": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -2554,16 +2785,34 @@
           "type": "integer"
         },
         "radius": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.5,
-          "exclusiveMinimum": 0,
-          "title": "Radius",
-          "type": "number"
+          "title": "Radius"
         },
         "trail_decay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 4.0,
-          "exclusiveMinimum": 0,
-          "title": "Trail Decay",
-          "type": "number"
+          "title": "Trail Decay"
         },
         "collision_flash": {
           "default": 0.7,
@@ -2619,14 +2868,34 @@
           "type": "array"
         },
         "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Width",
-          "type": "integer"
+          "title": "Width"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -2634,16 +2903,29 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
           "title": "End"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         }
       },
       "title": "ColorChase",
@@ -2685,9 +2967,19 @@
           "type": "integer"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -2695,7 +2987,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -2775,9 +3070,19 @@
           "type": "array"
         },
         "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Width",
-          "type": "integer"
+          "title": "Width"
         },
         "reverse": {
           "default": false,
@@ -2814,9 +3119,19 @@
           "type": "array"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -2824,16 +3139,29 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
           "title": "End"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         }
       },
       "title": "ColorWipe",
@@ -2975,22 +3303,49 @@
           "type": "array"
         },
         "spawn_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 8.0,
-          "minimum": 0,
-          "title": "Spawn Rate",
-          "type": "number"
+          "title": "Spawn Rate"
         },
         "decay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 2.5,
-          "exclusiveMinimum": 0,
-          "title": "Decay",
-          "type": "number"
+          "title": "Decay"
         },
         "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "exclusiveMinimum": 0,
-          "title": "Width",
-          "type": "integer"
+          "title": "Width"
         },
         "speed": {
           "default": 1.0,
@@ -3035,9 +3390,18 @@
       "additionalProperties": false,
       "properties": {
         "byte_length": {
-          "minimum": 0,
-          "title": "Byte Length",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Byte Length"
         },
         "sha256": {
           "pattern": "^[0-9a-f]{64}$",
@@ -3197,8 +3561,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -3277,17 +3651,46 @@
           "$ref": "#/$defs/OutputSelection"
         },
         "source_start": {
-          "title": "Source Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Source Start"
         },
         "source_end": {
-          "title": "Source End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Source End"
         },
         "timeline_start": {
-          "minimum": 0,
-          "title": "Timeline Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Timeline Start"
         }
       },
       "required": [
@@ -3381,10 +3784,19 @@
           "type": "string"
         },
         "smoothing_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.005,
-          "minimum": 0,
-          "title": "Smoothing Seconds",
-          "type": "number"
+          "title": "Smoothing Seconds"
         }
       },
       "required": [
@@ -3471,9 +3883,18 @@
           "type": "number"
         },
         "pitch_hz": {
-          "exclusiveMinimum": 0,
-          "title": "Pitch Hz",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Pitch Hz"
         },
         "velocity": {
           "maximum": 1,
@@ -3612,16 +4033,32 @@
           "$ref": "#/$defs/OutputSelection"
         },
         "start": {
-          "format": "fraction",
-          "ge": 0,
-          "title": "Start",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start"
         },
         "duration": {
-          "format": "fraction",
-          "gt": 0,
-          "title": "Duration",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Duration"
         }
       },
       "required": [
@@ -3721,12 +4158,19 @@
           "title": "Rate"
         },
         "phase": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "lt": 1,
-          "title": "Phase",
-          "type": "string"
+          "title": "Phase"
         },
         "duty_cycle": {
           "default": "1/2",
@@ -3898,11 +4342,13 @@
         "tick": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -3911,11 +4357,13 @@
         "duration": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -3936,11 +4384,13 @@
         "maximum": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -4077,13 +4527,32 @@
           "type": "string"
         },
         "frequency_hz": {
-          "exclusiveMinimum": 0,
-          "title": "Frequency Hz",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Frequency Hz"
         },
         "gain_db": {
-          "title": "Gain Db",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Gain Db"
         },
         "resonance": {
           "exclusiveMinimum": 0,
@@ -4187,7 +4656,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -4199,7 +4671,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -4246,13 +4721,33 @@
           "type": "string"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
-          "title": "End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End"
         },
         "events": {
           "items": {
@@ -4477,28 +4972,64 @@
           "type": "array"
         },
         "event_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.35,
-          "minimum": 0,
-          "title": "Event Rate",
-          "type": "number"
+          "title": "Event Rate"
         },
         "propagation_speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 12.0,
-          "exclusiveMinimum": 0,
-          "title": "Propagation Speed",
-          "type": "number"
+          "title": "Propagation Speed"
         },
         "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.8,
-          "exclusiveMinimum": 0,
-          "title": "Width",
-          "type": "number"
+          "title": "Width"
         },
         "decay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.7,
-          "exclusiveMinimum": 0,
-          "title": "Decay",
-          "type": "number"
+          "title": "Decay"
         },
         "speed": {
           "default": 1.0,
@@ -4604,6 +5135,15 @@
       },
       "title": "Expression",
       "type": "object"
+    },
+    "ExpressionLane": {
+      "enum": [
+        "breath",
+        "bend",
+        "pressure"
+      ],
+      "title": "ExpressionLane",
+      "type": "string"
     },
     "FM": {
       "additionalProperties": false,
@@ -4776,16 +5316,34 @@
           "type": "array"
         },
         "frequency_offset_hz": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Frequency Offset Hz",
-          "type": "number"
+          "title": "Frequency Offset Hz"
         },
         "minimum_hold_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Minimum Hold Seconds",
-          "type": "string"
+          "title": "Minimum Hold Seconds"
         },
         "trigger": {
           "$ref": "#/$defs/TriggerKind",
@@ -4834,10 +5392,18 @@
       "additionalProperties": false,
       "properties": {
         "duration": {
-          "format": "fraction",
-          "gt": 0,
-          "title": "Duration",
-          "type": "string"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Duration"
         },
         "easing": {
           "default": "linear",
@@ -4938,6 +5504,14 @@
       "title": "FilterBoundary",
       "type": "string"
     },
+    "FilterOrder": {
+      "enum": [
+        "before_amplitude",
+        "after_amplitude"
+      ],
+      "title": "FilterOrder",
+      "type": "string"
+    },
     "FilterResponse": {
       "enum": [
         "lowpass",
@@ -4958,10 +5532,19 @@
           "type": "number"
         },
         "response_db": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1e-06,
-          "exclusiveMinimum": 0,
-          "title": "Response Db",
-          "type": "number"
+          "title": "Response Db"
         }
       },
       "title": "FilterTolerance",
@@ -5031,27 +5614,64 @@
           "type": "array"
         },
         "cooling": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.4,
-          "exclusiveMinimum": 0,
-          "title": "Cooling",
-          "type": "number"
+          "title": "Cooling"
         },
         "diffusion": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 4.0,
-          "minimum": 0,
-          "title": "Diffusion",
-          "type": "number"
+          "title": "Diffusion"
         },
         "spark_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 12.0,
-          "minimum": 0,
-          "title": "Spark Rate",
-          "type": "number"
+          "title": "Spark Rate"
         },
         "wind": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 3.0,
-          "title": "Wind",
-          "type": "number"
+          "title": "Wind"
         },
         "origin": {
           "default": "start",
@@ -5115,9 +5735,19 @@
           "type": "array"
         },
         "width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Width",
-          "type": "integer"
+          "title": "Width"
         },
         "count": {
           "default": 1,
@@ -5125,9 +5755,19 @@
           "type": "integer"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -5135,7 +5775,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -5170,9 +5813,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "minimum": 0,
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -5238,6 +5890,9 @@
               "type": "number"
             },
             {
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -5248,6 +5903,9 @@
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "null"
@@ -5478,12 +6136,32 @@
       "additionalProperties": false,
       "properties": {
         "start": {
-          "title": "Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start"
         },
         "end": {
-          "title": "End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End"
         },
         "reason": {
           "$ref": "#/$defs/GapReason"
@@ -5612,7 +6290,17 @@
             0.014
           ],
           "items": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "maxItems": 3,
           "minItems": 3,
@@ -5658,7 +6346,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -5675,9 +6366,19 @@
           "type": "integer"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         }
       },
       "title": "HalvesRainbow",
@@ -5693,9 +6394,19 @@
           "type": "string"
         },
         "speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 25,
-          "title": "Speed",
-          "type": "number"
+          "title": "Speed"
         },
         "n": {
           "default": 8,
@@ -6014,21 +6725,51 @@
         },
         "wavelengths": {
           "items": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "title": "Wavelengths",
           "type": "array"
         },
         "rates": {
           "items": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "title": "Rates",
           "type": "array"
         },
         "phase_offsets": {
           "items": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "title": "Phase Offsets",
           "type": "array"
@@ -6200,8 +6941,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -6326,12 +7077,19 @@
           "type": "string"
         },
         "phase": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "lt": 1,
-          "title": "Phase",
-          "type": "string"
+          "title": "Phase"
         },
         "reset": {
           "$ref": "#/$defs/Reset",
@@ -6363,8 +7121,18 @@
       "description": "Change one instrument-scoped named LFO at an exact performance tick.",
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -6469,14 +7237,34 @@
           "type": "array"
         },
         "tail": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 2,
-          "title": "Tail",
-          "type": "integer"
+          "title": "Tail"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -6484,16 +7272,29 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
           "title": "End"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         },
         "rainbow": {
           "default": false,
@@ -6711,10 +7512,19 @@
           "type": "array"
         },
         "flash_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.35,
-          "exclusiveMinimum": 0,
-          "title": "Flash Rate",
-          "type": "number"
+          "title": "Flash Rate"
         },
         "maximum_burst": {
           "default": 4,
@@ -6723,16 +7533,34 @@
           "type": "integer"
         },
         "branch_width": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 5.0,
-          "exclusiveMinimum": 0,
-          "title": "Branch Width",
-          "type": "number"
+          "title": "Branch Width"
         },
         "afterglow": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 8.0,
-          "exclusiveMinimum": 0,
-          "title": "Afterglow",
-          "type": "number"
+          "title": "Afterglow"
         },
         "speed": {
           "default": 1.0,
@@ -6808,7 +7636,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -6820,9 +7651,19 @@
           "type": "boolean"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         }
       },
       "title": "LinearRainbow",
@@ -6874,14 +7715,32 @@
       "additionalProperties": false,
       "properties": {
         "start_frame": {
-          "minimum": 0,
-          "title": "Start Frame",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start Frame"
         },
         "end_frame": {
-          "minimum": 0,
-          "title": "End Frame",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End Frame"
         },
         "mode": {
           "$ref": "#/$defs/LoopMode",
@@ -6892,10 +7751,19 @@
           "default": "forward"
         },
         "crossfade_frames": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Crossfade Frames",
-          "type": "integer"
+          "title": "Crossfade Frames"
         },
         "repeat_count": {
           "anyOf": [
@@ -6949,8 +7817,13 @@
         "reference_pitch_hz": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "null"
@@ -7002,8 +7875,15 @@
       "additionalProperties": false,
       "properties": {
         "input": {
-          "title": "Input",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Input"
         },
         "output": {
           "title": "Output",
@@ -7078,8 +7958,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -7215,11 +8105,13 @@
         "start": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -7228,11 +8120,13 @@
         "end": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -7284,8 +8178,18 @@
       "description": "Control named Motions on the voices started by one trigger.",
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -7350,12 +8254,13 @@
         "quantize_beats": {
           "anyOf": [
             {
-              "format": "fraction",
-              "gt": 0,
-              "type": "string"
+              "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -7376,20 +8281,6 @@
     "MotionEventConnection": {
       "additionalProperties": false,
       "properties": {
-        "delay": {
-          "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Delay",
-          "type": "string"
-        },
-        "probability": {
-          "default": 1.0,
-          "maximum": 1,
-          "minimum": 0,
-          "title": "Probability",
-          "type": "number"
-        },
         "source": {
           "title": "Source",
           "type": "string"
@@ -7418,6 +8309,28 @@
           "minimum": 0,
           "title": "Offset",
           "type": "integer"
+        },
+        "probability": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "0",
+          "title": "Delay"
         }
       },
       "required": [
@@ -7463,16 +8376,37 @@
           "$ref": "#/$defs/Unit"
         },
         "default": {
-          "type": "number",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "title": "Default"
         },
         "minimum": {
-          "title": "Minimum",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Minimum"
         },
         "maximum": {
-          "title": "Maximum",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Maximum"
         },
         "description": {
           "anyOf": [
@@ -7546,8 +8480,8 @@
               "contour": "#/$defs/Contour",
               "cycle": "#/$defs/Cycle",
               "patch": "#/$defs/Patch",
-              "stages": "#/$defs/Stages",
-              "sample_hold": "#/$defs/SampleHold"
+              "sample_hold": "#/$defs/SampleHold",
+              "stages": "#/$defs/Stages"
             },
             "propertyName": "kind"
           },
@@ -7645,7 +8579,14 @@
         },
         "parameters": {
           "additionalProperties": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "title": "Parameters",
           "type": "object"
@@ -7809,16 +8750,34 @@
           "type": "array"
         },
         "frequency_offset_hz": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Frequency Offset Hz",
-          "type": "number"
+          "title": "Frequency Offset Hz"
         },
         "minimum_hold_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Minimum Hold Seconds",
-          "type": "string"
+          "title": "Minimum Hold Seconds"
         },
         "trigger": {
           "$ref": "#/$defs/TriggerKind",
@@ -7926,10 +8885,19 @@
           "type": "integer"
         },
         "crest_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.8,
-          "minimum": 0,
-          "title": "Crest Rate",
-          "type": "number"
+          "title": "Crest Rate"
         },
         "turbulence": {
           "default": 0.2,
@@ -7998,16 +8966,34 @@
           "type": "number"
         },
         "tuning_cents": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Tuning Cents",
-          "type": "number"
+          "title": "Tuning Cents"
         },
         "phase_cycles": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "exclusiveMaximum": 1,
-          "minimum": 0,
-          "title": "Phase Cycles",
-          "type": "number"
+          "title": "Phase Cycles"
         },
         "waveform": {
           "$ref": "#/$defs/Waveform",
@@ -8063,8 +9049,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -8212,9 +9208,19 @@
           "type": "integer"
         },
         "key_scale_db_per_12_steps": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Key Scale Db Per 12 Steps",
-          "type": "number"
+          "title": "Key Scale Db Per 12 Steps"
         }
       },
       "title": "Oscillator",
@@ -8411,22 +9417,49 @@
           "type": "string"
         },
         "packet_rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.2,
-          "minimum": 0,
-          "title": "Packet Rate",
-          "type": "number"
+          "title": "Packet Rate"
         },
         "minimum_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 4,
-          "exclusiveMinimum": 1,
-          "title": "Minimum Length",
-          "type": "integer"
+          "title": "Minimum Length"
         },
         "maximum_length": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 12,
-          "exclusiveMinimum": 1,
-          "title": "Maximum Length",
-          "type": "integer"
+          "title": "Maximum Length"
         },
         "error_rate": {
           "default": 0.15,
@@ -8503,16 +9536,34 @@
           "type": "array"
         },
         "stop_spacing": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 8.0,
-          "exclusiveMinimum": 0,
-          "title": "Stop Spacing",
-          "type": "number"
+          "title": "Stop Spacing"
         },
         "speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.0,
-          "minimum": 0,
-          "title": "Speed",
-          "type": "number"
+          "title": "Speed"
         },
         "reverse": {
           "default": false,
@@ -8545,15 +9596,36 @@
           "$ref": "#/$defs/Scope"
         },
         "minimum": {
-          "title": "Minimum",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Minimum"
         },
         "maximum": {
-          "title": "Maximum",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Maximum"
         },
         "default": {
-          "type": "number",
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "title": "Default"
         }
       },
@@ -8584,6 +9656,9 @@
               "type": "number"
             },
             {
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -8596,6 +9671,9 @@
               "type": "number"
             },
             {
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -8606,6 +9684,9 @@
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "null"
@@ -8647,6 +9728,9 @@
               "type": "number"
             },
             {
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],
@@ -8657,6 +9741,9 @@
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "null"
@@ -8690,10 +9777,19 @@
           "title": "Output Max"
         },
         "update_ticks": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "minimum": 1,
-          "title": "Update Ticks",
-          "type": "integer"
+          "title": "Update Ticks"
         },
         "out_of_range": {
           "$ref": "#/$defs/RangePolicy",
@@ -8834,7 +9930,14 @@
         },
         "parameters": {
           "additionalProperties": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "title": "Parameters",
           "type": "object"
@@ -8904,17 +10007,17 @@
           "additionalProperties": {
             "discriminator": {
               "mapping": {
+                "affine": "#/$defs/Affine",
                 "contour": "#/$defs/Contour",
                 "cycle": "#/$defs/Cycle",
-                "stages": "#/$defs/Stages",
-                "affine": "#/$defs/Affine",
-                "quantize": "#/$defs/Quantize",
                 "latch": "#/$defs/Latch",
                 "product": "#/$defs/Product",
-                "sum": "#/$defs/Sum",
+                "quantize": "#/$defs/Quantize",
                 "sample_hold": "#/$defs/SampleHold",
-                "threshold": "#/$defs/Threshold",
-                "slew": "#/$defs/Slew"
+                "slew": "#/$defs/Slew",
+                "stages": "#/$defs/Stages",
+                "sum": "#/$defs/Sum",
+                "threshold": "#/$defs/Threshold"
               },
               "propertyName": "kind"
             },
@@ -8991,20 +10094,6 @@
     "PatchEventConnection": {
       "additionalProperties": false,
       "properties": {
-        "delay": {
-          "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Delay",
-          "type": "string"
-        },
-        "probability": {
-          "default": 1.0,
-          "maximum": 1,
-          "minimum": 0,
-          "title": "Probability",
-          "type": "number"
-        },
         "source": {
           "minLength": 3,
           "title": "Source",
@@ -9048,6 +10137,28 @@
           "minimum": 0,
           "title": "Offset",
           "type": "integer"
+        },
+        "probability": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": 0,
+          "title": "Probability",
+          "type": "number"
+        },
+        "delay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "0",
+          "title": "Delay"
         }
       },
       "required": [
@@ -9233,21 +10344,44 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
           "title": "Max Led"
         },
         "total_pixels": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Total Pixels",
-          "type": "integer"
+          "title": "Total Pixels"
         },
         "fade_delay": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Fade Delay",
-          "type": "integer"
+          "title": "Fade Delay"
         }
       },
       "title": "PixelPingPong",
@@ -9344,8 +10478,15 @@
           "type": "number"
         },
         "amount": {
-          "title": "Amount",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Amount"
         }
       },
       "required": [
@@ -9371,8 +10512,18 @@
           "type": "string"
         },
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         }
       },
       "required": [
@@ -9432,7 +10583,14 @@
         },
         "parameters": {
           "additionalProperties": {
-            "type": "number"
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
           },
           "title": "Parameters",
           "type": "object"
@@ -9450,9 +10608,19 @@
       "additionalProperties": false,
       "properties": {
         "volume_db": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.0,
-          "title": "Volume Db",
-          "type": "number"
+          "title": "Volume Db"
         },
         "invert_polarity": {
           "default": false,
@@ -9460,9 +10628,19 @@
           "type": "boolean"
         },
         "tuning_cents": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0.0,
-          "title": "Tuning Cents",
-          "type": "number"
+          "title": "Tuning Cents"
         },
         "pan": {
           "default": 0.0,
@@ -9496,6 +10674,30 @@
       "title": "Processing",
       "type": "object"
     },
+    "Product": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "product",
+          "default": "product",
+          "title": "Kind",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "inputs"
+      ],
+      "title": "Product",
+      "type": "object"
+    },
     "ProgrammeSource": {
       "additionalProperties": false,
       "properties": {
@@ -9509,11 +10711,13 @@
         "relay_buffer": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -9558,9 +10762,19 @@
           "type": "array"
         },
         "tail": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 2,
-          "title": "Tail",
-          "type": "integer"
+          "title": "Tail"
         },
         "chance": {
           "default": 30,
@@ -9568,14 +10782,34 @@
           "type": "integer"
         },
         "min_speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Min Speed",
-          "type": "integer"
+          "title": "Min Speed"
         },
         "max_speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 5,
-          "title": "Max Speed",
-          "type": "integer"
+          "title": "Max Speed"
         },
         "seed": {
           "anyOf": [
@@ -9637,6 +10871,15 @@
       "title": "PythonProviderLocation",
       "type": "object"
     },
+    "Quantity": {
+      "enum": [
+        "gain",
+        "frequency",
+        "gate"
+      ],
+      "title": "Quantity",
+      "type": "string"
+    },
     "Quantize": {
       "additionalProperties": false,
       "properties": {
@@ -9667,15 +10910,6 @@
       ],
       "title": "Quantize",
       "type": "object"
-    },
-    "Quantity": {
-      "enum": [
-        "gain",
-        "frequency",
-        "gate"
-      ],
-      "title": "Quantity",
-      "type": "string"
     },
     "Rain": {
       "additionalProperties": false,
@@ -9723,9 +10957,19 @@
           "type": "array"
         },
         "rate": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 10,
-          "title": "Rate",
-          "type": "number"
+          "title": "Rate"
         },
         "seed": {
           "anyOf": [
@@ -9747,9 +10991,19 @@
       "additionalProperties": false,
       "properties": {
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -9757,16 +11011,29 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
           "title": "End"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         },
         "effect": {
           "const": "rainbow",
@@ -9782,9 +11049,19 @@
       "additionalProperties": false,
       "properties": {
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -9792,16 +11069,29 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
           "title": "End"
         },
         "step": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Step",
-          "type": "integer"
+          "title": "Step"
         },
         "effect": {
           "const": "rainbow_cycle",
@@ -9845,9 +11135,19 @@
           "type": "string"
         },
         "speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 10,
-          "title": "Speed",
-          "type": "number"
+          "title": "Speed"
         },
         "variance": {
           "default": 1,
@@ -9885,9 +11185,19 @@
           "title": "Color"
         },
         "period": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Period",
-          "type": "number"
+          "title": "Period"
         },
         "pre_fill": {
           "default": false,
@@ -9947,9 +11257,18 @@
       "additionalProperties": false,
       "properties": {
         "numerator": {
-          "exclusiveMinimum": 0,
-          "title": "Numerator",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Numerator"
         },
         "denominator": {
           "default": 1,
@@ -10039,11 +11358,13 @@
         "measured_skew_ticks": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -10061,9 +11382,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "minimum": 0,
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "universe": {
           "minimum": 1,
@@ -10172,10 +11502,19 @@
           "type": "number"
         },
         "steps_per_second": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 80.0,
-          "exclusiveMinimum": 0,
-          "title": "Steps Per Second",
-          "type": "number"
+          "title": "Steps Per Second"
         },
         "boundary_mode": {
           "default": "ring",
@@ -10258,11 +11597,13 @@
         "observed_duration_seconds": {
           "anyOf": [
             {
-              "minimum": 0,
+              "type": "integer"
+            },
+            {
               "type": "number"
             },
             {
-              "type": "null"
+              "type": "string"
             }
           ],
           "default": null,
@@ -10479,8 +11820,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -10539,9 +11890,18 @@
           "$ref": "#/$defs/FilterResponse"
         },
         "cutoff_hz": {
-          "exclusiveMinimum": 0,
-          "title": "Cutoff Hz",
-          "type": "number"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Cutoff Hz"
         },
         "q": {
           "default": 0.7071067811865475,
@@ -10563,10 +11923,19 @@
           "default": "error"
         },
         "minimum_hz": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1.0,
-          "exclusiveMinimum": 0,
-          "title": "Minimum Hz",
-          "type": "number"
+          "title": "Minimum Hz"
         },
         "nyquist_ratio": {
           "default": 0.999,
@@ -10687,9 +12056,18 @@
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "minimum": 0,
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -10767,9 +12145,19 @@
           "type": "array"
         },
         "speed": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 1,
-          "title": "Speed",
-          "type": "integer"
+          "title": "Speed"
         }
       },
       "title": "SaberBlade",
@@ -10783,6 +12171,33 @@
       ],
       "title": "SameKey",
       "type": "string"
+    },
+    "SampleHold": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "sample_hold",
+          "default": "sample_hold",
+          "title": "Kind",
+          "type": "string"
+        },
+        "minimum": {
+          "default": -1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum",
+          "type": "number"
+        },
+        "maximum": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "title": "SampleHold",
+      "type": "object"
     },
     "SampleInstrument": {
       "additionalProperties": false,
@@ -11299,9 +12714,19 @@
           "title": "Microphone"
         },
         "alignment_frames": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Alignment Frames",
-          "type": "integer"
+          "title": "Alignment Frames"
         },
         "choke_group": {
           "anyOf": [
@@ -11471,9 +12896,19 @@
           "default": "whole"
         },
         "offset": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Offset",
-          "type": "integer"
+          "title": "Offset"
         }
       },
       "title": "Scale",
@@ -11623,14 +13058,34 @@
           "type": "array"
         },
         "tail": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 5,
-          "title": "Tail",
-          "type": "integer"
+          "title": "Tail"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -11638,7 +13093,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -11779,6 +13237,29 @@
       ],
       "title": "SelectionMode",
       "type": "string"
+    },
+    "SelectionOffset": {
+      "additionalProperties": false,
+      "properties": {
+        "ranks": {
+          "default": 0,
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Ranks",
+          "type": "integer"
+        },
+        "boundary": {
+          "default": "wrap",
+          "enum": [
+            "wrap",
+            "rest"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "title": "SelectionOffset",
+      "type": "object"
     },
     "SequenceBinding": {
       "additionalProperties": false,
@@ -11930,6 +13411,68 @@
       "title": "Shuffle",
       "type": "object"
     },
+    "Slew": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "slew",
+          "default": "slew",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "rise": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Rise"
+        },
+        "fall": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Fall"
+        },
+        "initial": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Initial"
+        }
+      },
+      "required": [
+        "input",
+        "rise",
+        "fall"
+      ],
+      "title": "Slew",
+      "type": "object"
+    },
     "Slice": {
       "additionalProperties": false,
       "properties": {
@@ -11942,15 +13485,33 @@
           "type": "string"
         },
         "start_frame": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Start Frame",
-          "type": "integer"
+          "title": "Start Frame"
         },
         "end_frame": {
-          "minimum": 0,
-          "title": "End Frame",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End Frame"
         },
         "loop": {
           "anyOf": [
@@ -11984,9 +13545,18 @@
           "type": "string"
         },
         "duration": {
-          "exclusiveMinimum": 0,
-          "title": "Duration",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Duration"
         },
         "alt": {
           "minLength": 1,
@@ -12015,15 +13585,19 @@
           }
         },
         "rotation": {
-          "default": 0,
-          "enum": [
-            0,
-            90,
-            180,
-            270
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
           ],
-          "title": "Rotation",
-          "type": "integer"
+          "default": 0,
+          "title": "Rotation"
         },
         "fit": {
           "$ref": "#/$defs/Fit",
@@ -12059,11 +13633,13 @@
         "source_start": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12072,11 +13648,13 @@
         "source_end": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12375,16 +13953,34 @@
           "title": "Play Count"
         },
         "start_delay_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Start Delay Seconds",
-          "type": "number"
+          "title": "Start Delay Seconds"
         },
         "end_fade_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "End Fade Seconds",
-          "type": "number"
+          "title": "End Fade Seconds"
         }
       },
       "title": "SlotPlayback",
@@ -12581,11 +14177,13 @@
         "tick": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12618,11 +14216,13 @@
         "earliest": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12631,11 +14231,13 @@
         "deadline": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12670,11 +14272,13 @@
         "duration": {
           "anyOf": [
             {
-              "minimum": 0,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12758,11 +14362,13 @@
         "rate": {
           "anyOf": [
             {
-              "minimum": 1,
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -12852,6 +14458,30 @@
       ],
       "title": "Subtype",
       "type": "string"
+    },
+    "Sum": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "sum",
+          "default": "sum",
+          "title": "Kind",
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 2,
+          "title": "Inputs",
+          "type": "array"
+        }
+      },
+      "required": [
+        "inputs"
+      ],
+      "title": "Sum",
+      "type": "object"
     },
     "Sustain": {
       "additionalProperties": false,
@@ -13140,16 +14770,34 @@
           "type": "array"
         },
         "frequency_offset_hz": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Frequency Offset Hz",
-          "type": "number"
+          "title": "Frequency Offset Hz"
         },
         "minimum_hold_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Minimum Hold Seconds",
-          "type": "string"
+          "title": "Minimum Hold Seconds"
         },
         "trigger": {
           "$ref": "#/$defs/TriggerKind",
@@ -13218,16 +14866,66 @@
       "title": "Target",
       "type": "object"
     },
+    "Threshold": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "threshold",
+          "default": "threshold",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        },
+        "lower": {
+          "title": "Lower",
+          "type": "number"
+        },
+        "upper": {
+          "title": "Upper",
+          "type": "number"
+        }
+      },
+      "required": [
+        "input",
+        "lower",
+        "upper"
+      ],
+      "title": "Threshold",
+      "type": "object"
+    },
     "TickRange": {
       "additionalProperties": false,
       "properties": {
         "start": {
-          "title": "Start",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Start"
         },
         "end": {
-          "title": "End",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "End"
         }
       },
       "required": [
@@ -13296,13 +14994,26 @@
           "default": "linear"
         },
         "at": {
-          "title": "At",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "At"
         },
         "initial": {
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "boolean"
@@ -13342,14 +15053,26 @@
       "additionalProperties": false,
       "properties": {
         "duration": {
-          "minimum": 0,
-          "title": "Duration",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Duration"
         },
         "to": {
           "anyOf": [
             {
               "type": "number"
+            },
+            {
+              "type": "string"
             },
             {
               "type": "boolean"
@@ -13383,12 +15106,54 @@
       "title": "Track",
       "type": "object"
     },
+    "Transposition": {
+      "additionalProperties": false,
+      "properties": {
+        "semitones": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "title": "Semitones"
+        },
+        "boundary": {
+          "default": "drop",
+          "enum": [
+            "drop",
+            "fold",
+            "error"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "title": "Transposition",
+      "type": "object"
+    },
     "Trigger": {
       "additionalProperties": false,
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -13423,11 +15188,13 @@
         "pitch_hz": {
           "anyOf": [
             {
-              "exclusiveMinimum": 0,
+              "type": "integer"
+            },
+            {
               "type": "number"
             },
             {
-              "type": "null"
+              "type": "string"
             }
           ],
           "default": null,
@@ -13505,9 +15272,19 @@
           "type": "string"
         },
         "detune_cents": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Detune Cents",
-          "type": "number"
+          "title": "Detune Cents"
         }
       },
       "required": [
@@ -13641,8 +15418,18 @@
       "description": "One complete Universal MIDI Packet, stored as unsigned 32-bit words.",
       "properties": {
         "tick": {
-          "title": "Tick",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Tick"
         },
         "ordinal": {
           "minimum": 0,
@@ -13754,9 +15541,18 @@
           "type": "string"
         },
         "count": {
-          "minimum": 0,
-          "title": "Count",
-          "type": "integer"
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Count"
         },
         "journal_range": {
           "$ref": "#/$defs/TickRange"
@@ -13781,28 +15577,64 @@
       "description": "Maximum independent variation applied when one voice starts.",
       "properties": {
         "delay_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Delay Seconds",
-          "type": "number"
+          "title": "Delay Seconds"
         },
         "offset_frames": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Offset Frames",
-          "type": "integer"
+          "title": "Offset Frames"
         },
         "pitch_cents": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Pitch Cents",
-          "type": "number"
+          "title": "Pitch Cents"
         },
         "gain_db": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Gain Db",
-          "type": "number"
+          "title": "Gain Db"
         }
       },
       "title": "Variation",
@@ -13993,9 +15825,19 @@
           "type": "integer"
         },
         "start": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "title": "Start",
-          "type": "integer"
+          "title": "Start"
         },
         "end": {
           "anyOf": [
@@ -14003,7 +15845,10 @@
               "type": "integer"
             },
             {
-              "type": "null"
+              "type": "number"
+            },
+            {
+              "type": "string"
             }
           ],
           "default": null,
@@ -14130,10 +15975,19 @@
           "type": "string"
         },
         "duration": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Duration",
-          "type": "integer"
+          "title": "Duration"
         }
       },
       "title": "Transition",
@@ -14196,11 +16050,19 @@
           "type": "string"
         },
         "smoothing": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": "1/200",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Smoothing",
-          "type": "string"
+          "title": "Smoothing"
         }
       },
       "required": [
@@ -14232,10 +16094,19 @@
           "type": "string"
         },
         "duration": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
           "default": 0,
-          "minimum": 0,
-          "title": "Duration",
-          "type": "integer"
+          "title": "Duration"
         }
       },
       "required": [
@@ -14243,249 +16114,6 @@
         "incoming"
       ],
       "title": "Transition",
-      "type": "object"
-    },
-    "Transposition": {
-      "additionalProperties": false,
-      "properties": {
-        "semitones": {
-          "default": 0,
-          "maximum": 9223372036854775807,
-          "minimum": -9223372036854775808,
-          "title": "Semitones",
-          "type": "integer"
-        },
-        "boundary": {
-          "default": "drop",
-          "enum": [
-            "drop",
-            "fold",
-            "error"
-          ],
-          "title": "Boundary",
-          "type": "string"
-        }
-      },
-      "title": "Transposition",
-      "type": "object"
-    },
-    "Affine": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "affine",
-          "default": "affine",
-          "title": "Kind",
-          "type": "string"
-        },
-        "input": {
-          "title": "Input",
-          "type": "string"
-        },
-        "scale": {
-          "default": 1.0,
-          "title": "Scale",
-          "type": "number"
-        },
-        "offset": {
-          "default": 0.0,
-          "title": "Offset",
-          "type": "number"
-        }
-      },
-      "required": [
-        "input"
-      ],
-      "title": "Affine",
-      "type": "object"
-    },
-    "Product": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "product",
-          "default": "product",
-          "title": "Kind",
-          "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 2,
-          "title": "Inputs",
-          "type": "array"
-        }
-      },
-      "required": [
-        "inputs"
-      ],
-      "title": "Product",
-      "type": "object"
-    },
-    "Sum": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "sum",
-          "default": "sum",
-          "title": "Kind",
-          "type": "string"
-        },
-        "inputs": {
-          "items": {
-            "type": "string"
-          },
-          "minItems": 2,
-          "title": "Inputs",
-          "type": "array"
-        }
-      },
-      "required": [
-        "inputs"
-      ],
-      "title": "Sum",
-      "type": "object"
-    },
-    "SampleHold": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "sample_hold",
-          "default": "sample_hold",
-          "title": "Kind",
-          "type": "string"
-        },
-        "minimum": {
-          "default": -1.0,
-          "maximum": 1,
-          "minimum": -1,
-          "title": "Minimum",
-          "type": "number"
-        },
-        "maximum": {
-          "default": 1.0,
-          "maximum": 1,
-          "minimum": -1,
-          "title": "Maximum",
-          "type": "number"
-        }
-      },
-      "title": "SampleHold",
-      "type": "object"
-    },
-    "SelectionOffset": {
-      "additionalProperties": false,
-      "properties": {
-        "ranks": {
-          "default": 0,
-          "maximum": 9223372036854775807,
-          "minimum": -9223372036854775808,
-          "title": "Ranks",
-          "type": "integer"
-        },
-        "boundary": {
-          "default": "wrap",
-          "enum": [
-            "wrap",
-            "rest"
-          ],
-          "title": "Boundary",
-          "type": "string"
-        }
-      },
-      "title": "SelectionOffset",
-      "type": "object"
-    },
-    "ExpressionLane": {
-      "enum": [
-        "breath",
-        "bend",
-        "pressure"
-      ],
-      "title": "ExpressionLane",
-      "type": "string"
-    },
-    "Threshold": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "threshold",
-          "default": "threshold",
-          "title": "Kind",
-          "type": "string"
-        },
-        "input": {
-          "title": "Input",
-          "type": "string"
-        },
-        "lower": {
-          "title": "Lower",
-          "type": "number"
-        },
-        "upper": {
-          "title": "Upper",
-          "type": "number"
-        }
-      },
-      "required": [
-        "input",
-        "lower",
-        "upper"
-      ],
-      "title": "Threshold",
-      "type": "object"
-    },
-    "FilterOrder": {
-      "enum": [
-        "before_amplitude",
-        "after_amplitude"
-      ],
-      "title": "FilterOrder",
-      "type": "string"
-    },
-    "Slew": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "slew",
-          "default": "slew",
-          "title": "Kind",
-          "type": "string"
-        },
-        "input": {
-          "title": "Input",
-          "type": "string"
-        },
-        "rise": {
-          "minimum": 0,
-          "title": "Rise",
-          "type": "number"
-        },
-        "fall": {
-          "minimum": 0,
-          "title": "Fall",
-          "type": "number"
-        },
-        "initial": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Initial"
-        }
-      },
-      "required": [
-        "input",
-        "rise",
-        "fall"
-      ],
-      "title": "Slew",
       "type": "object"
     }
   },

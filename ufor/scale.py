@@ -8,6 +8,7 @@ from itertools import batched, chain
 from typing import Annotated, Self
 
 from pydantic import BeforeValidator, Field, model_validator
+from reccy.configuration import units
 
 from .accidentals import AccidentalNames, Accidentals
 from .base import Model
@@ -26,7 +27,10 @@ def validate_intervals(it: str | Iterable[int | str]) -> list[int]:
         if isinstance(c, str) and c.isspace():
             continue
         try:
-            i = int(c)
+            amount = units.magnitude(c, 'semitone', exact=True)
+            if isinstance(c, str) and '/' in str(amount):
+                raise ValueError('interval must be an integer')
+            i = int(str(amount))
         except ValueError:
             errors.append(f'{c=} is not a number')
         else:
@@ -62,7 +66,7 @@ class Scale(Model):
         default_factory=lambda: list(INTERVALS)
     )
     accidentals: Accidentals = Accidentals.whole
-    offset: int = 0
+    offset: Annotated[int, units.unit_validator('semitone')] = 0
 
     @model_validator(mode='after')
     def _validate_note_name_range(self) -> Self:

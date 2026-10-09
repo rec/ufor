@@ -1,12 +1,13 @@
 """Semantic fixture cues, separate from physical DMX patching."""
 
 from enum import StrEnum, auto
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
-from .base import Identifier, Model, unique
-from .modulation import Unit
+from .base import Identifier, Model, UnitScalar, unique
+from .modulation import Unit, unit_fields, unit_number
 from .score import Score
 from .time import Timebase
 
@@ -14,9 +15,14 @@ from .time import Timebase
 class FixtureParameter(Model):
     name: Identifier
     unit: Unit | None = None
-    minimum: float | None = None
-    maximum: float | None = None
+    minimum: UnitScalar | None = None
+    maximum: UnitScalar | None = None
     choices: list[Identifier] = Field(default_factory=list)
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        return unit_fields(value, ['minimum', 'maximum'])
 
     @model_validator(mode='after')
     def domain(self) -> Self:
@@ -46,8 +52,8 @@ class ByteOrder(StrEnum):
 class ChannelEncoding(Model):
     parameter: Identifier
     slots: list[int] = Field(min_length=1, max_length=2)
-    minimum: float | None = None
-    maximum: float | None = None
+    minimum: UnitScalar | None = None
+    maximum: UnitScalar | None = None
     values: dict[Identifier, int] = Field(default_factory=dict)
     byte_order: ByteOrder = ByteOrder.coarse_fine
 
@@ -82,7 +88,9 @@ class Compositor(Model):
 
 class StopBehavior(Model):
     kind: Literal['blackout', 'fade', 'hold']
-    duration: int | None = Field(default=None, ge=0, strict=True)
+    duration: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def fade_duration(self) -> Self:
@@ -96,6 +104,28 @@ class FixtureProfile(Model):
     parameters: list[FixtureParameter] = Field(min_length=1)
     channels: list[ChannelEncoding] = Field(default_factory=list)
     stop: StopBehavior = StopBehavior(kind='hold')
+
+    @model_validator(mode='before')
+    @classmethod
+    def encoding_units(cls, value: object) -> object:
+        if not isinstance(value, dict) or not isinstance(value.get('channels'), list):
+            return value
+        declared = _profile_units(value)
+        return dict(value) | {
+            'channels': [
+                {
+                    k: v
+                    for k, v in unit_fields(
+                        dict(c) | {'unit': declared.get(c.get('parameter'))},
+                        ['minimum', 'maximum'],
+                    ).items()
+                    if k != 'unit'
+                }
+                if isinstance(c, dict) and isinstance(c.get('parameter'), str)
+                else c
+                for c in value['channels']
+            ]
+        }
 
     @model_validator(mode='after')
     def distinct(self) -> Self:
@@ -124,7 +154,7 @@ class FixtureProfile(Model):
 
 
 class FixtureCue(Model):
-    tick: int = Field(ge=0, strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
     ordinal: int = Field(ge=0, strict=True)
     fixture: Identifier
     parameter: Identifier
@@ -144,7 +174,7 @@ class FixturePatch(Model):
 
 
 class RawDmxFrame(Model):
-    tick: int = Field(ge=0, strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
     universe: int = Field(ge=1, strict=True)
     slots: list[int] = Field(min_length=1, max_length=512)
     sequence: int | None = Field(default=None, ge=0, le=255, strict=True)
@@ -160,7 +190,9 @@ class RawDmxCapture(Model):
     patch_contract: Identifier
     frames: list[RawDmxFrame] = Field(min_length=1)
     synchronization: Literal['none', 'artnet_sync', 'scheduled'] = 'none'
-    measured_skew_ticks: int | None = Field(default=None, ge=0, strict=True)
+    measured_skew_ticks: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def ordered(self) -> Self:
@@ -185,6 +217,24 @@ class FixtureShow(Model):
     cues: list[FixtureCue] = Field(default_factory=list)
     compositors: list[Compositor] = Field(default_factory=list)
     raw_dmx: RawDmxCapture | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def cue_units(cls, value: object) -> object:
+        if not isinstance(value, dict) or not isinstance(value.get('cues'), list):
+            return value
+        declared = _profile_units(value.get('profile'))
+        return dict(value) | {
+            'cues': [
+                dict(c) | {'value': unit_number(c['value'], declared[c['parameter']])}
+                if isinstance(c, dict)
+                and isinstance(c.get('parameter'), str)
+                and c.get('parameter') in declared
+                and isinstance(c.get('value'), str)
+                else c
+                for c in value['cues']
+            ]
+        }
 
     @model_validator(mode='after')
     def cue_contracts(self) -> Self:
@@ -251,4 +301,22 @@ def patch_fixtures(
                 if address in occupied:
                     raise ValueError('fixture patches overlap')
                 occupied.add(address)
+    return result
+
+
+def _profile_units(value: object) -> dict[str, Unit]:
+    if isinstance(value, FixtureProfile):
+        return {p.name: p.unit for p in value.parameters if p.unit is not None}
+    if not isinstance(value, dict) or not isinstance(value.get('parameters'), list):
+        return {}
+    result = {}
+    for parameter in value['parameters']:
+        if isinstance(parameter, FixtureParameter) and parameter.unit is not None:
+            result[parameter.name] = parameter.unit
+        elif (
+            isinstance(parameter, dict)
+            and isinstance(parameter.get('name'), str)
+            and parameter.get('unit') is not None
+        ):
+            result[parameter['name']] = Unit(parameter['unit'])
     return result

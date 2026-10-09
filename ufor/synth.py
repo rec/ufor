@@ -1,9 +1,10 @@
 """Portable synth-instrument definitions, without audio buffer generation."""
 
 from fractions import Fraction
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from . import base, control, modulation
 from .base import Identifier, Model, unique
@@ -29,8 +30,10 @@ class VoiceTemplate(SoundSettings):
     name: Identifier
     mapping: Mapping
     channels: list[ChannelRoute] = Field(min_length=1)
-    frequency_offset_hz: float = 0
-    minimum_hold_seconds: control.Rational = Field(default=Fraction(0), ge=0)
+    frequency_offset_hz: Annotated[float, units.unit_validator('hertz')] = 0
+    minimum_hold_seconds: Annotated[
+        control.Rational, units.unit_validator('second', exact=True)
+    ] = Field(default=Fraction(0), ge=0)
     trigger: enums.TriggerKind = enums.TriggerKind.start
     choke_group: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)

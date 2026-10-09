@@ -4,6 +4,7 @@ from fractions import Fraction
 from typing import Annotated, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model, UnitInterval, unique
 from .control import Clock, Rational
@@ -30,9 +31,13 @@ class SourceNote(Model):
 
     capture_id: Identifier
     note_id: Identifier
-    onset_tick: int = Field(strict=True, ge=0)
-    gate_end_tick: int = Field(strict=True, ge=0)
-    cell_end_tick: int = Field(strict=True, ge=0)
+    onset_tick: Annotated[int, units.unit_validator('tick')] = Field(strict=True, ge=0)
+    gate_end_tick: Annotated[int, units.unit_validator('tick')] = Field(
+        strict=True, ge=0
+    )
+    cell_end_tick: Annotated[int, units.unit_validator('tick')] = Field(
+        strict=True, ge=0
+    )
     onset_event: int | None = Field(default=None, strict=True, ge=0)
     release_event: int | None = Field(default=None, strict=True, ge=0)
     expression_events: list[Annotated[int, Field(strict=True, ge=0)]] = Field(
@@ -64,7 +69,7 @@ class CapturedPhrase(Model):
 
     capture_id: Identifier
     timebase: Timebase
-    end_tick: int = Field(strict=True, ge=0)
+    end_tick: Annotated[int, units.unit_validator('tick')] = Field(strict=True, ge=0)
     events: list[StoredEvent] = Field(default_factory=list)
     notes: list[SourceNote] = Field(default_factory=list)
     prefix_events: list[Annotated[int, Field(strict=True, ge=0)]] = Field(
@@ -140,7 +145,21 @@ class Occurrence(Model):
     clock: Clock
     onset: Rational = Field(ge=0)
     gate_end: Rational = Field(ge=0)
-    transposition_cents: Rational = Fraction(0)
+    transposition_cents: Annotated[
+        Rational, units.unit_validator('musical_cent', exact=True)
+    ] = Fraction(0)
+
+    @model_validator(mode='before')
+    @classmethod
+    def clock_units(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        unit = 'beat' if value.get('clock') == Clock.beats else 'second'
+        return dict(value) | {
+            f: units.magnitude(value[f], unit, exact=True)
+            for f in ['onset', 'gate_end']
+            if f in value and isinstance(value[f], str)
+        }
 
     @model_validator(mode='after')
     def gate_interval(self) -> Self:

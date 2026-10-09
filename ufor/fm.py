@@ -1,8 +1,9 @@
 """Portable graph phase-modulation definitions; no audio rendering."""
 
-from typing import Self
+from typing import Annotated, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from . import control
 from .base import Identifier, Model, unique
@@ -14,8 +15,10 @@ from .segments import Segment
 class Operator(Model):
     name: Identifier
     ratio: float = Field(default=1, gt=0)
-    tuning_cents: float = 0
-    phase_cycles: float = Field(default=0, ge=0, lt=1)
+    tuning_cents: Annotated[float, units.unit_validator('musical_cent')] = 0
+    phase_cycles: Annotated[float, units.unit_validator('turn')] = Field(
+        default=0, ge=0, lt=1
+    )
     waveform: Waveform = Waveform.sine
     envelope: Envelope = Envelope(
         segments=[Segment(duration=0, to=1)],

@@ -12,4 +12,4 @@ from .score import Score
 class PresetScore(Score):
     kind: Literal['preset'] = 'preset'
     score: ScoreReference
-    parameters: dict[Identifier, float] = Field(default_factory=dict)
+    parameters: dict[Identifier, float | str] = Field(default_factory=dict)

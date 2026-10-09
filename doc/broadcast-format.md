@@ -8,7 +8,7 @@ valid but reported as provisional by `provisional_sections`.
 
 Sections declare cut, crossfade, or mix transitions; late-join behavior; and an
 availability policy to replace, skip, or stop. Relay sources declare the buffer
-they require before starting. An optional as-aired run records actual starts,
+they require before starting, measured in programme timeline ticks. An optional as-aired run records actual starts,
 ends, cues, dropouts, replacements, source instances, local submission, remote
 delivery, and delivery failures. Replaying that record never requires the original
 live source. Ufor does not connect inputs or deliver output.

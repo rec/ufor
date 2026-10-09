@@ -6,6 +6,7 @@ from typing import Annotated, Literal, Self
 from urllib.parse import SplitResult, urlsplit
 
 from pydantic import Field, field_validator, model_validator
+from reccy.configuration import units
 from reccy.configuration.validators import validate_json
 
 from .base import Identifier, Model
@@ -139,7 +140,7 @@ AssetLocation = Annotated[
 
 
 class ContentIdentity(Model):
-    byte_length: int = Field(ge=0, strict=True)
+    byte_length: Annotated[int, units.unit_validator('byte')] = Field(ge=0, strict=True)
     sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
 
 
@@ -169,7 +170,9 @@ class Asset(Model):
 class AudioDescription(Model):
     timebase: Identifier
     channels: list[str] = Field(min_length=1)
-    frames: int | None = Field(default=None, ge=0, strict=True)
+    frames: Annotated[int | None, units.unit_validator('frame')] = Field(
+        default=None, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def named_channels(self) -> Self:

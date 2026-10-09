@@ -1,7 +1,8 @@
 from graphlib import CycleError, TopologicalSorter
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model, unique
 from .interface import (
@@ -33,9 +34,13 @@ class Clip(Model):
     name: Identifier
     source: OutputSelection
     track: Identifier
-    source_start: int = Field(ge=0, strict=True)
-    source_end: int = Field(gt=0, strict=True)
-    timeline_start: int = Field(ge=0, strict=True)
+    source_start: Annotated[int, units.unit_validator('tick')] = Field(
+        ge=0, strict=True
+    )
+    source_end: Annotated[int, units.unit_validator('tick')] = Field(gt=0, strict=True)
+    timeline_start: Annotated[int, units.unit_validator('tick')] = Field(
+        ge=0, strict=True
+    )
     gain: float = 1.0
 
     @model_validator(mode='after')
@@ -56,9 +61,11 @@ class ControlClip(Model):
 
     name: Identifier
     source: OutputSelection
-    source_start: int = Field(strict=True)
-    source_end: int = Field(strict=True)
-    timeline_start: int = Field(ge=0, strict=True)
+    source_start: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
+    source_end: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
+    timeline_start: Annotated[int, units.unit_validator('tick')] = Field(
+        ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def validate_interval(self) -> Self:

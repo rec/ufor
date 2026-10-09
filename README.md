@@ -37,6 +37,7 @@ describe the remaining host work; Lyte has not yet been migrated.
 The implemented [score composition design](doc/composition-design.md) describes
 shared interfaces, nested mixes and sequence-driven instruments.
 See [user libraries](doc/library.md) for configuration, selection and host integration.
+See [units](doc/units.md) for quantity strings, canonical magnitudes, and exact clocks.
 See [editing and validation boundaries](doc/validation.md) before mutating model collections.
 See the [API map](doc/api-map.md), [capability matrix](doc/capabilities.md), and
 [control comparison](doc/control-guide.md) for ownership and implementation limits.

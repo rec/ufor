@@ -6,6 +6,7 @@ from math import ceil
 from typing import Annotated, Self
 
 from pydantic import BeforeValidator, Field, model_validator
+from reccy.configuration import units
 
 from .base import Model
 
@@ -38,10 +39,29 @@ def rational(value: object) -> Fraction:
 Rational = Annotated[Fraction, BeforeValidator(rational)]
 
 
+def clock_fields(value: object, clock: Clock | str = Clock.seconds) -> object:
+    """Normalize authored durations and cycle rates in an explicitly chosen clock."""
+    if not isinstance(value, dict):
+        return value
+    duration_unit = 'beat' if clock == Clock.beats else 'second'
+    rate_unit = '1/beat' if clock == Clock.beats else 'hertz'
+    return dict(value) | {
+        f: units.magnitude(
+            value[f], rate_unit if f == 'rate' else duration_unit, exact=True
+        )
+        for f in ['rate', 'delay', 'fade_in']
+        if f in value and isinstance(value[f], str)
+    }
+
+
 class TempoPoint(Model):
-    at_seconds: Rational = Field(ge=0)
-    beat: Rational
-    bpm: Rational = Field(gt=0)
+    at_seconds: Annotated[Rational, units.unit_validator('second', exact=True)] = Field(
+        ge=0
+    )
+    beat: Annotated[Rational, units.unit_validator('beat', exact=True)]
+    bpm: Annotated[Rational, units.unit_validator('beats_per_minute', exact=True)] = (
+        Field(gt=0)
+    )
     running: bool = True
 
 

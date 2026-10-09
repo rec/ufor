@@ -1,8 +1,9 @@
 """A native event sequence has an explicit extent independent of event count."""
 
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model, unique
 from .events import StoredEvent
@@ -12,8 +13,8 @@ from .time import Timebase
 
 class EventSequence(Model):
     timebase: Identifier
-    start: int = Field(default=0, strict=True)
-    end: int = Field(strict=True)
+    start: Annotated[int, units.unit_validator('tick')] = Field(default=0, strict=True)
+    end: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
     events: list[StoredEvent] = Field(default_factory=list)
 
     @model_validator(mode='after')

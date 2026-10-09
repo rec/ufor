@@ -4,6 +4,7 @@ from fractions import Fraction
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from . import effects, modulation
 from .base import Identifier, Model, unique
@@ -52,7 +53,9 @@ class Reverse(Model):
 
 
 class Fade(Model):
-    duration: Rational = Field(gt=0)
+    duration: Annotated[Rational, units.unit_validator('second', exact=True)] = Field(
+        gt=0
+    )
     easing: Literal['linear', 'smooth'] = 'linear'
 
     def progress(self, at: Fraction) -> float:
@@ -79,8 +82,10 @@ class Gain(Model):
 
 class Cue(Model):
     source: OutputSelection
-    start: Rational = Field(ge=0)
-    duration: Rational = Field(gt=0)
+    start: Annotated[Rational, units.unit_validator('second', exact=True)] = Field(ge=0)
+    duration: Annotated[Rational, units.unit_validator('second', exact=True)] = Field(
+        gt=0
+    )
 
 
 class Cues(Model):

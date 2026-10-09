@@ -1,9 +1,10 @@
 """Pure sequence selection and replay planning; never dispatches external actions."""
 
 from collections.abc import Iterator
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import Field
+from reccy.configuration import units
 
 from .base import Identifier, Model
 from .events import ControlChange, PerformanceEvent, Release, StoredEvent, Trigger
@@ -14,7 +15,7 @@ from .time import TickRange
 class SequenceSelection(Model):
     name: Identifier
     interval: TickRange
-    start: int = Field(default=0, strict=True)
+    start: Annotated[int, units.unit_validator('tick')] = Field(default=0, strict=True)
     repetitions: int = Field(default=1, strict=True, ge=1)
     active_notes: Literal['retrigger_active', 'omit_active'] = 'retrigger_active'
 
@@ -32,8 +33,8 @@ class PlaybackIteration(Model):
     name: Identifier
     iteration: int = Field(ge=0, strict=True)
     timebase: Identifier
-    start: int = Field(strict=True)
-    end: int = Field(strict=True)
+    start: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
+    end: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
     controls: list[ControlChange]
     events: list[PerformanceEvent]
     captured: list[StoredEvent]

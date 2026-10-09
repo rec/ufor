@@ -1,15 +1,16 @@
 """Exact native ticks; converting positions never resamples quantity data."""
 
 from fractions import Fraction
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model
 
 
 class Rate(Model):
-    numerator: int = Field(gt=0, strict=True)
+    numerator: Annotated[int, units.unit_validator('hertz')] = Field(gt=0, strict=True)
     denominator: int = Field(default=1, gt=0, strict=True)
 
 
@@ -21,20 +22,22 @@ class Timebase(Model):
 
 class Position(Model):
     timebase: Identifier
-    tick: int = Field(strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
 
 
 class ClockObservation(Model):
     source: Position
     session: Position
-    uncertainty_ticks: int | None = Field(default=None, ge=0, strict=True)
+    uncertainty_ticks: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
     timing_source: str = Field(min_length=1)
     segment: int = Field(default=0, ge=0, strict=True)
 
 
 class TickRange(Model):
-    start: int = Field(strict=True)
-    end: int = Field(strict=True)
+    start: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
+    end: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
 
     @model_validator(mode='after')
     def ordered(self) -> Self:

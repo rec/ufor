@@ -1,9 +1,10 @@
 """Shared semantic lifecycle state for prepared instrument performances."""
 
 from enum import StrEnum, auto
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Bipolar, Identifier, Model, UnitInterval, unique
 from .samples import enums
@@ -19,7 +20,7 @@ class RetirementCause(StrEnum):
 
 
 class TraceAction(Model):
-    tick: int = Field(strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
     ordinal: int = Field(ge=0, strict=True)
 
 
@@ -40,7 +41,7 @@ class VoiceStart(TraceAction):
     trigger_id: Identifier | None
     template: Identifier
     key: int | None
-    pitch_hz: float | None = None
+    pitch_hz: Annotated[float | None, units.unit_validator('hertz')] = None
     motion_key: int = Field(
         default=0, strict=True, ge=0, lt=2**64, exclude_if=lambda v: v == 0
     )
@@ -51,7 +52,9 @@ class VoiceRetirement(TraceAction):
     voice_id: Identifier
     cause: RetirementCause
     action: Literal['release', 'stop', 'fade']
-    fade_seconds: float | None = Field(default=None, strict=True, gt=0)
+    fade_seconds: Annotated[float | None, units.unit_validator('second')] = Field(
+        default=None, strict=True, gt=0
+    )
 
     @model_validator(mode='after')
     def fade_duration(self) -> Self:
@@ -127,14 +130,14 @@ class ActiveTrigger(Model):
     trigger_id: Identifier
     key: int
     velocity: float
-    pitch_hz: float | None = None
+    pitch_hz: Annotated[float | None, units.unit_validator('hertz')] = None
     templates: list[Identifier] = Field(default_factory=list)
     physically_released: bool = False
     logical_released: bool = False
 
 
 class LifecycleSnapshot(Model):
-    tick: int = Field(strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
     ordinal: int = Field(ge=0, strict=True)
     voices: list[ActiveVoice] = Field(default_factory=list)
     triggers: list[ActiveTrigger] = Field(default_factory=list)

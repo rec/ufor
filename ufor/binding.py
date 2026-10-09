@@ -2,15 +2,16 @@
 
 from enum import StrEnum, auto
 from math import log10
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .assets import Asset
-from .base import Identifier, Model, unique
+from .base import Identifier, Model, UnitScalar, unique
 from .control import Scope
 from .interface import ScoreReference
-from .modulation import Unit
+from .modulation import Unit, unit_fields
 from .score import Score
 
 
@@ -33,7 +34,7 @@ class StateOrder(StrEnum):
 
 
 class MappingPoint(Model):
-    input: float
+    input: UnitScalar
     output: float
 
 
@@ -49,7 +50,9 @@ class StreamContract(Model):
     direction: Literal['input', 'output']
     family: Literal['audio', 'event', 'control', 'light']
     channels: int | None = Field(default=None, ge=1, strict=True)
-    rate: int | None = Field(default=None, ge=1, strict=True)
+    rate: Annotated[int | None, units.unit_validator('hertz')] = Field(
+        default=None, ge=1, strict=True
+    )
 
     @model_validator(mode='after')
     def audio_shape(self) -> Self:
@@ -90,14 +93,37 @@ class ParameterMapping(Model):
     native_id: str = Field(min_length=1)
     unit: Unit
     conversion: Conversion = Conversion.identity
-    input_min: float | None = None
-    input_max: float | None = None
+    input_min: UnitScalar | None = None
+    input_max: UnitScalar | None = None
     output_min: float | None = None
     output_max: float | None = None
-    update_ticks: int = Field(default=1, ge=1, strict=True)
+    update_ticks: Annotated[int, units.unit_validator('tick')] = Field(
+        default=1, ge=1, strict=True
+    )
     out_of_range: RangePolicy = RangePolicy.reject
     points: list[MappingPoint] = Field(default_factory=list)
     values: list[EnumValue] = Field(default_factory=list)
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        value = unit_fields(value, ['input_min', 'input_max'])
+        if not isinstance(value, dict) or not isinstance(value.get('points'), list):
+            return value
+        return dict(value) | {
+            'points': [
+                {
+                    k: v
+                    for k, v in unit_fields(
+                        dict(p) | {'unit': value.get('unit')}, ['input']
+                    ).items()
+                    if k != 'unit'
+                }
+                if isinstance(p, dict)
+                else p
+                for p in value['points']
+            ]
+        }
 
     @model_validator(mode='after')
     def ranges(self) -> Self:
@@ -165,7 +191,9 @@ class Capability(Model):
     offline: bool
     deterministic: bool
     state_restore: bool
-    latency_ticks: int = Field(ge=0, strict=True)
+    latency_ticks: Annotated[int, units.unit_validator('tick')] = Field(
+        ge=0, strict=True
+    )
 
 
 class Binding(Model):

@@ -6,11 +6,22 @@ from fractions import Fraction
 from math import prod
 from typing import Annotated, Literal
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BeforeValidator, Field
+from reccy.configuration import units
 
 from .base import Model
 from .expression import evaluate, positive
 from .number import PitchNumber, cents_to_ratio
+
+
+def frequency_expression(value: object) -> object:
+    if (
+        isinstance(value, str)
+        and (match := units.QUANTITY.fullmatch(value.strip())) is not None
+        and match.group(2)
+    ):
+        return str(units.magnitude(value, 'hertz', exact=True))
+    return value
 
 
 class Computed(Model):
@@ -84,7 +95,9 @@ class FrequencyTable(Model):
     """Absolute hertz values over a finite contiguous note range. Never wraps."""
 
     kind: Literal['frequencies'] = 'frequencies'
-    values: list[Annotated[str, AfterValidator(positive)]] = Field(min_length=1)
+    values: list[
+        Annotated[str, BeforeValidator(frequency_expression), AfterValidator(positive)]
+    ] = Field(min_length=1)
     first_note: int = 0
 
     @property
@@ -104,8 +117,10 @@ class Tuning(Model):
         Field(discriminator='kind'),
     ]
     root_note: int = 69
-    root_frequency: Annotated[str, AfterValidator(positive)] = '440'
-    detune_cents: float = 0
+    root_frequency: Annotated[
+        str, BeforeValidator(frequency_expression), AfterValidator(positive)
+    ] = '440'
+    detune_cents: Annotated[float, units.unit_validator('musical_cent')] = 0
 
     def __call__(self, note: int) -> PitchNumber:
         if isinstance(self.source, FrequencyTable):

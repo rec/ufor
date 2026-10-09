@@ -2,10 +2,11 @@
 
 from enum import StrEnum, auto
 from pathlib import PurePosixPath, PureWindowsPath
-from typing import TYPE_CHECKING, Literal, Self
+from typing import TYPE_CHECKING, Annotated, Literal, Self
 from urllib.parse import urlsplit
 
 from pydantic import Field, StrictInt, field_validator, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model, unique
 from .control import Scope
@@ -70,7 +71,7 @@ class InputSelection(Model):
 class Part(RecursiveModel):
     name: Identifier
     score: 'ScoreReference | ScoreValue'
-    parameters: dict[Identifier, float] = Field(default_factory=dict)
+    parameters: dict[Identifier, float | str] = Field(default_factory=dict)
 
 
 class Connection(Model):
@@ -157,8 +158,12 @@ class ControlBinding(Model):
 class MixBinding(Model):
     track: Identifier | None = None
     bus: Identifier | None = None
-    start: int | None = Field(default=None, ge=0, strict=True)
-    end: int | None = Field(default=None, gt=0, strict=True)
+    start: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
+    end: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, gt=0, strict=True
+    )
     gain: float = 1.0
     normalize: NormalizeMode = NormalizeMode.none
 
@@ -194,15 +199,17 @@ class Output(Model):
 class ParameterExport(Model):
     name: Identifier
     binding: Target
-    minimum: float | None = None
-    maximum: float | None = None
-    default: float | None = None
+    minimum: float | str | None = None
+    maximum: float | str | None = None
+    default: float | str | None = None
 
     @model_validator(mode='after')
     def ordered_range(self) -> Self:
         if (
             self.minimum is not None
             and self.maximum is not None
+            and not isinstance(self.minimum, str)
+            and not isinstance(self.maximum, str)
             and self.minimum > self.maximum
         ):
             raise ValueError('parameter minimum exceeds maximum')

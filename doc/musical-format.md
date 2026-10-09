@@ -2,8 +2,8 @@
 
 Ufor owns pitch and scale semantics and oscillator parameters. Tuney owns its
 editable configuration, Scala collection browser, units/UI annotations, broader
-expression authoring, and existing NumPy audio implementation. Ufor has no
-NumPy, Reccy, device, GUI, or plugin dependency.
+expression authoring, and existing NumPy audio implementation. reccy supplies Pint-backed
+[unit parsing](units.md). Ufor has no NumPy, device, GUI, or plugin dependency.
 
 ## Pitch expressions
 
@@ -59,7 +59,8 @@ period of one; twelve steps multiply frequency by two. A finite list of N
 intervals describes N+1 degrees. Negative degrees require repetition.
 
 `Tuning.root_note` anchors relative degrees; `root_frequency` is Hz and may be a
-fractional expression. `detune_cents` is cents, multiplying by `2^(detune_cents/1200)`.
+fractional expression or unit string such as `440Hz`. Unit strings normalize
+to canonical Hz expressions. `detune_cents` is cents, multiplying by `2^(detune_cents/1200)`.
 Absolute frequency tables use their own note indexes and ignore the root
 anchor; detune_cents still applies. Instrument range wrapping is host policy and is
 never a property of the portable frequency table.
@@ -161,7 +162,8 @@ scale spellings are calculated from the current values rather than cached.
 loading a score also validates it. Direct list edits are not themselves a
 validation boundary.
 
-Scale intervals must be non-negative integers or integer text. Booleans and
+Scale intervals must be non-negative integers, integer text, or exact whole
+semitone quantities such as `100 cents`. Booleans and
 floating-point values, including integral floats, are rejected. The interval pattern cycles over the
 selected note names; the period is the sum of those expanded intervals. Unknown
 fields are ignored and unrecognized note text remains available for consumers to

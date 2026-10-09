@@ -3,6 +3,7 @@
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .. import motion_random
 from ..base import Identifier, Model, unique
@@ -45,8 +46,8 @@ from .variation import ResolvedVariation, resolve
 class VoiceStart(LifecycleVoiceStart):
     velocity: float = Field(default=1, ge=0, le=1)
     slice: Identifier
-    start_frame: int
-    alignment_frames: int
+    start_frame: Annotated[int, units.unit_validator('frame')]
+    alignment_frames: Annotated[int, units.unit_validator('frame')]
     channels: list[ChannelRoute]
     settings: SoundSettings
     parameters: list[ParameterValue] = Field(default_factory=list)

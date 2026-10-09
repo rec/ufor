@@ -2,9 +2,10 @@
 
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model, unique
 from .score import Score
@@ -32,7 +33,9 @@ class EndKind(StrEnum):
 class ProgrammeSource(Model):
     name: Identifier
     kind: SourceKind
-    relay_buffer: int | None = Field(default=None, gt=0, strict=True)
+    relay_buffer: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, gt=0, strict=True
+    )
 
     @model_validator(mode='after')
     def relay_contract(self) -> Self:
@@ -43,11 +46,17 @@ class ProgrammeSource(Model):
 
 class StartRule(Model):
     kind: StartKind
-    tick: int | None = Field(default=None, ge=0, strict=True)
+    tick: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
     section: Identifier | None = None
     cue: Identifier | None = None
-    earliest: int | None = Field(default=None, ge=0, strict=True)
-    deadline: int | None = Field(default=None, ge=0, strict=True)
+    earliest: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
+    deadline: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def selection(self) -> Self:
@@ -83,10 +92,16 @@ class StartRule(Model):
 
 class EndRule(Model):
     kind: EndKind
-    tick: int | None = Field(default=None, ge=0, strict=True)
-    duration: int | None = Field(default=None, gt=0, strict=True)
+    tick: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
+    duration: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, gt=0, strict=True
+    )
     cue: Identifier | None = None
-    maximum: int | None = Field(default=None, gt=0, strict=True)
+    maximum: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, gt=0, strict=True
+    )
 
     @model_validator(mode='after')
     def selection(self) -> Self:
@@ -118,7 +133,9 @@ class EndRule(Model):
 
 class Transition(Model):
     kind: Literal['cut', 'crossfade', 'mix'] = 'cut'
-    duration: int = Field(default=0, ge=0, strict=True)
+    duration: Annotated[int, units.unit_validator('tick')] = Field(
+        default=0, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def duration_contract(self) -> Self:
@@ -150,7 +167,7 @@ class Section(Model):
 
 
 class AiredEvent(Model):
-    tick: int = Field(ge=0, strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
     ordinal: int = Field(ge=0, strict=True)
     section: Identifier
     action: Literal[

@@ -3,6 +3,7 @@
 from typing import Annotated, ClassVar, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Model
 
@@ -27,17 +28,19 @@ class AudioSpectrum(Effect):
         min_length=2,
     )
     gain: float = Field(default=1.5, ge=0)
-    smoothing: float = Field(default=10, ge=0)
+    smoothing: Annotated[float, units.unit_validator('1/second')] = Field(
+        default=10, ge=0
+    )
 
 
 class ColorChase(Effect):
     effect: Literal['color_chase'] = 'color_chase'
     family: ClassVar[str] = 'events'
     color: RGB = [255, 0, 0]
-    width: int = 1
-    start: int = 0
-    end: int | None = None
-    step: int = 1
+    width: Annotated[int, units.unit_validator('pixel')] = 1
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
+    step: Annotated[int, units.unit_validator('pixel')] = 1
 
     @model_validator(mode='after')
     def validate_color_chase(self) -> Self:
@@ -53,9 +56,11 @@ class ConfettiWithDecay(Effect):
     effect: Literal['confetti_with_decay'] = 'confetti_with_decay'
     family: ClassVar[str] = 'events'
     palette: list[RGB] = [[255, 40, 80], [255, 220, 40], [30, 220, 180], [80, 100, 255]]
-    spawn_rate: float = Field(default=8.0, ge=0)
-    decay: float = Field(default=2.5, gt=0)
-    width: int = Field(default=1, gt=0)
+    spawn_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=8.0, ge=0
+    )
+    decay: Annotated[float, units.unit_validator('1/second')] = Field(default=2.5, gt=0)
+    width: Annotated[int, units.unit_validator('pixel')] = Field(default=1, gt=0)
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
 
@@ -70,10 +75,14 @@ class ExpandingRipples(Effect):
     family: ClassVar[str] = 'events'
     palette: list[RGB] = [[40, 120, 255], [20, 255, 180], [220, 80, 255]]
     origins: list[float] = Field(default_factory=lambda: [0.5])
-    event_rate: float = Field(default=0.35, ge=0)
-    propagation_speed: float = Field(default=12.0, gt=0)
-    width: float = Field(default=1.8, gt=0)
-    decay: float = Field(default=0.7, gt=0)
+    event_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=0.35, ge=0
+    )
+    propagation_speed: Annotated[float, units.unit_validator('pixel/second')] = Field(
+        default=12.0, gt=0
+    )
+    width: Annotated[float, units.unit_validator('pixel')] = Field(default=1.8, gt=0)
+    decay: Annotated[float, units.unit_validator('1/second')] = Field(default=0.7, gt=0)
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
 
@@ -91,10 +100,10 @@ class FireFlies(Effect):
     effect: Literal['fire_flies'] = 'fire_flies'
     family: ClassVar[str] = 'events'
     colors: list[RGB] = [[255, 0, 0]]
-    width: int = 1
+    width: Annotated[int, units.unit_validator('pixel')] = 1
     count: int = 1
-    start: int = 0
-    end: int | None = None
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
     seed: int | None = None
 
     @model_validator(mode='after')
@@ -112,10 +121,10 @@ class LarsonScanner(Effect):
     effect: Literal['larson_scanner'] = 'larson_scanner'
     family: ClassVar[str] = 'events'
     color: RGB = [255, 0, 0]
-    tail: int = 2
-    start: int = 0
-    end: int | None = None
-    step: int = 1
+    tail: Annotated[int, units.unit_validator('pixel')] = 2
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
+    step: Annotated[int, units.unit_validator('pixel')] = 1
     rainbow: bool = False
 
     @model_validator(mode='after')
@@ -132,10 +141,16 @@ class LightningStorm(Effect):
     effect: Literal['lightning_storm'] = 'lightning_storm'
     family: ClassVar[str] = 'events'
     color: RGB = [200, 220, 255]
-    flash_rate: float = Field(default=0.35, gt=0)
+    flash_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=0.35, gt=0
+    )
     maximum_burst: int = Field(default=4, gt=0)
-    branch_width: float = Field(default=5.0, gt=0)
-    afterglow: float = Field(default=8.0, gt=0)
+    branch_width: Annotated[float, units.unit_validator('pixel')] = Field(
+        default=5.0, gt=0
+    )
+    afterglow: Annotated[float, units.unit_validator('1/second')] = Field(
+        default=8.0, gt=0
+    )
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
 
@@ -150,9 +165,15 @@ class PacketTraffic(Effect):
     family: ClassVar[str] = 'events'
     palette: list[RGB] = [[50, 220, 255], [255, 70, 130], [255, 210, 50]]
     direction: Literal['forward', 'reverse', 'both'] = 'both'
-    packet_rate: float = Field(default=1.2, ge=0)
-    minimum_length: int = Field(default=4, gt=1)
-    maximum_length: int = Field(default=12, gt=1)
+    packet_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=1.2, ge=0
+    )
+    minimum_length: Annotated[int, units.unit_validator('pixel')] = Field(
+        default=4, gt=1
+    )
+    maximum_length: Annotated[int, units.unit_validator('pixel')] = Field(
+        default=12, gt=1
+    )
     error_rate: float = Field(default=0.15, ge=0, le=1)
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
@@ -169,9 +190,9 @@ class PixelPingPong(Effect):
     effect: Literal['pixel_ping_pong'] = 'pixel_ping_pong'
     family: ClassVar[str] = 'events'
     color: RGB = [255, 255, 255]
-    max_led: int | None = None
-    total_pixels: int = 1
-    fade_delay: int = 1
+    max_led: Annotated[int | None, units.unit_validator('pixel')] = None
+    total_pixels: Annotated[int, units.unit_validator('pixel')] = 1
+    fade_delay: Annotated[int, units.unit_validator('frame')] = 1
 
     @model_validator(mode='after')
     def validate_pixel_ping_pong(self) -> Self:
@@ -187,10 +208,10 @@ class Pulse(Effect):
     effect: Literal['pulse'] = 'pulse'
     family: ClassVar[str] = 'events'
     colors: list[RGB] = [[255, 0, 0]]
-    tail: int = 2
+    tail: Annotated[int, units.unit_validator('pixel')] = 2
     chance: int = 30
-    min_speed: int = 1
-    max_speed: int = 5
+    min_speed: Annotated[int, units.unit_validator('pixel/frame')] = 1
+    max_speed: Annotated[int, units.unit_validator('pixel/frame')] = 5
     seed: int | None = None
 
     @model_validator(mode='after')
@@ -209,7 +230,7 @@ class Rain(Effect):
     effect: Literal['rain'] = 'rain'
     family: ClassVar[str] = 'events'
     colors: list[RGB] = [[70, 70, 70], [35, 35, 35], [80, 20, 20], [20, 80, 20]]
-    rate: float = 10
+    rate: Annotated[float, units.unit_validator('hertz')] = 10
     seed: int | None = None
 
     @model_validator(mode='after')
@@ -224,9 +245,9 @@ class Searchlights(Effect):
     effect: Literal['searchlights'] = 'searchlights'
     family: ClassVar[str] = 'events'
     colors: list[RGB] = [[60, 179, 113], [147, 112, 219], [199, 21, 133]]
-    tail: int = 5
-    start: int = 0
-    end: int | None = None
+    tail: Annotated[int, units.unit_validator('pixel')] = 5
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
     seed: int | None = None
 
     @model_validator(mode='after')
@@ -279,10 +300,12 @@ class CandleBank(Effect):
     effect: Literal['candle_bank'] = 'candle_bank'
     family: ClassVar[str] = 'fields'
     color: RGB = [255, 120, 30]
-    zone_size: int = Field(default=8, gt=0)
+    zone_size: Annotated[int, units.unit_validator('pixel')] = Field(default=8, gt=0)
     base_level: float = Field(default=0.55, ge=0, le=1)
     flicker: float = Field(default=0.18, ge=0, le=1)
-    flare_rate: float = Field(default=0.3, ge=0)
+    flare_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=0.3, ge=0
+    )
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
 
@@ -297,8 +320,8 @@ class ColorFade(Effect):
     family: ClassVar[str] = 'fields'
     colors: list[RGB] = [[255, 0, 0]]
     level_step: int = 5
-    start: int = 0
-    end: int | None = None
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
 
     @model_validator(mode='after')
     def validate_color_fade(self) -> Self:
@@ -326,10 +349,10 @@ class ExponentialFade(Effect):
 class HalvesRainbow(Effect):
     effect: Literal['halves_rainbow'] = 'halves_rainbow'
     family: ClassVar[str] = 'fields'
-    max_led: int | None = None
+    max_led: Annotated[int | None, units.unit_validator('pixel')] = None
     center_out: bool = True
     rainbow_inc: int = 4
-    step: int = 1
+    step: Annotated[int, units.unit_validator('pixel')] = 1
 
     @model_validator(mode='after')
     def validate_halves_rainbow(self) -> Self:
@@ -343,9 +366,15 @@ class Interference(Effect):
     effect: Literal['interference'] = 'interference'
     family: ClassVar[str] = 'fields'
     palette: list[RGB] = [[5, 0, 20], [200, 20, 120], [30, 220, 255]]
-    wavelengths: list[float] = Field(default_factory=lambda: [13.0, 23.0, 37.0])
-    rates: list[float] = Field(default_factory=lambda: [1.0, -0.63, 0.37])
-    phase_offsets: list[float] = Field(default_factory=lambda: [0.0, 1.7, 3.1])
+    wavelengths: list[Annotated[float, units.unit_validator('pixel')]] = Field(
+        default_factory=lambda: [13.0, 23.0, 37.0]
+    )
+    rates: list[Annotated[float, units.unit_validator('radian/second')]] = Field(
+        default_factory=lambda: [1.0, -0.63, 0.37]
+    )
+    phase_offsets: list[Annotated[float, units.unit_validator('radian')]] = Field(
+        default_factory=lambda: [0.0, 1.7, 3.1]
+    )
     contrast: float = Field(default=1.4, gt=0)
     speed: float = Field(default=1.0, ge=0)
 
@@ -376,9 +405,9 @@ class LinearGradient(Effect):
 class LinearRainbow(Effect):
     effect: Literal['linear_rainbow'] = 'linear_rainbow'
     family: ClassVar[str] = 'fields'
-    max_led: int | None = None
+    max_led: Annotated[int | None, units.unit_validator('pixel')] = None
     individual_pixel: bool = False
-    step: int = 1
+    step: Annotated[int, units.unit_validator('pixel')] = 1
 
     @model_validator(mode='after')
     def validate_linear_rainbow(self) -> Self:
@@ -400,7 +429,9 @@ class OceanCurrent(Effect):
     family: ClassVar[str] = 'fields'
     palette: list[RGB] = [[0, 5, 20], [0, 50, 120], [0, 170, 210], [180, 255, 255]]
     wave_count: int = Field(default=3, gt=0)
-    crest_rate: float = Field(default=0.8, ge=0)
+    crest_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=0.8, ge=0
+    )
     turbulence: float = Field(default=0.2, ge=0)
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
@@ -415,8 +446,10 @@ class PaletteConveyor(Effect):
     effect: Literal['palette_conveyor'] = 'palette_conveyor'
     family: ClassVar[str] = 'fields'
     palette: list[RGB] = [[255, 0, 80], [255, 180, 0], [0, 220, 140], [30, 80, 255]]
-    stop_spacing: float = Field(default=8.0, gt=0)
-    speed: float = Field(default=1.0, ge=0)
+    stop_spacing: Annotated[float, units.unit_validator('pixel')] = Field(
+        default=8.0, gt=0
+    )
+    speed: Annotated[float, units.unit_validator('1/second')] = Field(default=1.0, ge=0)
     reverse: bool = False
     interpolation: Literal['linear', 'smooth'] = 'smooth'
 
@@ -428,9 +461,9 @@ class PaletteConveyor(Effect):
 
 class RainbowSettings(Effect):
     family: ClassVar[str] = 'fields'
-    start: int = 0
-    end: int | None = None
-    step: int = 1
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
+    step: Annotated[int, units.unit_validator('pixel')] = 1
 
     @model_validator(mode='after')
     def validate_rainbow(self) -> Self:
@@ -444,8 +477,8 @@ class Wave(Effect):
     family: ClassVar[str] = 'fields'
     color: RGB = [255, 0, 0]
     cycles: int = 2
-    start: int = 0
-    end: int | None = None
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
     moving: bool = False
 
     @model_validator(mode='after')
@@ -462,7 +495,7 @@ class Alternates(Effect):
     family: ClassVar[str] = 'patterns'
     color1: RGB = [255, 255, 255]
     color2: RGB = [0, 0, 0]
-    max_led: int | None = None
+    max_led: Annotated[int | None, units.unit_validator('pixel')] = None
 
     @model_validator(mode='after')
     def validate_alternates(self) -> Self:
@@ -486,7 +519,7 @@ class ColorPattern(Effect):
     effect: Literal['color_pattern'] = 'color_pattern'
     family: ClassVar[str] = 'patterns'
     colors: list[RGB] = [[255, 0, 0], [0, 255, 0], [0, 0, 255]]
-    width: int = 1
+    width: Annotated[int, units.unit_validator('pixel')] = 1
     reverse: bool = False
 
     @model_validator(mode='after')
@@ -501,9 +534,9 @@ class ColorWipe(Effect):
     effect: Literal['color_wipe'] = 'color_wipe'
     family: ClassVar[str] = 'patterns'
     color: RGB = [255, 0, 0]
-    start: int = 0
-    end: int | None = None
-    step: int = 1
+    start: Annotated[int, units.unit_validator('pixel')] = 0
+    end: Annotated[int | None, units.unit_validator('pixel')] = None
+    step: Annotated[int, units.unit_validator('pixel')] = 1
 
     @model_validator(mode='after')
     def validate_color_wipe(self) -> Self:
@@ -517,13 +550,16 @@ class GreyCode(Effect):
     effect: Literal['grey_code'] = 'grey_code'
     family: ClassVar[str] = 'patterns'
     offsets: FloatRGB = [0, 100, 200]
-    speeds: FloatRGB = [-0.01, 0.023, 0.014]
+    speeds: Annotated[
+        list[Annotated[float, units.unit_validator('1/frame')]],
+        Field(min_length=3, max_length=3),
+    ] = [-0.01, 0.023, 0.014]
 
 
 class Hamiltonian(Effect):
     effect: Literal['hamiltonian'] = 'hamiltonian'
     family: ClassVar[str] = 'patterns'
-    speed: float = 25
+    speed: Annotated[float, units.unit_validator('pixel/second')] = 25
     n: int = 8
     order: str | int = 'rgb'
     inverted: str = ''
@@ -541,7 +577,7 @@ class SaberBlade(Effect):
     effect: Literal['saber_blade'] = 'saber_blade'
     family: ClassVar[str] = 'patterns'
     colors: list[RGB] = [[255, 0, 0]]
-    speed: int = 1
+    speed: Annotated[int, units.unit_validator('pixel/frame')] = 1
 
     @model_validator(mode='after')
     def validate_saber_blade(self) -> Self:
@@ -557,8 +593,12 @@ class CellularAutomaton(Effect):
     palette: list[RGB] = [[0, 0, 0], [20, 40, 120], [40, 220, 180], [255, 240, 120]]
     rule: int = Field(default=110, ge=0, le=255)
     initial_density: float = Field(default=0.25, ge=0, le=1)
-    generation_rate: float = Field(default=10.0, gt=0)
-    history_decay: float = Field(default=1.8, gt=0)
+    generation_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=10.0, gt=0
+    )
+    history_decay: Annotated[float, units.unit_validator('1/second')] = Field(
+        default=1.8, gt=0
+    )
     boundary_mode: Literal['bounded', 'ring'] = 'ring'
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
@@ -580,8 +620,10 @@ class CollidingParticles(Effect):
         [220, 50, 255],
     ]
     particle_count: int = Field(default=5, gt=0)
-    radius: float = Field(default=1.5, gt=0)
-    trail_decay: float = Field(default=4.0, gt=0)
+    radius: Annotated[float, units.unit_validator('pixel')] = Field(default=1.5, gt=0)
+    trail_decay: Annotated[float, units.unit_validator('1/second')] = Field(
+        default=4.0, gt=0
+    )
     collision_flash: float = Field(default=0.7, ge=0)
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
@@ -602,10 +644,16 @@ class FireAndEmbers(Effect):
         [255, 190, 20],
         [255, 255, 220],
     ]
-    cooling: float = Field(default=1.4, gt=0)
-    diffusion: float = Field(default=4.0, ge=0)
-    spark_rate: float = Field(default=12.0, ge=0)
-    wind: float = 3.0
+    cooling: Annotated[float, units.unit_validator('1/second')] = Field(
+        default=1.4, gt=0
+    )
+    diffusion: Annotated[float, units.unit_validator('1/second')] = Field(
+        default=4.0, ge=0
+    )
+    spark_rate: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=12.0, ge=0
+    )
+    wind: Annotated[float, units.unit_validator('pixel/second')] = 3.0
     origin: Literal['start', 'end'] = 'start'
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None
@@ -630,11 +678,11 @@ class PartyMode(Effect):
 class RandomWalk(Effect):
     effect: Literal['random_walk'] = 'random_walk'
     family: ClassVar[str] = 'simulations'
-    speed: float = 10
+    speed: Annotated[float, units.unit_validator('pixel/second')] = 10
     variance: float = 1
     bounds: Annotated[list[float], Field(min_length=2, max_length=2)] = [0, 180]
     color: FloatRGB | None = None
-    period: float = 0
+    period: Annotated[float, units.unit_validator('second')] = 0
     pre_fill: bool = False
     seed: int | None = None
 
@@ -666,7 +714,9 @@ class ReactionDiffusionStrip(Effect):
     inhibitor_diffusion: float = Field(default=0.08, gt=0)
     feed_rate: float = Field(default=0.035, gt=0)
     kill_rate: float = Field(default=0.06, gt=0)
-    steps_per_second: float = Field(default=80.0, gt=0)
+    steps_per_second: Annotated[float, units.unit_validator('hertz')] = Field(
+        default=80.0, gt=0
+    )
     boundary_mode: Literal['bounded', 'ring'] = 'ring'
     speed: float = Field(default=1.0, ge=0)
     seed: int | None = None

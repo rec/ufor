@@ -2,9 +2,10 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from . import control
 from .base import Model
@@ -21,11 +22,20 @@ class LFO(Shape):
     clock: control.Clock = control.Clock.seconds
     scope: control.Scope = control.Scope.voice
     rate: control.Rational = Field(ge=0)
-    phase: control.Rational = Field(default=Fraction(0), ge=0, lt=1)
+    phase: Annotated[control.Rational, units.unit_validator('turn', exact=True)] = (
+        Field(default=Fraction(0), ge=0, lt=1)
+    )
     reset: Reset = Reset.trigger
     waveform: Waveform = Waveform.sine
     delay: control.Rational = Field(default=Fraction(0), ge=0)
     fade_in: control.Rational = Field(default=Fraction(0), ge=0)
+
+    @model_validator(mode='before')
+    @classmethod
+    def clock_units(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        return control.clock_fields(value, value.get('clock', control.Clock.seconds))
 
 
 class LFOEvent(control.ControlEvent):
@@ -43,12 +53,14 @@ class LFOState(Model):
     at: control.Rational
     ordinal: int = -1
     started_at: control.Rational
-    phase: control.Rational = Field(ge=0, lt=1)
+    phase: Annotated[control.Rational, units.unit_validator('turn', exact=True)] = (
+        Field(ge=0, lt=1)
+    )
     rate: control.Rational = Field(ge=0)
 
 
 class LFOValue(Model):
-    phase: control.Rational
+    phase: Annotated[control.Rational, units.unit_validator('turn', exact=True)]
     value: float
     weight: float
 

@@ -1,9 +1,10 @@
 """Alternate takes, choking, sustain, and deterministic selection state."""
 
 from hashlib import sha256
-from typing import Self
+from typing import Annotated, Self
 
 from pydantic import Field, StrictBool, model_validator
+from reccy.configuration import units
 
 from ..base import (
     Bipolar,
@@ -304,7 +305,9 @@ class KeyCondition(Model):
 class ControlTrigger(ControlCondition):
     """Start a voice on each matching part-control message, without a note."""
 
-    pitch_hz: float = Field(strict=True, gt=0, allow_inf_nan=False)
+    pitch_hz: Annotated[float, units.unit_validator('hertz')] = Field(
+        strict=True, gt=0, allow_inf_nan=False
+    )
     velocity: UnitInterval
 
 

@@ -5,6 +5,7 @@ from fractions import Fraction
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
+from reccy.configuration import units
 
 from .base import Model
 from .control import Rational
@@ -186,7 +187,9 @@ class Expression(Model):
 
 
 class Transposition(Model, frozen=True):
-    semitones: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
+    semitones: Annotated[int, units.unit_validator('semitone')] = Field(
+        default=0, strict=True, ge=-(2**63), le=2**63 - 1
+    )
     boundary: Literal['drop', 'fold', 'error'] = 'drop'
 
 
@@ -242,10 +245,11 @@ class ArpeggiatorScore(Score):
 
 
 def _beat_step(value: str) -> str:
-    if not value.endswith(' beat'):
+    match = units.QUANTITY.fullmatch(value.strip())
+    if match is None or not match.group(2):
         raise ValueError('step must be a positive rational beat duration')
     try:
-        step = Fraction(value.removesuffix(' beat'))
+        step = Fraction(str(units.magnitude(value, 'beat', exact=True)))
     except (ValueError, ZeroDivisionError) as error:
         raise ValueError('step must be a positive rational beat duration') from error
     if step <= 0:

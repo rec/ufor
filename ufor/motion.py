@@ -7,14 +7,15 @@ from graphlib import CycleError, TopologicalSorter
 from math import ceil, floor, isfinite
 from typing import Annotated, Literal, Self
 
-from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic import ConfigDict, Field, model_validator
+from reccy.configuration import units
 
 from . import control, envelope, lfo, motion_random
-from .base import FiniteScalar, Identifier, Model, UnitInterval, unique
+from .base import FiniteScalar, Identifier, Model, UnitInterval, UnitScalar, unique
 from .envelope import Retrigger
 from .interface import ScoreReference
 from .lfo import Reset
-from .modulation import Unit
+from .modulation import Unit, unit_fields, unit_number
 from .oscillator import Waveform, shape_value
 from .score import Score
 from .segments import Segment
@@ -26,10 +27,15 @@ class ParameterReference(Model):
 
 class MotionParameter(Model):
     unit: Unit
-    default: float
-    minimum: float
-    maximum: float
+    default: UnitScalar
+    minimum: UnitScalar
+    maximum: UnitScalar
     description: str | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        return unit_fields(value, ['minimum', 'maximum', 'default'])
 
     @model_validator(mode='after')
     def domain(self) -> Self:
@@ -70,7 +76,9 @@ class Cycle(Model):
     kind: Literal['cycle'] = 'cycle'
     shape: Waveform = Waveform.sine
     rate: ParameterReference | Annotated[control.Rational, Field(ge=0)]
-    phase: control.Rational = Field(default=Fraction(0), ge=0, lt=1)
+    phase: Annotated[control.Rational, units.unit_validator('turn', exact=True)] = (
+        Field(default=Fraction(0), ge=0, lt=1)
+    )
     duty_cycle: control.Rational = Field(default=Fraction(1, 2), ge=0, le=1)
     reset: Reset = Reset.trigger
     delay: control.Rational = Field(default=Fraction(0), ge=0)
@@ -88,12 +96,10 @@ class Cycle(Model):
         unique((m.name for m in self.markers), 'cycle marker')
         return self
 
-    @field_validator('rate', mode='before')
+    @model_validator(mode='before')
     @classmethod
-    def hertz_rate(cls, value: object) -> object:
-        if isinstance(value, str) and value.endswith(' Hz'):
-            return value.removesuffix(' Hz')
-        return value
+    def clock_units(cls, value: object) -> object:
+        return control.clock_fields(value)
 
 
 class Contour(Model):
@@ -266,7 +272,9 @@ class PatchEventConnection(Model):
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
     probability: UnitInterval = 1.0
-    delay: control.Rational = Field(default=Fraction(0), ge=0)
+    delay: Annotated[control.Rational, units.unit_validator('second', exact=True)] = (
+        Field(default=Fraction(0), ge=0)
+    )
 
     @model_validator(mode='after')
     def cue_payload(self) -> Self:
@@ -346,8 +354,8 @@ class Threshold(Model, frozen=True):
 class Slew(Model, frozen=True):
     kind: Literal['slew'] = 'slew'
     input: Identifier
-    rise: FiniteScalar = Field(ge=0)
-    fall: FiniteScalar = Field(ge=0)
+    rise: Annotated[FiniteScalar, units.unit_validator('1/second')] = Field(ge=0)
+    fall: Annotated[FiniteScalar, units.unit_validator('1/second')] = Field(ge=0)
     initial: FiniteScalar | None = None
 
 
@@ -566,8 +574,19 @@ class MotionUse(Model):
         | None
     ) = None
     score: ScoreReference | None = None
-    parameters: dict[Identifier, float] = Field(default_factory=dict)
+    parameters: dict[Identifier, float | str] = Field(default_factory=dict)
     origin: MotionOrigin | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def clock_units(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        return dict(value) | {
+            'body': _clock_body(
+                value.get('body'), value.get('clock', control.Clock.seconds)
+            )
+        }
 
     @model_validator(mode='after')
     def one_definition(self) -> Self:
@@ -681,6 +700,18 @@ class MotionUse(Model):
                 ):
                     raise ValueError('patch contour segment units must match its clock')
         return self
+
+
+def _clock_body(value: object, clock: control.Clock | str) -> object:
+    if isinstance(value, list):
+        return [_clock_body(v, clock) for v in value]
+    if not isinstance(value, dict):
+        return value
+    normalized = (
+        control.clock_fields(value, clock) if value.get('kind') == 'cycle' else value
+    )
+    assert isinstance(normalized, dict)
+    return {k: _clock_body(v, clock) for k, v in normalized.items()}
 
 
 class MotionEvent(control.ControlEvent):
@@ -1707,7 +1738,7 @@ class MotionScore(Score):
 
 def instantiate_motion(
     score: MotionScore,
-    parameters: dict[str, float] | None = None,
+    parameters: dict[str, float | str] | None = None,
     scope: control.Scope = control.Scope.voice,
     clock: control.Clock = control.Clock.seconds,
     origin: MotionOrigin | None = None,
@@ -1719,7 +1750,9 @@ def instantiate_motion(
     body = score.body
     if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
         declared = score.parameters[body.rate.parameter]
-        value = values.get(body.rate.parameter, declared.default)
+        value = unit_number(
+            values.get(body.rate.parameter, declared.default), declared.unit
+        )
         if not declared.minimum <= value <= declared.maximum:
             raise ValueError(
                 f'motion parameter {body.rate.parameter} is outside its range'

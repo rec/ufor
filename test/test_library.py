@@ -607,7 +607,7 @@ def test_example_library_presets_composition_and_nonplayable_scores() -> None:
     assert result.resolve('half frogs').content_origin == 'my library:/pretty.toml'
 
 
-@pytest.mark.parametrize('parameters', [{'missing': 1}, {'brightness': 3}])
+@pytest.mark.parametrize('parameters', [{'missing': 1.0}, {'brightness': 3.0}])
 def test_invalid_preset_settings_reject_only_affected_scores(
     tmp_path: Path, parameters: dict[str, float]
 ) -> None:

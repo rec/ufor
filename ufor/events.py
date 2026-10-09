@@ -5,13 +5,14 @@ import binascii
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, field_validator, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model
 from .control import Rational
 
 
 class Event(Model):
-    tick: int = Field(strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
     ordinal: int = Field(ge=0, strict=True)
 
 
@@ -113,7 +114,9 @@ class Trigger(Event):
     trigger_id: Identifier
     key: int = Field(strict=True)
     velocity: float = Field(default=1, strict=True, ge=0, le=1)
-    pitch_hz: float | None = Field(default=None, strict=True, gt=0)
+    pitch_hz: Annotated[float | None, units.unit_validator('hertz')] = Field(
+        default=None, strict=True, gt=0
+    )
     controls: dict[Identifier, Annotated[float, Field(strict=True, ge=-1, le=1)]] = (
         Field(default_factory=dict)
     )
@@ -179,7 +182,9 @@ class MotionChange(Event):
     action: Literal['pause', 'resume', 'reverse', 'seek', 'shift']
     position: float | None = Field(default=None, ge=0, le=1)
     offset: float | None = Field(default=None, allow_inf_nan=False)
-    quantize_beats: Rational | None = Field(default=None, gt=0)
+    quantize_beats: Annotated[
+        Rational | None, units.unit_validator('beat', exact=True)
+    ] = Field(default=None, gt=0)
 
     @model_validator(mode='after')
     def seek_payload(self) -> Self:

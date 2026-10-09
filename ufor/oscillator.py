@@ -3,8 +3,10 @@
 from enum import StrEnum, auto
 from fractions import Fraction
 from math import pi, sin
+from typing import Annotated
 
 from pydantic import Field, field_validator
+from reccy.configuration import units
 
 from .base import Model
 
@@ -29,7 +31,7 @@ class Shape(Model):
 
 class Oscillator(Shape):
     key_scale_note: int = 64
-    key_scale_db_per_12_steps: float = 0
+    key_scale_db_per_12_steps: Annotated[float, units.unit_validator('decibel')] = 0
 
     def gain(self, note_number: int) -> float:
         return 10 ** (

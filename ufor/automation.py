@@ -3,14 +3,15 @@
 from enum import StrEnum, auto
 from fractions import Fraction
 from math import fsum, prod
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, StrictBool, model_validator
+from reccy.configuration import units
 
-from .base import FiniteScalar, Identifier, Model, unique
+from .base import Identifier, Model, UnitScalar, unique
 from .control import Scope
 from .interface import ControlBinding, ControlType, InterfaceScore, Output
-from .modulation import Operation, Target, Unit
+from .modulation import Operation, Target, Unit, unit_fields
 from .time import Timebase
 
 
@@ -41,18 +42,39 @@ class ArrangementGainTarget(Model):
 
 
 class TimelineSegment(Model):
-    duration: int = Field(ge=0, strict=True)
-    to: FiniteScalar | StrictBool
+    duration: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
+    to: UnitScalar | StrictBool
 
 
 class TimelineCurve(Model):
     name: Identifier
     unit: Unit
     interpolation: Interpolation = Interpolation.linear
-    at: int = Field(strict=True)
-    initial: FiniteScalar | StrictBool
+    at: Annotated[int, units.unit_validator('tick')] = Field(strict=True)
+    initial: UnitScalar | StrictBool
     segments: list[TimelineSegment] = Field(default_factory=list)
     operation: Operation | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        value = unit_fields(value, ['initial'])
+        if not isinstance(value, dict) or not isinstance(value.get('segments'), list):
+            return value
+        return dict(value) | {
+            'segments': [
+                {
+                    k: v
+                    for k, v in unit_fields(
+                        dict(s) | {'unit': value.get('unit')}, ['to']
+                    ).items()
+                    if k != 'unit'
+                }
+                if isinstance(s, dict)
+                else s
+                for s in value['segments']
+            ]
+        }
 
 
 class Automation(Model):
@@ -62,8 +84,13 @@ class Automation(Model):
     scope: Scope
     quantity: Quantity
     unit: Unit
-    default: FiniteScalar | StrictBool
+    default: UnitScalar | StrictBool
     curves: list[TimelineCurve] = Field(default_factory=list)
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        return unit_fields(value, ['default'])
 
     @model_validator(mode='after')
     def contracts(self) -> Self:

@@ -4,6 +4,7 @@ from enum import StrEnum, auto
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .assets import Asset
 from .base import Identifier, Model, unique
@@ -25,9 +26,11 @@ class Gap(TickRange):
 
 
 class AudioSpan(Model):
-    asset_start: int = Field(default=0, ge=0, strict=True)
-    start: int = Field(ge=0, strict=True)
-    count: int = Field(ge=0, strict=True)
+    asset_start: Annotated[int, units.unit_validator('frame')] = Field(
+        default=0, ge=0, strict=True
+    )
+    start: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
+    count: Annotated[int, units.unit_validator('frame')] = Field(ge=0, strict=True)
 
 
 class AudioFragment(AudioSpan):
@@ -37,7 +40,7 @@ class AudioFragment(AudioSpan):
 
 class UnmappedAudioFragment(Model):
     asset: Identifier
-    count: int = Field(ge=0, strict=True)
+    count: Annotated[int, units.unit_validator('frame')] = Field(ge=0, strict=True)
     journal_range: TickRange
     reason: Literal['frame_count_mismatch'] = 'frame_count_mismatch'
 
@@ -49,7 +52,7 @@ class AudioStream(Model):
     source_name: str | None = None
     track_name: str | None = None
     stream: AudioType
-    end: int = Field(ge=0, strict=True)
+    end: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
     fragments: list[AudioFragment] = Field(default_factory=list)
     unmapped_fragments: list[UnmappedAudioFragment] = Field(default_factory=list)
     gaps: list[Gap] = Field(default_factory=list)
@@ -115,8 +118,12 @@ class EventFragment(Model):
     asset: Identifier
     event_count: int = Field(ge=0, strict=True)
     timing: Literal['smf', 'osc_jsonl', 'recs_events']
-    start: int | None = Field(default=None, strict=True)
-    end: int | None = Field(default=None, strict=True)
+    start: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, strict=True
+    )
+    end: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, strict=True
+    )
     observed_opened_at: str | None = None
     timing_source: str | None = None
 
@@ -199,7 +206,9 @@ class Recording(Model):
     project_name: str | None = None
     started_at: str | None = None
     ended_at: str | None = None
-    observed_duration_seconds: float | None = Field(default=None, ge=0)
+    observed_duration_seconds: Annotated[
+        float | None, units.unit_validator('second')
+    ] = Field(default=None, ge=0)
     journal: Identifier | None = None
     streams: list[Annotated[AudioStream | EventStream, Field(discriminator='kind')]]
     clock_observations: list[ClockObservation] = Field(default_factory=list)

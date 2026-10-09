@@ -265,8 +265,9 @@ loading or generating audio. JSON Schema lives in
 `ufor.samples.playback` owns mappings, traversal, slices, and loops.
 `controls`, `selection`, `crossfade`, and `processing` own the other specialized
 musical declarations. These use Ufor's common frozen model and identifier rule.
-There are no Reccy or application units in the format. Hz and other scalar
-magnitudes are numeric; envelope/LFO time and phase use exact rational strings.
+Authoring accepts [unit strings](units.md) through reccy's Pint parser.
+Canonical Hz and other scalar magnitudes are numeric; envelope/LFO time and
+phase retain exact rational representations. No Pint Quantity objects are stored.
 Frequency/ratio expression authoring remains in the musical definitions.
 
 `SlotPlayback.direction` and `.mode` are nullable overrides. Null/omitted values

@@ -9,7 +9,7 @@ from . import light_animation
 from .arrangement import ArrangementScore
 from .automation import ArrangementGainTarget, AutomationScore
 from .automation import evaluate as evaluate_automation
-from .base import Model
+from .base import Model, UnitScalar
 from .control import Scope
 from .events import ControlChange, Release, StoredEvent, Trigger
 from .interface import (
@@ -30,7 +30,7 @@ from .interface import (
 )
 from .light_animation import AnimationScore
 from .lights import LightType
-from .modulation import Unit
+from .modulation import Unit, unit_fields, unit_number
 from .recording import AudioStream, RecordingScore
 from .samples.enums import SelectionMode
 from .samples.instrument import SampleInstrumentScore
@@ -49,9 +49,14 @@ class ScoreRecord(Model):
 class ParameterContract(Model):
     unit: Unit
     scope: Scope
-    minimum: float
-    maximum: float
-    default: float
+    minimum: UnitScalar
+    maximum: UnitScalar
+    default: UnitScalar
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        return unit_fields(value, ['minimum', 'maximum', 'default'])
 
     @model_validator(mode='after')
     def valid_default(self) -> Self:
@@ -77,7 +82,7 @@ class Composition:
         self,
         root: str,
         scores: dict[str, ScoreRecord],
-        parameters: dict[str, float] | None = None,
+        parameters: dict[str, float | str] | None = None,
     ) -> None:
         self.scores = {
             k: ScoreRecord.model_validate(v.model_dump()) for k, v in scores.items()
@@ -106,8 +111,11 @@ class Composition:
             inherited = self.parameter_contract(child, export.binding.parameter)
             inherited = inherited.model_copy(
                 update={
-                    'default': child_part.parameters.get(
-                        export.binding.parameter, inherited.default
+                    'default': unit_number(
+                        child_part.parameters.get(
+                            export.binding.parameter, inherited.default
+                        ),
+                        inherited.unit,
                     )
                 }
             )
@@ -511,7 +519,9 @@ class Composition:
                     raise ValueError(f'ScoreReference digest mismatch: {child}')
             self._check_definitions(child, stack + [identity], pins)
 
-    def _instantiate(self, identity: str, path: str, values: dict[str, float]) -> None:
+    def _instantiate(
+        self, identity: str, path: str, values: dict[str, float | str]
+    ) -> None:
         score = self.scores[identity].score
         if not isinstance(score, InterfaceScore):
             raise ValueError(f'{path}: score cannot be instantiated')
@@ -520,7 +530,10 @@ class Composition:
         }
         if unknown := values.keys() - contracts.keys():
             raise ValueError(f'{path}: unknown public parameters {sorted(unknown)}')
-        configured = {k: values.get(k, v.default) for k, v in contracts.items()}
+        configured = {
+            k: unit_number(values.get(k, v.default), v.unit)
+            for k, v in contracts.items()
+        }
         for name, value in configured.items():
             if not contracts[name].minimum <= value <= contracts[name].maximum:
                 raise ValueError(f'{path}/{name}: parameter outside public range')
@@ -789,8 +802,16 @@ def exact_tick(tick: int, ratio: Fraction) -> int:
 
 
 def _narrow(inherited: ParameterContract, export: ParameterExport) -> ParameterContract:
-    minimum = inherited.minimum if export.minimum is None else export.minimum
-    maximum = inherited.maximum if export.maximum is None else export.maximum
+    minimum = (
+        inherited.minimum
+        if export.minimum is None
+        else unit_number(export.minimum, inherited.unit)
+    )
+    maximum = (
+        inherited.maximum
+        if export.maximum is None
+        else unit_number(export.maximum, inherited.unit)
+    )
     if minimum < inherited.minimum or maximum > inherited.maximum:
         raise ValueError('public parameter cannot widen the internal range')
     return ParameterContract(
@@ -798,5 +819,7 @@ def _narrow(inherited: ParameterContract, export: ParameterExport) -> ParameterC
         scope=inherited.scope,
         minimum=minimum,
         maximum=maximum,
-        default=inherited.default if export.default is None else export.default,
+        default=inherited.default
+        if export.default is None
+        else unit_number(export.default, inherited.unit),
     )

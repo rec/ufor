@@ -2,9 +2,10 @@
 
 from enum import StrEnum, auto
 from fnmatch import fnmatchcase
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .assets import Asset
 from .base import Identifier, Model, unique
@@ -59,17 +60,21 @@ class DirectorySelection(Model):
 class Slide(Model):
     name: Identifier
     asset: Identifier
-    duration: int = Field(gt=0, strict=True)
+    duration: Annotated[int, units.unit_validator('tick')] = Field(gt=0, strict=True)
     alt: str = Field(min_length=1)
     description: str | None = None
     crop: Crop = Crop(x=0, y=0, width=1, height=1)
-    rotation: Literal[0, 90, 180, 270] = 0
+    rotation: Annotated[Literal[0, 90, 180, 270], units.unit_validator('degree')] = 0
     fit: Fit = Fit.contain
     advance: Advance | None = None
     cue: Identifier | None = None
     visual_kind: VisualKind = VisualKind.image
-    source_start: int | None = Field(default=None, ge=0, strict=True)
-    source_end: int | None = Field(default=None, gt=0, strict=True)
+    source_start: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, ge=0, strict=True
+    )
+    source_end: Annotated[int | None, units.unit_validator('tick')] = Field(
+        default=None, gt=0, strict=True
+    )
 
     @model_validator(mode='after')
     def cue_policy(self) -> Self:
@@ -94,7 +99,9 @@ class Transition(Model):
     outgoing: Identifier
     incoming: Identifier
     kind: Literal['cut', 'crossfade', 'wipe'] = 'cut'
-    duration: int = Field(default=0, ge=0, strict=True)
+    duration: Annotated[int, units.unit_validator('tick')] = Field(
+        default=0, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def duration_contract(self) -> Self:
@@ -105,9 +112,11 @@ class Transition(Model):
 
 class Accompaniment(Model):
     asset: Identifier
-    start: int = Field(ge=0, strict=True)
-    source_start: int = Field(ge=0, strict=True)
-    source_end: int = Field(gt=0, strict=True)
+    start: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
+    source_start: Annotated[int, units.unit_validator('tick')] = Field(
+        ge=0, strict=True
+    )
+    source_end: Annotated[int, units.unit_validator('tick')] = Field(gt=0, strict=True)
 
     @model_validator(mode='after')
     def source_range(self) -> Self:
@@ -117,8 +126,8 @@ class Accompaniment(Model):
 
 
 class Caption(Model):
-    start: int = Field(ge=0, strict=True)
-    end: int = Field(gt=0, strict=True)
+    start: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
+    end: Annotated[int, units.unit_validator('tick')] = Field(gt=0, strict=True)
     language: str = Field(min_length=2)
     text: str = Field(min_length=1)
     speaker: str | None = None
@@ -134,7 +143,9 @@ class CaptionTrack(Model):
     language: str = Field(min_length=2)
     captions: list[Caption] = Field(default_factory=list)
     asset: Identifier | None = None
-    offset: int = Field(default=0, ge=0, strict=True)
+    offset: Annotated[int, units.unit_validator('tick')] = Field(
+        default=0, ge=0, strict=True
+    )
 
     @model_validator(mode='after')
     def source(self) -> Self:
@@ -151,7 +162,7 @@ class CaptionTrack(Model):
 
 
 class RunEvent(Model):
-    tick: int = Field(ge=0, strict=True)
+    tick: Annotated[int, units.unit_validator('tick')] = Field(ge=0, strict=True)
     ordinal: int = Field(ge=0, strict=True)
     action: Literal[
         'enter', 'advance', 'back', 'hold', 'cue', 'transition', 'caption', 'failure'

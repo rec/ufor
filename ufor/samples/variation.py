@@ -1,8 +1,10 @@
 """Deterministic per-voice sample variation."""
 
 from hashlib import sha256
+from typing import Annotated
 
 from pydantic import Field
+from reccy.configuration import units
 
 from ..base import Frame, Identifier, Model, Seconds
 
@@ -12,15 +14,23 @@ class Variation(Model):
 
     delay_seconds: Seconds = 0
     offset_frames: Frame = 0
-    pitch_cents: float = Field(default=0, strict=True, ge=0)
-    gain_db: float = Field(default=0, strict=True, ge=0)
+    pitch_cents: Annotated[float, units.unit_validator('musical_cent')] = Field(
+        default=0, strict=True, ge=0
+    )
+    gain_db: Annotated[float, units.unit_validator('decibel')] = Field(
+        default=0, strict=True, ge=0
+    )
 
 
 class ResolvedVariation(Model):
     delay_seconds: Seconds = 0
     offset_frames: Frame = 0
-    pitch_cents: float = Field(default=0, strict=True)
-    gain_db: float = Field(default=0, strict=True)
+    pitch_cents: Annotated[float, units.unit_validator('musical_cent')] = Field(
+        default=0, strict=True
+    )
+    gain_db: Annotated[float, units.unit_validator('decibel')] = Field(
+        default=0, strict=True
+    )
 
 
 def resolve(

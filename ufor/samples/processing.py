@@ -6,6 +6,7 @@ from math import cos, pi, sin
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, StrictBool, model_validator
+from reccy.configuration import units
 
 from .. import control, modulation
 from ..base import (
@@ -42,7 +43,7 @@ from .controls import ControlDeclaration
 class EqualizerBand(Model):
     name: Identifier
     frequency_hz: Frequency
-    gain_db: FiniteScalar
+    gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')]
     resonance: Positive
 
 
@@ -65,7 +66,7 @@ class FilterOrder(StrEnum):
 
 class FilterTolerance(Model):
     coefficient: Positive = 1e-12
-    response_db: Positive = 1e-6
+    response_db: Annotated[Positive, units.unit_validator('decibel')] = 1e-6
 
 
 class ResonantFilter(Model):
@@ -89,9 +90,9 @@ class BiquadCoefficients(Model):
 
 
 class Processing(Model):
-    volume_db: FiniteScalar = 0.0
+    volume_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
     invert_polarity: StrictBool = False
-    tuning_cents: FiniteScalar = 0.0
+    tuning_cents: Annotated[FiniteScalar, units.unit_validator('musical_cent')] = 0.0
     pan: FiniteScalar = 0.0
     stereo_balance: FiniteScalar = 0.0
     equalizer: list[EqualizerBand] = Field(default_factory=list)
@@ -154,7 +155,9 @@ class ControlBinding(Model):
     name: Identifier
     kind: Literal['control'] = 'control'
     control: Identifier
-    smoothing: control.Rational = Field(default=Fraction(1, 200), ge=0)
+    smoothing: Annotated[
+        control.Rational, units.unit_validator('second', exact=True)
+    ] = Field(default=Fraction(1, 200), ge=0)
 
 
 class ReleaseTiming(StrEnum):
@@ -178,7 +181,9 @@ class MotionEventConnection(Model):
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
     probability: UnitInterval = 1.0
-    delay: control.Rational = Field(default=Fraction(0), ge=0)
+    delay: Annotated[control.Rational, units.unit_validator('second', exact=True)] = (
+        Field(default=Fraction(0), ge=0)
+    )
 
 
 Binding = Annotated[

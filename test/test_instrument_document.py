@@ -239,7 +239,7 @@ def test_whole_envelope_overrides_and_playback_inheritance_round_trip() -> None:
         ('slice', {'asset': 'missing'}, 'Unknown slice asset'),
         ('slice', {'end_frame': 44101}, 'exceeds native asset'),
         ('slice', {'start_frame': 1000}, 'exceed start_frame'),
-        ('slice', {'start_frame': True}, 'integer'),
+        ('slice', {'start_frame': True}, 'boolean'),
         ('slice', {'loop': {'start_frame': 0, 'end_frame': 20}}, 'contained'),
         ('slice', {'loop': {'start_frame': 10, 'end_frame': 1001}}, 'contained'),
         ('slot', {'slice': 'missing'}, 'Unknown slice'),
@@ -410,7 +410,7 @@ def test_whole_sample_repeats_require_one_shot_playback() -> None:
         ),
         (
             playback.Mapping,
-            {'lowest_key': 0, 'highest_key': 128, 'reference_pitch_hz': '440Hz'},
+            {'lowest_key': 0, 'highest_key': 128, 'reference_pitch_hz': '440ms'},
         ),
         (playback.Loop, {'start_frame': 0, 'end_frame': 1}),
         (playback.Loop, {'start_frame': 0, 'end_frame': 10, 'crossfade_frames': 1}),

@@ -3,11 +3,12 @@
 from enum import StrEnum, auto
 from itertools import pairwise
 from math import exp, fsum, log, prod
-from typing import Literal, Self
+from typing import Annotated, Literal, Self, overload
 
-from pydantic import Field, model_validator
+from pydantic import Field, TypeAdapter, model_validator
+from reccy.configuration import units
 
-from .base import Identifier, Model, unique
+from .base import Identifier, Model, UnitScalar, unique
 from .control import Scope
 
 
@@ -22,6 +23,36 @@ class Unit(StrEnum):
     seconds = auto()
     beats = auto()
     radians = auto()
+
+
+def unit_number(value: float | str, unit: Unit) -> float:
+    """Normalize a referenced parameter once its unit contract is known."""
+    return TypeAdapter(
+        Annotated[float, units.unit_validator(UNIT_NAMES[unit])]
+    ).validate_python(value)
+
+
+@overload
+def unit_fields(value: dict[str, object], fields: list[str]) -> dict[str, object]: ...
+
+
+@overload
+def unit_fields(value: object, fields: list[str]) -> object: ...
+
+
+def unit_fields(value: object, fields: list[str]) -> object:
+    """Normalize numeric fields in the unit declared by their containing object."""
+    if not isinstance(value, dict):
+        return value
+    declared = value.get('unit')
+    unit = UNIT_NAMES.get(declared) if isinstance(declared, str) else None
+    if unit is None:
+        return value
+    return dict(value) | {
+        f: units.magnitude(value[f], unit)
+        for f in fields
+        if f in value and isinstance(value[f], str)
+    }
 
 
 class Operation(StrEnum):
@@ -44,9 +75,14 @@ class Parameter(Model):
     target: Target
     unit: Unit
     scope: Scope
-    minimum: float
-    maximum: float
-    default: float
+    minimum: UnitScalar
+    maximum: UnitScalar
+    default: UnitScalar
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        return unit_fields(value, ['minimum', 'maximum', 'default'])
 
     @model_validator(mode='after')
     def domain(self) -> Self:
@@ -76,7 +112,7 @@ class Source(Model):
 
 class Point(Model):
     input: float
-    amount: float
+    amount: UnitScalar
 
 
 class Route(Model):
@@ -87,6 +123,26 @@ class Route(Model):
     unit: Unit
     points: list[Point] = Field(min_length=1)
     interpolation: Interpolation = Interpolation.linear
+
+    @model_validator(mode='before')
+    @classmethod
+    def declared_units(cls, value: object) -> object:
+        if not isinstance(value, dict) or not isinstance(value.get('points'), list):
+            return value
+        return dict(value) | {
+            'points': [
+                {
+                    k: v
+                    for k, v in unit_fields(
+                        dict(p) | {'unit': value.get('unit')}, ['amount']
+                    ).items()
+                    if k != 'unit'
+                }
+                if isinstance(p, dict)
+                else p
+                for p in value['points']
+            ]
+        }
 
     @model_validator(mode='after')
     def ordered_points(self) -> Self:
@@ -206,3 +262,17 @@ def evaluate(
             )
         result.append(ParameterValue(target=target, value=value))
     return result
+
+
+UNIT_NAMES = {
+    Unit.logical: 'dimensionless',
+    Unit.ratio: 'dimensionless',
+    Unit.db: 'decibel',
+    Unit.cents: 'musical_cent',
+    Unit.hz: 'hertz',
+    Unit.normalized: 'dimensionless',
+    Unit.volts: 'volt',
+    Unit.seconds: 'second',
+    Unit.beats: 'beat',
+    Unit.radians: 'radian',
+}

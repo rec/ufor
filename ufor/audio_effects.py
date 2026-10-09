@@ -5,7 +5,8 @@ from graphlib import CycleError, TopologicalSorter
 from math import cos, pi, sqrt
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, StrictBool, model_validator
+from pydantic import Field, StrictBool, TypeAdapter, model_validator
+from reccy.configuration import units
 
 from .base import (
     FiniteScalar,
@@ -89,9 +90,11 @@ class Connection(Model):
 class Gain(Model):
     kind: Literal['gain'] = 'gain'
     name: Identifier
-    gain_db: FiniteScalar = 0.0
+    gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
 
 
 class SoftClip(Model):
@@ -99,7 +102,9 @@ class SoftClip(Model):
     name: Identifier
     drive: Positive = 1.0
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
 
 
 class TapDelay(Model):
@@ -111,7 +116,9 @@ class TapDelay(Model):
     maximum_delay_seconds: PositiveSeconds
     feedback: float = Field(default=0.0, ge=0, lt=1)
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
     tail_threshold: Positive = FILTER_TAIL_THRESHOLD
     state_floor: Positive = DECAYING_STATE_FLOOR
 
@@ -137,7 +144,9 @@ class ModulatedDelay(Model):
     channel_phase_offsets: list[UnitInterval] = Field(default_factory=list)
     feedback: float = Field(default=0.0, ge=0, lt=1)
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
     tail_threshold: Positive = FILTER_TAIL_THRESHOLD
     state_floor: Positive = DECAYING_STATE_FLOOR
 
@@ -157,7 +166,9 @@ class Filter(Model):
     name: Identifier
     filters: list[ResonantFilter] = Field(min_length=1)
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
     tail_threshold: Positive = FILTER_TAIL_THRESHOLD
     state_floor: Positive = DECAYING_STATE_FLOOR
 
@@ -173,7 +184,9 @@ class Multiply(Model):
     kind: Literal['multiply'] = 'multiply'
     name: Identifier
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
 
 
 class Granulator(Model):
@@ -187,8 +200,10 @@ class Granulator(Model):
     history_seconds: PositiveSeconds
     maximum_grains: int = Field(ge=1, strict=True)
     mix: UnitInterval = 1.0
-    bypass_fade_frames: int = Field(default=BYPASS_FADE_FRAMES, ge=1, strict=True)
-    freeze_crossfade_frames: int = Field(
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    freeze_crossfade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=FREEZE_CROSSFADE_FRAMES, ge=1, strict=True
     )
 
@@ -219,14 +234,18 @@ class EffectGraph(Model):
     processors: list[Processor] = Field(min_length=1)
     connections: list[Connection] = Field(min_length=1)
     output: AudioSource
-    maximum_block_frames: int = Field(ge=1, strict=True)
+    maximum_block_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        ge=1, strict=True
+    )
     maximum_voices: int = Field(default=1, ge=1, strict=True)
     maximum_tails: int = Field(default=1, ge=1, strict=True)
     maximum_action_batches: int = Field(default=64, ge=1, strict=True)
     maximum_actions_per_batch: int = Field(default=16, ge=1, strict=True)
     maximum_actions_per_frame: int = Field(default=64, ge=1, strict=True)
-    scheduling_lead_frames: int = Field(default=1, ge=1, strict=True)
-    tail_retirement_fade_frames: int = Field(
+    scheduling_lead_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=1, ge=1, strict=True
+    )
+    tail_retirement_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=TAIL_RETIREMENT_FADE_FRAMES, ge=1, strict=True
     )
 
@@ -339,7 +358,38 @@ class ParameterAction(Model):
     processor: Identifier
     parameter: Identifier
     value: FiniteScalar
-    duration_frames: int = Field(default=0, ge=0, strict=True)
+    duration_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=0, ge=0, strict=True
+    )
+
+    @model_validator(mode='before')
+    @classmethod
+    def parameter_units(cls, value: object) -> object:
+        if not isinstance(value, dict) or not isinstance(value.get('value'), str):
+            return value
+        parameter = value.get('parameter')
+        if not isinstance(parameter, str):
+            return value
+        unit = {
+            'gain_db': 'decibel',
+            'delay_seconds': 'second',
+            'base_delay_seconds': 'second',
+            'depth_seconds': 'second',
+            'duration_seconds': 'second',
+            'rate_hz': 'hertz',
+            'density_hz': 'hertz',
+            'mix': 'dimensionless',
+            'drive': 'dimensionless',
+            'feedback': 'dimensionless',
+            'playback_ratio': 'dimensionless',
+        }.get(parameter)
+        if unit is None:
+            return value
+        return dict(value) | {
+            'value': TypeAdapter(
+                Annotated[FiniteScalar, units.unit_validator(unit)]
+            ).validate_python(value['value'])
+        }
 
 
 class BypassAction(Model):

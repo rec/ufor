@@ -1,7 +1,7 @@
 """Portable sample instrument selection and document references."""
 
 from math import sqrt
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     Field,
@@ -10,6 +10,7 @@ from pydantic import (
     model_serializer,
     model_validator,
 )
+from reccy.configuration import units
 
 from .. import base, control
 from ..assets import Asset, AudioDescription, is_finite_audio_source
@@ -109,7 +110,9 @@ class SampleSlot(SoundSettings):
     random_range: RandomRange | None = None
     take: Identifier | None = None
     microphone: Identifier | None = None
-    alignment_frames: int = Field(default=0, strict=True)
+    alignment_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=0, strict=True
+    )
     choke_group: Identifier | None = None
     voice_pool: Identifier | None = None
     chokes: list[Choke] = Field(default_factory=list)

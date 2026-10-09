@@ -5,6 +5,7 @@ from math import cos, sin, tau
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .base import Identifier, Model, unique
 
@@ -28,6 +29,22 @@ class Layout(Model):
     frame: Identifier = 'local'
     lights: list[Light] = Field(min_length=1)
     regions: dict[Identifier, list[Identifier]] = Field(default_factory=dict)
+
+    @model_validator(mode='before')
+    @classmethod
+    def position_units(cls, value: object) -> object:
+        if not isinstance(value, dict) or not isinstance(value.get('lights'), list):
+            return value
+        unit = 'meter' if value.get('unit') == 'metres' else 'dimensionless'
+        return dict(value) | {
+            'lights': [
+                dict(p)
+                | {'position': [units.magnitude(v, unit) for v in p['position']]}
+                if isinstance(p, dict) and isinstance(p.get('position'), list)
+                else p
+                for p in value['lights']
+            ]
+        }
 
     @model_validator(mode='after')
     def geometry(self) -> Self:

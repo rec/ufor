@@ -1,9 +1,10 @@
 """Named expression domains, independent of any controller protocol."""
 
 from fractions import Fraction
-from typing import Self
+from typing import Annotated, Self
 
 from pydantic import Field, model_validator
+from reccy.configuration import units
 
 from .. import control
 from ..base import Bipolar, Model
@@ -36,7 +37,9 @@ class ControlState(Model):
     ordinal: int = Field(default=-1, ge=-1, strict=True)
     value: Bipolar
     target: Bipolar
-    smoothing: control.Rational = Field(ge=0)
+    smoothing: Annotated[
+        control.Rational, units.unit_validator('second', exact=True)
+    ] = Field(ge=0)
 
 
 def initial_control(

@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from .base import Model
 from .composition import Composition, ScoreRecord
 from .interface import InterfaceScore, ScoreReference
+from .modulation import unit_number
 from .motion import MotionOrigin, MotionScore, MotionUse, instantiate_motion
 from .preset import PresetScore
 from .score import Score
@@ -99,7 +100,9 @@ class Library:
         return entry
 
     def composition(
-        self, selector: str | ScoreSelector, parameters: dict[str, float] | None = None
+        self,
+        selector: str | ScoreSelector,
+        parameters: dict[str, float | str] | None = None,
     ) -> Composition:
         return Composition(self.resolve(selector).key, self.records, parameters)
 
@@ -262,11 +265,13 @@ class Library:
             record = self.records[target.key]
             data = record.score.model_dump()
             if entry.score.parameters:
+                parameters: dict[str, float] = {}
                 if isinstance(record.score, MotionScore):
                     if entry.score.parameters.keys() - record.score.parameters.keys():
                         raise ValueError('preset names an unknown motion parameter')
                     for name, value in entry.score.parameters.items():
                         contract = record.score.parameters[name]
+                        value = parameters[name] = unit_number(value, contract.unit)
                         if not contract.minimum <= value <= contract.maximum:
                             raise ValueError(
                                 f'preset parameter {name} is outside its range'
@@ -274,7 +279,7 @@ class Library:
                     data['parameters'] = {
                         name: contract.model_dump()
                         | (
-                            {'default': entry.score.parameters[name]}
+                            {'default': parameters[name]}
                             if name in entry.score.parameters
                             else {}
                         )
@@ -284,6 +289,7 @@ class Library:
                     composition = Composition(target.key, self.records)
                     for name, value in entry.score.parameters.items():
                         contract = composition.parameter_contract(target.key, name)
+                        value = parameters[name] = unit_number(value, contract.unit)
                         if not contract.minimum <= value <= contract.maximum:
                             raise ValueError(
                                 f'preset parameter {name} is outside its range'
@@ -291,7 +297,7 @@ class Library:
                     data['parameters'] = [
                         p.model_dump()
                         | (
-                            {'default': entry.score.parameters[p.name]}
+                            {'default': parameters[p.name]}
                             if p.name in entry.score.parameters
                             else {}
                         )

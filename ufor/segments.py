@@ -1,12 +1,12 @@
 """Shared authored segments for envelopes and timeline curves."""
 
-import re
 from enum import StrEnum, auto
 from fractions import Fraction
 from typing import Annotated
 
 from pydantic import Field, StrictBool, field_serializer, model_validator
 from pydantic.functional_validators import BeforeValidator
+from reccy.configuration import units
 
 from . import control
 from .base import FiniteScalar, Model
@@ -17,18 +17,14 @@ def duration(value: object) -> Fraction:
         return Fraction(value)
     if not isinstance(value, str):
         raise ValueError('segment duration must use an explicit unit')
-    match = re.fullmatch(r'([^ ]+) (ms|s|beat|beats|frame|frames)', value)
-    if match is None:
+    match = units.QUANTITY.fullmatch(value.strip())
+    if match is None or not match.group(2):
         raise ValueError('segment duration must use an explicit unit')
-    amount = control.rational(match.group(1))
     unit = match.group(2)
-    if unit == 's':
-        return amount
-    if unit == 'ms':
-        return amount / 1000
-    if unit in {'beat', 'beats'}:
-        return amount
-    raise ValueError('segment frames require a declared timebase')
+    if unit in {'frame', 'frames'}:
+        raise ValueError('segment frames require a declared timebase')
+    canonical = 'beat' if unit in {'beat', 'beats'} else 'second'
+    return control.rational(units.magnitude(value, canonical, exact=True))
 
 
 class DurationUnit(StrEnum):
@@ -52,7 +48,8 @@ class Segment(Model):
             authored = value['duration']
             unit = (
                 DurationUnit.beats
-                if authored.endswith((' beat', ' beats'))
+                if (match := units.QUANTITY.fullmatch(authored.strip())) is not None
+                and match.group(2) in {'beat', 'beats'}
                 else DurationUnit.seconds
             )
             if 'duration_unit' in value and value['duration_unit'] != unit:
