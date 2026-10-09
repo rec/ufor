@@ -261,7 +261,7 @@ def stage_event_ports(body: Stages) -> set[str]:
 class PatchEventConnection(Model):
     source: str = Field(min_length=3)
     target: Identifier
-    action: Literal['start', 'cue', 'sample'] = 'start'
+    action: Literal['start', 'cue', 'sample', 'capture'] = 'start'
     cue: Identifier | None = None
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
@@ -302,6 +302,16 @@ class Affine(Model, frozen=True):
     input: Identifier
     scale: FiniteScalar = 1.0
     offset: FiniteScalar = 0.0
+
+
+class Latch(Model, frozen=True):
+    kind: Literal['latch'] = 'latch'
+    input: Identifier
+
+
+def latch_value(value: float, previous: float | None) -> float:
+    """Capture on activation or when delivery has cleared the previous value."""
+    return value if previous is None else previous
 
 
 class Quantize(Model, frozen=True):
@@ -378,6 +388,7 @@ class Patch(Model):
             | Product
             | Affine
             | Quantize
+            | Latch
             | Threshold
             | Slew,
             Field(discriminator='kind'),
@@ -393,7 +404,7 @@ class Patch(Model):
             n: b.inputs
             if isinstance(b, (Sum, Product))
             else [b.input]
-            if isinstance(b, (Affine, Quantize, Threshold, Slew))
+            if isinstance(b, (Affine, Quantize, Latch, Threshold, Slew))
             else []
             for n, b in self.motions.items()
         }
@@ -428,6 +439,8 @@ class Patch(Model):
                     minimum, maximum = min(values), max(values)
             elif isinstance(body, Quantize):
                 minimum, maximum = (quantize_value(body, v) for v in ranges[body.input])
+            elif isinstance(body, Latch):
+                minimum, maximum = ranges[body.input]
             elif isinstance(body, Threshold):
                 minimum, maximum = 0.0, 1.0
             elif isinstance(body, Slew):
@@ -501,7 +514,10 @@ class Patch(Model):
                     'patch event source references an unknown '
                     + ('marker' if isinstance(origin, Cycle) else 'stage event')
                 )
-            if connection.action == 'sample':
+            if connection.action == 'capture':
+                if not isinstance(target, Latch):
+                    raise ValueError('patch capture target must be a Latch')
+            elif connection.action == 'sample':
                 if not isinstance(target, SampleHold):
                     raise ValueError('patch sample target must be a SampleHold')
             elif connection.action == 'start':
@@ -596,6 +612,11 @@ class MotionUse(Model):
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
+            if (
+                any(isinstance(b, Latch) for b in self.body.motions.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('latch requires voice scope')
             if (
                 any(isinstance(b, Slew) for b in self.body.motions.values())
                 and self.scope != control.Scope.voice

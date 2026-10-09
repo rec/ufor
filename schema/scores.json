@@ -6504,6 +6504,26 @@
       "title": "LarsonScanner",
       "type": "object"
     },
+    "Latch": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "latch",
+          "default": "latch",
+          "title": "Kind",
+          "type": "string"
+        },
+        "input": {
+          "title": "Input",
+          "type": "string"
+        }
+      },
+      "required": [
+        "input"
+      ],
+      "title": "Latch",
+      "type": "object"
+    },
     "LatchedBank": {
       "additionalProperties": false,
       "properties": {
@@ -8889,6 +8909,7 @@
                 "stages": "#/$defs/Stages",
                 "affine": "#/$defs/Affine",
                 "quantize": "#/$defs/Quantize",
+                "latch": "#/$defs/Latch",
                 "product": "#/$defs/Product",
                 "sum": "#/$defs/Sum",
                 "sample_hold": "#/$defs/SampleHold",
@@ -8921,6 +8942,9 @@
               },
               {
                 "$ref": "#/$defs/Quantize"
+              },
+              {
+                "$ref": "#/$defs/Latch"
               },
               {
                 "$ref": "#/$defs/Threshold"
@@ -8995,7 +9019,8 @@
           "enum": [
             "start",
             "cue",
-            "sample"
+            "sample",
+            "capture"
           ],
           "title": "Action",
           "type": "string"

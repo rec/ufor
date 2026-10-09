@@ -36,6 +36,15 @@ overshoot. The inferred output range includes any explicit initial value.
 Slew nodes are initially voice-owned; shared consumers read one state per node.
 Snapshots retain the previous output, and activation starts fresh on voice reuse.
 
+`latch` Patch nodes capture their named `input` on voice activation and hold it
+until a Patch event connection delivers `action = "capture"`. Capture uses the
+input on the first sample frame at or after delivery, including any connection
+delay, not the value when the source emitted its event. Division and probability
+filter captures normally. Several captures on one frame observe the same final
+input on that frame. Inputs are evaluated before latches; shared consumers read
+one held value. Latches are initially voice-owned and emit no events. Snapshots
+retain held values and pending captures; voice reuse starts fresh.
+
 `quantize` Patch nodes round a named `input` to the nearest point on the grid
 `origin + n * step`. `step` is positive and finite; `origin` is finite and
 defaults to zero. Halfway values choose the higher point, including for negative
