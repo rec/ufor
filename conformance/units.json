@@ -1,5 +1,9 @@
 {
   "valid": [
+    {"unit": "second", "authored": "1 ms / 3", "canonical": "1/3000"},
+    {"unit": "beat", "authored": "1000 millibeats / 3", "canonical": "1/3"},
+    {"unit": "musical_cent", "authored": "1 octave", "canonical": "1200"},
+    {"unit": "degree", "authored": "1 turn", "canonical": "360"},
     {"unit": "second", "authored": "250ms", "canonical": "1/4"},
     {"unit": "second", "authored": "1/3 ms", "canonical": "1/3000"},
     {"unit": "second", "authored": "0:00.1", "canonical": "1/10"},
@@ -13,6 +17,10 @@
     {"unit": "meter", "authored": "2cm", "canonical": "1/50"}
   ],
   "invalid": [
+    {"unit": "dimensionless", "authored": "90degree"},
+    {"unit": "dimensionless", "authored": "-6dB"},
+    {"unit": "dimensionless", "authored": "1 semitone"},
+    {"unit": "hertz", "authored": "1 radian/s"},
     {"unit": "second", "authored": "2Hz"},
     {"unit": "hertz", "authored": "2ms"},
     {"unit": "beat", "authored": "1s"},

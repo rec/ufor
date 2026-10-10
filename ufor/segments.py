@@ -17,13 +17,12 @@ def duration(value: object) -> Fraction:
         return Fraction(value)
     if not isinstance(value, str):
         raise ValueError('segment duration must use an explicit unit')
-    match = units.QUANTITY.fullmatch(value.strip())
-    if match is None or not match.group(2):
+    unit = units.quantity_unit(value)
+    if unit is None:
         raise ValueError('segment duration must use an explicit unit')
-    unit = match.group(2)
-    if unit in {'frame', 'frames'}:
+    if unit == 'frame':
         raise ValueError('segment frames require a declared timebase')
-    canonical = 'beat' if unit in {'beat', 'beats'} else 'second'
+    canonical = 'beat' if unit == 'beat' else 'second'
     return control.rational(units.magnitude(value, canonical, exact=True))
 
 
@@ -48,8 +47,7 @@ class Segment(Model):
             authored = value['duration']
             unit = (
                 DurationUnit.beats
-                if (match := units.QUANTITY.fullmatch(authored.strip())) is not None
-                and match.group(2) in {'beat', 'beats'}
+                if units.quantity_unit(authored) == 'beat'
                 else DurationUnit.seconds
             )
             if 'duration_unit' in value and value['duration_unit'] != unit:

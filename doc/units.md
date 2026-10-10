@@ -8,6 +8,10 @@ Bare numbers retain each field's documented canonical unit. Unit strings permit
 conversion within the same dimension, for example `250ms` in a seconds field,
 `2kHz` in a frequency field, `1 semitone` in a cents field, and `2KiB` in a byte
 count. Values must still satisfy the field's range and integer constraints.
+Pint parses prefixes, plurals, parentheses, and compound expressions, including
+`1 ms / 3`, `1000 millibeats / 3`, and `880 Hz / 2`. A unit alone, such as `ms`,
+means one unit. Exact coordinates use rational arithmetic throughout conversion;
+expressions that produce an inexact magnitude cannot populate exact-time fields.
 Boolean quantities, nonfinite numbers, incompatible dimensions, and fractional
 integer counts are rejected.
 
@@ -59,6 +63,18 @@ Dimensionless values, ratios, probabilities, MIDI IDs, seeds, enumeration values
 and opaque synth-format integers retain their existing meanings. A lighting
 `speed` that multiplies elapsed time is a dimensionless factor. Spatial speeds,
 palette cycle rates, and speeds per logical frame retain their distinct units.
+
+Angles, pitch intervals, logarithmic gain, information sizes, musical beats,
+frames, and ticks have distinct dimensions in the shared registry. Angles cannot
+be normalized controls, and `radian/s` is not cyclic frequency in Hz. `octave`
+means 1200 cents. dB remains an authored gain coordinate; amplitude conversion
+continues to use the renderer's existing `10 ** (db / 20)`, not Pint's default
+power-ratio conversion. Ratio, normalized, and logical ports retain their existing
+schema-level compatibility rules.
+
+Patch signals remain dimensionless. Their arithmetic values and thresholds are
+numbers, not quantities inferred from a destination parameter. Slew rates are
+dimensionless change per second. Adding physical-unit Patch signals is deferred.
 
 Default model and TOML serialization emit canonical values. Seconds, hertz,
 frames, and other units remain implied by the field or its declared unit;

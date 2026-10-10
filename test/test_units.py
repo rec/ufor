@@ -7,6 +7,7 @@ from pydantic import TypeAdapter, ValidationError
 from reccy.configuration import units
 
 from ufor import base
+from ufor.arpeggiator import Grid
 from ufor.assets import ContentIdentity
 from ufor.automation import TimelineCurve
 from ufor.broadcast import ProgrammeSource
@@ -18,6 +19,7 @@ from ufor.light_animation import Fade
 from ufor.lights import Layout
 from ufor.modulation import Parameter, Route
 from ufor.motion import (
+    Affine,
     Cycle,
     MotionParameter,
     MotionScore,
@@ -78,6 +80,58 @@ def test_authored_timing_stays_exact_and_serializes_in_canonical_units() -> None
     segment = Segment(duration='1/3ms', to=1)
     assert segment.duration == Fraction(1, 3000)
     assert segment.model_dump()['duration'] == '1/3000 s'
+
+
+@pytest.mark.parametrize(
+    ('authored', 'serialized'),
+    [('1 ms / 3', '1/3000 s'), ('1000 millibeats / 3', '1/3 beat')],
+)
+def test_segment_expressions_select_their_clock_and_round_trip(
+    authored: str, serialized: str
+) -> None:
+    segment = Segment(duration=authored, to=1)
+    assert segment.model_dump()['duration'] == serialized
+    assert Segment.model_validate(segment.model_dump()) == segment
+
+
+def test_rhythmic_steps_and_tuning_accept_pint_expressions() -> None:
+    assert Grid(step='1000 millibeat / 3').step == '1/3 beat'
+    tuning = Tuning(source={'kind': 'computed'}, root_frequency='880 Hz / 2')
+    assert tuning.root_frequency == '440'
+    assert (
+        Tuning(
+            source={'kind': 'computed'}, root_frequency='440/2^(1/12)'
+        ).root_frequency
+        == '440/2^(1/12)'
+    )
+
+
+@pytest.mark.parametrize(
+    ('unit', 'authored'),
+    [
+        ('ratio', '90degree'),
+        ('normalized', '-6dB'),
+        ('logical', '1 semitone'),
+        ('radians', '50%'),
+    ],
+)
+def test_parameter_inputs_reject_other_semantic_families(
+    unit: str, authored: str
+) -> None:
+    with pytest.raises(ValidationError):
+        Parameter(
+            target={'name': 'control', 'parameter': 'value'},
+            unit=unit,
+            scope='voice',
+            minimum=-1,
+            maximum=1,
+            default=authored,
+        )
+
+
+def test_patch_offsets_remain_dimensionless_numbers() -> None:
+    with pytest.raises(ValidationError):
+        Affine(input='source', offset='1 volt')
 
 
 def test_unit_strings_obey_integer_and_positive_constraints() -> None:

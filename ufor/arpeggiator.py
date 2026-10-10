@@ -245,10 +245,9 @@ class ArpeggiatorScore(Score):
 
 
 def _beat_step(value: str) -> str:
-    match = units.QUANTITY.fullmatch(value.strip())
-    if match is None or not match.group(2):
-        raise ValueError('step must be a positive rational beat duration')
     try:
+        if units.quantity_unit(value) is None:
+            raise ValueError('step must use an explicit unit')
         step = Fraction(str(units.magnitude(value, 'beat', exact=True)))
     except (ValueError, ZeroDivisionError) as error:
         raise ValueError('step must be a positive rational beat duration') from error

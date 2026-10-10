@@ -15,11 +15,7 @@ from .number import PitchNumber, cents_to_ratio
 
 
 def frequency_expression(value: object) -> object:
-    if (
-        isinstance(value, str)
-        and (match := units.QUANTITY.fullmatch(value.strip())) is not None
-        and match.group(2)
-    ):
+    if isinstance(value, str) and units.quantity_unit(value) is not None:
         return str(units.magnitude(value, 'hertz', exact=True))
     return value
 
