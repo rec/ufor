@@ -27,6 +27,7 @@ from ufor.motion import (
     SampleHoldState,
     Stage,
     Stages,
+    StageState,
     StageTransition,
     Sum,
     advance_motion,
@@ -35,10 +36,40 @@ from ufor.motion import (
     instantiate_motion,
     motion_at,
     motion_event,
+    next_stage_event,
     transform_value,
 )
 from ufor.samples.processing import ReleaseTiming, SoundSettings
 from ufor.segments import Segment
+
+
+@pytest.mark.parametrize('kind', ['hold', 'cycle', 'contour'])
+def test_next_stage_boundary_query_is_exact_and_does_not_advance_state(
+    kind: str,
+) -> None:
+    child = (
+        Hold(value=0.5)
+        if kind == 'hold'
+        else Cycle(rate=2, markers=[Marker(name='pulse', position=Fraction(1, 2))])
+        if kind == 'cycle'
+        else Contour(segments=[Segment(duration=Fraction(1, 4), to=1)])
+    )
+    body = Stages(initial_stage='source', stages=[Stage(name='source', motion=child)])
+    motion = MotionUse(body=body)
+    state = initial_motion(motion, Fraction(0))
+    assert isinstance(state.runtime, StageState)
+    saved = state.model_dump_json()
+    assert next_stage_event(body, state.runtime, Fraction(1, 8)) is None
+    boundary = next_stage_event(body, state.runtime, Fraction(1, 4))
+    if kind == 'hold':
+        assert boundary is None
+    else:
+        assert boundary == (Fraction(1, 4), 0, 'pulse' if kind == 'cycle' else 'done')
+        assert next_stage_event(body, state.runtime, Fraction(1, 4), False) is None
+        result = advance_motion(motion, state, Fraction(1, 4))
+        assert result.events[0].at == boundary[0]
+        assert result.events[0].port == ('pulse' if kind == 'cycle' else 'stage.done')
+    assert state.model_dump_json() == saved
 
 
 def staged_motion() -> MotionUse:

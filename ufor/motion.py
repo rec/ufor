@@ -1345,7 +1345,7 @@ def _advance_stages(
     body: Stages, state: StageState, at: Fraction, inclusive: bool
 ) -> tuple[StageState, list[MotionOutputEvent]]:
     emitted: list[MotionOutputEvent] = []
-    while (natural := _next_stage_event(body, state, at, inclusive)) is not None:
+    while (natural := next_stage_event(body, state, at, inclusive)) is not None:
         time, order, port = natural
         stage = state.stage
         activation = state.activation
@@ -1419,9 +1419,10 @@ def _advance_stages(
     return state, emitted
 
 
-def _next_stage_event(
-    body: Stages, state: StageState, limit: Fraction, inclusive: bool
+def next_stage_event(
+    body: Stages, state: StageState, limit: Fraction, inclusive: bool = True
 ) -> tuple[Fraction, int, str] | None:
+    """Find the next natural boundary without advancing state or emitting events."""
     if state.completed:
         return None
     stage = next(s.motion for s in body.stages if s.name == state.stage)
