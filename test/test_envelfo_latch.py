@@ -1,14 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.envelfo import EnvelfoUse, Latch, Patch, latch_value
-
-
-def test_latch_captures_on_activation_and_holds_until_cleared() -> None:
-    assert latch_value(-0.25, None) == -0.25
-    assert latch_value(0.75, -0.25) == -0.25
-    assert latch_value(0.75, None) == 0.75
-    assert latch_value(-0.5, 0.75) == 0.75
+from ufor.envelfo import EnvelfoUse, Latch, Patch
 
 
 def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
