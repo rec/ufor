@@ -5,12 +5,12 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 from reccy.configuration import units
 
-from .. import motion_random
+from .. import envelfo_random
 from ..base import Identifier, Model, unique
 from ..events import (
     ControlChange,
+    EnvelfoChange,
     LFOChange,
-    MotionChange,
     PerformanceEvent,
     Release,
     Trigger,
@@ -20,9 +20,9 @@ from ..instrument_trace import (
     ActiveVoice,
     ControlObservation,
     Diagnostic,
+    EnvelfoObservation,
     LFOObservation,
     LifecycleSnapshot,
-    MotionObservation,
     RetirementCause,
     TriggerContext,
     VoiceRetirement,
@@ -60,7 +60,7 @@ Action = Annotated[
     | TriggerContext
     | ControlObservation
     | LFOObservation
-    | MotionObservation
+    | EnvelfoObservation
     | Diagnostic,
     Field(discriminator='kind'),
 ]
@@ -349,7 +349,7 @@ def prepare(
                     channels=slot.channels,
                     settings=effective_settings(slot, groups.get(slot.group)),
                     variation=resolved_variation,
-                    motion_key=motion_random.stream_key(seed, voice_id),
+                    envelfo_key=envelfo_random.stream_key(seed, voice_id),
                 )
             )
             voices.append(
@@ -410,9 +410,9 @@ def prepare(
                     offset=event.offset,
                 )
             )
-        elif isinstance(event, MotionChange):
+        elif isinstance(event, EnvelfoChange):
             actions.append(
-                MotionObservation(
+                EnvelfoObservation(
                     tick=event.tick,
                     ordinal=event.ordinal,
                     name=event.name,

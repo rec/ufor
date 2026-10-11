@@ -99,20 +99,20 @@ score = { selector = "my library:pretty score" }
 parameters = { brightness = 0.25 }
 ```
 
-## Motion uses
+## Envelfo uses
 
-The [example Motion library](../examples/motions/library.toml) contains a sine
-vibrato, a pulse, and a pluck contour. A Motion score may expose a named Hz
+The [example Envelfo library](../examples/envelfos/library.toml) contains a sine
+vibrato, a pulse, and a pluck contour. A Envelfo score may expose a named Hz
 parameter for its cycle rate. A use supplies a public value, or inherits the
-score's default. A Motion preset can change that default. Other body fields are
+score's default. A Envelfo preset can change that default. Other body fields are
 currently literal values, not public parameter targets.
 
-Within an instrument voice's settings, a Motion use may reference a library
+Within an instrument voice's settings, a Envelfo use may reference a library
 score:
 
 ```toml
-[motions.vibrato]
-score = { selector = "motions:vibrato" }
+[envelfos.vibrato]
+score = { selector = "envelfos:vibrato" }
 scope = "voice"
 parameters = { speed = 6.0 }
 ```
@@ -127,9 +127,9 @@ library = read_library(config_path)
 instrument = library.materialize('my library:my instrument')
 ```
 
-`materialize` returns a fully validated score with independent inline Motion
+`materialize` returns a fully validated score with independent inline Envelfo
 uses. It rejects unknown parameters, out-of-range values, and references to
-non-Motion scores. Relative Motion references resolve from the containing
+non-Envelfo scores. Relative Envelfo references resolve from the containing
 library score; selectors retain the library's ambiguity and digest checks. Each
 materialized use records its resolved library identity and available source
 digest; that provenance stays with a renderer snapshot of the prepared score.

@@ -55,7 +55,7 @@ implicitly the OR of every key in the instrument.
 ## Embedded envelope semantics and reusable contour scores
 
 The existing embedded `Envelope` still owns its clock, scope, polarity, hold,
-and retrigger policy. A standalone reusable contour is now a `MotionScore` with
+and retrigger policy. A standalone reusable contour is now a `EnvelfoScore` with
 `kind = "contour"` in its body. Its cycle counterpart uses `kind = "cycle"`.
 Instance ownership and playback policy are not part of these standalone
 definitions yet.
@@ -86,7 +86,7 @@ format = "recs"
 version = 4
 name = "soft-amplitude"
 title = "Soft amplitude"
-kind = "motion"
+kind = "envelfo"
 
 [body]
 kind = "contour"

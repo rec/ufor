@@ -1,4 +1,4 @@
-# Arpeggiator Motion ports
+# Arpeggiator Envelfo ports
 
 `ufor.arpeggiator_ports` defines a portable control payload and output batch.
 The host timestamps each control in the arpeggiator's running beat coordinate.
@@ -34,9 +34,9 @@ Outputs carry exact beat `at`, zero-based rhythm `index`, and bank `revision`.
 Expression controls are realized by the MIDI player, rather than queued by the
 pure step engines. `breath` and `pressure` accept exact normalized values in
 [0, 1]; `bend` accepts [-1, 1], the wheel position rather than a musical interval.
-`body.expression.lanes` chooses `current`, `recorded`, or `motion` per named lane.
+`body.expression.lanes` chooses `current`, `recorded`, or `envelfo` per named lane.
 Unspecified lanes inherit `body.expression.source`. Held/latched banks cannot
-provide recorded lanes. A Motion sample requires the lane to declare `motion`.
+provide recorded lanes. A Envelfo sample requires the lane to declare `envelfo`.
 It immediately affects an owned sounding note, or is held during rests/pauses
 for the next onset. Samples survive pause, clear, and transport relocation.
 They remain distinct from the received MIDI capture ledger and current state.
@@ -44,7 +44,7 @@ Unseen values are not initialized. Source combinations are not implemented.
 
 Normalize CC2 and channel pressure to 7-bit levels. Bend maps -1 to 0, 0 to 8192,
 and +1 to 16383, scaling negative and positive halves by 8192 and 8191 respectively.
-Round to the nearest integer, with half values upward. Keep exact Motion values
+Round to the nearest integer, with half values upward. Keep exact Envelfo values
 in snapshots; the destination encoding alone quantizes them.
 
 At each scheduled opportunity emit `step`, followed by `hit` if a source note
@@ -98,7 +98,7 @@ replaying skipped ones. Python snapshots preserve occurrences, the sounding
 notification, and undrained lists. These notifications do not reconcile hardware
 state after snapshot restoration.
 
-These ports do not execute a Motion graph. The host owns graph evaluation and
+These ports do not execute a Envelfo graph. The host owns graph evaluation and
 ordering, applies scalar samples before the target step, and routes output
 events after collecting them. Feedback must arrive at a later opportunity with
 an explicit delay of at least one scheduling quantum and a bounded event budget.

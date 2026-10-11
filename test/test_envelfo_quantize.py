@@ -3,7 +3,7 @@ from math import nextafter
 import pytest
 from pydantic import ValidationError
 
-from ufor.motion import Patch, Quantize, quantize_value, transform_value
+from ufor.envelfo import Patch, Quantize, quantize_value, transform_value
 
 
 @pytest.mark.parametrize(
@@ -23,7 +23,7 @@ def test_quantize_half_steps_choose_the_higher_value(
 def test_quantize_origin_and_range_do_not_clip() -> None:
     body = Patch.model_validate(
         {
-            'motions': {
+            'envelfos': {
                 'wave': {'kind': 'cycle', 'rate': '1'},
                 'steps': {
                     'kind': 'quantize',
@@ -41,10 +41,10 @@ def test_quantize_origin_and_range_do_not_clip() -> None:
     node = Quantize(input='wave', step=0.75, origin=0.125)
     assert quantize_value(node, 1.3) == 1.625
     raw = body.model_dump()
-    raw['motions']['steps']['input'] = 'steps'
+    raw['envelfos']['steps']['input'] = 'steps'
     with pytest.raises(ValidationError, match='cycle'):
         Patch.model_validate(raw)
-    raw['motions']['steps']['input'] = 'missing'
+    raw['envelfos']['steps']['input'] = 'missing'
     with pytest.raises(ValidationError, match='unknown child'):
         Patch.model_validate(raw)
 

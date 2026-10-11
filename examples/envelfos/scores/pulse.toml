@@ -1,4 +1,4 @@
-kind = "motion"
+kind = "envelfo"
 name = "pulse"
 title = "Quarter-width pulse"
 tags = ["#rhythm", "#periodic"]

@@ -8,9 +8,9 @@ from pydantic import BaseModel, Field, TypeAdapter
 
 from .base import Model
 from .composition import Composition, ScoreRecord
+from .envelfo import EnvelfoOrigin, EnvelfoScore, EnvelfoUse, instantiate_envelfo
 from .interface import InterfaceScore, ScoreReference
 from .modulation import unit_number
-from .motion import MotionOrigin, MotionScore, MotionUse, instantiate_motion
 from .preset import PresetScore
 from .score import Score
 from .score_types import ScoreValue
@@ -107,14 +107,14 @@ class Library:
         return Composition(self.resolve(selector).key, self.records, parameters)
 
     def materialize(self, selector: str | ScoreSelector) -> ScoreValue:
-        """Resolve a library score's Motion uses before consumer preparation."""
+        """Resolve a library score's Envelfo uses before consumer preparation."""
         record = self.records[self.resolve(selector).key]
-        value = self._materialize_motions(record.score, record.paths)
+        value = self._materialize_envelfos(record.score, record.paths)
         assert isinstance(value, BaseModel)
         return TypeAdapter(ScoreValue).validate_python(value.model_dump())
 
-    def _materialize_motions(self, value: object, paths: dict[str, str]) -> object:
-        if isinstance(value, MotionUse) and value.score is not None:
+    def _materialize_envelfos(self, value: object, paths: dict[str, str]) -> object:
+        if isinstance(value, EnvelfoUse) and value.score is not None:
             reference = value.score
             key = (
                 paths[str(reference.path)]
@@ -122,27 +122,27 @@ class Library:
                 else self.resolve(str(reference.selector)).key
             )
             target = self.records[key].score
-            if not isinstance(target, MotionScore):
-                raise ValueError(f'{key}: Motion use requires a motion score')
-            return instantiate_motion(
+            if not isinstance(target, EnvelfoScore):
+                raise ValueError(f'{key}: Envelfo use requires a envelfo score')
+            return instantiate_envelfo(
                 target,
                 value.parameters,
                 value.scope,
                 value.clock,
-                MotionOrigin(identity=key, sha256=self.entries[key].sha256),
+                EnvelfoOrigin(identity=key, sha256=self.entries[key].sha256),
                 value.position_driver,
             )
         if isinstance(value, BaseModel):
             return value.model_copy(
                 update={
-                    name: self._materialize_motions(getattr(value, name), paths)
+                    name: self._materialize_envelfos(getattr(value, name), paths)
                     for name in type(value).model_fields
                 }
             )
         if isinstance(value, list):
-            return [self._materialize_motions(v, paths) for v in value]
+            return [self._materialize_envelfos(v, paths) for v in value]
         if isinstance(value, dict):
-            return {k: self._materialize_motions(v, paths) for k, v in value.items()}
+            return {k: self._materialize_envelfos(v, paths) for k, v in value.items()}
         return value
 
     def _select(self, selector: str | ScoreSelector) -> Entry:
@@ -266,9 +266,9 @@ class Library:
             data = record.score.model_dump()
             if entry.score.parameters:
                 parameters: dict[str, float] = {}
-                if isinstance(record.score, MotionScore):
+                if isinstance(record.score, EnvelfoScore):
                     if entry.score.parameters.keys() - record.score.parameters.keys():
-                        raise ValueError('preset names an unknown motion parameter')
+                        raise ValueError('preset names an unknown envelfo parameter')
                     for name, value in entry.score.parameters.items():
                         contract = record.score.parameters[name]
                         value = parameters[name] = unit_number(value, contract.unit)

@@ -1,4 +1,4 @@
-kind = "motion"
+kind = "envelfo"
 name = "vibrato"
 title = "Sine vibrato"
 tags = ["#pitch", "#periodic"]

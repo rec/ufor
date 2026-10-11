@@ -181,7 +181,7 @@ class Expression(Model):
     source: Literal['current', 'recorded'] = 'current'
     timing: Literal['original', 'fit'] = 'original'
     gaps: Literal['carry', 'omit'] = 'omit'
-    lanes: dict[ExpressionLane, Literal['current', 'recorded', 'motion']] = Field(
+    lanes: dict[ExpressionLane, Literal['current', 'recorded', 'envelfo']] = Field(
         default_factory=dict
     )
 

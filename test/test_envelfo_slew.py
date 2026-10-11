@@ -3,7 +3,7 @@ from fractions import Fraction
 import pytest
 from pydantic import ValidationError
 
-from ufor.motion import MotionUse, Patch, Slew, slew_value
+from ufor.envelfo import EnvelfoUse, Patch, Slew, slew_value
 
 
 def test_slew_limits_each_direction_and_does_not_overshoot() -> None:
@@ -30,7 +30,7 @@ def test_slew_explicit_initial_and_zero_rates_hold_direction() -> None:
 def test_slew_range_includes_initial_value_and_validates_dependencies() -> None:
     body = Patch.model_validate(
         {
-            'motions': {
+            'envelfos': {
                 'clock': {'kind': 'cycle', 'rate': '1'},
                 'smooth': {
                     'kind': 'slew',
@@ -47,9 +47,9 @@ def test_slew_range_includes_initial_value_and_validates_dependencies() -> None:
     assert body.signal_order.index('clock') < body.signal_order.index('smooth')
     assert Patch.model_validate_json(body.model_dump_json()) == body
     with pytest.raises(ValidationError, match='slew requires voice scope'):
-        MotionUse(body=body, scope='part')
+        EnvelfoUse(body=body, scope='part')
     raw = body.model_dump()
-    raw['motions']['smooth']['input'] = 'smooth'
+    raw['envelfos']['smooth']['input'] = 'smooth'
     with pytest.raises(ValidationError, match='cycle'):
         Patch.model_validate(raw)
 

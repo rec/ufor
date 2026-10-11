@@ -3,9 +3,9 @@ from pydantic import TypeAdapter, ValidationError
 
 from ufor.codec import parse_score, score_toml
 from ufor.events import (
+    EnvelfoChange,
     LFOChange,
     MidiEvent,
-    MotionChange,
     OscEvent,
     OscMessage,
     StoredEvent,
@@ -91,11 +91,11 @@ def test_lfo_position_changes_validate_their_payloads() -> None:
         LFOChange(tick=0, ordinal=0, name='vibrato', action='shift')
 
 
-def test_trigger_addressed_motion_change_round_trips() -> None:
-    assert EventType(timebase='ticks', kinds=['motion_change']).kinds == [
-        'motion_change'
+def test_trigger_addressed_envelfo_change_round_trips() -> None:
+    assert EventType(timebase='ticks', kinds=['envelfo_change']).kinds == [
+        'envelfo_change'
     ]
-    change = MotionChange(
+    change = EnvelfoChange(
         tick=12000,
         ordinal=0,
         name='swell',
@@ -107,7 +107,7 @@ def test_trigger_addressed_motion_change_round_trips() -> None:
     adapter = TypeAdapter(StoredEvent)
     assert adapter.validate_json(adapter.dump_json(change)) == change
     with pytest.raises(ValueError, match='require a position'):
-        MotionChange(
+        EnvelfoChange(
             tick=0,
             ordinal=0,
             name='swell',
@@ -116,7 +116,7 @@ def test_trigger_addressed_motion_change_round_trips() -> None:
             action='seek',
         )
     with pytest.raises(ValueError, match='require a position'):
-        MotionChange(
+        EnvelfoChange(
             tick=0,
             ordinal=0,
             name='swell',
@@ -130,7 +130,7 @@ def test_trigger_addressed_motion_change_round_trips() -> None:
     )
     assert adapter.validate_json(adapter.dump_json(shift)) == shift
     with pytest.raises(ValueError, match='require an offset'):
-        MotionChange(
+        EnvelfoChange(
             tick=0,
             ordinal=0,
             name='swell',

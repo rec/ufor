@@ -3476,7 +3476,7 @@
           "default": "current"
         },
         "playback": {
-          "$ref": "#/$defs/ufor__motion__PlaybackMode",
+          "$ref": "#/$defs/ufor__envelfo__PlaybackMode",
           "default": "once"
         },
         "markers": {
@@ -4757,7 +4757,7 @@
                 "key": "#/$defs/KeyEvent",
                 "lfo_change": "#/$defs/LFOChange",
                 "midi": "#/$defs/MidiEvent",
-                "motion_change": "#/$defs/MotionChange",
+                "envelfo_change": "#/$defs/EnvelfoChange",
                 "osc": "#/$defs/OscEvent",
                 "release": "#/$defs/Release",
                 "trigger": "#/$defs/Trigger",
@@ -4791,7 +4791,7 @@
                 "$ref": "#/$defs/LFOChange"
               },
               {
-                "$ref": "#/$defs/MotionChange"
+                "$ref": "#/$defs/EnvelfoChange"
               }
             ]
           },
@@ -4845,7 +4845,7 @@
                 "release",
                 "control_change",
                 "lfo_change",
-                "motion_change"
+                "envelfo_change"
               ],
               "type": "string"
             },
@@ -4908,7 +4908,7 @@
               "release",
               "control_change",
               "lfo_change",
-              "motion_change"
+              "envelfo_change"
             ],
             "type": "string"
           },
@@ -5122,7 +5122,7 @@
             "enum": [
               "current",
               "recorded",
-              "motion"
+              "envelfo"
             ],
             "type": "string"
           },
@@ -5252,11 +5252,11 @@
           ],
           "default": null
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionUse"
+            "$ref": "#/$defs/EnvelfoUse"
           },
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "modulation": {
@@ -5273,7 +5273,7 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "key": "#/$defs/EventBinding",
-                "motion": "#/$defs/GeneratorBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -5295,7 +5295,7 @@
         },
         "event_connections": {
           "items": {
-            "$ref": "#/$defs/MotionEventConnection"
+            "$ref": "#/$defs/EnvelfoEventConnection"
           },
           "title": "Event Connections",
           "type": "array"
@@ -6194,8 +6194,8 @@
           "type": "string"
         },
         "kind": {
-          "const": "motion",
-          "default": "motion",
+          "const": "envelfo",
+          "default": "envelfo",
           "title": "Kind",
           "type": "string"
         },
@@ -8173,9 +8173,9 @@
       "title": "Modulation",
       "type": "object"
     },
-    "MotionChange": {
+    "EnvelfoChange": {
       "additionalProperties": false,
-      "description": "Control named Motions on the voices started by one trigger.",
+      "description": "Control named Envelfos on the voices started by one trigger.",
       "properties": {
         "tick": {
           "anyOf": [
@@ -8197,8 +8197,8 @@
           "type": "integer"
         },
         "kind": {
-          "const": "motion_change",
-          "default": "motion_change",
+          "const": "envelfo_change",
+          "default": "envelfo_change",
           "title": "Kind",
           "type": "string"
         },
@@ -8275,10 +8275,10 @@
         "trigger_id",
         "action"
       ],
-      "title": "MotionChange",
+      "title": "EnvelfoChange",
       "type": "object"
     },
-    "MotionEventConnection": {
+    "EnvelfoEventConnection": {
       "additionalProperties": false,
       "properties": {
         "source": {
@@ -8339,10 +8339,10 @@
         "destination",
         "cue"
       ],
-      "title": "MotionEventConnection",
+      "title": "EnvelfoEventConnection",
       "type": "object"
     },
-    "MotionOrigin": {
+    "EnvelfoOrigin": {
       "additionalProperties": false,
       "properties": {
         "identity": {
@@ -8366,10 +8366,10 @@
       "required": [
         "identity"
       ],
-      "title": "MotionOrigin",
+      "title": "EnvelfoOrigin",
       "type": "object"
     },
-    "MotionParameter": {
+    "EnvelfoParameter": {
       "additionalProperties": false,
       "properties": {
         "unit": {
@@ -8427,10 +8427,10 @@
         "minimum",
         "maximum"
       ],
-      "title": "MotionParameter",
+      "title": "EnvelfoParameter",
       "type": "object"
     },
-    "MotionScore": {
+    "EnvelfoScore": {
       "additionalProperties": false,
       "properties": {
         "format": {
@@ -8462,14 +8462,14 @@
           "type": "array"
         },
         "kind": {
-          "const": "motion",
-          "default": "motion",
+          "const": "envelfo",
+          "default": "envelfo",
           "title": "Kind",
           "type": "string"
         },
         "parameters": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionParameter"
+            "$ref": "#/$defs/EnvelfoParameter"
           },
           "title": "Parameters",
           "type": "object"
@@ -8510,10 +8510,10 @@
         "title",
         "body"
       ],
-      "title": "MotionScore",
+      "title": "EnvelfoScore",
       "type": "object"
     },
-    "MotionUse": {
+    "EnvelfoUse": {
       "additionalProperties": false,
       "properties": {
         "scope": {
@@ -8594,7 +8594,7 @@
         "origin": {
           "anyOf": [
             {
-              "$ref": "#/$defs/MotionOrigin"
+              "$ref": "#/$defs/EnvelfoOrigin"
             },
             {
               "type": "null"
@@ -8603,7 +8603,7 @@
           "default": null
         }
       },
-      "title": "MotionUse",
+      "title": "EnvelfoUse",
       "type": "object"
     },
     "MusicianAssignmentObservation": {
@@ -8686,11 +8686,11 @@
             "retrigger": "current"
           }
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionUse"
+            "$ref": "#/$defs/EnvelfoUse"
           },
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "modulation": {
@@ -8707,7 +8707,7 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "key": "#/$defs/EventBinding",
-                "motion": "#/$defs/GeneratorBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -8729,7 +8729,7 @@
         },
         "event_connections": {
           "items": {
-            "$ref": "#/$defs/MotionEventConnection"
+            "$ref": "#/$defs/EnvelfoEventConnection"
           },
           "title": "Event Connections",
           "type": "array"
@@ -9855,7 +9855,7 @@
                   "broadcast": "#/$defs/BroadcastScore",
                   "fixture": "#/$defs/FixtureScore",
                   "instrument": "#/$defs/SampleInstrumentScore",
-                  "motion": "#/$defs/MotionScore",
+                  "envelfo": "#/$defs/EnvelfoScore",
                   "oscillator": "#/$defs/OscillatorScore",
                   "performance_binding": "#/$defs/PerformanceBindingScore",
                   "preset": "#/$defs/PresetScore",
@@ -9909,7 +9909,7 @@
                   "$ref": "#/$defs/OscillatorScore"
                 },
                 {
-                  "$ref": "#/$defs/MotionScore"
+                  "$ref": "#/$defs/EnvelfoScore"
                 },
                 {
                   "$ref": "#/$defs/SampleInstrumentScore"
@@ -10003,7 +10003,7 @@
           "title": "Kind",
           "type": "string"
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
             "discriminator": {
               "mapping": {
@@ -10058,7 +10058,7 @@
             ]
           },
           "minProperties": 1,
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "outputs": {
@@ -10085,7 +10085,7 @@
         }
       },
       "required": [
-        "motions",
+        "envelfos",
         "outputs"
       ],
       "title": "Patch",
@@ -12392,11 +12392,11 @@
             "retrigger": "current"
           }
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionUse"
+            "$ref": "#/$defs/EnvelfoUse"
           },
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "modulation": {
@@ -12413,7 +12413,7 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "key": "#/$defs/EventBinding",
-                "motion": "#/$defs/GeneratorBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -12435,7 +12435,7 @@
         },
         "event_connections": {
           "items": {
-            "$ref": "#/$defs/MotionEventConnection"
+            "$ref": "#/$defs/EnvelfoEventConnection"
           },
           "title": "Event Connections",
           "type": "array"
@@ -12529,11 +12529,11 @@
           ],
           "default": null
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionUse"
+            "$ref": "#/$defs/EnvelfoUse"
           },
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "modulation": {
@@ -12550,7 +12550,7 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "key": "#/$defs/EventBinding",
-                "motion": "#/$defs/GeneratorBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -12572,7 +12572,7 @@
         },
         "event_connections": {
           "items": {
-            "$ref": "#/$defs/MotionEventConnection"
+            "$ref": "#/$defs/EnvelfoEventConnection"
           },
           "title": "Event Connections",
           "type": "array"
@@ -13842,11 +13842,11 @@
           ],
           "default": null
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionUse"
+            "$ref": "#/$defs/EnvelfoUse"
           },
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "modulation": {
@@ -13863,7 +13863,7 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "key": "#/$defs/EventBinding",
-                "motion": "#/$defs/GeneratorBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -13885,7 +13885,7 @@
         },
         "event_connections": {
           "items": {
-            "$ref": "#/$defs/MotionEventConnection"
+            "$ref": "#/$defs/EnvelfoEventConnection"
           },
           "title": "Event Connections",
           "type": "array"
@@ -14050,7 +14050,7 @@
           "title": "Name",
           "type": "string"
         },
-        "motion": {
+        "envelfo": {
           "discriminator": {
             "mapping": {
               "contour": "#/$defs/Contour",
@@ -14070,12 +14070,12 @@
               "$ref": "#/$defs/Contour"
             }
           ],
-          "title": "Motion"
+          "title": "Envelfo"
         }
       },
       "required": [
         "name",
-        "motion"
+        "envelfo"
       ],
       "title": "Stage",
       "type": "object"
@@ -14706,11 +14706,11 @@
             "retrigger": "current"
           }
         },
-        "motions": {
+        "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/MotionUse"
+            "$ref": "#/$defs/EnvelfoUse"
           },
-          "title": "Motions",
+          "title": "Envelfos",
           "type": "object"
         },
         "modulation": {
@@ -14727,7 +14727,7 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "key": "#/$defs/EventBinding",
-                "motion": "#/$defs/GeneratorBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
                 "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
@@ -14749,7 +14749,7 @@
         },
         "event_connections": {
           "items": {
-            "$ref": "#/$defs/MotionEventConnection"
+            "$ref": "#/$defs/EnvelfoEventConnection"
           },
           "title": "Event Connections",
           "type": "array"
@@ -16015,7 +16015,7 @@
       "title": "Interpolation",
       "type": "string"
     },
-    "ufor__motion__PlaybackMode": {
+    "ufor__envelfo__PlaybackMode": {
       "enum": [
         "once",
         "loop",
@@ -16127,7 +16127,7 @@
       "broadcast": "#/$defs/BroadcastScore",
       "fixture": "#/$defs/FixtureScore",
       "instrument": "#/$defs/SampleInstrumentScore",
-      "motion": "#/$defs/MotionScore",
+      "envelfo": "#/$defs/EnvelfoScore",
       "oscillator": "#/$defs/OscillatorScore",
       "performance_binding": "#/$defs/PerformanceBindingScore",
       "preset": "#/$defs/PresetScore",
@@ -16181,7 +16181,7 @@
       "$ref": "#/$defs/OscillatorScore"
     },
     {
-      "$ref": "#/$defs/MotionScore"
+      "$ref": "#/$defs/EnvelfoScore"
     },
     {
       "$ref": "#/$defs/SampleInstrumentScore"

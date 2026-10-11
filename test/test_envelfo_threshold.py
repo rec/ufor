@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.motion import MotionUse, Patch, Threshold, threshold_value
+from ufor.envelfo import EnvelfoUse, Patch, Threshold, threshold_value
 
 
 def test_threshold_initializes_silently_and_holds_inside_hysteresis() -> None:
@@ -17,7 +17,7 @@ def test_threshold_initializes_silently_and_holds_inside_hysteresis() -> None:
 def test_threshold_patch_exposes_gate_and_event_ports() -> None:
     body = Patch.model_validate(
         {
-            'motions': {
+            'envelfos': {
                 'clock': {'kind': 'cycle', 'rate': '1'},
                 'edge': {
                     'kind': 'threshold',
@@ -38,7 +38,7 @@ def test_threshold_patch_exposes_gate_and_event_ports() -> None:
     assert body.signal_order.index('clock') < body.signal_order.index('edge')
     assert Patch.model_validate_json(body.model_dump_json()) == body
     with pytest.raises(ValidationError, match='threshold requires voice scope'):
-        MotionUse(body=body, scope='instrument')
+        EnvelfoUse(body=body, scope='instrument')
     raw = body.model_dump()
     raw['events'][0]['source'] = 'edge.unknown'
     with pytest.raises(ValidationError, match='unknown'):

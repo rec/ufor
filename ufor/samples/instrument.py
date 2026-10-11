@@ -143,7 +143,7 @@ class SampleSlot(SoundSettings):
             for name in (
                 'processing',
                 'envelope',
-                'motions',
+                'envelfos',
                 'modulation',
                 'bindings',
                 'event_connections',
@@ -189,9 +189,9 @@ class SampleSlot(SoundSettings):
             ),
             'crossfade',
         )
-        for name, motion in self.motions.items():
-            if motion.scope != control.Scope.voice:
-                raise ValueError(f'Slot motion {name} must have voice scope')
+        for name, envelfo in self.envelfos.items():
+            if envelfo.scope != control.Scope.voice:
+                raise ValueError(f'Slot envelfo {name} must have voice scope')
         for fade in self.crossfades:
             bounds = None
             if fade.input == enums.CrossfadeInput.key:
@@ -228,7 +228,7 @@ def effective_settings(slot: SampleSlot, group: SlotGroup | None) -> SoundSettin
     fields = (
         'processing',
         'envelope',
-        'motions',
+        'envelfos',
         'modulation',
         'bindings',
         'event_connections',
@@ -333,8 +333,8 @@ class SampleInstrument(Model):
                     declared = self.settings.require_control(fade.control)
                     declared.validate_value(fade.start)
                     declared.validate_value(fade.end)
-            if any(g.scope != control.Scope.voice for g in effective.motions.values()):
-                raise ValueError('Slot motions must have voice scope')
+            if any(g.scope != control.Scope.voice for g in effective.envelfos.values()):
+                raise ValueError('Slot envelfos must have voice scope')
             if any(
                 p.scope != control.Scope.voice for p in effective.modulation.parameters
             ):

@@ -9,13 +9,13 @@ from ufor.arpeggiator_ports import ArpeggiatorControl
 
 def test_per_lane_sources_round_trip_without_changing_the_default_source() -> None:
     expression = Expression.model_validate(
-        {'source': 'recorded', 'lanes': {'breath': 'motion', 'pressure': 'current'}}
+        {'source': 'recorded', 'lanes': {'breath': 'envelfo', 'pressure': 'current'}}
     )
     assert expression.source == 'recorded'
     assert Expression.model_validate_json(expression.model_dump_json()) == expression
 
 
-@pytest.mark.parametrize('lanes', [{'volume': 'motion'}, {'breath': 'combined'}])
+@pytest.mark.parametrize('lanes', [{'volume': 'envelfo'}, {'breath': 'combined'}])
 def test_expression_rejects_undeclared_lanes_and_sources(lanes: dict[str, str]) -> None:
     with pytest.raises(ValidationError):
         Expression.model_validate({'lanes': lanes})

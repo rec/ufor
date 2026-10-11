@@ -1,6 +1,6 @@
 # Choosing a control representation
 
-`sample_hold` is a voice-owned, event-driven scalar Motion, usable directly or
+`sample_hold` is a voice-owned, event-driven scalar Envelfo, usable directly or
 inside a Patch. Its `minimum` and `maximum` default to -1 and 1 and must be
 ordered within [-1, 1]. It draws once at voice activation, holds that value,
 and draws again only on Patch connections with `action = "sample"`. Cycle
@@ -8,12 +8,12 @@ markers and Stages event ports can drive those connections; division,
 probability, and seconds-based delay have their usual delivery semantics.
 SampleHold does not emit events or advance with elapsed time or beats.
 
-Each named Motion and voice has an independent SplitMix64 stream. Engines
-initialize it from `motion_key XOR stream_key(0, name + ":sample-hold")`, then
+Each named Envelfo and voice has an independent SplitMix64 stream. Engines
+initialize it from `envelfo_key XOR stream_key(0, name + ":sample-hold")`, then
 advance it for every draw, including when the two bounds are equal. Map the
 high 53 bits to `minimum + (maximum-minimum) * (word >> 11) / 2**53`.
 Standalone reference calls accept that derived stream seed through
-`initial_motion(..., seed=...)`. Seeks, reversals, pause/resume and note-off do
+`initial_envelfo(..., seed=...)`. Seeks, reversals, pause/resume and note-off do
 not draw or rewind the stream. Snapshots preserve the held value and stream
 state. Rewinding randomness requires snapshot restore, not clock reversal.
 
@@ -66,7 +66,7 @@ delay/fade weight, so an inactive Cycle contributes zero; affine's offset still
 applies. Contour and Stages inputs have weight one. Transform outputs have weight
 one and then pass through ordinary modulation mapping.
 
-Motion event connections, including internal Patch connections, accept `every`
+Envelfo event connections, including internal Patch connections, accept `every`
 as a positive integer (default `1`) and `offset` as a nonnegative integer (default
 `0`). Each connection skips `offset` matching events initially, then forwards
 every nth matching event. For `every = 3`, offsets 0, 1, and 2 forward 1, 4, 7;
@@ -75,14 +75,14 @@ at event 5, not event 2. Nonmatching
 ports do not advance the count. Counts belong to each connection and voice,
 reset on voice activation, and survive snapshots; stage transitions, contour
 restarts, and render-block boundaries do not reset them. Division filters
-delivery, not the source Motion's emitted events or named event outputs.
+delivery, not the source Envelfo's emitted events or named event outputs.
 
 `probability` (default `1`) gates events selected by `every` and `offset`.
 Zero blocks all selected events; one forwards all. Intermediate cutoffs draw once per
 selected event, independently per connection and voice, without changing the
-divider count. Prepared starts carry `motion_key`, derived from the trace seed
+divider count. Prepared starts carry `envelfo_key`, derived from the trace seed
 and voice ID with domain-separated SHA-256. Connection streams combine it with
-the target Motion identity and authored connection position. SplitMix64 words
+the target Envelfo identity and authored connection position. SplitMix64 words
 use their high 53 bits and compare against `floor(probability * 2**53)`.
 Cutoffs zero and 2**53 consume no random words, including probabilities too
 small to produce a nonzero cutoff. Snapshots retain random state; voice

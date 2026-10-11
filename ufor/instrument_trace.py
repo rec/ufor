@@ -42,7 +42,7 @@ class VoiceStart(TraceAction):
     template: Identifier
     key: int | None
     pitch_hz: Annotated[float | None, units.unit_validator('hertz')] = None
-    motion_key: int = Field(
+    envelfo_key: int = Field(
         default=0, strict=True, ge=0, lt=2**64, exclude_if=lambda v: v == 0
     )
 
@@ -91,8 +91,8 @@ class LFOObservation(TraceAction):
         return self
 
 
-class MotionObservation(TraceAction):
-    kind: Literal['motion'] = 'motion'
+class EnvelfoObservation(TraceAction):
+    kind: Literal['envelfo'] = 'envelfo'
     name: Identifier
     part: Identifier
     trigger_id: Identifier
@@ -103,9 +103,9 @@ class MotionObservation(TraceAction):
     @model_validator(mode='after')
     def seek_payload(self) -> Self:
         if (self.action == 'seek') != (self.position is not None):
-            raise ValueError('only Motion seek observations require a position')
+            raise ValueError('only Envelfo seek observations require a position')
         if (self.action == 'shift') != (self.offset is not None):
-            raise ValueError('only Motion shift observations require an offset')
+            raise ValueError('only Envelfo shift observations require an offset')
         return self
 
 

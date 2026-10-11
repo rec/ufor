@@ -1,4 +1,4 @@
-"""Portable definitions for reusable control motions."""
+"""Portable definitions for reusable control envelfos."""
 
 from enum import StrEnum, auto
 from fractions import Fraction
@@ -10,7 +10,7 @@ from typing import Annotated, Literal, Self
 from pydantic import ConfigDict, Field, model_validator
 from reccy.configuration import units
 
-from . import control, envelope, lfo, motion_random
+from . import control, envelfo_random, envelope, lfo
 from .base import FiniteScalar, Identifier, Model, UnitInterval, UnitScalar, unique
 from .envelope import Retrigger
 from .interface import ScoreReference
@@ -25,7 +25,7 @@ class ParameterReference(Model):
     parameter: Identifier
 
 
-class MotionParameter(Model):
+class EnvelfoParameter(Model):
     unit: Unit
     default: UnitScalar
     minimum: UnitScalar
@@ -40,13 +40,13 @@ class MotionParameter(Model):
     @model_validator(mode='after')
     def domain(self) -> Self:
         if not 0 <= self.minimum <= self.default <= self.maximum:
-            raise ValueError('motion parameter has an invalid domain or default')
+            raise ValueError('envelfo parameter has an invalid domain or default')
         if self.unit == Unit.hz and self.minimum == 0:
-            raise ValueError('Hz motion parameters require a positive minimum')
+            raise ValueError('Hz envelfo parameters require a positive minimum')
         return self
 
 
-class MotionOrigin(Model):
+class EnvelfoOrigin(Model):
     identity: str
     sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
 
@@ -147,7 +147,7 @@ class Contour(Model):
 
 class Stage(Model):
     name: Identifier
-    motion: Annotated[Hold | Cycle | Contour, Field(discriminator='kind')]
+    envelfo: Annotated[Hold | Cycle | Contour, Field(discriminator='kind')]
 
 
 class EnterStage(Model):
@@ -181,11 +181,11 @@ class Stages(Model):
         unique((s.name for s in self.stages), 'stage')
         if self.initial_stage not in names:
             raise ValueError('initial stage is unknown')
-        initial = next(s.motion for s in self.stages if s.name == self.initial_stage)
+        initial = next(s.envelfo for s in self.stages if s.name == self.initial_stage)
         if isinstance(initial, Contour) and initial.initial == 'current':
             raise ValueError('initial stage cannot capture a current value')
         for stage in self.stages:
-            body = stage.motion
+            body = stage.envelfo
             if isinstance(body, (Cycle, Contour)) and any(
                 m.name == 'done' for m in body.markers
             ):
@@ -220,7 +220,7 @@ class Stages(Model):
             if transition.event.startswith('stage.'):
                 port = transition.event.removeprefix('stage.')
                 for name in transition.from_stages:
-                    body = next(s.motion for s in self.stages if s.name == name)
+                    body = next(s.envelfo for s in self.stages if s.name == name)
                     ports = (
                         {m.name for m in body.markers}
                         if isinstance(body, (Cycle, Contour))
@@ -248,16 +248,17 @@ def stage_event_ports(body: Stages) -> set[str]:
     ports = {'done', 'stage.done'} | {
         marker.name
         for stage in body.stages
-        for marker in getattr(stage.motion, 'markers', [])
+        for marker in getattr(stage.envelfo, 'markers', [])
     }
     if any(
-        isinstance(stage.motion, Contour) and stage.motion.playback != PlaybackMode.once
+        isinstance(stage.envelfo, Contour)
+        and stage.envelfo.playback != PlaybackMode.once
         for stage in body.stages
     ):
         ports.add('cycle')
     if any(
-        isinstance(stage.motion, Contour)
-        and stage.motion.playback == PlaybackMode.ping_pong
+        isinstance(stage.envelfo, Contour)
+        and stage.envelfo.playback == PlaybackMode.ping_pong
         for stage in body.stages
     ):
         ports.add('turned')
@@ -385,7 +386,7 @@ def threshold_value(
 
 class Patch(Model):
     kind: Literal['patch'] = 'patch'
-    motions: dict[
+    envelfos: dict[
         Identifier,
         Annotated[
             Cycle
@@ -414,7 +415,7 @@ class Patch(Model):
             else [b.input]
             if isinstance(b, (Affine, Quantize, Latch, Threshold, Slew))
             else []
-            for n, b in self.motions.items()
+            for n, b in self.envelfos.items()
         }
         if any(i not in graph for d in graph.values() for i in d):
             raise ValueError('patch signal input references an unknown child')
@@ -427,7 +428,7 @@ class Patch(Model):
     def signal_ranges(self) -> dict[str, tuple[float, float]]:
         ranges: dict[str, tuple[float, float]] = {}
         for name in self.signal_order:
-            body = self.motions[name]
+            body = self.envelfos[name]
             if isinstance(body, Sum):
                 minimum, maximum = 0.0, 0.0
                 for source in body.inputs:
@@ -474,13 +475,13 @@ class Patch(Model):
         return ranges
 
     @model_validator(mode='after')
-    def selected_motions(self) -> Self:
+    def selected_envelfos(self) -> Self:
         _ = self.signal_ranges
-        if any(name not in self.motions for name in self.outputs.values()):
-            raise ValueError('patch output references an unknown child Motion')
+        if any(name not in self.envelfos for name in self.outputs.values()):
+            raise ValueError('patch output references an unknown child Envelfo')
         for source in self.event_outputs.values():
             child, separator, port = source.partition('.')
-            body = self.motions.get(child)
+            body = self.envelfos.get(child)
             if not separator or not port:
                 raise ValueError('patch event output must name a child event')
             if isinstance(body, Cycle):
@@ -495,18 +496,18 @@ class Patch(Model):
                 raise ValueError('patch event output references an unknown child event')
         if any(
             isinstance(body, Cycle) and isinstance(body.rate, ParameterReference)
-            for body in self.motions.values()
+            for body in self.envelfos.values()
         ):
             raise ValueError('patch cycle rates must be literals')
         if any(
             isinstance(body, Contour) and body.initial == 'current'
-            for body in self.motions.values()
+            for body in self.envelfos.values()
         ):
             raise ValueError('patch contours need explicit initial values')
         for connection in self.events:
             source, separator, port = connection.source.partition('.')
-            origin = self.motions.get(source)
-            target = self.motions.get(connection.target)
+            origin = self.envelfos.get(source)
+            target = self.envelfos.get(connection.target)
             if not separator or not port:
                 raise ValueError('patch event source must name a child event')
             if isinstance(origin, Cycle):
@@ -563,7 +564,7 @@ def transform_value(
     return value
 
 
-class MotionUse(Model):
+class EnvelfoUse(Model):
     scope: control.Scope = control.Scope.voice
     clock: control.Clock = control.Clock.seconds
     position_driver: PositionDriver = PositionDriver.elapsed
@@ -575,7 +576,7 @@ class MotionUse(Model):
     ) = None
     score: ScoreReference | None = None
     parameters: dict[Identifier, float | str] = Field(default_factory=dict)
-    origin: MotionOrigin | None = None
+    origin: EnvelfoOrigin | None = None
 
     @model_validator(mode='before')
     @classmethod
@@ -605,11 +606,11 @@ class MotionUse(Model):
                 'transport reset and no onset fade'
             )
         if (self.body is None) == (self.score is None):
-            raise ValueError('MotionUse requires exactly one body or score reference')
+            raise ValueError('EnvelfoUse requires exactly one body or score reference')
         if self.score is None and self.parameters:
-            raise ValueError('inline motions do not accept public parameters')
+            raise ValueError('inline envelfos do not accept public parameters')
         if self.score is not None and self.origin is not None:
-            raise ValueError('unresolved motions cannot claim a materialized origin')
+            raise ValueError('unresolved envelfos cannot claim a materialized origin')
         if isinstance(self.body, Cycle) and isinstance(
             self.body.rate, ParameterReference
         ):
@@ -626,28 +627,28 @@ class MotionUse(Model):
         if isinstance(self.body, Stages) and any(
             segment.duration_unit.value != self.clock.value
             for stage in self.body.stages
-            if isinstance(stage.motion, Contour)
-            for segment in stage.motion.segments
+            if isinstance(stage.envelfo, Contour)
+            for segment in stage.envelfo.segments
         ):
             raise ValueError('stage contour segment units must match its clock')
         if isinstance(self.body, Patch):
             if (
-                any(isinstance(b, Latch) for b in self.body.motions.values())
+                any(isinstance(b, Latch) for b in self.body.envelfos.values())
                 and self.scope != control.Scope.voice
             ):
                 raise ValueError('latch requires voice scope')
             if (
-                any(isinstance(b, Slew) for b in self.body.motions.values())
+                any(isinstance(b, Slew) for b in self.body.envelfos.values())
                 and self.scope != control.Scope.voice
             ):
                 raise ValueError('slew requires voice scope')
             if (
-                any(isinstance(b, Threshold) for b in self.body.motions.values())
+                any(isinstance(b, Threshold) for b in self.body.envelfos.values())
                 and self.scope != control.Scope.voice
             ):
                 raise ValueError('threshold requires voice scope')
             if (
-                any(isinstance(b, SampleHold) for b in self.body.motions.values())
+                any(isinstance(b, SampleHold) for b in self.body.envelfos.values())
                 and self.scope != control.Scope.voice
             ):
                 raise ValueError('sample-and-hold requires voice scope')
@@ -655,13 +656,13 @@ class MotionUse(Model):
                 name
                 for connection in self.body.events
                 if isinstance(
-                    self.body.motions[name := connection.source.partition('.')[0]],
+                    self.body.envelfos[name := connection.source.partition('.')[0]],
                     Cycle,
                 )
             } | {
                 source.partition('.')[0]
                 for source in self.body.event_outputs.values()
-                if isinstance(self.body.motions[source.partition('.')[0]], Cycle)
+                if isinstance(self.body.envelfos[source.partition('.')[0]], Cycle)
             }
             if (
                 self.body.events or cycle_sources
@@ -672,7 +673,7 @@ class MotionUse(Model):
                     'patch marker connections require simple voice seconds Cycles'
                 )
             for child_name in cycle_sources:
-                child = self.body.motions[child_name]
+                child = self.body.envelfos[child_name]
                 assert isinstance(child, Cycle)
                 if (
                     child.rate == 0
@@ -683,12 +684,14 @@ class MotionUse(Model):
                     raise ValueError(
                         'patch marker connections require simple voice seconds Cycles'
                     )
-            for child in self.body.motions.values():
+            for child in self.body.envelfos.values():
                 contours = (
                     [child]
                     if isinstance(child, Contour)
                     else [
-                        s.motion for s in child.stages if isinstance(s.motion, Contour)
+                        s.envelfo
+                        for s in child.stages
+                        if isinstance(s.envelfo, Contour)
                     ]
                     if isinstance(child, Stages)
                     else []
@@ -714,7 +717,7 @@ def _clock_body(value: object, clock: control.Clock | str) -> object:
     return {k: _clock_body(v, clock) for k, v in normalized.items()}
 
 
-class MotionEvent(control.ControlEvent):
+class EnvelfoEvent(control.ControlEvent):
     action: Literal[
         'start',
         'sample',
@@ -748,7 +751,7 @@ class MotionEvent(control.ControlEvent):
         return self
 
 
-class MotionPosition(Model):
+class EnvelfoPosition(Model):
     at: control.Rational
     coordinate: control.Rational
     rate: control.Rational = Field(ge=0)
@@ -760,7 +763,7 @@ class MotionPosition(Model):
 class CycleState(Model):
     at: control.Rational
     ordinal: int = -1
-    position: MotionPosition
+    position: EnvelfoPosition
 
 
 class ContourState(Model):
@@ -768,7 +771,7 @@ class ContourState(Model):
     ordinal: int = -1
     phase: Literal['idle', 'on', 'release'] = 'idle'
     start_value: FiniteScalar
-    position: MotionPosition
+    position: EnvelfoPosition
     traversals: int = 0
     complete_coordinate: control.Rational | None = None
 
@@ -778,7 +781,7 @@ class StageState(Model):
     ordinal: int = -1
     stage: Identifier
     entry_value: FiniteScalar
-    position: MotionPosition
+    position: EnvelfoPosition
     activation: int = 0
     cursor_order: int = -1
     completed: bool = False
@@ -793,38 +796,38 @@ class SampleHoldState(Model):
     random_state: int = Field(ge=0, lt=2**64)
 
 
-class MotionState(Model):
+class EnvelfoState(Model):
     runtime: CycleState | ContourState | StageState | SampleHoldState
 
 
-class MotionValue(Model):
+class EnvelfoValue(Model):
     value: float
     weight: float
     status: Literal['idle', 'running', 'held', 'complete']
 
 
-class MotionOutputEvent(Model):
+class EnvelfoOutputEvent(Model):
     at: control.Rational
     port: str
     stage: Identifier
     activation: int
 
 
-class MotionAdvance(Model):
-    state: MotionState
-    value: MotionValue
-    events: list[MotionOutputEvent] = Field(default_factory=list)
+class EnvelfoAdvance(Model):
+    state: EnvelfoState
+    value: EnvelfoValue
+    events: list[EnvelfoOutputEvent] = Field(default_factory=list)
 
 
-def cycle_lfo(motion: MotionUse) -> lfo.LFO:
-    body = motion.body
+def cycle_lfo(envelfo: EnvelfoUse) -> lfo.LFO:
+    body = envelfo.body
     if not isinstance(body, Cycle):
-        raise ValueError('motion is not a cycle')
+        raise ValueError('envelfo is not a cycle')
     if isinstance(body.rate, ParameterReference):
         raise ValueError('cycle rate has an unresolved public parameter')
     return lfo.LFO(
-        clock=motion.clock,
-        scope=motion.scope,
+        clock=envelfo.clock,
+        scope=envelfo.scope,
         rate=body.rate,
         phase=body.phase,
         reset=body.reset,
@@ -835,17 +838,17 @@ def cycle_lfo(motion: MotionUse) -> lfo.LFO:
     )
 
 
-def contour_envelope(motion: MotionUse) -> envelope.Envelope:
-    body = motion.body
+def contour_envelope(envelfo: EnvelfoUse) -> envelope.Envelope:
+    body = envelfo.body
     if not isinstance(body, Contour):
-        raise ValueError('motion is not a contour')
+        raise ValueError('envelfo is not a contour')
     if body.playback != PlaybackMode.once:
         raise ValueError('looping contours cannot be converted to envelopes')
     if body.initial == 'current':
         raise ValueError('contour current value needs stage entry')
     return envelope.Envelope(
-        clock=motion.clock,
-        scope=motion.scope,
+        clock=envelfo.clock,
+        scope=envelfo.scope,
         polarity=body.polarity,
         initial=body.initial,
         segments=body.segments,
@@ -891,7 +894,7 @@ def _contour_coordinate(
 
 
 def _repeat_crossings(
-    body: Contour, position: MotionPosition, at: Fraction, remaining: int
+    body: Contour, position: EnvelfoPosition, at: Fraction, remaining: int
 ) -> tuple[int, Fraction | None]:
     start, end = _loop_bounds(body)
     width = end - start
@@ -931,30 +934,30 @@ def _repeat_boundary_coordinate(
     return _contour_coordinate(boundary, body)
 
 
-def _initial_position(body: Hold | Cycle | Contour, at: Fraction) -> MotionPosition:
+def _initial_position(body: Hold | Cycle | Contour, at: Fraction) -> EnvelfoPosition:
     if isinstance(body, Cycle):
         assert isinstance(body.rate, Fraction)
-        return MotionPosition(at=at, coordinate=body.phase, rate=body.rate)
+        return EnvelfoPosition(at=at, coordinate=body.phase, rate=body.rate)
     if isinstance(body, Contour):
-        return MotionPosition(
+        return EnvelfoPosition(
             at=at, coordinate=Fraction(0), rate=_contour_rate(body.segments)
         )
-    return MotionPosition(at=at, coordinate=Fraction(0), rate=Fraction(0))
+    return EnvelfoPosition(at=at, coordinate=Fraction(0), rate=Fraction(0))
 
 
-def _coordinate_at(position: MotionPosition, at: Fraction) -> Fraction:
+def _coordinate_at(position: EnvelfoPosition, at: Fraction) -> Fraction:
     elapsed = control.elapsed(at, position.at)
     if position.paused:
         return position.coordinate
     return position.coordinate + position.direction * position.rate * elapsed
 
 
-def _age_at(position: MotionPosition, at: Fraction) -> Fraction:
+def _age_at(position: EnvelfoPosition, at: Fraction) -> Fraction:
     elapsed = control.elapsed(at, position.at)
     return position.age if position.paused else position.age + elapsed
 
 
-def _position_at(position: MotionPosition, at: Fraction) -> MotionPosition:
+def _position_at(position: EnvelfoPosition, at: Fraction) -> EnvelfoPosition:
     return position.model_copy(
         update={
             'at': at,
@@ -964,7 +967,9 @@ def _position_at(position: MotionPosition, at: Fraction) -> MotionPosition:
     )
 
 
-def _position_command(position: MotionPosition, event: MotionEvent) -> MotionPosition:
+def _position_command(
+    position: EnvelfoPosition, event: EnvelfoEvent
+) -> EnvelfoPosition:
     if event.action == 'pause':
         return position.model_copy(update={'paused': True})
     if event.action == 'resume':
@@ -985,10 +990,10 @@ def _position_command(position: MotionPosition, event: MotionEvent) -> MotionPos
     return position
 
 
-def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionValue:
+def _contour_value(body: Contour, state: ContourState, at: Fraction) -> EnvelfoValue:
     if state.phase == 'idle':
         assert isinstance(body.initial, float)
-        return MotionValue(value=body.initial, weight=1, status='idle')
+        return EnvelfoValue(value=body.initial, weight=1, status='idle')
     segments = body.release if state.phase == 'release' else body.segments
     duration = sum((s.duration for s in segments), Fraction(0))
     complete_coordinate = state.complete_coordinate
@@ -1027,58 +1032,63 @@ def _contour_value(body: Contour, state: ContourState, at: Fraction) -> MotionVa
         status = 'held'
     else:
         status = 'complete'
-    return MotionValue(value=value, weight=1, status=status)
+    return EnvelfoValue(value=value, weight=1, status=status)
 
 
-def initial_motion(motion: MotionUse, at: Fraction, *, seed: int = 0) -> MotionState:
-    if isinstance(motion.body, SampleHold):
-        random_state, word = motion_random.random_word(seed)
-        return MotionState(
+def initial_envelfo(
+    envelfo: EnvelfoUse, at: Fraction, *, seed: int = 0
+) -> EnvelfoState:
+    if isinstance(envelfo.body, SampleHold):
+        random_state, word = envelfo_random.random_word(seed)
+        return EnvelfoState(
             runtime=SampleHoldState(
                 at=at,
-                value=motion.body.minimum
-                + (motion.body.maximum - motion.body.minimum) * ((word >> 11) / 2**53),
+                value=envelfo.body.minimum
+                + (envelfo.body.maximum - envelfo.body.minimum)
+                * ((word >> 11) / 2**53),
                 random_state=random_state,
             )
         )
-    if isinstance(motion.body, Cycle):
-        assert isinstance(motion.body.rate, Fraction)
-        return MotionState(
+    if isinstance(envelfo.body, Cycle):
+        assert isinstance(envelfo.body.rate, Fraction)
+        return EnvelfoState(
             runtime=CycleState(
                 at=at,
-                position=MotionPosition(
-                    at=at, coordinate=motion.body.phase, rate=motion.body.rate
+                position=EnvelfoPosition(
+                    at=at, coordinate=envelfo.body.phase, rate=envelfo.body.rate
                 ),
             )
         )
-    if isinstance(motion.body, Stages):
+    if isinstance(envelfo.body, Stages):
         stage = next(
-            s for s in motion.body.stages if s.name == motion.body.initial_stage
+            s for s in envelfo.body.stages if s.name == envelfo.body.initial_stage
         )
-        initial = stage.motion.initial if isinstance(stage.motion, Contour) else 0.0
+        initial = stage.envelfo.initial if isinstance(stage.envelfo, Contour) else 0.0
         assert isinstance(initial, float)
-        return MotionState(
+        return EnvelfoState(
             runtime=StageState(
                 at=at,
                 stage=stage.name,
                 entry_value=initial,
-                position=_initial_position(stage.motion, at),
+                position=_initial_position(stage.envelfo, at),
             )
         )
-    if not isinstance(motion.body, Contour):
-        raise ValueError('motion reference must be materialized before use')
-    assert isinstance(motion.body.initial, float)
-    return MotionState(
+    if not isinstance(envelfo.body, Contour):
+        raise ValueError('envelfo reference must be materialized before use')
+    assert isinstance(envelfo.body.initial, float)
+    return EnvelfoState(
         runtime=ContourState(
             at=at,
             phase=(
-                'idle' if motion.body.release or motion.body.start == 'event' else 'on'
+                'idle'
+                if envelfo.body.release or envelfo.body.start == 'event'
+                else 'on'
             ),
-            start_value=motion.body.initial,
-            position=_initial_position(motion.body, at).model_copy(
+            start_value=envelfo.body.initial,
+            position=_initial_position(envelfo.body, at).model_copy(
                 update={
                     'coordinate': Fraction(1)
-                    if not sum(s.duration for s in motion.body.segments)
+                    if not sum(s.duration for s in envelfo.body.segments)
                     else Fraction(0)
                 }
             ),
@@ -1086,56 +1096,56 @@ def initial_motion(motion: MotionUse, at: Fraction, *, seed: int = 0) -> MotionS
     )
 
 
-def motion_at(motion: MotionUse, state: MotionState, at: Fraction) -> MotionValue:
-    if isinstance(motion.body, SampleHold) and isinstance(
+def envelfo_at(envelfo: EnvelfoUse, state: EnvelfoState, at: Fraction) -> EnvelfoValue:
+    if isinstance(envelfo.body, SampleHold) and isinstance(
         state.runtime, SampleHoldState
     ):
         if at < state.runtime.at:
             raise ValueError('sample-and-hold observation precedes its state')
-        return MotionValue(value=state.runtime.value, weight=1.0, status='held')
-    if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
+        return EnvelfoValue(value=state.runtime.value, weight=1.0, status='held')
+    if isinstance(envelfo.body, Cycle) and isinstance(state.runtime, CycleState):
         position = state.runtime.position
-        if motion.position_driver == PositionDriver.transport:
-            assert isinstance(motion.body.rate, Fraction)
-            return MotionValue(
-                value=motion.body.center
-                + motion.body.depth
+        if envelfo.position_driver == PositionDriver.transport:
+            assert isinstance(envelfo.body.rate, Fraction)
+            return EnvelfoValue(
+                value=envelfo.body.center
+                + envelfo.body.depth
                 * shape_value(
-                    motion.body.shape,
-                    (motion.body.phase + motion.body.rate * at) % 1,
-                    motion.body.duty_cycle,
+                    envelfo.body.shape,
+                    (envelfo.body.phase + envelfo.body.rate * at) % 1,
+                    envelfo.body.duty_cycle,
                 ),
                 weight=1.0,
                 status='running',
             )
         coordinate = _coordinate_at(position, at)
         age = _age_at(position, at)
-        if age < motion.body.delay:
+        if age < envelfo.body.delay:
             weight = 0.0
-        elif motion.body.fade_in:
+        elif envelfo.body.fade_in:
             weight = float(
-                min(Fraction(1), (age - motion.body.delay) / motion.body.fade_in)
+                min(Fraction(1), (age - envelfo.body.delay) / envelfo.body.fade_in)
             )
         else:
             weight = 1.0
-        return MotionValue(
-            value=motion.body.center
-            + motion.body.depth
-            * shape_value(motion.body.shape, coordinate % 1, motion.body.duty_cycle),
+        return EnvelfoValue(
+            value=envelfo.body.center
+            + envelfo.body.depth
+            * shape_value(envelfo.body.shape, coordinate % 1, envelfo.body.duty_cycle),
             weight=weight,
             status='running',
         )
-    if isinstance(motion.body, Stages) and isinstance(state.runtime, StageState):
-        return advance_motion(motion, state, at).value
-    if isinstance(motion.body, Contour) and isinstance(state.runtime, ContourState):
-        return _contour_value(motion.body, state.runtime, at)
-    raise ValueError('motion state does not match its definition')
+    if isinstance(envelfo.body, Stages) and isinstance(state.runtime, StageState):
+        return advance_envelfo(envelfo, state, at).value
+    if isinstance(envelfo.body, Contour) and isinstance(state.runtime, ContourState):
+        return _contour_value(envelfo.body, state.runtime, at)
+    raise ValueError('envelfo state does not match its definition')
 
 
-def motion_event(
-    motion: MotionUse, state: MotionState, event: MotionEvent
-) -> MotionState:
-    if isinstance(motion.body, SampleHold) and isinstance(
+def envelfo_event(
+    envelfo: EnvelfoUse, state: EnvelfoState, event: EnvelfoEvent
+) -> EnvelfoState:
+    if isinstance(envelfo.body, SampleHold) and isinstance(
         state.runtime, SampleHoldState
     ):
         control.check_order(state.runtime.at, state.runtime.ordinal, event)
@@ -1152,25 +1162,25 @@ def motion_event(
             raise ValueError('sample-and-hold does not accept this event')
         runtime = state.runtime
         if event.action == 'sample':
-            random_state, word = motion_random.random_word(runtime.random_state)
+            random_state, word = envelfo_random.random_word(runtime.random_state)
             runtime = runtime.model_copy(
                 update={
-                    'value': motion.body.minimum
-                    + (motion.body.maximum - motion.body.minimum)
+                    'value': envelfo.body.minimum
+                    + (envelfo.body.maximum - envelfo.body.minimum)
                     * ((word >> 11) / 2**53),
                     'random_state': random_state,
                 }
             )
-        return MotionState(
+        return EnvelfoState(
             runtime=runtime.model_copy(
                 update={'at': event.at, 'ordinal': event.ordinal}
             )
         )
-    if motion.position_driver == PositionDriver.transport:
+    if envelfo.position_driver == PositionDriver.transport:
         raise ValueError('transport-position Cycle does not accept phase commands')
-    if isinstance(motion.body, Stages) and isinstance(state.runtime, StageState):
-        return advance_motion(motion, state, event.at, event).state
-    if isinstance(motion.body, Cycle) and isinstance(state.runtime, CycleState):
+    if isinstance(envelfo.body, Stages) and isinstance(state.runtime, StageState):
+        return advance_envelfo(envelfo, state, event.at, event).state
+    if isinstance(envelfo.body, Cycle) and isinstance(state.runtime, CycleState):
         if event.action == 'cue':
             raise ValueError('cycles do not accept cue events')
         if event.action == 'sample':
@@ -1180,20 +1190,21 @@ def motion_event(
         if event.action in ('note_on', 'reset', 'transport'):
             if (
                 event.action == 'reset'
-                or (event.action == 'note_on' and motion.body.reset == Reset.trigger)
+                or (event.action == 'note_on' and envelfo.body.reset == Reset.trigger)
                 or (
-                    event.action == 'transport' and motion.body.reset == Reset.transport
+                    event.action == 'transport'
+                    and envelfo.body.reset == Reset.transport
                 )
             ):
                 position = position.model_copy(
-                    update={'coordinate': motion.body.phase, 'age': Fraction(0)}
+                    update={'coordinate': envelfo.body.phase, 'age': Fraction(0)}
                 )
         else:
             position = _position_command(position, event)
-        return MotionState(
+        return EnvelfoState(
             runtime=CycleState(at=event.at, ordinal=event.ordinal, position=position)
         )
-    if isinstance(motion.body, Contour) and isinstance(state.runtime, ContourState):
+    if isinstance(envelfo.body, Contour) and isinstance(state.runtime, ContourState):
         if event.action in ('cue', 'reset', 'transport', 'rate', 'sample'):
             raise ValueError('contours do not accept this event')
         control.check_order(state.runtime.at, state.runtime.ordinal, event)
@@ -1206,31 +1217,31 @@ def motion_event(
         if (
             phase == 'on'
             and complete_coordinate is None
-            and motion.body.repeat_count is not None
+            and envelfo.body.repeat_count is not None
         ):
             crossed, boundary = _repeat_crossings(
-                motion.body,
+                envelfo.body,
                 runtime.position,
                 event.at,
-                motion.body.repeat_count - traversals,
+                envelfo.body.repeat_count - traversals,
             )
             traversals += crossed
             if boundary is not None:
                 position = position.model_copy(update={'coordinate': boundary})
                 complete_coordinate = _repeat_boundary_coordinate(
-                    motion.body, boundary, runtime.position.direction
+                    envelfo.body, boundary, runtime.position.direction
                 )
-        observed = _contour_value(motion.body, runtime, event.at)
+        observed = _contour_value(envelfo.body, runtime, event.at)
         if event.action == 'start' or (
-            event.action == 'note_on' and motion.body.start == 'activation'
+            event.action == 'note_on' and envelfo.body.start == 'activation'
         ):
             active = observed.status in ('running', 'held')
-            if not active or motion.body.retrigger != Retrigger.ignore:
-                assert isinstance(motion.body.initial, float)
+            if not active or envelfo.body.retrigger != Retrigger.ignore:
+                assert isinstance(envelfo.body.initial, float)
                 start_value = (
                     observed.value
-                    if motion.body.retrigger == Retrigger.current
-                    else motion.body.initial
+                    if envelfo.body.retrigger == Retrigger.current
+                    else envelfo.body.initial
                 )
                 phase = 'on'
                 traversals = 0
@@ -1239,24 +1250,24 @@ def motion_event(
                     update={
                         'coordinate': Fraction(0),
                         'age': Fraction(0),
-                        'rate': _contour_rate(motion.body.segments),
+                        'rate': _contour_rate(envelfo.body.segments),
                     }
                 )
         elif event.action == 'note_off':
-            if motion.body.release and phase == 'on' and observed.status != 'complete':
+            if envelfo.body.release and phase == 'on' and observed.status != 'complete':
                 phase = 'release'
                 start_value = observed.value
                 position = position.model_copy(
                     update={
                         'coordinate': Fraction(0),
                         'age': Fraction(0),
-                        'rate': _contour_rate(motion.body.release),
+                        'rate': _contour_rate(envelfo.body.release),
                     }
                 )
         else:
             position = _position_command(position, event)
             if event.action == 'shift' and (
-                phase == 'release' or motion.body.playback == PlaybackMode.once
+                phase == 'release' or envelfo.body.playback == PlaybackMode.once
             ):
                 position = position.model_copy(
                     update={
@@ -1265,7 +1276,7 @@ def motion_event(
                         )
                     }
                 )
-        return MotionState(
+        return EnvelfoState(
             runtime=ContourState(
                 at=event.at,
                 ordinal=event.ordinal,
@@ -1276,29 +1287,29 @@ def motion_event(
                 complete_coordinate=complete_coordinate,
             )
         )
-    raise ValueError('motion state does not match its definition')
+    raise ValueError('envelfo state does not match its definition')
 
 
-def advance_motion(
-    motion: MotionUse,
-    state: MotionState,
+def advance_envelfo(
+    envelfo: EnvelfoUse,
+    state: EnvelfoState,
     at: Fraction,
-    event: MotionEvent | None = None,
-) -> MotionAdvance:
-    """Advance a staged Motion, returning its state and ordered output events."""
-    body = motion.body
+    event: EnvelfoEvent | None = None,
+) -> EnvelfoAdvance:
+    """Advance a staged Envelfo, returning its state and ordered output events."""
+    body = envelfo.body
     runtime = state.runtime
     if not isinstance(body, Stages) or not isinstance(runtime, StageState):
-        raise ValueError('advance_motion requires staged Motion state')
+        raise ValueError('advance_envelfo requires staged Envelfo state')
     control.elapsed(at, runtime.at)
     if event is not None:
         if event.at != at:
-            raise ValueError('Motion event time must equal the advance boundary')
+            raise ValueError('Envelfo event time must equal the advance boundary')
         control.check_order(runtime.at, runtime.ordinal, event)
     current, emitted = _advance_stages(body, runtime, at, event is None)
     if event is not None:
         if event.action in ('pause', 'resume', 'reverse', 'seek', 'shift', 'rate'):
-            stage = next(s.motion for s in body.stages if s.name == current.stage)
+            stage = next(s.envelfo for s in body.stages if s.name == current.stage)
             if event.action in ('seek', 'shift') and isinstance(stage, Hold):
                 raise ValueError('hold stages do not accept position events')
             position = _position_command(_position_at(current.position, at), event)
@@ -1336,15 +1347,15 @@ def advance_motion(
             }
         )
     value = _stage_value(body, current, at)
-    return MotionAdvance(
-        state=MotionState(runtime=current), value=value, events=emitted
+    return EnvelfoAdvance(
+        state=EnvelfoState(runtime=current), value=value, events=emitted
     )
 
 
 def _advance_stages(
     body: Stages, state: StageState, at: Fraction, inclusive: bool
-) -> tuple[StageState, list[MotionOutputEvent]]:
-    emitted: list[MotionOutputEvent] = []
+) -> tuple[StageState, list[EnvelfoOutputEvent]]:
+    emitted: list[EnvelfoOutputEvent] = []
     while (natural := next_stage_event(body, state, at, inclusive)) is not None:
         time, order, port = natural
         stage = state.stage
@@ -1357,7 +1368,7 @@ def _advance_stages(
                 'position': _position_at(state.position, time),
             }
         )
-        contour = next(s.motion for s in body.stages if s.name == stage)
+        contour = next(s.envelfo for s in body.stages if s.name == stage)
         if (
             isinstance(contour, Contour)
             and contour.repeat_count is not None
@@ -1371,7 +1382,7 @@ def _advance_stages(
             and port == ('cycle' if contour.playback == PlaybackMode.loop else 'turned')
         )
         emitted.append(
-            MotionOutputEvent(
+            EnvelfoOutputEvent(
                 at=time,
                 port='stage.done' if port == 'done' else port,
                 stage=stage,
@@ -1386,12 +1397,12 @@ def _advance_stages(
                 and (state.position.coordinate - end) / (end - start) % 2 == 1
             ):
                 emitted.append(
-                    MotionOutputEvent(
+                    EnvelfoOutputEvent(
                         at=time, port='cycle', stage=stage, activation=activation
                     )
                 )
             emitted.append(
-                MotionOutputEvent(
+                EnvelfoOutputEvent(
                     at=time, port='stage.done', stage=stage, activation=activation
                 )
             )
@@ -1406,7 +1417,7 @@ def _advance_stages(
                     update={'completed': True, 'complete_value': value}
                 )
         if len(emitted) > 4096:
-            raise ValueError('Motion event capacity exceeded')
+            raise ValueError('Envelfo event capacity exceeded')
     if inclusive:
         state = state.model_copy(
             update={
@@ -1425,7 +1436,7 @@ def next_stage_event(
     """Find the next natural boundary without advancing state or emitting events."""
     if state.completed:
         return None
-    stage = next(s.motion for s in body.stages if s.name == state.stage)
+    stage = next(s.envelfo for s in body.stages if s.name == state.stage)
     if isinstance(stage, Hold):
         return None
     candidates: list[tuple[Fraction, int, str]] = []
@@ -1624,7 +1635,7 @@ def _named_loop_candidates(
 
 def _stage_transition(
     body: Stages, state: StageState, at: Fraction, event: str
-) -> tuple[StageState, list[MotionOutputEvent]]:
+) -> tuple[StageState, list[EnvelfoOutputEvent]]:
     if state.completed:
         return state, []
     transition = next(
@@ -1640,7 +1651,7 @@ def _stage_transition(
     value = _stage_value(body, state, at).value
     if isinstance(transition.action, EnterStage):
         target = next(
-            s.motion for s in body.stages if s.name == transition.action.stage
+            s.envelfo for s in body.stages if s.name == transition.action.stage
         )
         entry = (
             value
@@ -1669,20 +1680,20 @@ def _stage_transition(
     return (
         state.model_copy(update={'at': at, 'completed': True, 'complete_value': value}),
         [
-            MotionOutputEvent(
+            EnvelfoOutputEvent(
                 at=at, port='done', stage=state.stage, activation=state.activation
             )
         ],
     )
 
 
-def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
+def _stage_value(body: Stages, state: StageState, at: Fraction) -> EnvelfoValue:
     if state.completed:
         assert state.complete_value is not None
-        return MotionValue(value=state.complete_value, weight=1, status='complete')
-    stage = next(s.motion for s in body.stages if s.name == state.stage)
+        return EnvelfoValue(value=state.complete_value, weight=1, status='complete')
+    stage = next(s.envelfo for s in body.stages if s.name == state.stage)
     if isinstance(stage, Hold):
-        return MotionValue(value=stage.value, weight=1, status='held')
+        return EnvelfoValue(value=stage.value, weight=1, status='held')
     position = state.position
     coordinate = _coordinate_at(position, at)
     if isinstance(stage, Cycle):
@@ -1697,7 +1708,7 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
         value = stage.center + stage.depth * weight * shape_value(
             stage.shape, phase, stage.duty_cycle
         )
-        return MotionValue(value=value, weight=1, status='running')
+        return EnvelfoValue(value=value, weight=1, status='running')
     curve = envelope.Curve(initial=state.entry_value, segments=stage.segments)
     duration = sum((s.duration for s in stage.segments), Fraction(0))
     bounded = _contour_coordinate(coordinate, stage)
@@ -1705,7 +1716,7 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
     if complete:
         bounded = _repeat_boundary_coordinate(stage, coordinate, position.direction)
     value = envelope.curve_at(curve, bounded * duration)
-    return MotionValue(
+    return EnvelfoValue(
         value=value,
         weight=1,
         status='complete'
@@ -1716,9 +1727,9 @@ def _stage_value(body: Stages, state: StageState, at: Fraction) -> MotionValue:
     )
 
 
-class MotionScore(Score):
-    kind: Literal['motion'] = 'motion'
-    parameters: dict[Identifier, MotionParameter] = Field(default_factory=dict)
+class EnvelfoScore(Score):
+    kind: Literal['envelfo'] = 'envelfo'
+    parameters: dict[Identifier, EnvelfoParameter] = Field(default_factory=dict)
     body: Annotated[
         Cycle | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
     ]
@@ -1728,7 +1739,7 @@ class MotionScore(Score):
         rate = self.body.rate if isinstance(self.body, Cycle) else None
         used = {rate.parameter} if isinstance(rate, ParameterReference) else set()
         if used != self.parameters.keys():
-            raise ValueError('motion parameters must each bind to a supported field')
+            raise ValueError('envelfo parameters must each bind to a supported field')
         if (
             isinstance(rate, ParameterReference)
             and self.parameters[rate.parameter].unit != Unit.hz
@@ -1737,17 +1748,17 @@ class MotionScore(Score):
         return self
 
 
-def instantiate_motion(
-    score: MotionScore,
+def instantiate_envelfo(
+    score: EnvelfoScore,
     parameters: dict[str, float | str] | None = None,
     scope: control.Scope = control.Scope.voice,
     clock: control.Clock = control.Clock.seconds,
-    origin: MotionOrigin | None = None,
+    origin: EnvelfoOrigin | None = None,
     position_driver: PositionDriver = PositionDriver.elapsed,
-) -> MotionUse:
+) -> EnvelfoUse:
     values = parameters or {}
     if values.keys() - score.parameters.keys():
-        raise ValueError('unknown public motion parameters')
+        raise ValueError('unknown public envelfo parameters')
     body = score.body
     if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
         declared = score.parameters[body.rate.parameter]
@@ -1756,10 +1767,10 @@ def instantiate_motion(
         )
         if not declared.minimum <= value <= declared.maximum:
             raise ValueError(
-                f'motion parameter {body.rate.parameter} is outside its range'
+                f'envelfo parameter {body.rate.parameter} is outside its range'
             )
         body = Cycle.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
-    return MotionUse(
+    return EnvelfoUse(
         scope=scope,
         clock=clock,
         position_driver=position_driver,

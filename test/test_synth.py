@@ -8,10 +8,10 @@ from pydantic import ValidationError
 import ufor.synth_trace
 from ufor.codec import parse_score, score_schema, score_toml
 from ufor.control import TempoMap
-from ufor.events import ControlChange, MotionChange, Release, Trigger
+from ufor.events import ControlChange, EnvelfoChange, Release, Trigger
 from ufor.instrument_trace import (
+    EnvelfoObservation,
     LifecycleSnapshot,
-    MotionObservation,
     RetirementCause,
     VoiceRetirement,
 )
@@ -33,9 +33,9 @@ def test_synth_instrument_conformance_round_trips_through_the_common_codec() -> 
     assert 'synth_instrument' in score_schema()['discriminator']['mapping']
 
 
-def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
+def test_synth_trace_preserves_trigger_addressed_envelfo_change() -> None:
     document = SynthInstrumentScore.model_validate(fixture())
-    action = MotionChange(
+    action = EnvelfoChange(
         tick=1,
         ordinal=0,
         name='swell',
@@ -45,7 +45,7 @@ def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
     )
     result = ufor.synth_trace.prepare(document.body, [action], seed=0)
     assert result.actions == [
-        MotionObservation(
+        EnvelfoObservation(
             tick=1,
             ordinal=0,
             name='swell',
@@ -56,7 +56,7 @@ def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
     ]
     shifted = action.model_copy(update={'action': 'shift', 'offset': -0.25})
     assert ufor.synth_trace.prepare(document.body, [shifted], seed=0).actions == [
-        MotionObservation(
+        EnvelfoObservation(
             tick=1,
             ordinal=0,
             name='swell',
@@ -68,7 +68,7 @@ def test_synth_trace_preserves_trigger_addressed_motion_change() -> None:
     ]
 
 
-def test_synth_trace_quantizes_motion_command_after_other_boundary_events() -> None:
+def test_synth_trace_quantizes_envelfo_command_after_other_boundary_events() -> None:
     document = SynthInstrumentScore.model_validate(fixture())
     clock = TempoMap.model_validate(
         {
@@ -78,7 +78,7 @@ def test_synth_trace_quantizes_motion_command_after_other_boundary_events() -> N
             ]
         }
     )
-    queued = MotionChange(
+    queued = EnvelfoChange(
         tick=12000,
         ordinal=0,
         name='swell',
@@ -105,7 +105,7 @@ def test_synth_trace_quantizes_motion_command_after_other_boundary_events() -> N
         ufor.synth_trace.prepare(document.body, [queued], seed=0)
 
 
-def test_synth_trace_cancels_pending_motion_command_on_transport_seek() -> None:
+def test_synth_trace_cancels_pending_envelfo_command_on_transport_seek() -> None:
     document = SynthInstrumentScore.model_validate(fixture())
     clock = TempoMap.model_validate(
         {
@@ -116,7 +116,7 @@ def test_synth_trace_cancels_pending_motion_command_on_transport_seek() -> None:
             ]
         }
     )
-    queued = MotionChange(
+    queued = EnvelfoChange(
         tick=12000,
         ordinal=0,
         name='swell',

@@ -1,4 +1,4 @@
-kind = "motion"
+kind = "envelfo"
 name = "pluck"
 title = "Short pluck contour"
 tags = ["#envelope", "#pluck"]

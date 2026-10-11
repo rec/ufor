@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from ufor import envelope, lfo, segments
 from ufor.base import Model
 from ufor.codec import parse_score, score_toml
-from ufor.motion import Contour, Cycle, MotionScore
+from ufor.envelfo import Contour, Cycle, EnvelfoScore
 from ufor.oscillator import Waveform, shape_value
 
 
@@ -220,7 +220,7 @@ LFOS = [LFOCase.model_validate(c) for c in CASES['lfos']]
 @pytest.mark.parametrize('extra_observations', [False, True])
 def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> None:
     check_envelope(case, extra_observations)
-    document = MotionScore(
+    document = EnvelfoScore(
         name='envelope',
         title=case.name,
         body=Contour(
@@ -239,7 +239,7 @@ def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> N
 @pytest.mark.parametrize('extra_observations', [False, True])
 def test_lfo_conformance(case: LFOCase, extra_observations: bool) -> None:
     check_lfo(case, extra_observations)
-    document = MotionScore(
+    document = EnvelfoScore(
         name='lfo',
         title=case.name,
         body=Cycle(

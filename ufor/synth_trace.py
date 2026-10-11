@@ -6,13 +6,13 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
-from . import motion_random
+from . import envelfo_random
 from .base import Identifier, Model, unique
 from .control import TempoMap, TransportSeekError
 from .events import (
     ControlChange,
+    EnvelfoChange,
     LFOChange,
-    MotionChange,
     PerformanceEvent,
     Release,
     Trigger,
@@ -22,9 +22,9 @@ from .instrument_trace import (
     ActiveVoice,
     ControlObservation,
     Diagnostic,
+    EnvelfoObservation,
     LFOObservation,
     LifecycleSnapshot,
-    MotionObservation,
     RetirementCause,
     TriggerContext,
     VoiceRetirement,
@@ -68,7 +68,7 @@ Action = Annotated[
     | TriggerContext
     | ControlObservation
     | LFOObservation
-    | MotionObservation
+    | EnvelfoObservation
     | Diagnostic,
     Field(discriminator='kind'),
 ]
@@ -105,19 +105,19 @@ def prepare(
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))
     unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
     if any(
-        isinstance(e, MotionChange) and e.quantize_beats is not None for e in events
+        isinstance(e, EnvelfoChange) and e.quantize_beats is not None for e in events
     ):
         if tempo_map is None or type(sample_rate) is not int or sample_rate <= 0:
             raise ValueError(
-                'quantized Motion commands require a host tempo map and sample rate'
+                'quantized Envelfo commands require a host tempo map and sample rate'
             )
         occupied: dict[int, int] = {}
         for event in events:
             occupied[event.tick] = max(occupied.get(event.tick, -1), event.ordinal)
         scheduled: list[PerformanceEvent] = []
-        moved: list[tuple[int, MotionChange]] = []
+        moved: list[tuple[int, EnvelfoChange]] = []
         for event in events:
-            if not isinstance(event, MotionChange) or event.quantize_beats is None:
+            if not isinstance(event, EnvelfoChange) or event.quantize_beats is None:
                 scheduled.append(event)
                 continue
             instrument.validate_event(event)
@@ -269,7 +269,7 @@ def prepare(
                     noise_key=stream_key(seed, voice_id)
                     if isinstance(template, NoiseVoice)
                     else None,
-                    motion_key=motion_random.stream_key(seed, voice_id),
+                    envelfo_key=envelfo_random.stream_key(seed, voice_id),
                 )
             )
             voices.append(
@@ -325,9 +325,9 @@ def prepare(
                     offset=event.offset,
                 )
             )
-        elif isinstance(event, MotionChange):
+        elif isinstance(event, EnvelfoChange):
             actions.append(
-                MotionObservation(
+                EnvelfoObservation(
                     tick=event.tick,
                     ordinal=event.ordinal,
                     name=event.name,

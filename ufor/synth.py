@@ -176,7 +176,7 @@ class SynthInstrument(Model):
                 raise ValueError('Synth voice parameters must have voice scope')
             if any(
                 g.scope != control.Scope.voice
-                for g in voice.motions.values()
+                for g in voice.envelfos.values()
                 if g.body is not None and g.body.kind == 'contour'
             ):
                 raise ValueError('Synth voice contours must have voice scope')

@@ -1,4 +1,4 @@
-kind = "motion"
+kind = "envelfo"
 name = "bloom"
 title = "Attack, sway, release"
 tags = ["#envelope", "#periodic"]
@@ -9,22 +9,22 @@ initial_stage = "waiting"
 
 [[body.stages]]
 name = "waiting"
-motion = { kind = "hold", value = 0.0 }
+envelfo = { kind = "hold", value = 0.0 }
 
 [[body.stages]]
 name = "attack"
-motion = { kind = "contour", initial = "current", segments = [
+envelfo = { kind = "contour", initial = "current", segments = [
   { duration = "300 ms", to = 0.7 },
 ] }
 
 [[body.stages]]
 name = "sway"
-motion = { kind = "cycle", shape = "sine", rate = "3 Hz", center = 0.7, depth = 0.2,
+envelfo = { kind = "cycle", shape = "sine", rate = "3 Hz", center = 0.7, depth = 0.2,
   markers = [{ name = "peak", position = "1/4" }] }
 
 [[body.stages]]
 name = "release"
-motion = { kind = "contour", initial = "current", segments = [
+envelfo = { kind = "contour", initial = "current", segments = [
   { duration = "500 ms", to = 0.0 },
 ] }
 

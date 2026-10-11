@@ -36,7 +36,7 @@ integer counts are rejected.
 | Legacy effect speed per update | pixels per logical frame | `2pixel/frame` |
 | Effect decay coefficient | inverse second | `3/s` |
 
-Clock-based LFOs and Motion definitions parse durations and rates in their
+Clock-based LFOs and Envelfo definitions parse durations and rates in their
 selected clock. A beat-clock rate rejects hertz, and a beat duration rejects
 seconds. Envelope segments retain their explicit seconds/beat tag and serialize
 using `s` or `beat`. Rhythmic steps continue to require an explicit beat unit.

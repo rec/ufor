@@ -18,15 +18,12 @@ from ..base import (
     UnitInterval,
     unique,
 )
-from ..envelope import Envelope
-from ..lfo import Reset
-from ..modulation import Modulation, Target, Unit
-from ..motion import (
+from ..envelfo import (
     Affine,
     Contour,
     Cycle,
+    EnvelfoUse,
     Latch,
-    MotionUse,
     Patch,
     Product,
     Quantize,
@@ -36,6 +33,9 @@ from ..motion import (
     Threshold,
     stage_event_ports,
 )
+from ..envelope import Envelope
+from ..lfo import Reset
+from ..modulation import Modulation, Target, Unit
 from . import enums
 from .controls import ControlDeclaration
 
@@ -167,13 +167,13 @@ class ReleaseTiming(StrEnum):
 
 class GeneratorBinding(Model):
     name: Identifier
-    kind: Literal['motion'] = 'motion'
+    kind: Literal['envelfo'] = 'envelfo'
     reference: Identifier
     output: Identifier | None = None
     release_timing: ReleaseTiming = ReleaseTiming.event
 
 
-class MotionEventConnection(Model):
+class EnvelfoEventConnection(Model):
     source: Identifier
     port: str = Field(min_length=1)
     destination: Identifier
@@ -194,10 +194,10 @@ Binding = Annotated[
 class SoundSettings(Model):
     processing: Processing = Processing()
     envelope: Envelope | None = None
-    motions: dict[Identifier, MotionUse] = Field(default_factory=dict)
+    envelfos: dict[Identifier, EnvelfoUse] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
-    event_connections: list[MotionEventConnection] = Field(default_factory=list)
+    event_connections: list[EnvelfoEventConnection] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def local_references(self) -> Self:
@@ -212,16 +212,18 @@ class SoundSettings(Model):
             if not isinstance(source, GeneratorBinding) or not isinstance(
                 destination, GeneratorBinding
             ):
-                raise ValueError('Motion event connections require Motion bindings')
-            origin = self.motions.get(source.reference)
-            target = self.motions.get(destination.reference)
+                raise ValueError('Envelfo event connections require Envelfo bindings')
+            origin = self.envelfos.get(source.reference)
+            target = self.envelfos.get(destination.reference)
             if origin is None or target is None:
-                raise ValueError('Motion event connection references an unknown Motion')
+                raise ValueError(
+                    'Envelfo event connection references an unknown Envelfo'
+                )
             if (
                 origin.scope != control.Scope.voice
                 or target.scope != control.Scope.voice
             ):
-                raise ValueError('Motion event connections require voice scope')
+                raise ValueError('Envelfo event connections require voice scope')
             if origin.body is not None:
                 if isinstance(origin.body, Patch):
                     ports = origin.body.event_outputs.keys()
@@ -240,10 +242,10 @@ class SoundSettings(Model):
                         )
                     ports = {marker.name for marker in origin.body.markers}
                 else:
-                    raise ValueError('Motion event source has no event ports')
+                    raise ValueError('Envelfo event source has no event ports')
                 if connection.port not in ports:
                     raise ValueError(
-                        'Motion event connection references an unknown port'
+                        'Envelfo event connection references an unknown port'
                     )
             if target.body is not None and (
                 not isinstance(target.body, Stages)
@@ -251,7 +253,7 @@ class SoundSettings(Model):
                     t.event == f'cue.{connection.cue}' for t in target.body.transitions
                 )
             ):
-                raise ValueError('Motion event destination has no matching cue')
+                raise ValueError('Envelfo event destination has no matching cue')
         if self.envelope is not None and (
             self.envelope.scope != control.Scope.voice
             or self.envelope.polarity != control.Polarity.unipolar
@@ -278,18 +280,18 @@ class SoundSettings(Model):
                 elif (source.minimum, source.maximum) != (0, 1):
                     raise ValueError('Velocity source domain must be [0, 1]')
             elif isinstance(binding, GeneratorBinding):
-                if binding.reference not in self.motions:
+                if binding.reference not in self.envelfos:
                     raise ValueError(
-                        f'Unknown local motion source: {binding.reference}'
+                        f'Unknown local envelfo source: {binding.reference}'
                     )
-                generator = self.motions[binding.reference]
+                generator = self.envelfos[binding.reference]
                 if isinstance(generator.body, Patch):
                     if (
                         binding.output is None
                         or binding.output not in generator.body.outputs
                     ):
                         raise ValueError('Patch binding requires a named output')
-                    selected = generator.body.motions[
+                    selected = generator.body.envelfos[
                         generator.body.outputs[binding.output]
                     ]
                     child = (binding.reference, generator.body.outputs[binding.output])
@@ -315,7 +317,7 @@ class SoundSettings(Model):
                     )
                 if generator.score is not None:
                     if source.scope != generator.scope:
-                        raise ValueError('Motion source scope must match its use')
+                        raise ValueError('Envelfo source scope must match its use')
                     continue
                 minimum = (
                     0
@@ -348,12 +350,12 @@ class SoundSettings(Model):
                         'Generator source scope and domain must match its definition'
                     )
         for parameter in self.modulation.parameters:
-            motion = self.motions.get(parameter.target.name.removeprefix('motion-'))
-            if parameter.target.name.startswith('motion-') and (
-                motion is not None and motion.score is not None
+            envelfo = self.envelfos.get(parameter.target.name.removeprefix('envelfo-'))
+            if parameter.target.name.startswith('envelfo-') and (
+                envelfo is not None and envelfo.score is not None
             ):
-                if parameter.scope != motion.scope:
-                    raise ValueError('Motion parameter scope must match its use')
+                if parameter.scope != envelfo.scope:
+                    raise ValueError('Envelfo parameter scope must match its use')
                 continue
             unit, default = self.parameter_definition(parameter.target)
             if parameter.unit != unit or parameter.default != default:
@@ -369,10 +371,12 @@ class SoundSettings(Model):
                 raise ValueError('Resonance requires a positive parameter domain')
             if parameter.target.name == 'envelope':
                 generator = self.envelope
-            elif parameter.target.name.startswith('motion-'):
-                motion = self.motions.get(parameter.target.name.removeprefix('motion-'))
+            elif parameter.target.name.startswith('envelfo-'):
+                envelfo = self.envelfos.get(
+                    parameter.target.name.removeprefix('envelfo-')
+                )
                 generator = (
-                    motion if motion and isinstance(motion.body, Contour) else None
+                    envelfo if envelfo and isinstance(envelfo.body, Contour) else None
                 )
             else:
                 generator = None
@@ -384,7 +388,7 @@ class SoundSettings(Model):
             ):
                 raise ValueError('Sample processing multipliers must be nonnegative')
             if route.target.name == 'envelope' or route.target.name.startswith(
-                'motion-'
+                'envelfo-'
             ):
                 binding = next(b for b in self.bindings if b.name == route.source)
                 if not isinstance(binding, EventBinding):
@@ -452,11 +456,11 @@ def parameter_definition(
     if target.name == 'envelope' and settings.envelope is not None:
         definition = settings.envelope
         clock = definition.clock
-    elif target.name.startswith('motion-'):
-        motion = settings.motions.get(target.name.removeprefix('motion-'))
-        if motion is not None and isinstance(motion.body, Contour):
-            definition = motion.body
-            clock = motion.clock
+    elif target.name.startswith('envelfo-'):
+        envelfo = settings.envelfos.get(target.name.removeprefix('envelfo-'))
+        if envelfo is not None and isinstance(envelfo.body, Contour):
+            definition = envelfo.body
+            clock = envelfo.clock
     if definition is not None:
         for phase, segments in (
             ('on', definition.segments),
@@ -481,7 +485,7 @@ def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
         b.name
         for b in settings.bindings
         if isinstance(b, GeneratorBinding)
-        and isinstance(body := settings.motions[b.reference].body, Cycle)
+        and isinstance(body := settings.envelfos[b.reference].body, Cycle)
         and (body.delay or body.fade_in)
     }
     for route in settings.modulation.routes:

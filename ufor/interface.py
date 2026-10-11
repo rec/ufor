@@ -92,7 +92,7 @@ class EventType(Model):
             'release',
             'control_change',
             'lfo_change',
-            'motion_change',
+            'envelfo_change',
         ]
     ] = Field(min_length=1)
 

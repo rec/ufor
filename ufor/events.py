@@ -172,10 +172,10 @@ class LFOChange(Event):
         return self
 
 
-class MotionChange(Event):
-    """Control named Motions on the voices started by one trigger."""
+class EnvelfoChange(Event):
+    """Control named Envelfos on the voices started by one trigger."""
 
-    kind: Literal['motion_change'] = 'motion_change'
+    kind: Literal['envelfo_change'] = 'envelfo_change'
     name: Identifier
     part: Identifier
     trigger_id: Identifier
@@ -189,14 +189,14 @@ class MotionChange(Event):
     @model_validator(mode='after')
     def seek_payload(self) -> Self:
         if (self.action == 'seek') != (self.position is not None):
-            raise ValueError('only Motion seek changes require a position')
+            raise ValueError('only Envelfo seek changes require a position')
         if (self.action == 'shift') != (self.offset is not None):
-            raise ValueError('only Motion shift changes require an offset')
+            raise ValueError('only Envelfo shift changes require an offset')
         return self
 
 
 PerformanceEvent = Annotated[
-    Trigger | Release | ControlChange | LFOChange | MotionChange,
+    Trigger | Release | ControlChange | LFOChange | EnvelfoChange,
     Field(discriminator='kind'),
 ]
 StoredEvent = Annotated[
@@ -208,7 +208,7 @@ StoredEvent = Annotated[
     | Release
     | ControlChange
     | LFOChange
-    | MotionChange,
+    | EnvelfoChange,
     Field(discriminator='kind'),
 ]
 

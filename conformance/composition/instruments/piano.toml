@@ -101,7 +101,7 @@ duration = "0 s"
 curve = 0.0
 to = 0.0
 
-[body.settings.motions]
+[body.settings.envelfos]
 
 
 [body.settings.modulation]
@@ -194,7 +194,7 @@ duration = "2/5 s"
 curve = -5.0
 to = 0.0
 
-[body.slots.motions]
+[body.slots.envelfos]
 
 
 [[body.slots.modulation.parameters]]

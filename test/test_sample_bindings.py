@@ -13,7 +13,7 @@ from ufor.samples.processing import SoundSettings
 def test_sample_routes_use_the_shared_evaluator() -> None:
     settings = SoundSettings.model_validate(lfo_settings())
     values = modulation.evaluate(
-        settings.modulation, {'motion': modulation.SourceValue(value=1, weight=0.5)}
+        settings.modulation, {'envelfo': modulation.SourceValue(value=1, weight=0.5)}
     )
     assert values[0].value == 0.25
 
@@ -22,16 +22,16 @@ def test_sample_routes_use_the_shared_evaluator() -> None:
 def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) -> None:
     raw = lfo_settings()
     binding: dict[str, object] = {
-        'name': 'motion',
-        'kind': 'motion' if kind in ('contour', 'cycle') else kind,
+        'name': 'envelfo',
+        'kind': 'envelfo' if kind in ('contour', 'cycle') else kind,
     }
     source = raw['modulation']['sources'][0]
     if kind == 'control':
         binding['control'] = 'bend'
         source['scope'] = 'part'
     elif kind == 'contour':
-        raw['motions'] = {
-            'motion': {
+        raw['envelfos'] = {
+            'envelfo': {
                 'body': {
                     'kind': 'contour',
                     'segments': [{'duration': '1 s', 'to': 1}],
@@ -39,14 +39,14 @@ def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) 
                 }
             }
         }
-        binding['reference'] = 'motion'
+        binding['reference'] = 'envelfo'
         source['minimum'] = 0
         raw['modulation']['routes'][0]['points'][0]['input'] = 0
     elif kind == 'velocity':
         source['minimum'] = 0
         raw['modulation']['routes'][0]['points'][0]['input'] = 0
     elif kind == 'cycle':
-        binding['reference'] = 'motion'
+        binding['reference'] = 'envelfo'
     raw['bindings'] = [binding]
     result = SoundSettings.model_validate(raw)
     result.validate_controls(
@@ -60,7 +60,7 @@ def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) 
     [
         ('source', {'scope': 'instrument'}, 'scope and domain'),
         ('source', {'minimum': -0.5}, 'exceed its source domain'),
-        ('binding', {'reference': 'missing'}, 'Unknown local motion'),
+        ('binding', {'reference': 'missing'}, 'Unknown local envelfo'),
         ('binding', {'kind': 'envelope'}, 'union_tag_invalid'),
         ('binding', {'name': 'unbound'}, 'exactly one binding'),
         ('parameter', {'unit': 'volts'}, 'requires unit'),
@@ -91,7 +91,7 @@ def test_bindings_reject_false_domains_names_and_units(
 def test_old_generator_fields_are_rejected() -> None:
     raw = lfo_settings()
     raw['envelopes'] = {
-        'motion': {
+        'envelfo': {
             'segments': [{'duration': 0, 'to': 1}],
             'release': [{'duration': 0, 'to': 0}],
         }
@@ -113,7 +113,7 @@ def test_bindings_and_route_ids_are_unique() -> None:
 
 def test_control_bindings_validate_names_domains_and_scopes() -> None:
     raw = lfo_settings()
-    raw['bindings'] = [{'name': 'motion', 'kind': 'control', 'control': 'bend'}]
+    raw['bindings'] = [{'name': 'envelfo', 'kind': 'control', 'control': 'bend'}]
     raw['modulation']['sources'][0]['scope'] = 'part'
     settings = SoundSettings.model_validate(raw)
     with pytest.raises(ValueError, match='Unknown control'):
@@ -133,7 +133,7 @@ def test_control_bindings_validate_names_domains_and_scopes() -> None:
 
 def test_key_curves_require_integer_knots_without_midi_key_limits() -> None:
     raw = lfo_settings()
-    raw['bindings'] = [{'name': 'motion', 'kind': 'key'}]
+    raw['bindings'] = [{'name': 'envelfo', 'kind': 'key'}]
     raw['modulation']['sources'][0].update(minimum=-200, maximum=10000)
     SoundSettings.model_validate(raw)
     raw['modulation']['routes'][0]['points'][0]['input'] = 0.5
@@ -205,7 +205,7 @@ def test_spatial_bounds_include_both_scopes_and_delayed_lfo_neutral() -> None:
     ]
     raw['settings']['processing'] = {'pan': 0.4}
     SampleInstrument.model_validate(raw)
-    raw['slots'][0]['motions']['motion']['body']['delay'] = '1/2'
+    raw['slots'][0]['envelfos']['envelfo']['body']['delay'] = '1/2'
     with pytest.raises(ValidationError, match='combined pan range'):
         SampleInstrument.model_validate(raw)
 
@@ -221,18 +221,18 @@ def test_slot_generators_require_voice_scope(generator: str) -> None:
         if generator == 'contour'
         else {'kind': 'cycle', 'rate': 1}
     )
-    raw = body({'motions': {'motion': {'scope': 'instrument', 'body': value}}})
+    raw = body({'envelfos': {'envelfo': {'scope': 'instrument', 'body': value}}})
     with pytest.raises(ValidationError, match='voice scope'):
         SampleInstrument.model_validate(raw)
 
 
 def lfo_settings() -> dict[str, object]:
     return {
-        'motions': {'motion': {'body': {'kind': 'cycle', 'rate': 1}}},
-        'bindings': [{'name': 'motion', 'kind': 'motion', 'reference': 'motion'}],
+        'envelfos': {'envelfo': {'body': {'kind': 'cycle', 'rate': 1}}},
+        'bindings': [{'name': 'envelfo', 'kind': 'envelfo', 'reference': 'envelfo'}],
         'modulation': {
             'sources': [
-                {'name': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}
+                {'name': 'envelfo', 'scope': 'voice', 'minimum': -1, 'maximum': 1}
             ],
             'parameters': [
                 {
@@ -247,7 +247,7 @@ def lfo_settings() -> dict[str, object]:
             'routes': [
                 {
                     'name': 'pan',
-                    'source': 'motion',
+                    'source': 'envelfo',
                     'target': {'name': 'processing', 'parameter': 'pan'},
                     'operation': 'add',
                     'unit': 'normalized',

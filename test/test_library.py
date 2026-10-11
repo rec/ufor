@@ -10,9 +10,9 @@ from pydantic import ValidationError
 
 from ufor import library_files
 from ufor.codec import parse_score, score_toml
+from ufor.envelfo import Cycle, EnvelfoParameter, EnvelfoScore, ParameterReference
 from ufor.interface import ScoreReference
 from ufor.library import Entry, Library, State
-from ufor.motion import Cycle, MotionParameter, MotionScore, ParameterReference
 from ufor.musical import OscillatorScore
 from ufor.oscillator import Oscillator
 from ufor.preset import PresetScore
@@ -96,25 +96,25 @@ def oscillator(name: str = 'triangle') -> OscillatorScore:
     return OscillatorScore(name=name, title=name, body=Oscillator())
 
 
-def test_motion_library_materializes_relative_references_and_presets() -> None:
-    motion = MotionScore(
+def test_envelfo_library_materializes_relative_references_and_presets() -> None:
+    envelfo = EnvelfoScore(
         name='vibrato',
         title='Vibrato',
         parameters={
-            'speed': MotionParameter(unit='hz', default=5, minimum=0.1, maximum=20)
+            'speed': EnvelfoParameter(unit='hz', default=5, minimum=0.1, maximum=20)
         },
         body=Cycle(rate=ParameterReference(parameter='speed')),
     )
     raw = json.loads(Path('conformance/synth-instrument.json').read_text())
-    raw['body']['voices'][0]['motions'] = {
+    raw['body']['voices'][0]['envelfos'] = {
         'first': {'score': {'path': 'slow.toml'}},
         'second': {'score': {'path': 'vibrato.toml'}, 'parameters': {'speed': 6}},
     }
     raw['body']['voices'][0]['bindings'] = [
-        {'name': 'motion', 'kind': 'motion', 'reference': 'first'}
+        {'name': 'envelfo', 'kind': 'envelfo', 'reference': 'first'}
     ]
     raw['body']['voices'][0]['modulation'] = {
-        'sources': [{'name': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}]
+        'sources': [{'name': 'envelfo', 'scope': 'voice', 'minimum': -1, 'maximum': 1}]
     }
     instrument = SynthInstrumentScore.model_validate(raw)
     library = Library(
@@ -124,7 +124,7 @@ def test_motion_library_materializes_relative_references_and_presets() -> None:
                 address='/vibrato.toml',
                 name='vibrato',
                 sha256='a' * 64,
-                score=motion,
+                score=envelfo,
             ),
             Entry(
                 library='local',
@@ -149,8 +149,8 @@ def test_motion_library_materializes_relative_references_and_presets() -> None:
     assert not library.diagnostics
     prepared = library.materialize('local:patch')
     assert isinstance(prepared, SynthInstrumentScore)
-    first = prepared.body.voices[0].motions['first']
-    second = prepared.body.voices[0].motions['second']
+    first = prepared.body.voices[0].envelfos['first']
+    second = prepared.body.voices[0].envelfos['second']
     assert first.body == Cycle(rate=2)
     assert second.body == Cycle(rate=6)
     assert first.origin is not None
@@ -160,12 +160,12 @@ def test_motion_library_materializes_relative_references_and_presets() -> None:
     assert second.origin.identity == 'local:/vibrato.toml'
     assert second.origin.sha256 == 'a' * 64
     assert first is not second
-    assert instrument.body.voices[0].motions['first'].score is not None
+    assert instrument.body.voices[0].envelfos['first'].score is not None
 
 
-def test_motion_library_rejects_references_to_other_score_kinds() -> None:
+def test_envelfo_library_rejects_references_to_other_score_kinds() -> None:
     raw = json.loads(Path('conformance/synth-instrument.json').read_text())
-    raw['body']['voices'][0]['motions'] = {'first': {'score': {'path': 'other.toml'}}}
+    raw['body']['voices'][0]['envelfos'] = {'first': {'score': {'path': 'other.toml'}}}
     instrument = SynthInstrumentScore.model_validate(raw)
     library = Library(
         [
@@ -183,7 +183,7 @@ def test_motion_library_rejects_references_to_other_score_kinds() -> None:
             ),
         ]
     )
-    with pytest.raises(ValueError, match='requires a motion score'):
+    with pytest.raises(ValueError, match='requires a envelfo score'):
         library.materialize('local:patch')
 
 

@@ -4,13 +4,13 @@ import pytest
 from pydantic import ValidationError
 
 from ufor.control import TempoMap
-from ufor.motion import (
+from ufor.envelfo import (
     Contour,
-    MotionEvent,
-    MotionUse,
-    initial_motion,
-    motion_at,
-    motion_event,
+    EnvelfoEvent,
+    EnvelfoUse,
+    envelfo_at,
+    envelfo_event,
+    initial_envelfo,
 )
 from ufor.segments import Segment
 
@@ -82,7 +82,7 @@ def test_beat_contour_follows_host_tempo_and_preserves_authored_unit() -> None:
             ]
         }
     )
-    motion = MotionUse.model_validate(
+    envelfo = EnvelfoUse.model_validate(
         {
             'clock': 'beats',
             'body': {
@@ -91,17 +91,19 @@ def test_beat_contour_follows_host_tempo_and_preserves_authored_unit() -> None:
             },
         }
     )
-    assert motion.model_dump(mode='json')['body']['segments'][0]['duration'] == '4 beat'
-    state = motion_event(
-        motion,
-        initial_motion(motion, Fraction(0)),
-        MotionEvent(at=Fraction(0), ordinal=0, action='note_on'),
+    assert (
+        envelfo.model_dump(mode='json')['body']['segments'][0]['duration'] == '4 beat'
     )
-    assert motion_at(motion, state, clock.beat_at(Fraction(1))).value == 0.5
-    assert motion_at(motion, state, clock.beat_at(Fraction(2))).value == 0.75
-    assert isinstance(motion.body, Contour)
+    state = envelfo_event(
+        envelfo,
+        initial_envelfo(envelfo, Fraction(0)),
+        EnvelfoEvent(at=Fraction(0), ordinal=0, action='note_on'),
+    )
+    assert envelfo_at(envelfo, state, clock.beat_at(Fraction(1))).value == 0.5
+    assert envelfo_at(envelfo, state, clock.beat_at(Fraction(2))).value == 0.75
+    assert isinstance(envelfo.body, Contour)
     with pytest.raises(ValidationError, match='must match its clock'):
-        MotionUse.model_validate(
+        EnvelfoUse.model_validate(
             {
                 'clock': 'beats',
                 'body': {

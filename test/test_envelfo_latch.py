@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.motion import Latch, MotionUse, Patch, latch_value
+from ufor.envelfo import EnvelfoUse, Latch, Patch, latch_value
 
 
 def test_latch_captures_on_activation_and_holds_until_cleared() -> None:
@@ -14,7 +14,7 @@ def test_latch_captures_on_activation_and_holds_until_cleared() -> None:
 def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
     body = Patch.model_validate(
         {
-            'motions': {
+            'envelfos': {
                 'wave': {
                     'kind': 'cycle',
                     'rate': '2',
@@ -33,12 +33,12 @@ def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
             ],
         }
     )
-    assert isinstance(body.motions['held'], Latch)
+    assert isinstance(body.envelfos['held'], Latch)
     assert body.signal_ranges['held'] == (-1, 1)
     assert body.signal_order == ['wave', 'held']
     assert Patch.model_validate_json(body.model_dump_json()) == body
     with pytest.raises(ValidationError, match='latch requires voice scope'):
-        MotionUse(body=body, scope='instrument')
+        EnvelfoUse(body=body, scope='instrument')
     raw = body.model_dump()
     raw['events'][0]['target'] = 'wave'
     with pytest.raises(ValidationError, match='capture target must be a Latch'):
@@ -48,6 +48,6 @@ def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
     with pytest.raises(ValidationError, match='sample target'):
         Patch.model_validate(raw)
     raw['events'] = []
-    raw['motions']['held']['input'] = 'held'
+    raw['envelfos']['held']['input'] = 'held'
     with pytest.raises(ValidationError, match='cycle'):
         Patch.model_validate(raw)

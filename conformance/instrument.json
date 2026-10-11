@@ -86,7 +86,7 @@
         "hold": true,
         "retrigger": "current"
       },
-      "motions": {},
+      "envelfos": {},
       "modulation": {
         "parameters": [],
         "sources": [],
@@ -156,7 +156,7 @@
           "hold": true,
           "retrigger": "current"
         },
-        "motions": {},
+        "envelfos": {},
         "modulation": {
           "parameters": [
             {
