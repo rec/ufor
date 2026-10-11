@@ -3,7 +3,7 @@ revision = 3
 requires-python = ">=3.13"
 
 [options]
-exclude-newer = "2026-10-03T16:17:00.208798Z"
+exclude-newer = "2026-10-04T08:26:51.50321Z"
 exclude-newer-span = "P1W"
 
 [[package]]
@@ -240,8 +240,8 @@ wheels = [
 
 [[package]]
 name = "reccy"
-version = "0.1.0"
-source = { git = "ssh://git@github.com/rec/reccy.git?branch=main#c4e270fc9fd680a32c097226a9219c7df7ba0d28" }
+version = "0.2.0"
+source = { git = "https://github.com/rec/reccy.git?branch=main#4273cee8b2ada5a4e60385333892910c9d1f714a" }
 dependencies = [
     { name = "pint" },
     { name = "pydantic" },
@@ -395,7 +395,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pydantic", specifier = ">=2.13.4" },
-    { name = "reccy", git = "ssh://git@github.com/rec/reccy.git?branch=main" },
+    { name = "reccy", git = "https://github.com/rec/reccy.git?branch=main" },
     { name = "tomlkit", specifier = ">=0.15.1" },
 ]
 
