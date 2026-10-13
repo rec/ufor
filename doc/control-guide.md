@@ -63,7 +63,7 @@ Evaluate dependencies before consumers, retaining authored input order within a
 sum or product. Each primitive child has one shared state, regardless of how
 many nodes or outputs consume it. Transform inputs use a LFO's value times its
 delay/fade weight, so an inactive LFO contributes zero; affine's offset still
-applies. Contour and Stages inputs have weight one. Transform outputs have weight
+applies. Envelope and Stages inputs have weight one. Transform outputs have weight
 one and then pass through ordinary modulation mapping.
 
 Envelfo event connections, including internal Patch connections, accept `every`
@@ -73,7 +73,7 @@ every nth matching event. For `every = 3`, offsets 0, 1, and 2 forward 1, 4, 7;
 2, 5, 8; and 3, 6, 9, respectively. Offsets may exceed `every`: offset 4 starts
 at event 5, not event 2. Nonmatching
 ports do not advance the count. Counts belong to each connection and voice,
-reset on voice activation, and survive snapshots; stage transitions, contour
+reset on voice activation, and survive snapshots; stage transitions, envelope
 restarts, and render-block boundaries do not reset them. Division filters
 delivery, not the source Envelfo's emitted events or named event outputs.
 

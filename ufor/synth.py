@@ -177,9 +177,9 @@ class SynthInstrument(Model):
             if any(
                 g.scope != control.Scope.voice
                 for g in voice.envelfos.values()
-                if g.body is not None and g.body.kind == 'contour'
+                if g.body is not None and g.body.kind == 'envelope'
             ):
-                raise ValueError('Synth voice contours must have voice scope')
+                raise ValueError('Synth voice envelopes must have voice scope')
             if (
                 voice.trigger
                 in (

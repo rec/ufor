@@ -18,22 +18,22 @@ def test_sample_routes_use_the_shared_evaluator() -> None:
     assert values[0].value == 0.25
 
 
-@pytest.mark.parametrize('kind', ['key', 'velocity', 'control', 'contour', 'lfo'])
+@pytest.mark.parametrize('kind', ['key', 'velocity', 'control', 'envelope', 'lfo'])
 def test_binding_kinds_round_trip_with_their_real_source_definitions(kind: str) -> None:
     raw = lfo_settings()
     binding: dict[str, object] = {
         'name': 'envelfo',
-        'kind': 'envelfo' if kind in ('contour', 'lfo') else kind,
+        'kind': 'envelfo' if kind in ('envelope', 'lfo') else kind,
     }
     source = raw['modulation']['sources'][0]
     if kind == 'control':
         binding['control'] = 'bend'
         source['scope'] = 'part'
-    elif kind == 'contour':
+    elif kind == 'envelope':
         raw['envelfos'] = {
             'envelfo': {
                 'body': {
-                    'kind': 'contour',
+                    'kind': 'envelope',
                     'segments': [{'duration': '1 s', 'to': 1}],
                     'release': [{'duration': '1 s', 'to': 0}],
                 }
@@ -210,15 +210,15 @@ def test_spatial_bounds_include_both_scopes_and_delayed_lfo_neutral() -> None:
         SampleInstrument.model_validate(raw)
 
 
-@pytest.mark.parametrize('generator', ['contour', 'lfo'])
+@pytest.mark.parametrize('generator', ['envelope', 'lfo'])
 def test_slot_generators_require_voice_scope(generator: str) -> None:
     value = (
         {
-            'kind': 'contour',
+            'kind': 'envelope',
             'segments': [{'duration': 0, 'to': 1}],
             'release': [{'duration': 0, 'to': 0}],
         }
-        if generator == 'contour'
+        if generator == 'envelope'
         else {'kind': 'lfo', 'rate': 1}
     )
     raw = body({'envelfos': {'envelfo': {'scope': 'instrument', 'body': value}}})

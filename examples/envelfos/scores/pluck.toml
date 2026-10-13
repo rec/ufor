@@ -1,10 +1,10 @@
 kind = "envelfo"
 name = "pluck"
-title = "Short pluck contour"
+title = "Short pluck envelope"
 tags = ["#envelope", "#pluck"]
 
 [body]
-kind = "contour"
+kind = "envelope"
 initial = 0.0
 segments = [
   { duration = "10 ms", to = 1.0 },

@@ -52,11 +52,11 @@ Two uses of a score never share state merely because their definition IDs
 match. Gate routing to an instrument envelope must be explicit; it is not
 implicitly the OR of every key in the instrument.
 
-## Embedded envelope semantics and reusable contour scores
+## Embedded envelope semantics and reusable envelope scores
 
 The existing embedded `Envelope` still owns its clock, scope, polarity, hold,
-and retrigger policy. A standalone reusable contour is now a `EnvelfoScore` with
-`kind = "contour"` in its body. Its LFO counterpart uses `kind = "lfo"`.
+and retrigger policy. A standalone reusable envelope is now a `EnvelfoScore` with
+`kind = "envelope"` in its body. Its LFO counterpart uses `kind = "lfo"`.
 Instance ownership and playback policy are not part of these standalone
 definitions yet.
 
@@ -71,7 +71,7 @@ On a trigger, traverse `segments`. On release, abandon that traversal and
 traverse `release` from the current level. Each list has its own local segment
 indices starting at zero. The last on-segment target is held when `hold = true`
 (the default). With `hold = false`, finishing the on-list completes a one-shot
-contour. Finishing the release-list always completes the contour. Completion
+envelope. Finishing the release-list always completes the envelope. Completion
 holds its terminal value, which need not be zero. A host chooses whether a
 particular amplitude envelope's completion retires a voice; a modulation
 envelope's completion alone does not.
@@ -89,7 +89,7 @@ title = "Soft amplitude"
 kind = "envelfo"
 
 [body]
-kind = "contour"
+kind = "envelope"
 initial = 0.0
 
 [[body.segments]]
@@ -147,7 +147,7 @@ again at a later time. The host merges inputs and assigns these ordinals before
 delivery. The reference rejects backward events and duplicate equal-time
 ordinals. It does not silently sort or impose an action-type priority.
 
-At a timestamp, advance the contour through completed/zero-time segments,
+At a timestamp, advance the envelope through completed/zero-time segments,
 apply each event in ordinal order, then observe. Consequently trigger followed
 by release at the same timestamp differs from release followed by trigger.
 
@@ -160,7 +160,7 @@ by release at the same timestamp differs from release followed by trigger.
 | Active trigger with `ignore` | Continue the current traversal or held level |
 | Trigger after completion | Start again; `current` uses the terminal value, other policies use `initial` |
 | Release during any on-segment or held state | Begin release-list from the exact current value |
-| Release while idle, completed, or already releasing | No change to the contour |
+| Release while idle, completed, or already releasing | No change to the envelope |
 
 Restarting the complete on-list includes any authored delay. `current` promises
 no jump at its entry, but an authored zero-duration segment can still jump.
@@ -293,7 +293,7 @@ unsupported loops/random sources.
 | Sine/symmetric triangle only | Tuney shape vocabulary also permits square and explicit rational duty/skew |
 
 An attack interrupted during delay, a curved decay to zero, an ordinary ADSR,
-and a bipolar one-shot are represented without extra engines. A looped contour
+and a bipolar one-shot are represented without extra engines. A looped envelope
 would additionally require loop entry/exit, release-from-loop and zero-time
 cycle rules. It is intentionally rejected in this first profile. Random and
 sample-and-hold sources, audio-rate realization, band-limiting, continuous rate

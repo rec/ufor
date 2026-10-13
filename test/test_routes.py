@@ -20,15 +20,15 @@ class Case(Model):
 
 
 def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
-    contour = envelope.Envelope.model_validate(
+    definition = envelope.Envelope.model_validate(
         {
             'segments': [{'duration': '2 s', 'to': 1}],
             'release': [{'duration': '1 s', 'to': 0}],
         }
     )
-    state = envelope.initial_envelope(contour, Fraction(0))
+    state = envelope.initial_envelope(definition, Fraction(0))
     state = envelope.envelope_event(
-        contour,
+        definition,
         state,
         envelope.EnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
     )
@@ -45,7 +45,7 @@ def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
     phase = lfo.initial_lfo(oscillator, Fraction(0))
     for at, expected in [('1/2', 0.25), ('1', 0.5), ('2', 0.6), ('3', 0.2)]:
         position = Fraction(at)
-        level = envelope.envelope_at(contour, state, position)
+        level = envelope.envelope_at(definition, state, position)
         tremolo = lfo.lfo_at(oscillator, phase, position)
         result = modulation.evaluate(
             DEFINITIONS['amplitude'],

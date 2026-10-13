@@ -10,7 +10,7 @@ from pydantic import ValidationError
 from ufor import envelope, lfo, segments
 from ufor.base import Model
 from ufor.codec import parse_score, score_toml
-from ufor.envelfo import LFO, Contour, EnvelfoScore
+from ufor.envelfo import LFO, EnvelfoScore, Envelope
 from ufor.oscillator import Waveform, shape_value
 
 
@@ -223,7 +223,7 @@ def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> N
     document = EnvelfoScore(
         name='envelope',
         title=case.name,
-        body=Contour(
+        body=Envelope(
             initial=case.definition.initial,
             segments=case.definition.segments,
             release=case.definition.release,

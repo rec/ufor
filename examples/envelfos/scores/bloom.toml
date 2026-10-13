@@ -13,7 +13,7 @@ envelfo = { kind = "hold", value = 0.0 }
 
 [[body.stages]]
 name = "attack"
-envelfo = { kind = "contour", initial = "current", segments = [
+envelfo = { kind = "envelope", initial = "current", segments = [
   { duration = "300 ms", to = 0.7 },
 ] }
 
@@ -24,7 +24,7 @@ envelfo = { kind = "lfo", shape = "sine", rate = "3 Hz", center = 0.7, depth = 0
 
 [[body.stages]]
 name = "release"
-envelfo = { kind = "contour", initial = "current", segments = [
+envelfo = { kind = "envelope", initial = "current", segments = [
   { duration = "500 ms", to = 0.0 },
 ] }
 

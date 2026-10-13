@@ -8,7 +8,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, StrictBool, model_validator
 from reccy.configuration import units
 
-from .. import control, modulation
+from .. import control, envelfo, modulation
 from ..base import (
     FiniteScalar,
     Frequency,
@@ -21,7 +21,6 @@ from ..base import (
 from ..envelfo import (
     LFO,
     Affine,
-    Contour,
     EnvelfoUse,
     Latch,
     Patch,
@@ -310,10 +309,13 @@ class SoundSettings(Model):
                 if (
                     binding.release_timing == ReleaseTiming.voice
                     and generator.body is not None
-                    and (not isinstance(selected, Contour) or not selected.release)
+                    and (
+                        not isinstance(selected, envelfo.Envelope)
+                        or not selected.release
+                    )
                 ):
                     raise ValueError(
-                        'Voice release timing requires a releasing contour'
+                        'Voice release timing requires a releasing envelope'
                     )
                 if generator.score is not None:
                     if source.scope != generator.scope:
@@ -321,7 +323,7 @@ class SoundSettings(Model):
                     continue
                 minimum = (
                     0
-                    if isinstance(selected, Contour)
+                    if isinstance(selected, envelfo.Envelope)
                     and selected.polarity == control.Polarity.unipolar
                     else -1
                 )
@@ -350,11 +352,13 @@ class SoundSettings(Model):
                         'Generator source scope and domain must match its definition'
                     )
         for parameter in self.modulation.parameters:
-            envelfo = self.envelfos.get(parameter.target.name.removeprefix('envelfo-'))
+            generator_use = self.envelfos.get(
+                parameter.target.name.removeprefix('envelfo-')
+            )
             if parameter.target.name.startswith('envelfo-') and (
-                envelfo is not None and envelfo.score is not None
+                generator_use is not None and generator_use.score is not None
             ):
-                if parameter.scope != envelfo.scope:
+                if parameter.scope != generator_use.scope:
                     raise ValueError('Envelfo parameter scope must match its use')
                 continue
             unit, default = self.parameter_definition(parameter.target)
@@ -372,11 +376,14 @@ class SoundSettings(Model):
             if parameter.target.name == 'envelope':
                 generator = self.envelope
             elif parameter.target.name.startswith('envelfo-'):
-                envelfo = self.envelfos.get(
+                generator_use = self.envelfos.get(
                     parameter.target.name.removeprefix('envelfo-')
                 )
                 generator = (
-                    envelfo if envelfo and isinstance(envelfo.body, Contour) else None
+                    generator_use
+                    if generator_use
+                    and isinstance(generator_use.body, envelfo.Envelope)
+                    else None
                 )
             else:
                 generator = None
@@ -451,16 +458,18 @@ def parameter_definition(
             units = {'cutoff_hz': modulation.Unit.hz, 'q': modulation.Unit.ratio}
             if target.parameter in units:
                 return units[target.parameter], getattr(filter, target.parameter)
-    definition: Envelope | Contour | None = None
+    definition: Envelope | envelfo.Envelope | None = None
     clock: control.Clock | None = None
     if target.name == 'envelope' and settings.envelope is not None:
         definition = settings.envelope
         clock = definition.clock
     elif target.name.startswith('envelfo-'):
-        envelfo = settings.envelfos.get(target.name.removeprefix('envelfo-'))
-        if envelfo is not None and isinstance(envelfo.body, Contour):
-            definition = envelfo.body
-            clock = envelfo.clock
+        generator_use = settings.envelfos.get(target.name.removeprefix('envelfo-'))
+        if generator_use is not None and isinstance(
+            generator_use.body, envelfo.Envelope
+        ):
+            definition = generator_use.body
+            clock = generator_use.clock
     if definition is not None:
         for phase, segments in (
             ('on', definition.segments),

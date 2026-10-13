@@ -3416,120 +3416,6 @@
       "title": "ContentIdentity",
       "type": "object"
     },
-    "Contour": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "contour",
-          "default": "contour",
-          "title": "Kind",
-          "type": "string"
-        },
-        "initial": {
-          "anyOf": [
-            {
-              "type": "number"
-            },
-            {
-              "const": "current",
-              "type": "string"
-            }
-          ],
-          "default": 0.0,
-          "title": "Initial"
-        },
-        "start": {
-          "default": "activation",
-          "enum": [
-            "activation",
-            "event"
-          ],
-          "title": "Start",
-          "type": "string"
-        },
-        "segments": {
-          "items": {
-            "$ref": "#/$defs/Segment"
-          },
-          "minItems": 1,
-          "title": "Segments",
-          "type": "array"
-        },
-        "release": {
-          "items": {
-            "$ref": "#/$defs/Segment"
-          },
-          "title": "Release",
-          "type": "array"
-        },
-        "polarity": {
-          "$ref": "#/$defs/Polarity",
-          "default": "unipolar"
-        },
-        "hold": {
-          "default": true,
-          "title": "Hold",
-          "type": "boolean"
-        },
-        "retrigger": {
-          "$ref": "#/$defs/Retrigger",
-          "default": "current"
-        },
-        "playback": {
-          "$ref": "#/$defs/ufor__envelfo__PlaybackMode",
-          "default": "once"
-        },
-        "markers": {
-          "items": {
-            "$ref": "#/$defs/Marker"
-          },
-          "title": "Markers",
-          "type": "array"
-        },
-        "loop_start": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Loop Start"
-        },
-        "loop_end": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Loop End"
-        },
-        "repeat_count": {
-          "anyOf": [
-            {
-              "minimum": 1,
-              "type": "integer"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Repeat Count"
-        }
-      },
-      "required": [
-        "segments"
-      ],
-      "title": "Contour",
-      "type": "object"
-    },
     "Control": {
       "additionalProperties": false,
       "description": "A free-running control in seconds from this score's activation.",
@@ -4676,7 +4562,7 @@
         "body": {
           "discriminator": {
             "mapping": {
-              "contour": "#/$defs/Contour",
+              "envelope": "#/$defs/ufor__envelfo__Envelope",
               "lfo": "#/$defs/ufor__envelfo__LFO",
               "patch": "#/$defs/Patch",
               "sample_hold": "#/$defs/SampleHold",
@@ -4689,7 +4575,7 @@
               "$ref": "#/$defs/ufor__envelfo__LFO"
             },
             {
-              "$ref": "#/$defs/Contour"
+              "$ref": "#/$defs/ufor__envelfo__Envelope"
             },
             {
               "$ref": "#/$defs/Stages"
@@ -4732,7 +4618,7 @@
             {
               "discriminator": {
                 "mapping": {
-                  "contour": "#/$defs/Contour",
+                  "envelope": "#/$defs/ufor__envelfo__Envelope",
                   "lfo": "#/$defs/ufor__envelfo__LFO",
                   "patch": "#/$defs/Patch",
                   "sample_hold": "#/$defs/SampleHold",
@@ -4745,7 +4631,7 @@
                   "$ref": "#/$defs/ufor__envelfo__LFO"
                 },
                 {
-                  "$ref": "#/$defs/Contour"
+                  "$ref": "#/$defs/ufor__envelfo__Envelope"
                 },
                 {
                   "$ref": "#/$defs/Stages"
@@ -4803,61 +4689,6 @@
         }
       },
       "title": "EnvelfoUse",
-      "type": "object"
-    },
-    "Envelope": {
-      "additionalProperties": false,
-      "properties": {
-        "clock": {
-          "$ref": "#/$defs/Clock",
-          "default": "seconds"
-        },
-        "scope": {
-          "$ref": "#/$defs/Scope",
-          "default": "voice"
-        },
-        "polarity": {
-          "$ref": "#/$defs/Polarity",
-          "default": "unipolar"
-        },
-        "initial": {
-          "default": 0,
-          "maximum": 1,
-          "minimum": -1,
-          "title": "Initial",
-          "type": "number"
-        },
-        "segments": {
-          "items": {
-            "$ref": "#/$defs/Segment"
-          },
-          "minItems": 1,
-          "title": "Segments",
-          "type": "array"
-        },
-        "release": {
-          "items": {
-            "$ref": "#/$defs/Segment"
-          },
-          "minItems": 1,
-          "title": "Release",
-          "type": "array"
-        },
-        "hold": {
-          "default": true,
-          "title": "Hold",
-          "type": "boolean"
-        },
-        "retrigger": {
-          "$ref": "#/$defs/Retrigger",
-          "default": "current"
-        }
-      },
-      "required": [
-        "segments",
-        "release"
-      ],
-      "title": "Envelope",
       "type": "object"
     },
     "EqualizerBand": {
@@ -5585,7 +5416,7 @@
         "envelope": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Envelope"
+              "$ref": "#/$defs/ufor__envelope__Envelope"
             },
             {
               "type": "null"
@@ -8501,7 +8332,7 @@
           }
         },
         "envelope": {
-          "$ref": "#/$defs/Envelope",
+          "$ref": "#/$defs/ufor__envelope__Envelope",
           "default": {
             "clock": "seconds",
             "scope": "voice",
@@ -8839,7 +8670,7 @@
           "default": "sine"
         },
         "envelope": {
-          "$ref": "#/$defs/Envelope",
+          "$ref": "#/$defs/ufor__envelope__Envelope",
           "default": {
             "clock": "seconds",
             "scope": "voice",
@@ -9847,7 +9678,7 @@
             "discriminator": {
               "mapping": {
                 "affine": "#/$defs/Affine",
-                "contour": "#/$defs/Contour",
+                "envelope": "#/$defs/ufor__envelfo__Envelope",
                 "latch": "#/$defs/Latch",
                 "lfo": "#/$defs/ufor__envelfo__LFO",
                 "product": "#/$defs/Product",
@@ -9865,7 +9696,7 @@
                 "$ref": "#/$defs/ufor__envelfo__LFO"
               },
               {
-                "$ref": "#/$defs/Contour"
+                "$ref": "#/$defs/ufor__envelfo__Envelope"
               },
               {
                 "$ref": "#/$defs/Stages"
@@ -12207,7 +12038,7 @@
           }
         },
         "envelope": {
-          "$ref": "#/$defs/Envelope",
+          "$ref": "#/$defs/ufor__envelope__Envelope",
           "default": {
             "clock": "seconds",
             "scope": "voice",
@@ -12356,7 +12187,7 @@
         "envelope": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Envelope"
+              "$ref": "#/$defs/ufor__envelope__Envelope"
             },
             {
               "const": false,
@@ -13673,7 +13504,7 @@
         "envelope": {
           "anyOf": [
             {
-              "$ref": "#/$defs/Envelope"
+              "$ref": "#/$defs/ufor__envelope__Envelope"
             },
             {
               "type": "null"
@@ -13892,7 +13723,7 @@
         "envelfo": {
           "discriminator": {
             "mapping": {
-              "contour": "#/$defs/Contour",
+              "envelope": "#/$defs/ufor__envelfo__Envelope",
               "hold": "#/$defs/Hold",
               "lfo": "#/$defs/ufor__envelfo__LFO"
             },
@@ -13906,7 +13737,7 @@
               "$ref": "#/$defs/ufor__envelfo__LFO"
             },
             {
-              "$ref": "#/$defs/Contour"
+              "$ref": "#/$defs/ufor__envelfo__Envelope"
             }
           ],
           "title": "Envelfo"
@@ -14521,7 +14352,7 @@
           }
         },
         "envelope": {
-          "$ref": "#/$defs/Envelope",
+          "$ref": "#/$defs/ufor__envelope__Envelope",
           "default": {
             "clock": "seconds",
             "scope": "voice",
@@ -15832,6 +15663,120 @@
       "title": "Transition",
       "type": "object"
     },
+    "ufor__envelfo__Envelope": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "envelope",
+          "default": "envelope",
+          "title": "Kind",
+          "type": "string"
+        },
+        "initial": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "const": "current",
+              "type": "string"
+            }
+          ],
+          "default": 0.0,
+          "title": "Initial"
+        },
+        "start": {
+          "default": "activation",
+          "enum": [
+            "activation",
+            "event"
+          ],
+          "title": "Start",
+          "type": "string"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "release": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "title": "Release",
+          "type": "array"
+        },
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "unipolar"
+        },
+        "hold": {
+          "default": true,
+          "title": "Hold",
+          "type": "boolean"
+        },
+        "retrigger": {
+          "$ref": "#/$defs/Retrigger",
+          "default": "current"
+        },
+        "playback": {
+          "$ref": "#/$defs/ufor__envelfo__PlaybackMode",
+          "default": "once"
+        },
+        "markers": {
+          "items": {
+            "$ref": "#/$defs/Marker"
+          },
+          "title": "Markers",
+          "type": "array"
+        },
+        "loop_start": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop Start"
+        },
+        "loop_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Loop End"
+        },
+        "repeat_count": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Repeat Count"
+        }
+      },
+      "required": [
+        "segments"
+      ],
+      "title": "Envelope",
+      "type": "object"
+    },
     "ufor__envelfo__LFO": {
       "additionalProperties": false,
       "properties": {
@@ -15932,6 +15877,61 @@
       ],
       "title": "PlaybackMode",
       "type": "string"
+    },
+    "ufor__envelope__Envelope": {
+      "additionalProperties": false,
+      "properties": {
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "polarity": {
+          "$ref": "#/$defs/Polarity",
+          "default": "unipolar"
+        },
+        "initial": {
+          "default": 0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Initial",
+          "type": "number"
+        },
+        "segments": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Segments",
+          "type": "array"
+        },
+        "release": {
+          "items": {
+            "$ref": "#/$defs/Segment"
+          },
+          "minItems": 1,
+          "title": "Release",
+          "type": "array"
+        },
+        "hold": {
+          "default": true,
+          "title": "Hold",
+          "type": "boolean"
+        },
+        "retrigger": {
+          "$ref": "#/$defs/Retrigger",
+          "default": "current"
+        }
+      },
+      "required": [
+        "segments",
+        "release"
+      ],
+      "title": "Envelope",
+      "type": "object"
     },
     "ufor__interface__ControlBinding": {
       "additionalProperties": false,

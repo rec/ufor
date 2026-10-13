@@ -7,11 +7,11 @@ from pydantic import ValidationError
 from ufor.codec import parse_score, score_toml
 from ufor.envelfo import (
     LFO,
-    Contour,
     EnterStage,
     EnvelfoParameter,
     EnvelfoScore,
     EnvelfoUse,
+    Envelope,
     FinishStage,
     Hold,
     Marker,
@@ -37,7 +37,7 @@ def staged_envelfo() -> EnvelfoUse:
                 Stage(name='waiting', envelfo=Hold(value=0.0)),
                 Stage(
                     name='attack',
-                    envelfo=Contour(
+                    envelfo=Envelope(
                         initial='current',
                         segments=[Segment(duration=Fraction(1, 4), to=0.7)],
                     ),
@@ -53,7 +53,7 @@ def staged_envelfo() -> EnvelfoUse:
                 ),
                 Stage(
                     name='release',
-                    envelfo=Contour(
+                    envelfo=Envelope(
                         initial='current',
                         segments=[Segment(duration=Fraction(1, 4), to=0.0)],
                     ),
@@ -112,7 +112,16 @@ def test_lfo_rejects_previous_body_kind() -> None:
         EnvelfoUse.model_validate({'body': {'kind': 'cycle', 'rate': 1}})
 
 
-def test_stage_contour_durations_match_the_envelfo_clock() -> None:
+def test_envelope_rejects_previous_body_kind() -> None:
+    definition = EnvelfoUse(body=Envelope(segments=[Segment(duration=1, to=1)]))
+    assert definition.model_dump()['body']['kind'] == 'envelope'
+    with pytest.raises(ValidationError, match='union_tag_invalid'):
+        EnvelfoUse.model_validate(
+            {'body': {'kind': 'contour', 'segments': [{'duration': '1 s', 'to': 1}]}}
+        )
+
+
+def test_stage_envelope_durations_match_the_envelfo_clock() -> None:
     body = {
         'kind': 'stages',
         'initial_stage': 'attack',
@@ -120,7 +129,7 @@ def test_stage_contour_durations_match_the_envelfo_clock() -> None:
             {
                 'name': 'attack',
                 'envelfo': {
-                    'kind': 'contour',
+                    'kind': 'envelope',
                     'segments': [{'duration': '1 beat', 'to': 1}],
                 },
             }
@@ -128,7 +137,7 @@ def test_stage_contour_durations_match_the_envelfo_clock() -> None:
     }
     envelfo = EnvelfoUse.model_validate({'clock': 'beats', 'body': body})
     assert envelfo.clock.value == 'beats'
-    with pytest.raises(ValidationError, match='stage contour segment units'):
+    with pytest.raises(ValidationError, match='stage envelope segment units'):
         EnvelfoUse.model_validate({'clock': 'seconds', 'body': body})
 
 
@@ -179,7 +188,7 @@ def test_voice_envelfo_event_connections_validate_ports_and_cues() -> None:
     with pytest.raises(ValidationError, match='unknown port'):
         SoundSettings.model_validate(raw)
     raw['envelfos']['source']['body']['stages'][2]['envelfo'] = {
-        'kind': 'contour',
+        'kind': 'envelope',
         'segments': [{'duration': '1 s', 'to': 1}],
         'markers': [{'name': 'peak', 'position': '1/2'}],
         'playback': 'loop',
@@ -193,12 +202,12 @@ def test_voice_envelfo_event_connections_validate_ports_and_cues() -> None:
     assert SoundSettings.model_validate(raw).event_connections[0].port == 'turned'
 
 
-def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
+def test_named_envelope_release_timing_is_explicit_and_envelope_only() -> None:
     raw = {
         'envelfos': {
             'envelfo': {
                 'body': {
-                    'kind': 'contour',
+                    'kind': 'envelope',
                     'segments': [{'duration': '1 s', 'to': 1}],
                     'release': [{'duration': '1 s', 'to': 0}],
                 }
@@ -218,11 +227,11 @@ def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
     assert selected.bindings[0].release_timing == ReleaseTiming.voice
     assert SoundSettings.model_validate_json(selected.model_dump_json()) == selected
     raw['envelfos']['envelfo']['body']['release'] = []
-    with pytest.raises(ValidationError, match='releasing contour'):
+    with pytest.raises(ValidationError, match='releasing envelope'):
         SoundSettings.model_validate(raw)
     raw['envelfos']['envelfo']['body'] = {'kind': 'lfo', 'rate': '1'}
     raw['modulation']['sources'][0]['minimum'] = -1
-    with pytest.raises(ValidationError, match='releasing contour'):
+    with pytest.raises(ValidationError, match='releasing envelope'):
         SoundSettings.model_validate(raw)
 
 
@@ -320,7 +329,7 @@ def test_patch_named_outputs_select_child_signal_domains() -> None:
                     'kind': 'patch',
                     'envelfos': {
                         'amp': {
-                            'kind': 'contour',
+                            'kind': 'envelope',
                             'segments': [{'duration': '1 s', 'to': 1}],
                         },
                         'vibrato': {'kind': 'lfo', 'rate': '5'},
@@ -376,7 +385,7 @@ def test_patch_output_and_clock_references_are_validated() -> None:
         'kind': 'patch',
         'envelfos': {
             'amp': {
-                'kind': 'contour',
+                'kind': 'envelope',
                 'segments': [{'duration': '1 beat', 'to': 1}],
             }
         },
@@ -387,7 +396,7 @@ def test_patch_output_and_clock_references_are_validated() -> None:
     )
     assert parse_score(score_toml(score)) == score
     assert isinstance(EnvelfoUse(clock='beats', body=score.body).body, type(score.body))
-    with pytest.raises(ValidationError, match='patch contour segment units'):
+    with pytest.raises(ValidationError, match='patch envelope segment units'):
         EnvelfoUse(body=score.body)
     body['outputs']['level'] = 'missing'
     with pytest.raises(ValidationError, match='unknown child Envelfo'):
@@ -459,7 +468,7 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
                 }
                 if source_kind == 'marker'
                 else {
-                    'kind': 'contour',
+                    'kind': 'envelope',
                     'segments': [{'duration': '1/4 s', 'to': 1}],
                 },
             }
@@ -505,7 +514,7 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
     with pytest.raises(ValidationError, match='unknown stage event'):
         EnvelfoUse.model_validate({'body': body})
     body['envelfos']['accent'] = {
-        'kind': 'contour',
+        'kind': 'envelope',
         'start': 'event',
         'segments': [{'duration': '1/4 s', 'to': 1}],
     }
@@ -519,7 +528,7 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
     )
     assert parse_score(score_toml(score)) == score
     body['envelfos']['accent']['start'] = 'activation'
-    with pytest.raises(ValidationError, match='event-start Contour'):
+    with pytest.raises(ValidationError, match='event-start Envelope'):
         EnvelfoUse.model_validate({'body': body})
 
 
@@ -603,10 +612,10 @@ def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
     [
         ('kind = "lfo"\nshape = "sine"\nrate = "5 Hz"', LFO),
         (
-            'kind = "contour"\ninitial = 0.0\n'
+            'kind = "envelope"\ninitial = 0.0\n'
             'segments = [{ duration = "10 ms", to = 1.0 }]\n'
             'release = [{ duration = "200 ms", to = 0.0 }]',
-            Contour,
+            Envelope,
         ),
     ],
 )
@@ -670,7 +679,7 @@ def test_example_envelfo_library_resolves_all_scores() -> None:
 @pytest.mark.parametrize(
     'envelfo',
     [
-        Contour(
+        Envelope(
             segments=[Segment(duration=Fraction(1), to=1)],
             markers=[Marker(name='done', position=Fraction(1, 2))],
         ),
@@ -680,7 +689,7 @@ def test_example_envelfo_library_resolves_all_scores() -> None:
         ),
     ],
 )
-def test_staged_marker_cannot_claim_completion_port(envelfo: Contour | LFO) -> None:
+def test_staged_marker_cannot_claim_completion_port(envelfo: Envelope | LFO) -> None:
     with pytest.raises(ValidationError, match='reserved for completion'):
         Stages(
             initial_stage='moving',
@@ -688,6 +697,6 @@ def test_staged_marker_cannot_claim_completion_port(envelfo: Contour | LFO) -> N
         )
 
 
-def test_repeat_count_requires_repeating_contour() -> None:
+def test_repeat_count_requires_repeating_envelope() -> None:
     with pytest.raises(ValidationError, match='requires loop'):
-        Contour(segments=[Segment(duration=Fraction(1), to=1)], repeat_count=1)
+        Envelope(segments=[Segment(duration=Fraction(1), to=1)], repeat_count=1)

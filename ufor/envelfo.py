@@ -102,8 +102,8 @@ class LFO(Model):
         return control.clock_fields(value)
 
 
-class Contour(Model):
-    kind: Literal['contour'] = 'contour'
+class Envelope(Model):
+    kind: Literal['envelope'] = 'envelope'
     initial: FiniteScalar | Literal['current'] = 0.0
     start: Literal['activation', 'event'] = 'activation'
     segments: list[Segment] = Field(min_length=1)
@@ -124,22 +124,22 @@ class Contour(Model):
             *(s.to for s in [*self.segments, *self.release]),
         ]
         if any(not -1 <= value <= 1 for value in levels):
-            raise ValueError('contour levels must be in [-1, 1]')
+            raise ValueError('envelope levels must be in [-1, 1]')
         if self.polarity == control.Polarity.unipolar and min(levels) < 0:
-            raise ValueError('unipolar contour levels must be in [0, 1]')
-        unique((m.name for m in self.markers), 'contour marker')
+            raise ValueError('unipolar envelope levels must be in [0, 1]')
+        unique((m.name for m in self.markers), 'envelope marker')
         if (self.loop_start is None) != (self.loop_end is None):
-            raise ValueError('contour loop boundaries must be named together')
+            raise ValueError('envelope loop boundaries must be named together')
         if self.loop_start is not None:
             if self.playback == PlaybackMode.once:
-                raise ValueError('once contours cannot name loop boundaries')
+                raise ValueError('once envelopes cannot name loop boundaries')
             positions = {m.name: m.position for m in self.markers}
             if self.loop_start not in positions or self.loop_end not in positions:
-                raise ValueError('contour loop boundary marker is unknown')
+                raise ValueError('envelope loop boundary marker is unknown')
             if positions[self.loop_start] >= positions[self.loop_end]:
-                raise ValueError('contour loop start must precede its end')
+                raise ValueError('envelope loop start must precede its end')
             if any(m.position > positions[self.loop_end] for m in self.markers):
-                raise ValueError('contour markers cannot follow its loop end')
+                raise ValueError('envelope markers cannot follow its loop end')
         if self.repeat_count is not None and self.playback == PlaybackMode.once:
             raise ValueError('repeat count requires loop or ping-pong playback')
         return self
@@ -147,7 +147,7 @@ class Contour(Model):
 
 class Stage(Model):
     name: Identifier
-    envelfo: Annotated[Hold | LFO | Contour, Field(discriminator='kind')]
+    envelfo: Annotated[Hold | LFO | Envelope, Field(discriminator='kind')]
 
 
 class EnterStage(Model):
@@ -182,27 +182,29 @@ class Stages(Model):
         if self.initial_stage not in names:
             raise ValueError('initial stage is unknown')
         initial = next(s.envelfo for s in self.stages if s.name == self.initial_stage)
-        if isinstance(initial, Contour) and initial.initial == 'current':
+        if isinstance(initial, Envelope) and initial.initial == 'current':
             raise ValueError('initial stage cannot capture a current value')
         for stage in self.stages:
             body = stage.envelfo
-            if isinstance(body, (LFO, Contour)) and any(
+            if isinstance(body, (LFO, Envelope)) and any(
                 m.name == 'done' for m in body.markers
             ):
                 raise ValueError('stage marker name done is reserved for completion')
             if isinstance(body, LFO) and isinstance(body.rate, ParameterReference):
                 raise ValueError('stage LFO rate must be a literal')
-            if isinstance(body, Contour) and body.start == 'event':
-                raise ValueError('stage contours start on stage entry')
-            if isinstance(body, Contour) and (
+            if isinstance(body, Envelope) and body.start == 'event':
+                raise ValueError('stage envelopes start on stage entry')
+            if isinstance(body, Envelope) and (
                 body.release or not sum(s.duration for s in body.segments)
             ):
-                raise ValueError('stage contours need positive duration and no release')
-            if isinstance(body, Contour) and body.playback != PlaybackMode.once:
+                raise ValueError(
+                    'stage envelopes need positive duration and no release'
+                )
+            if isinstance(body, Envelope) and body.playback != PlaybackMode.once:
                 if any(m.position in (0, 1) for m in body.markers):
-                    raise ValueError('looping contour markers must be interior')
+                    raise ValueError('looping envelope markers must be interior')
                 if any(m.name in ('turned', 'cycle') for m in body.markers):
-                    raise ValueError('looping contour marker names are reserved')
+                    raise ValueError('looping envelope marker names are reserved')
         for transition in self.transitions:
             if any(n not in names for n in transition.from_stages):
                 raise ValueError('transition references an unknown source stage')
@@ -223,16 +225,16 @@ class Stages(Model):
                     body = next(s.envelfo for s in self.stages if s.name == name)
                     ports = (
                         {m.name for m in body.markers}
-                        if isinstance(body, (LFO, Contour))
+                        if isinstance(body, (LFO, Envelope))
                         else set()
                     )
                     if (
-                        not isinstance(body, Contour)
+                        not isinstance(body, Envelope)
                         or body.playback == PlaybackMode.once
                         or body.repeat_count is not None
                     ):
                         ports.add('done')
-                    if isinstance(body, Contour):
+                    if isinstance(body, Envelope):
                         if body.playback != PlaybackMode.once:
                             ports.add('cycle')
                             if body.playback == PlaybackMode.ping_pong:
@@ -251,13 +253,13 @@ def stage_event_ports(body: Stages) -> set[str]:
         for marker in getattr(stage.envelfo, 'markers', [])
     }
     if any(
-        isinstance(stage.envelfo, Contour)
+        isinstance(stage.envelfo, Envelope)
         and stage.envelfo.playback != PlaybackMode.once
         for stage in body.stages
     ):
         ports.add('cycle')
     if any(
-        isinstance(stage.envelfo, Contour)
+        isinstance(stage.envelfo, Envelope)
         and stage.envelfo.playback == PlaybackMode.ping_pong
         for stage in body.stages
     ):
@@ -361,7 +363,7 @@ class Patch(Model):
         Identifier,
         Annotated[
             LFO
-            | Contour
+            | Envelope
             | Stages
             | SampleHold
             | Sum
@@ -436,7 +438,7 @@ class Patch(Model):
             else:
                 minimum, maximum = (
                     (0.0, 1.0)
-                    if isinstance(body, Contour)
+                    if isinstance(body, Envelope)
                     and body.polarity == control.Polarity.unipolar
                     else (-1.0, 1.0)
                 )
@@ -471,10 +473,10 @@ class Patch(Model):
         ):
             raise ValueError('patch LFO rates must be literals')
         if any(
-            isinstance(body, Contour) and body.initial == 'current'
+            isinstance(body, Envelope) and body.initial == 'current'
             for body in self.envelfos.values()
         ):
-            raise ValueError('patch contours need explicit initial values')
+            raise ValueError('patch envelopes need explicit initial values')
         for connection in self.events:
             source, separator, port = connection.source.partition('.')
             origin = self.envelfos.get(source)
@@ -502,14 +504,14 @@ class Patch(Model):
                     raise ValueError('patch sample target must be a SampleHold')
             elif connection.action == 'start':
                 if (
-                    not isinstance(target, Contour)
+                    not isinstance(target, Envelope)
                     or target.start != 'event'
                     or target.release
                     or target.playback != PlaybackMode.once
                     or target.retrigger != Retrigger.current
                 ):
                     raise ValueError(
-                        'patch start target must be an event-start Contour'
+                        'patch start target must be an event-start Envelope'
                     )
             elif not isinstance(target, Stages) or not any(
                 transition.event == f'cue.{connection.cue}'
@@ -525,7 +527,7 @@ class EnvelfoUse(Model):
     position_driver: PositionDriver = PositionDriver.elapsed
     body: (
         Annotated[
-            LFO | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
+            LFO | Envelope | Stages | SampleHold | Patch, Field(discriminator='kind')
         ]
         | None
     ) = None
@@ -570,22 +572,22 @@ class EnvelfoUse(Model):
             self.body.rate, ParameterReference
         ):
             raise ValueError('inline LFO rate cannot reference a public parameter')
-        if isinstance(self.body, Contour) and self.body.initial == 'current':
-            raise ValueError('current contour initial requires a parent stage')
+        if isinstance(self.body, Envelope) and self.body.initial == 'current':
+            raise ValueError('current envelope initial requires a parent stage')
         if isinstance(self.body, SampleHold) and self.scope != control.Scope.voice:
             raise ValueError('sample-and-hold requires voice scope')
-        if isinstance(self.body, Contour) and any(
+        if isinstance(self.body, Envelope) and any(
             s.duration_unit.value != self.clock.value
             for s in [*self.body.segments, *self.body.release]
         ):
-            raise ValueError('contour segment units must match its clock')
+            raise ValueError('envelope segment units must match its clock')
         if isinstance(self.body, Stages) and any(
             segment.duration_unit.value != self.clock.value
             for stage in self.body.stages
-            if isinstance(stage.envelfo, Contour)
+            if isinstance(stage.envelfo, Envelope)
             for segment in stage.envelfo.segments
         ):
-            raise ValueError('stage contour segment units must match its clock')
+            raise ValueError('stage envelope segment units must match its clock')
         if isinstance(self.body, Patch):
             if (
                 any(isinstance(b, Latch) for b in self.body.envelfos.values())
@@ -638,23 +640,25 @@ class EnvelfoUse(Model):
                         'patch marker connections require simple voice seconds LFOs'
                     )
             for child in self.body.envelfos.values():
-                contours = (
+                envelopes = (
                     [child]
-                    if isinstance(child, Contour)
+                    if isinstance(child, Envelope)
                     else [
                         s.envelfo
                         for s in child.stages
-                        if isinstance(s.envelfo, Contour)
+                        if isinstance(s.envelfo, Envelope)
                     ]
                     if isinstance(child, Stages)
                     else []
                 )
                 if any(
                     segment.duration_unit.value != self.clock.value
-                    for contour in contours
-                    for segment in [*contour.segments, *contour.release]
+                    for envelope in envelopes
+                    for segment in [*envelope.segments, *envelope.release]
                 ):
-                    raise ValueError('patch contour segment units must match its clock')
+                    raise ValueError(
+                        'patch envelope segment units must match its clock'
+                    )
         return self
 
 
@@ -719,7 +723,7 @@ class LFOState(Model):
     position: EnvelfoPosition
 
 
-class ContourState(Model):
+class EnvelopeState(Model):
     at: control.Rational
     ordinal: int = -1
     phase: Literal['idle', 'on', 'release'] = 'idle'
@@ -750,7 +754,7 @@ class SampleHoldState(Model):
 
 
 class EnvelfoState(Model):
-    runtime: LFOState | ContourState | StageState | SampleHoldState
+    runtime: LFOState | EnvelopeState | StageState | SampleHoldState
 
 
 class EnvelfoValue(Model):
@@ -776,7 +780,7 @@ class EnvelfoScore(Score):
     kind: Literal['envelfo'] = 'envelfo'
     parameters: dict[Identifier, EnvelfoParameter] = Field(default_factory=dict)
     body: Annotated[
-        LFO | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
+        LFO | Envelope | Stages | SampleHold | Patch, Field(discriminator='kind')
     ]
 
     @model_validator(mode='after')
