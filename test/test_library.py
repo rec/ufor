@@ -107,8 +107,12 @@ def test_envelfo_library_materializes_relative_references_and_presets() -> None:
     )
     raw = json.loads(Path('conformance/synth-instrument.json').read_text())
     raw['body']['voices'][0]['envelfos'] = {
-        'first': {'score': {'path': 'slow.toml'}},
-        'second': {'score': {'path': 'vibrato.toml'}, 'parameters': {'speed': 6}},
+        'first': {'kind': 'reference', 'score': {'path': 'slow.toml'}},
+        'second': {
+            'kind': 'reference',
+            'score': {'path': 'vibrato.toml'},
+            'parameters': {'speed': 6},
+        },
     }
     raw['body']['voices'][0]['bindings'] = [
         {'name': 'envelfo', 'kind': 'envelfo', 'reference': 'first'}
@@ -151,8 +155,8 @@ def test_envelfo_library_materializes_relative_references_and_presets() -> None:
     assert isinstance(prepared, SynthInstrumentScore)
     first = prepared.body.voices[0].envelfos['first']
     second = prepared.body.voices[0].envelfos['second']
-    assert first.body == LFO(rate=2)
-    assert second.body == LFO(rate=6)
+    assert first.model_copy(update={'origin': None}) == LFO(rate=2)
+    assert second.model_copy(update={'origin': None}) == LFO(rate=6)
     assert first.origin is not None
     assert first.origin.identity == 'local:/slow.toml'
     assert first.origin.sha256 == 'b' * 64
@@ -165,7 +169,9 @@ def test_envelfo_library_materializes_relative_references_and_presets() -> None:
 
 def test_envelfo_library_rejects_references_to_other_score_kinds() -> None:
     raw = json.loads(Path('conformance/synth-instrument.json').read_text())
-    raw['body']['voices'][0]['envelfos'] = {'first': {'score': {'path': 'other.toml'}}}
+    raw['body']['voices'][0]['envelfos'] = {
+        'first': {'kind': 'reference', 'score': {'path': 'other.toml'}}
+    }
     instrument = SynthInstrumentScore.model_validate(raw)
     library = Library(
         [

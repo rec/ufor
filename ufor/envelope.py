@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 from fractions import Fraction
 from math import exp, expm1
-from typing import Literal, Self
+from typing import Self
 
 from pydantic import Field, model_validator
 
@@ -32,51 +32,6 @@ class Curve(Model):
         return self
 
 
-class VoiceEnvelope(Model):
-    clock: control.Clock = control.Clock.seconds
-    scope: control.Scope = control.Scope.voice
-    polarity: control.Polarity = control.Polarity.unipolar
-    initial: float = Field(default=0, ge=-1, le=1)
-    segments: list[Segment] = Field(min_length=1)
-    release: list[Segment] = Field(min_length=1)
-    hold: bool = True
-    retrigger: Retrigger = Retrigger.current
-
-    @model_validator(mode='after')
-    def levels_match_polarity(self) -> Self:
-        if any(
-            s.duration_unit.value != self.clock.value
-            for s in [*self.segments, *self.release]
-        ):
-            raise ValueError('envelope segment units must match its clock')
-        if any(not -1 <= s.to <= 1 for s in [*self.segments, *self.release]):
-            raise ValueError('triggered envelope levels must be in [-1, 1]')
-        if (
-            self.polarity == control.Polarity.unipolar
-            and min(self.initial, *(s.to for s in [*self.segments, *self.release])) < 0
-        ):
-            raise ValueError('unipolar envelope levels must be in [0, 1]')
-        return self
-
-
-class VoiceEnvelopeEvent(control.ControlEvent):
-    action: Literal['trigger', 'release']
-
-
-class VoiceEnvelopeState(Model):
-    at: control.Rational
-    ordinal: int = -1
-    started_at: control.Rational
-    start_value: float
-    phase: Literal['idle', 'on', 'release'] = 'idle'
-
-
-class VoiceEnvelopeValue(Model):
-    value: float
-    status: Literal['idle', 'running', 'held', 'complete']
-    segment: int | None = None
-
-
 def curve_at(curve: Curve, at: Fraction) -> float:
     """Seconds from activation; hold the final value or repeat the whole curve."""
     control.elapsed(at, Fraction(0))
@@ -91,59 +46,6 @@ def curve_at(curve: Curve, at: Fraction) -> float:
         at -= segment.duration
         value = segment.to
     return value
-
-
-def initial_envelope(envelope: VoiceEnvelope, at: Fraction) -> VoiceEnvelopeState:
-    return VoiceEnvelopeState(at=at, started_at=at, start_value=envelope.initial)
-
-
-def envelope_at(
-    envelope: VoiceEnvelope, state: VoiceEnvelopeState, at: Fraction
-) -> VoiceEnvelopeValue:
-    control.elapsed(at, state.at)
-    if state.phase == 'idle':
-        return VoiceEnvelopeValue(value=envelope.initial, status='idle')
-    remaining = control.elapsed(at, state.started_at)
-    value = state.start_value
-    segments = envelope.release if state.phase == 'release' else envelope.segments
-    for index, segment in enumerate(segments):
-        if remaining < segment.duration:
-            progress = float(remaining / segment.duration)
-            value += (segment.to - value) * curve_progress(progress, segment.curve)
-            return VoiceEnvelopeValue(value=value, status='running', segment=index)
-        remaining -= segment.duration
-        value = segment.to
-    status = 'held' if state.phase == 'on' and envelope.hold else 'complete'
-    return VoiceEnvelopeValue(value=value, status=status)
-
-
-def envelope_event(
-    envelope: VoiceEnvelope, state: VoiceEnvelopeState, event: VoiceEnvelopeEvent
-) -> VoiceEnvelopeState:
-    control.check_order(state.at, state.ordinal, event)
-    observation = envelope_at(envelope, state, event.at)
-    start = state.started_at
-    value = state.start_value
-    phase = state.phase
-    if event.action == 'trigger':
-        active = observation.status in ('running', 'held')
-        if not active or envelope.retrigger != Retrigger.ignore:
-            start = event.at
-            value = (
-                observation.value
-                if envelope.retrigger == Retrigger.current
-                else envelope.initial
-            )
-            phase = 'on'
-    elif state.phase == 'on' and observation.status != 'complete':
-        start, value, phase = event.at, observation.value, 'release'
-    return VoiceEnvelopeState(
-        at=event.at,
-        ordinal=event.ordinal,
-        started_at=start,
-        start_value=value,
-        phase=phase,
-    )
 
 
 def curve_progress(progress: float, curve: float) -> float:

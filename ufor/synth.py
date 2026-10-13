@@ -8,7 +8,7 @@ from reccy.configuration import units
 
 from . import base, control, modulation
 from .base import Identifier, Model, unique
-from .envelope import VoiceEnvelope
+from .envelfo import Envelope
 from .events import ControlChange, PerformanceEvent, Trigger
 from .fm import FM, edge_target_name
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
@@ -58,7 +58,7 @@ class VoiceTemplate(SoundSettings):
 class SynthVoice(VoiceTemplate):
     oscillator: Oscillator
     synchronize_oscillator: bool = False
-    envelope: VoiceEnvelope = VoiceEnvelope(
+    envelope: Envelope = Envelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )
@@ -66,7 +66,7 @@ class SynthVoice(VoiceTemplate):
 
 class NoiseVoice(VoiceTemplate):
     noise: Literal['white']
-    envelope: VoiceEnvelope = VoiceEnvelope(
+    envelope: Envelope = Envelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )
@@ -175,9 +175,9 @@ class SynthInstrument(Model):
             if any(p.scope != control.Scope.voice for p in voice.modulation.parameters):
                 raise ValueError('Synth voice parameters must have voice scope')
             if any(
-                g.scope != control.Scope.voice
-                for g in voice.envelfos.values()
-                if g.body is not None and g.body.kind == 'envelope'
+                    g.scope != control.Scope.voice
+                    for g in voice.envelfos.values()
+                    if g is not None and g.kind == 'envelope'
             ):
                 raise ValueError('Synth voice envelopes must have voice scope')
             if (

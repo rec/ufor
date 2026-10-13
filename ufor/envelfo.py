@@ -7,7 +7,14 @@ from graphlib import CycleError, TopologicalSorter
 from math import floor, isfinite
 from typing import Annotated, Literal, Self
 
-from pydantic import ConfigDict, Field, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    SerializerFunctionWrapHandler,
+    model_serializer,
+    model_validator,
+)
 from reccy.configuration import units
 
 from . import control
@@ -72,7 +79,175 @@ class PositionDriver(StrEnum):
     transport = auto()
 
 
-class LFO(Model):
+class EnveLFO(Model):
+    """Common clock and ownership settings for concrete control generators."""
+
+    kind: str
+    scope: control.Scope = control.Scope.voice
+    clock: control.Clock = control.Clock.seconds
+    position_driver: PositionDriver = PositionDriver.elapsed
+    origin: EnvelfoOrigin | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def inherited_settings(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        clock = value.get('clock', control.Clock.seconds)
+        scope = value.get('scope', control.Scope.voice)
+        result = dict(value)
+        if value.get('kind', cls.model_fields['kind'].default) == 'lfo':
+            result = control.clock_fields(result, clock)
+        assert isinstance(result, dict)
+        if 'envelfos' in result:
+            result['envelfos'] = {
+                n: _inherit_child(v, clock, scope)
+                for n, v in result['envelfos'].items()
+            }
+        if 'stages' in result:
+            result['stages'] = [
+                (s.model_dump() if isinstance(s, BaseModel) else dict(s))
+                | {
+                    'envelfo': _inherit_child(
+                        s.envelfo if isinstance(s, BaseModel) else s['envelfo'],
+                        clock,
+                        scope,
+                    )
+                }
+                for s in result['stages']
+            ]
+        return result
+
+    @model_serializer(mode='wrap')
+    def inherited_serialization(
+        self, handler: SerializerFunctionWrapHandler
+    ) -> dict[str, object]:
+        data = handler(self)
+        children = (
+            data.get('envelfos', {}).values()
+            if isinstance(self, Patch)
+            else [s['envelfo'] for s in data.get('stages', [])]
+            if isinstance(self, Stages)
+            else []
+        )
+        for child in children:
+            if child.get('kind') not in (
+                'lfo',
+                'envelope',
+                'stages',
+                'sample_hold',
+                'patch',
+            ):
+                continue
+            for field in ('clock', 'scope', 'position_driver', 'origin'):
+                child.pop(field, None)
+        return data
+
+    @model_validator(mode='after')
+    def generator_profile(self) -> Self:
+        if type(self) is EnveLFO:
+            raise ValueError(
+                'EnveLFO is a shared base; instantiate a concrete generator'
+            )
+        if self.position_driver == PositionDriver.transport and (
+            self.clock != control.Clock.beats
+            or not isinstance(self, (LFO, EnveLFOReference))
+            or isinstance(self, LFO)
+            and (self.reset != Reset.transport or self.delay != 0 or self.fade_in != 0)
+        ):
+            raise ValueError(
+                'transport position requires a beat-clock LFO with '
+                'transport reset and no onset fade'
+            )
+        if isinstance(self, SampleHold) and self.scope != control.Scope.voice:
+            raise ValueError('sample-and-hold requires voice scope')
+        if isinstance(self, Envelope) and any(
+            s.duration_unit.value != self.clock.value
+            for s in [*self.segments, *self.release]
+        ):
+            raise ValueError('envelope segment units must match its clock')
+        if isinstance(self, Stages) and any(
+            segment.duration_unit.value != self.clock.value
+            for stage in self.stages
+            if isinstance(stage.envelfo, Envelope)
+            for segment in stage.envelfo.segments
+        ):
+            raise ValueError('stage envelope segment units must match its clock')
+        if isinstance(self, Patch):
+            if (
+                any(isinstance(b, Latch) for b in self.envelfos.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('latch requires voice scope')
+            if (
+                any(isinstance(b, Slew) for b in self.envelfos.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('slew requires voice scope')
+            if (
+                any(isinstance(b, Threshold) for b in self.envelfos.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('threshold requires voice scope')
+            if (
+                any(isinstance(b, SampleHold) for b in self.envelfos.values())
+                and self.scope != control.Scope.voice
+            ):
+                raise ValueError('sample-and-hold requires voice scope')
+            lfo_sources = {
+                name
+                for connection in self.events
+                if isinstance(
+                    self.envelfos[name := connection.source.partition('.')[0]],
+                    LFO,
+                )
+            } | {
+                source.partition('.')[0]
+                for source in self.event_outputs.values()
+                if isinstance(self.envelfos[source.partition('.')[0]], LFO)
+            }
+            if (self.events or lfo_sources) and self.scope != control.Scope.voice:
+                raise ValueError('patch event connections require voice scope')
+            if lfo_sources and self.clock != control.Clock.seconds:
+                raise ValueError(
+                    'patch marker connections require simple voice seconds LFOs'
+                )
+            for child_name in lfo_sources:
+                child = self.envelfos[child_name]
+                assert isinstance(child, LFO)
+                if (
+                    child.rate == 0
+                    or child.reset != Reset.trigger
+                    or child.delay
+                    or child.fade_in
+                ):
+                    raise ValueError(
+                        'patch marker connections require simple voice seconds LFOs'
+                    )
+            for child in self.envelfos.values():
+                envelopes = (
+                    [child]
+                    if isinstance(child, Envelope)
+                    else [
+                        s.envelfo
+                        for s in child.stages
+                        if isinstance(s.envelfo, Envelope)
+                    ]
+                    if isinstance(child, Stages)
+                    else []
+                )
+                if any(
+                    segment.duration_unit.value != self.clock.value
+                    for envelope in envelopes
+                    for segment in [*envelope.segments, *envelope.release]
+                ):
+                    raise ValueError(
+                        'patch envelope segment units must match its clock'
+                    )
+        return self
+
+
+class LFO(EnveLFO):
     kind: Literal['lfo'] = 'lfo'
     shape: Waveform = Waveform.sine
     rate: ParameterReference | Annotated[control.Rational, Field(ge=0)]
@@ -96,13 +271,8 @@ class LFO(Model):
         unique((m.name for m in self.markers), 'LFO marker')
         return self
 
-    @model_validator(mode='before')
-    @classmethod
-    def clock_units(cls, value: object) -> object:
-        return control.clock_fields(value)
 
-
-class Envelope(Model):
+class Envelope(EnveLFO):
     kind: Literal['envelope'] = 'envelope'
     initial: FiniteScalar | Literal['current'] = 0.0
     start: Literal['activation', 'event'] = 'activation'
@@ -169,7 +339,7 @@ class StageTransition(Model):
     model_config = ConfigDict(serialize_by_alias=True, validate_by_name=True)
 
 
-class Stages(Model):
+class Stages(EnveLFO):
     kind: Literal['stages'] = 'stages'
     initial_stage: Identifier
     stages: list[Stage] = Field(min_length=1)
@@ -286,7 +456,7 @@ class PatchEventConnection(Model):
         return self
 
 
-class SampleHold(Model, frozen=True):
+class SampleHold(EnveLFO, frozen=True):
     kind: Literal['sample_hold'] = 'sample_hold'
     minimum: FiniteScalar = Field(default=-1.0, ge=-1, le=1)
     maximum: FiniteScalar = Field(default=1.0, ge=-1, le=1)
@@ -357,7 +527,7 @@ class Slew(Model, frozen=True):
     initial: FiniteScalar | None = None
 
 
-class Patch(Model):
+class Patch(EnveLFO):
     kind: Literal['patch'] = 'patch'
     envelfos: dict[
         Identifier,
@@ -521,157 +691,39 @@ class Patch(Model):
         return self
 
 
-class EnveLFO(Model):
-    scope: control.Scope = control.Scope.voice
-    clock: control.Clock = control.Clock.seconds
-    position_driver: PositionDriver = PositionDriver.elapsed
-    body: (
-        Annotated[
-            LFO | Envelope | Stages | SampleHold | Patch, Field(discriminator='kind')
-        ]
-        | None
-    ) = None
-    score: ScoreReference | None = None
+class EnveLFOReference(EnveLFO):
+    kind: Literal['reference'] = 'reference'
+    score: ScoreReference
     parameters: dict[Identifier, float | str] = Field(default_factory=dict)
-    origin: EnvelfoOrigin | None = None
-
-    @model_validator(mode='before')
-    @classmethod
-    def clock_units(cls, value: object) -> object:
-        if not isinstance(value, dict):
-            return value
-        return dict(value) | {
-            'body': _clock_body(
-                value.get('body'), value.get('clock', control.Clock.seconds)
-            )
-        }
 
     @model_validator(mode='after')
-    def one_definition(self) -> Self:
-        if self.position_driver == PositionDriver.transport and (
-            self.clock != control.Clock.beats
-            or self.body is not None
-            and (
-                not isinstance(self.body, LFO)
-                or self.body.reset != Reset.transport
-                or self.body.delay != 0
-                or self.body.fade_in != 0
-            )
-        ):
-            raise ValueError(
-                'transport position requires a beat-clock LFO with '
-                'transport reset and no onset fade'
-            )
-        if (self.body is None) == (self.score is None):
-            raise ValueError('EnveLFO requires exactly one body or score reference')
-        if self.score is None and self.parameters:
-            raise ValueError('inline envelfos do not accept public parameters')
-        if self.score is not None and self.origin is not None:
+    def unresolved_origin(self) -> Self:
+        if self.origin is not None:
             raise ValueError('unresolved envelfos cannot claim a materialized origin')
-        if isinstance(self.body, LFO) and isinstance(
-            self.body.rate, ParameterReference
-        ):
-            raise ValueError('inline LFO rate cannot reference a public parameter')
-        if isinstance(self.body, Envelope) and self.body.initial == 'current':
-            raise ValueError('current envelope initial requires a parent stage')
-        if isinstance(self.body, SampleHold) and self.scope != control.Scope.voice:
-            raise ValueError('sample-and-hold requires voice scope')
-        if isinstance(self.body, Envelope) and any(
-            s.duration_unit.value != self.clock.value
-            for s in [*self.body.segments, *self.body.release]
-        ):
-            raise ValueError('envelope segment units must match its clock')
-        if isinstance(self.body, Stages) and any(
-            segment.duration_unit.value != self.clock.value
-            for stage in self.body.stages
-            if isinstance(stage.envelfo, Envelope)
-            for segment in stage.envelfo.segments
-        ):
-            raise ValueError('stage envelope segment units must match its clock')
-        if isinstance(self.body, Patch):
-            if (
-                any(isinstance(b, Latch) for b in self.body.envelfos.values())
-                and self.scope != control.Scope.voice
-            ):
-                raise ValueError('latch requires voice scope')
-            if (
-                any(isinstance(b, Slew) for b in self.body.envelfos.values())
-                and self.scope != control.Scope.voice
-            ):
-                raise ValueError('slew requires voice scope')
-            if (
-                any(isinstance(b, Threshold) for b in self.body.envelfos.values())
-                and self.scope != control.Scope.voice
-            ):
-                raise ValueError('threshold requires voice scope')
-            if (
-                any(isinstance(b, SampleHold) for b in self.body.envelfos.values())
-                and self.scope != control.Scope.voice
-            ):
-                raise ValueError('sample-and-hold requires voice scope')
-            lfo_sources = {
-                name
-                for connection in self.body.events
-                if isinstance(
-                    self.body.envelfos[name := connection.source.partition('.')[0]],
-                    LFO,
-                )
-            } | {
-                source.partition('.')[0]
-                for source in self.body.event_outputs.values()
-                if isinstance(self.body.envelfos[source.partition('.')[0]], LFO)
-            }
-            if (self.body.events or lfo_sources) and self.scope != control.Scope.voice:
-                raise ValueError('patch event connections require voice scope')
-            if lfo_sources and self.clock != control.Clock.seconds:
-                raise ValueError(
-                    'patch marker connections require simple voice seconds LFOs'
-                )
-            for child_name in lfo_sources:
-                child = self.body.envelfos[child_name]
-                assert isinstance(child, LFO)
-                if (
-                    child.rate == 0
-                    or child.reset != Reset.trigger
-                    or child.delay
-                    or child.fade_in
-                ):
-                    raise ValueError(
-                        'patch marker connections require simple voice seconds LFOs'
-                    )
-            for child in self.body.envelfos.values():
-                envelopes = (
-                    [child]
-                    if isinstance(child, Envelope)
-                    else [
-                        s.envelfo
-                        for s in child.stages
-                        if isinstance(s.envelfo, Envelope)
-                    ]
-                    if isinstance(child, Stages)
-                    else []
-                )
-                if any(
-                    segment.duration_unit.value != self.clock.value
-                    for envelope in envelopes
-                    for segment in [*envelope.segments, *envelope.release]
-                ):
-                    raise ValueError(
-                        'patch envelope segment units must match its clock'
-                    )
         return self
 
 
-def _clock_body(value: object, clock: control.Clock | str) -> object:
-    if isinstance(value, list):
-        return [_clock_body(v, clock) for v in value]
-    if not isinstance(value, dict):
-        return value
-    normalized = (
-        control.clock_fields(value, clock) if value.get('kind') == 'lfo' else value
+Generator = Annotated[
+    LFO | Envelope | Stages | SampleHold | Patch | EnveLFOReference,
+    Field(discriminator='kind'),
+]
+
+
+def _inherit_child(value: object, clock: object, scope: object) -> object:
+    executable = (
+        isinstance(value, EnveLFO)
+        or isinstance(value, dict)
+        and value.get('kind') in ('lfo', 'envelope', 'stages', 'sample_hold', 'patch')
     )
-    assert isinstance(normalized, dict)
-    return {k: _clock_body(v, clock) for k, v in normalized.items()}
+    if not executable:
+        return value
+    fields = value.model_fields_set if isinstance(value, EnveLFO) else value.keys()
+    if any(f in fields for f in ('clock', 'scope', 'position_driver', 'origin')):
+        raise ValueError(
+            'child generators inherit clock and scope; overrides are not allowed'
+        )
+    data = value.model_dump() if isinstance(value, EnveLFO) else dict(value)
+    return data | {'clock': clock, 'scope': scope}
 
 
 class EnvelfoEvent(control.ControlEvent):
@@ -819,10 +871,12 @@ def instantiate_envelfo(
                 f'envelfo parameter {body.rate.parameter} is outside its range'
             )
         body = LFO.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
-    return EnveLFO(
-        scope=scope,
-        clock=clock,
-        position_driver=position_driver,
-        body=body,
-        origin=origin,
+    return type(body).model_validate(
+        body.model_dump()
+        | {
+            'scope': scope,
+            'clock': clock,
+            'position_driver': position_driver,
+            'origin': origin,
+        }
     )

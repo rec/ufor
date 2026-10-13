@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor import envelope, segments
+from ufor import envelfo, segments
 from ufor.base import Model
 from ufor.codec import migrate_score_v3, parse_score, score_schema, score_toml
 from ufor.interface import ScoreReference
@@ -212,7 +212,7 @@ def test_whole_envelope_overrides_and_playback_inheritance_round_trip() -> None:
         'direction': 'backward',
         'mode': 'one_shot',
     }
-    raw['body']['settings']['envelope'] = envelope.VoiceEnvelope(
+    raw['body']['settings']['envelope'] = envelfo.Envelope(
         segments=[segments.Segment(duration=1, to=1)],
         release=[segments.Segment(duration=1, to=0)],
     ).model_dump(mode='json')
@@ -224,7 +224,7 @@ def test_whole_envelope_overrides_and_playback_inheritance_round_trip() -> None:
     assert restored.body.slots[0].envelope is None
     assert restored.body.slots[0].playback.direction is None
     assert restored.body.slots[0].playback.mode is None
-    raw['body']['slots'][0]['envelope'] = envelope.VoiceEnvelope(
+    raw['body']['slots'][0]['envelope'] = envelfo.Envelope(
         segments=[segments.Segment(duration=0, to=1)],
         release=[segments.Segment(duration=0, to=0)],
     ).model_dump(mode='json')

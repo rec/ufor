@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 
 from .base import Model
 from .composition import Composition, ScoreRecord
-from .envelfo import EnveLFO, EnvelfoOrigin, EnvelfoScore, instantiate_envelfo
+from .envelfo import EnvelfoOrigin, EnveLFOReference, EnvelfoScore, instantiate_envelfo
 from .interface import InterfaceScore, ScoreReference
 from .modulation import unit_number
 from .preset import PresetScore
@@ -114,7 +114,7 @@ class Library:
         return TypeAdapter(ScoreValue).validate_python(value.model_dump())
 
     def _materialize_envelfos(self, value: object, paths: dict[str, str]) -> object:
-        if isinstance(value, EnveLFO) and value.score is not None:
+        if isinstance(value, EnveLFOReference):
             reference = value.score
             key = (
                 paths[str(reference.path)]
@@ -363,23 +363,37 @@ def references(value: object, field: str = '') -> Iterator[tuple[str, ScoreRefer
             yield from references(value[name], f'{field}[{name}]')
 
 
-def normalize_references(value: object, names: dict[str, str]) -> object:
+def normalize_references(
+    value: object, names: dict[str, str], serialized: object | None = None
+) -> object:
     if isinstance(value, ScoreReference):
         return {'path': names[value.key], 'sha256': value.sha256}
     if isinstance(value, BaseModel):
+        data = value.model_dump() if serialized is None else serialized
+        assert isinstance(data, dict)
         fields = {
             field.serialization_alias or name: name
             for name, field in type(value).model_fields.items()
         }
         return {
-            key: normalize_references(getattr(value, fields[key]), names)
-            for key in value.model_dump()
+            key: normalize_references(getattr(value, fields[key]), names, data[key])
+            for key in data
         }
     if isinstance(value, list):
-        return [normalize_references(v, names) for v in value]
+        return [
+            normalize_references(
+                v, names, serialized[i] if isinstance(serialized, list) else None
+            )
+            for i, v in enumerate(value)
+        ]
     if isinstance(value, dict):
-        return {k: normalize_references(v, names) for k, v in value.items()}
-    return value
+        return {
+            k: normalize_references(
+                v, names, serialized.get(k) if isinstance(serialized, dict) else None
+            )
+            for k, v in value.items()
+        }
+    return value if serialized is None else serialized
 
 
 def relative_key(library: str, address: str, path: str) -> str:

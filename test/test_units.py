@@ -17,7 +17,6 @@ from ufor.effects import ExpandingRipples, Hamiltonian, Interference, SaberBlade
 from ufor.envelfo import (
     LFO,
     Affine,
-    EnveLFO,
     EnvelfoParameter,
     EnvelfoScore,
     instantiate_envelfo,
@@ -157,15 +156,13 @@ def test_lfo_and_nested_envelfo_use_their_declared_clock() -> None:
     assert oscillator.rate == 2
     assert oscillator.delay == Fraction(1, 3)
     assert oscillator.phase == Fraction(1, 4)
-    envelfo = EnveLFO(
-        clock='beats', body={'kind': 'lfo', 'rate': '2/beat', 'delay': '1/3 beat'}
-    )
-    assert isinstance(envelfo.body, LFO)
-    assert envelfo.body.delay == Fraction(1, 3)
+    envelfo = LFO(clock='beats', rate='2/beat', delay='1/3 beat')
+    assert isinstance(envelfo, LFO)
+    assert envelfo.delay == Fraction(1, 3)
     with pytest.raises(ValidationError):
         lfo.LFO(clock='beats', rate='2Hz')
     with pytest.raises(ValidationError):
-        EnveLFO(clock='beats', body={'kind': 'lfo', 'rate': '2Hz'})
+        LFO(clock='beats', rate='2Hz')
 
 
 def test_parameters_routes_and_automation_use_the_declared_dimension() -> None:
@@ -211,8 +208,8 @@ def test_referenced_envelfo_parameters_normalize_during_preparation() -> None:
         body=LFO(rate={'parameter': 'speed'}),
     )
     envelfo = instantiate_envelfo(score, {'speed': '500Hz'})
-    assert isinstance(envelfo.body, LFO)
-    assert envelfo.body.rate == 500
+    assert isinstance(envelfo, LFO)
+    assert envelfo.rate == 500
     assert parse_score(score_toml(score)) == score
 
 

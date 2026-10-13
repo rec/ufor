@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.envelfo import EnveLFO, Patch, Threshold
+from ufor.envelfo import Patch, Threshold
 
 
 def test_threshold_patch_exposes_gate_and_event_ports() -> None:
@@ -27,8 +27,8 @@ def test_threshold_patch_exposes_gate_and_event_ports() -> None:
     assert body.signal_ranges['edge'] == (0, 1)
     assert body.signal_order.index('clock') < body.signal_order.index('edge')
     assert Patch.model_validate_json(body.model_dump_json()) == body
-    with pytest.raises(ValidationError, match='threshold requires voice scope'):
-        EnveLFO(body=body, scope='instrument')
+    with pytest.raises(ValidationError, match='requires voice scope'):
+        type(body).model_validate(body.model_dump() | {'scope': 'instrument'})
     raw = body.model_dump()
     raw['events'][0]['source'] = 'edge.unknown'
     with pytest.raises(ValidationError, match='unknown'):

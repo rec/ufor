@@ -21,7 +21,8 @@ from ..base import (
 from ..envelfo import (
     LFO,
     Affine,
-    EnveLFO,
+    Envelope,
+    Generator,
     Latch,
     Patch,
     Product,
@@ -32,7 +33,6 @@ from ..envelfo import (
     Threshold,
     stage_event_ports,
 )
-from ..envelope import VoiceEnvelope
 from ..lfo import Reset
 from ..modulation import Modulation, Target, Unit
 from . import enums
@@ -192,14 +192,21 @@ Binding = Annotated[
 
 class SoundSettings(Model):
     processing: Processing = Processing()
-    envelope: VoiceEnvelope | None = None
-    envelfos: dict[Identifier, EnveLFO] = Field(default_factory=dict)
+    envelope: Envelope | None = None
+    envelfos: dict[Identifier, Generator] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
     event_connections: list[EnvelfoEventConnection] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def local_references(self) -> Self:
+        for generator in self.envelfos.values():
+            if isinstance(generator, LFO) and isinstance(
+                generator.rate, envelfo.ParameterReference
+            ):
+                raise ValueError('inline LFO rate cannot reference a public parameter')
+            if isinstance(generator, Envelope) and generator.initial == 'current':
+                raise ValueError('current envelope initial requires a parent stage')
         unique((b.name for b in self.bindings), 'binding ID')
         sources = {s.name: s for s in self.modulation.sources}
         if sources.keys() != {b.name for b in self.bindings}:
@@ -223,33 +230,33 @@ class SoundSettings(Model):
                 or target.scope != control.Scope.voice
             ):
                 raise ValueError('Envelfo event connections require voice scope')
-            if origin.body is not None:
-                if isinstance(origin.body, Patch):
-                    ports = origin.body.event_outputs.keys()
-                elif isinstance(origin.body, Stages):
-                    ports = stage_event_ports(origin.body)
-                elif isinstance(origin.body, LFO):
+            if not isinstance(origin, envelfo.EnveLFOReference):
+                if isinstance(origin, Patch):
+                    ports = origin.event_outputs.keys()
+                elif isinstance(origin, Stages):
+                    ports = stage_event_ports(origin)
+                elif isinstance(origin, LFO):
                     if (
                         origin.clock != control.Clock.seconds
-                        or origin.body.rate == 0
-                        or origin.body.reset != Reset.trigger
-                        or origin.body.delay
-                        or origin.body.fade_in
+                        or origin.rate == 0
+                        or origin.reset != Reset.trigger
+                        or origin.delay
+                        or origin.fade_in
                     ):
                         raise ValueError(
                             'LFO event source requires a simple seconds clock'
                         )
-                    ports = {marker.name for marker in origin.body.markers}
+                    ports = {marker.name for marker in origin.markers}
                 else:
                     raise ValueError('Envelfo event source has no event ports')
                 if connection.port not in ports:
                     raise ValueError(
                         'Envelfo event connection references an unknown port'
                     )
-            if target.body is not None and (
-                not isinstance(target.body, Stages)
+            if not isinstance(target, envelfo.EnveLFOReference) and (
+                not isinstance(target, Stages)
                 or not any(
-                    t.event == f'cue.{connection.cue}' for t in target.body.transitions
+                    t.event == f'cue.{connection.cue}' for t in target.transitions
                 )
             ):
                 raise ValueError('Envelfo event destination has no matching cue')
@@ -284,16 +291,14 @@ class SoundSettings(Model):
                         f'Unknown local envelfo source: {binding.reference}'
                     )
                 generator = self.envelfos[binding.reference]
-                if isinstance(generator.body, Patch):
+                if isinstance(generator, Patch):
                     if (
                         binding.output is None
-                        or binding.output not in generator.body.outputs
+                        or binding.output not in generator.outputs
                     ):
                         raise ValueError('Patch binding requires a named output')
-                    selected = generator.body.envelfos[
-                        generator.body.outputs[binding.output]
-                    ]
-                    child = (binding.reference, generator.body.outputs[binding.output])
+                    selected = generator.envelfos[generator.outputs[binding.output]]
+                    child = (binding.reference, generator.outputs[binding.output])
                     if (
                         child in patch_release_timings
                         and patch_release_timings[child] != binding.release_timing
@@ -303,12 +308,14 @@ class SoundSettings(Model):
                         )
                     patch_release_timings[child] = binding.release_timing
                 else:
-                    if binding.output is not None and generator.score is None:
+                    if binding.output is not None and not isinstance(
+                        generator, envelfo.EnveLFOReference
+                    ):
                         raise ValueError('Only Patch bindings select named outputs')
-                    selected = generator.body
+                    selected = generator
                 if (
                     binding.release_timing == ReleaseTiming.voice
-                    and generator.body is not None
+                    and generator is not None
                     and (
                         not isinstance(selected, envelfo.Envelope)
                         or not selected.release
@@ -317,7 +324,7 @@ class SoundSettings(Model):
                     raise ValueError(
                         'Voice release timing requires a releasing envelope'
                     )
-                if generator.score is not None:
+                if isinstance(generator, envelfo.EnveLFOReference):
                     if source.scope != generator.scope:
                         raise ValueError('Envelfo source scope must match its use')
                     continue
@@ -327,12 +334,12 @@ class SoundSettings(Model):
                     and selected.polarity == control.Polarity.unipolar
                     else -1
                 )
-                if isinstance(generator.body, Patch) and isinstance(
+                if isinstance(generator, Patch) and isinstance(
                     selected, (Sum, Product, Affine, Quantize, Latch, Threshold, Slew)
                 ):
                     assert binding.output is not None
-                    minimum, maximum = generator.body.signal_ranges[
-                        generator.body.outputs[binding.output]
+                    minimum, maximum = generator.signal_ranges[
+                        generator.outputs[binding.output]
                     ]
                     if (
                         source.scope != generator.scope
@@ -356,7 +363,8 @@ class SoundSettings(Model):
                 parameter.target.name.removeprefix('envelfo-')
             )
             if parameter.target.name.startswith('envelfo-') and (
-                generator_use is not None and generator_use.score is not None
+                generator_use is not None
+                and isinstance(generator_use, envelfo.EnveLFOReference)
             ):
                 if parameter.scope != generator_use.scope:
                     raise ValueError('Envelfo parameter scope must match its use')
@@ -381,8 +389,7 @@ class SoundSettings(Model):
                 )
                 generator = (
                     generator_use
-                    if generator_use
-                    and isinstance(generator_use.body, envelfo.Envelope)
+                    if generator_use and isinstance(generator_use, envelfo.Envelope)
                     else None
                 )
             else:
@@ -458,17 +465,15 @@ def parameter_definition(
             units = {'cutoff_hz': modulation.Unit.hz, 'q': modulation.Unit.ratio}
             if target.parameter in units:
                 return units[target.parameter], getattr(filter, target.parameter)
-    definition: VoiceEnvelope | envelfo.Envelope | None = None
+    definition: Envelope | None = None
     clock: control.Clock | None = None
     if target.name == 'envelope' and settings.envelope is not None:
         definition = settings.envelope
         clock = definition.clock
     elif target.name.startswith('envelfo-'):
         generator_use = settings.envelfos.get(target.name.removeprefix('envelfo-'))
-        if generator_use is not None and isinstance(
-            generator_use.body, envelfo.Envelope
-        ):
-            definition = generator_use.body
+        if generator_use is not None and isinstance(generator_use, envelfo.Envelope):
+            definition = generator_use
             clock = generator_use.clock
     if definition is not None:
         for phase, segments in (
@@ -494,7 +499,7 @@ def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
         b.name
         for b in settings.bindings
         if isinstance(b, GeneratorBinding)
-        and isinstance(body := settings.envelfos[b.reference].body, LFO)
+        and isinstance((body := settings.envelfos[b.reference]), LFO)
         and (body.delay or body.fade_in)
     }
     for route in settings.modulation.routes:

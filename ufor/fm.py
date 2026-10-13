@@ -7,7 +7,7 @@ from reccy.configuration import units
 
 from . import control
 from .base import Identifier, Model, unique
-from .envelope import VoiceEnvelope
+from .envelfo import Envelope
 from .oscillator import Waveform
 from .segments import Segment
 
@@ -20,7 +20,7 @@ class Operator(Model):
         default=0, ge=0, lt=1
     )
     waveform: Waveform = Waveform.sine
-    envelope: VoiceEnvelope = VoiceEnvelope(
+    envelope: Envelope = Envelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )
@@ -28,16 +28,8 @@ class Operator(Model):
     @model_validator(mode='after')
     def envelope_profile(self) -> Self:
         e = self.envelope
-        if (
-            e.clock != control.Clock.seconds
-            or e.scope != control.Scope.voice
-            or e.polarity != control.Polarity.unipolar
-            or not e.hold
-            or any(s.curve != 0 for s in [*e.segments, *e.release])
-        ):
-            raise ValueError(
-                'FM operators require held linear unipolar voice envelopes'
-            )
+        if e.polarity != control.Polarity.unipolar:
+            raise ValueError('FM operator amplitude envelopes must be unipolar')
         return self
 
 

@@ -8,6 +8,7 @@ from pydantic import TypeAdapter, ValidationError
 
 from ufor import (
     effects,
+    envelfo,
     envelope,
     light_animation,
     light_math,
@@ -251,7 +252,7 @@ def test_shared_curves_allow_repeating_gain_above_one() -> None:
     assert envelope.curve_at(curve, Fraction(1)) == 0
     assert envelope.curve_at(curve, Fraction(7, 4)) == 1.5
     with pytest.raises(ValidationError, match='levels'):
-        envelope.VoiceEnvelope(
+        envelfo.Envelope(
             segments=curve.segments, release=[segments.Segment(duration=1, to=0)]
         )
 

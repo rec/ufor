@@ -185,7 +185,7 @@ component matrices are edited as typed data, not float parameter overrides.
 Autonomous controls have part scope and use either shared `envelope.Curve` or
 `LFO` data. Curves reuse `Segment` and its exponential curve calculation; they
 can hold or repeat, with arbitrary finite scalar levels including gains above
-one. Trigger/release `VoiceEnvelope` still validates its original normalized domain.
+one. Trigger/release `Envelope` still validates its original normalized domain.
 Light LFOs require seconds, part scope and free reset. Delay and fade weights use
 the existing modulation rules, including the neutral value for multiplication.
 `operation_at()` evaluates controls and revalidates the resulting settings.

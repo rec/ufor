@@ -9,13 +9,13 @@ engines are not changed by adding this profile.
 `envelope` and `lfo` are common score kinds, using the existing `format =
 "recs"`, `version = 4`, `name`, `title`, and `body` fields. Both round-trip through
 the common TOML codec. The generated schema and
-[conformance/modulation.json](../conformance/modulation.json) accompany the
-Python reference in `ufor.envelope` and `ufor.lfo`.
+[scalar conformance fixtures](https://github.com/rec/envelfo/blob/main/conformance/modulation.json)
+accompany the Python runtime in enveLFO and the shared curve mathematics in uFor.
 
 Autonomous light controls also use `envelope.Curve`: an initial value and shared
 segments, with final-value holding or whole-curve repetition. Curve values may
 exceed the normalized domain, for example a gain above one. Trigger/release
-`VoiceEnvelope` retains its normalized bounds. The light profile adds `part` scope
+`Envelope` retains its normalized bounds. The light profile adds `part` scope
 and uses the same modulation evaluation; see [light-format.md](light-format.md).
 
 ## Clock, scope, and observation
@@ -54,13 +54,16 @@ implicitly the OR of every key in the instrument.
 
 ## Embedded envelope semantics and reusable envelope scores
 
-The existing embedded `VoiceEnvelope` still owns its clock, scope, polarity, hold,
-and retrigger policy. A standalone reusable envelope is now a `EnvelfoScore` with
+`Envelope` and `LFO` inherit clock, scope, and position policy from `EnveLFO`.
+Their generator-specific fields are flat, without a `body` wrapper. Patch and
+Stage children inherit clock and scope; child overrides are rejected and inherited
+settings are omitted from nested serialization. `EnveLFOReference` carries a
+library score reference and parameter overrides. A reusable score is an `EnvelfoScore` with
 `kind = "envelope"` in its body. Its LFO counterpart uses `kind = "lfo"`.
-Instance ownership and playback policy are not part of these standalone
-definitions yet.
+Only the score document has a `body` field. Concrete generators have their clock,
+scope, and playback configuration directly on the definition.
 
-`VoiceEnvelope` has an `initial` level, nonempty `segments` and `release` lists,
+`Envelope` has an `initial` level, nonempty `segments` and an optional `release` list,
 `hold`, `retrigger`, clock, scope, and polarity. Every segment has a
 nonnegative `duration`, `target`, and finite `curve` (default zero). Targets
 and the initial value lie in [0,1] for `unipolar`, the default, or [-1,1] for
@@ -138,10 +141,10 @@ an event. A zero-duration segment immediately sets its target. This also
 applies at trigger and release time, and finite lists cannot create an
 infinite zero-time transition loop.
 
-## VoiceEnvelope events and state
+## Envelope events and state
 
 Events contain rational `at`, nonnegative integer `ordinal`, and `action`:
-`trigger` or `release`. Process them in strictly increasing `(at, ordinal)`
+`note_on` or `note_off` for an activation-start envelope. Process them in strictly increasing `(at, ordinal)`
 order within a source instance. Ordinals break equal-time ties; they may start
 again at a later time. The host merges inputs and assigns these ordinals before
 delivery. The reference rejects backward events and duplicate equal-time
@@ -168,12 +171,12 @@ Release durations are measured anew and in full from the release event; they
 are not shortened in proportion to the current level. Definition edits and
 changes to segment durations require a new prepared instance in profile 1.
 
-`VoiceEnvelopeEvent` supplies each trigger/release event. `VoiceEnvelopeState`
-records the last event coordinate/ordinal, current list
-(`idle`, `on`, or `release`), its start coordinate, and its captured start value.
-`envelope_at` returns `VoiceEnvelopeValue`: value, status
-(`idle`, `running`, `held`, or `complete`),
-and the active segment index when running. Observations do not mutate state.
+`EnvelfoEvent` supplies `note_on`/`note_off` events and playback commands.
+`EnvelfoState.runtime` holds `EnvelopeState`: event ordering, phase, captured
+start value, exact playback position and traversal count. enveLFO's `envelfo_at`
+returns `EnvelfoValue`: value, weight and status (`idle`, `running`, `held`,
+or `complete`). Observations do not mutate state. Audio voice retirement belongs
+to enge, not the envelope model or standalone runtime.
 
 Physical key release and logical gate release are distinct. Sustain-pedal and
 legato policy belongs to the future instrument adapter: it may defer a gate
@@ -271,12 +274,12 @@ later observations. Independent instances and state JSON round trips are
 covered by the tests.
 
 The portable cases give complete definitions, ordered events, and named
-post-event observations. Rational positions/phases, segment indices, event
+post-event observations. Rational positions/phases, event
 ordering, and status compare exactly. Floating control values use absolute
 tolerance 1e-12, including transcendental curves and sine. No WAV data or
 48 kHz audio buffers are generated. Valid cases round-trip through TOML; invalid
 scores include negative durations/rates, invalid polarity/phase/duty, and
-unsupported loops/random sources.
+invalid loops and random ranges.
 
 ## Changes from Recsam and remaining boundaries
 
@@ -295,11 +298,11 @@ unsupported loops/random sources.
 | Sine/symmetric triangle only | Tuney shape vocabulary also permits square and explicit rational duty/skew |
 
 An attack interrupted during delay, a curved decay to zero, an ordinary ADSR,
-and a bipolar one-shot are represented without extra engines. A looped envelope
-would additionally require loop entry/exit, release-from-loop and zero-time
-cycle rules. It is intentionally rejected in this first profile. Random and
-sample-and-hold sources, audio-rate realization, band-limiting, continuous rate
-automation, generic graph execution, and a sampler remain deferred.
+and a bipolar one-shot are represented without extra engines. The shared
+Envelope runtime also supports looping, ping-pong playback, named loop boundaries
+and finite repeats. Patch supports deterministic sample-and-hold and signal/event
+composition. Audio hosts declare their supported rendering profiles separately;
+these features do not automatically become amplitude-lifetime policies.
 
 Shared performance events and typed modulation routes are now implemented.
 The native instrument cutover is implemented in

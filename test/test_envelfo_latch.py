@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.envelfo import EnveLFO, Latch, Patch
+from ufor.envelfo import Latch, Patch
 
 
 def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
@@ -31,7 +31,7 @@ def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
     assert body.signal_order == ['wave', 'held']
     assert Patch.model_validate_json(body.model_dump_json()) == body
     with pytest.raises(ValidationError, match='latch requires voice scope'):
-        EnveLFO(body=body, scope='instrument')
+        type(body).model_validate(body.model_dump() | {'scope': 'instrument'})
     raw = body.model_dump()
     raw['events'][0]['target'] = 'wave'
     with pytest.raises(ValidationError, match='capture target must be a Latch'):

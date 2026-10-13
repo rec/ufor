@@ -4258,9 +4258,15 @@
       "title": "EnumValue",
       "type": "object"
     },
-    "EnveLFO": {
+    "EnveLFOReference": {
       "additionalProperties": false,
       "properties": {
+        "kind": {
+          "const": "reference",
+          "default": "reference",
+          "title": "Kind",
+          "type": "string"
+        },
         "scope": {
           "$ref": "#/$defs/Scope",
           "default": "voice"
@@ -4273,54 +4279,19 @@
           "$ref": "#/$defs/PositionDriver",
           "default": "elapsed"
         },
-        "body": {
+        "origin": {
           "anyOf": [
             {
-              "discriminator": {
-                "mapping": {
-                  "envelope": "#/$defs/Envelope",
-                  "lfo": "#/$defs/ufor__envelfo__LFO",
-                  "patch": "#/$defs/Patch",
-                  "sample_hold": "#/$defs/SampleHold",
-                  "stages": "#/$defs/Stages"
-                },
-                "propertyName": "kind"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/ufor__envelfo__LFO"
-                },
-                {
-                  "$ref": "#/$defs/Envelope"
-                },
-                {
-                  "$ref": "#/$defs/Stages"
-                },
-                {
-                  "$ref": "#/$defs/SampleHold"
-                },
-                {
-                  "$ref": "#/$defs/Patch"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Body"
-        },
-        "score": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ScoreReference"
+              "$ref": "#/$defs/EnvelfoOrigin"
             },
             {
               "type": "null"
             }
           ],
           "default": null
+        },
+        "score": {
+          "$ref": "#/$defs/ScoreReference"
         },
         "parameters": {
           "additionalProperties": {
@@ -4335,20 +4306,12 @@
           },
           "title": "Parameters",
           "type": "object"
-        },
-        "origin": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/EnvelfoOrigin"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
         }
       },
-      "title": "EnveLFO",
+      "required": [
+        "score"
+      ],
+      "title": "EnveLFOReference",
       "type": "object"
     },
     "EnvelfoChange": {
@@ -4699,6 +4662,29 @@
           "default": "envelope",
           "title": "Kind",
           "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "initial": {
           "anyOf": [
@@ -5530,7 +5516,7 @@
         "envelope": {
           "anyOf": [
             {
-              "$ref": "#/$defs/VoiceEnvelope"
+              "$ref": "#/$defs/Envelope"
             },
             {
               "type": "null"
@@ -5540,7 +5526,37 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnveLFO"
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ufor__envelfo__LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
           },
           "title": "Envelfos",
           "type": "object"
@@ -8446,12 +8462,15 @@
           }
         },
         "envelope": {
-          "$ref": "#/$defs/VoiceEnvelope",
+          "$ref": "#/$defs/Envelope",
           "default": {
-            "clock": "seconds",
+            "kind": "envelope",
             "scope": "voice",
-            "polarity": "unipolar",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
             "initial": 0.0,
+            "start": "activation",
             "segments": [
               {
                 "curve": 0.0,
@@ -8466,13 +8485,49 @@
                 "to": 0.0
               }
             ],
+            "polarity": "unipolar",
             "hold": true,
-            "retrigger": "current"
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
           }
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnveLFO"
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ufor__envelfo__LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
           },
           "title": "Envelfos",
           "type": "object"
@@ -8784,12 +8839,15 @@
           "default": "sine"
         },
         "envelope": {
-          "$ref": "#/$defs/VoiceEnvelope",
+          "$ref": "#/$defs/Envelope",
           "default": {
-            "clock": "seconds",
+            "kind": "envelope",
             "scope": "voice",
-            "polarity": "unipolar",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
             "initial": 0.0,
+            "start": "activation",
             "segments": [
               {
                 "curve": 0.0,
@@ -8804,8 +8862,14 @@
                 "to": 0.0
               }
             ],
+            "polarity": "unipolar",
             "hold": true,
-            "retrigger": "current"
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
           }
         }
       },
@@ -9786,6 +9850,29 @@
           "default": "patch",
           "title": "Kind",
           "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "envelfos": {
           "additionalProperties": {
@@ -11965,6 +12052,29 @@
           "title": "Kind",
           "type": "string"
         },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "minimum": {
           "default": -1.0,
           "maximum": 1,
@@ -12152,12 +12262,15 @@
           }
         },
         "envelope": {
-          "$ref": "#/$defs/VoiceEnvelope",
+          "$ref": "#/$defs/Envelope",
           "default": {
-            "clock": "seconds",
+            "kind": "envelope",
             "scope": "voice",
-            "polarity": "unipolar",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
             "initial": 0.0,
+            "start": "activation",
             "segments": [
               {
                 "curve": 0.0,
@@ -12172,13 +12285,49 @@
                 "to": 0.0
               }
             ],
+            "polarity": "unipolar",
             "hold": true,
-            "retrigger": "current"
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
           }
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnveLFO"
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ufor__envelfo__LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
           },
           "title": "Envelfos",
           "type": "object"
@@ -12301,7 +12450,7 @@
         "envelope": {
           "anyOf": [
             {
-              "$ref": "#/$defs/VoiceEnvelope"
+              "$ref": "#/$defs/Envelope"
             },
             {
               "const": false,
@@ -12315,7 +12464,37 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnveLFO"
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ufor__envelfo__LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
           },
           "title": "Envelfos",
           "type": "object"
@@ -13618,7 +13797,7 @@
         "envelope": {
           "anyOf": [
             {
-              "$ref": "#/$defs/VoiceEnvelope"
+              "$ref": "#/$defs/Envelope"
             },
             {
               "type": "null"
@@ -13628,7 +13807,37 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnveLFO"
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ufor__envelfo__LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
           },
           "title": "Envelfos",
           "type": "object"
@@ -13915,6 +14124,29 @@
           "default": "stages",
           "title": "Kind",
           "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "initial_stage": {
           "title": "Initial Stage",
@@ -14466,12 +14698,15 @@
           }
         },
         "envelope": {
-          "$ref": "#/$defs/VoiceEnvelope",
+          "$ref": "#/$defs/Envelope",
           "default": {
-            "clock": "seconds",
+            "kind": "envelope",
             "scope": "voice",
-            "polarity": "unipolar",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
             "initial": 0.0,
+            "start": "activation",
             "segments": [
               {
                 "curve": 0.0,
@@ -14486,13 +14721,49 @@
                 "to": 0.0
               }
             ],
+            "polarity": "unipolar",
             "hold": true,
-            "retrigger": "current"
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
           }
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnveLFO"
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/ufor__envelfo__LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
           },
           "title": "Envelfos",
           "type": "object"
@@ -15432,61 +15703,6 @@
       "title": "VisualKind",
       "type": "string"
     },
-    "VoiceEnvelope": {
-      "additionalProperties": false,
-      "properties": {
-        "clock": {
-          "$ref": "#/$defs/Clock",
-          "default": "seconds"
-        },
-        "scope": {
-          "$ref": "#/$defs/Scope",
-          "default": "voice"
-        },
-        "polarity": {
-          "$ref": "#/$defs/Polarity",
-          "default": "unipolar"
-        },
-        "initial": {
-          "default": 0,
-          "maximum": 1,
-          "minimum": -1,
-          "title": "Initial",
-          "type": "number"
-        },
-        "segments": {
-          "items": {
-            "$ref": "#/$defs/Segment"
-          },
-          "minItems": 1,
-          "title": "Segments",
-          "type": "array"
-        },
-        "release": {
-          "items": {
-            "$ref": "#/$defs/Segment"
-          },
-          "minItems": 1,
-          "title": "Release",
-          "type": "array"
-        },
-        "hold": {
-          "default": true,
-          "title": "Hold",
-          "type": "boolean"
-        },
-        "retrigger": {
-          "$ref": "#/$defs/Retrigger",
-          "default": "current"
-        }
-      },
-      "required": [
-        "segments",
-        "release"
-      ],
-      "title": "VoiceEnvelope",
-      "type": "object"
-    },
     "VoiceOverflow": {
       "enum": [
         "release_oldest",
@@ -15840,6 +16056,29 @@
           "default": "lfo",
           "title": "Kind",
           "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "shape": {
           "$ref": "#/$defs/Waveform",
