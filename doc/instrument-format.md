@@ -273,7 +273,7 @@ Frequency/ratio expression authoring remains in the musical definitions.
 `SlotPlayback.direction` and `.mode` are nullable overrides. Null/omitted values
 inherit; an explicit default overrides, even after full JSON/TOML serialization.
 A slot's amplitude `envelope` is either absent or one complete shared
-`ufor.envelope.Envelope`; it never merges individual stages. The instrument
+`ufor.envelope.VoiceEnvelope`; it never merges individual stages. The instrument
 supplies a default instantaneous gate. Amplitude envelopes are unipolar and
 voice-scoped. Named `envelfos` are keyed by local IDs. Each use owns its scope
 and clock, and contains a tagged `cycle` or `envelope` body. The old named

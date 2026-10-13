@@ -14,15 +14,15 @@ from ufor.envelfo import LFO, EnvelfoScore, Envelope
 from ufor.oscillator import Waveform, shape_value
 
 
-class EnvelopeObservation(envelope.EnvelopeValue):
+class VoiceEnvelopeObservation(envelope.VoiceEnvelopeValue):
     at: Fraction
 
 
-class EnvelopeCase(Model):
+class VoiceEnvelopeCase(Model):
     name: str
-    definition: envelope.Envelope
-    events: list[envelope.EnvelopeEvent]
-    observations: list[EnvelopeObservation]
+    definition: envelope.VoiceEnvelope
+    events: list[envelope.VoiceEnvelopeEvent]
+    observations: list[VoiceEnvelopeObservation]
 
 
 class LFOObservation(lfo.LFOValue):
@@ -36,7 +36,13 @@ class LFOCase(Model):
     observations: list[LFOObservation]
 
 
-def check_envelope(case: EnvelopeCase, extra_observations: bool) -> None:
+def test_voice_envelope_types_have_no_old_name_aliases() -> None:
+    for name in ('Envelope', 'EnvelopeEvent', 'EnvelopeState', 'EnvelopeValue'):
+        assert not hasattr(envelope, name)
+        assert getattr(envelope, f'Voice{name}').__name__ == f'Voice{name}'
+
+
+def check_envelope(case: VoiceEnvelopeCase, extra_observations: bool) -> None:
     state = envelope.initial_envelope(case.definition, Fraction(0))
     remaining = iter(case.events)
     event = next(remaining, None)
@@ -44,7 +50,7 @@ def check_envelope(case: EnvelopeCase, extra_observations: bool) -> None:
         while event is not None and event.at <= probe.at:
             if extra_observations:
                 envelope.envelope_at(case.definition, state, (state.at + event.at) / 2)
-                state = envelope.EnvelopeState.model_validate_json(
+                state = envelope.VoiceEnvelopeState.model_validate_json(
                     state.model_dump_json()
                 )
             state = envelope.envelope_event(case.definition, state, event)
@@ -79,19 +85,19 @@ def test_release_interrupts_every_stage_without_restarting() -> None:
         state = envelope.envelope_event(
             definition,
             state,
-            envelope.EnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
+            envelope.VoiceEnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
         )
         release_at = Fraction(at)
         state = envelope.envelope_event(
             definition,
             state,
-            envelope.EnvelopeEvent(at=release_at, ordinal=0, action='release'),
+            envelope.VoiceEnvelopeEvent(at=release_at, ordinal=0, action='release'),
         )
         assert envelope.envelope_at(definition, state, release_at).value == level
         state = envelope.envelope_event(
             definition,
             state,
-            envelope.EnvelopeEvent(at=release_at + 1, ordinal=0, action='release'),
+            envelope.VoiceEnvelopeEvent(at=release_at + 1, ordinal=0, action='release'),
         )
         assert (
             envelope.envelope_at(definition, state, release_at + 1).value == level / 2
@@ -102,7 +108,7 @@ def test_release_interrupts_every_stage_without_restarting() -> None:
 
 
 def test_curved_release_reaches_exact_zero() -> None:
-    definition = envelope.Envelope(
+    definition = envelope.VoiceEnvelope(
         segments=[segments.Segment(duration=Fraction(0), to=1)],
         release=[segments.Segment(duration=Fraction(1), to=0, curve=-5)],
     )
@@ -111,7 +117,7 @@ def test_curved_release_reaches_exact_zero() -> None:
         state = envelope.envelope_event(
             definition,
             state,
-            envelope.EnvelopeEvent.model_validate(
+            envelope.VoiceEnvelopeEvent.model_validate(
                 {'at': '0', 'ordinal': ordinal, 'action': action}
             ),
         )
@@ -129,14 +135,14 @@ def test_independent_instances_and_replay_for_seeking() -> None:
     active = envelope.envelope_event(
         definition,
         idle,
-        envelope.EnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
+        envelope.VoiceEnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
     )
     assert envelope.envelope_at(definition, idle, Fraction(1)).status == 'idle'
     assert envelope.envelope_at(definition, active, Fraction(1)).value == 0.5
     released = envelope.envelope_event(
         definition,
         active,
-        envelope.EnvelopeEvent(at=Fraction(1), ordinal=0, action='release'),
+        envelope.VoiceEnvelopeEvent(at=Fraction(1), ordinal=0, action='release'),
     )
     with pytest.raises(ValueError, match='replay'):
         envelope.envelope_at(definition, released, Fraction(1, 2))
@@ -151,11 +157,11 @@ def test_independent_instances_and_replay_for_seeking() -> None:
 def test_equal_time_ordinals_are_strict_for_both_generators() -> None:
     definition = ENVELOPES['adsr with delay and hold'].definition
     state = envelope.initial_envelope(definition, Fraction(0))
-    event = envelope.EnvelopeEvent(at=Fraction(1), ordinal=2, action='trigger')
+    event = envelope.VoiceEnvelopeEvent(at=Fraction(1), ordinal=2, action='trigger')
     state = envelope.envelope_event(definition, state, event)
     for invalid in [
         event,
-        envelope.EnvelopeEvent(at=Fraction(0), ordinal=3, action='release'),
+        envelope.VoiceEnvelopeEvent(at=Fraction(0), ordinal=3, action='release'),
     ]:
         with pytest.raises(ValueError, match='order'):
             envelope.envelope_event(definition, state, invalid)
@@ -176,7 +182,7 @@ def test_rate_event_payload_is_required_only_for_rate_changes() -> None:
 
 
 def test_beat_controls_follow_supplied_tempo_positions_without_reset() -> None:
-    definition = envelope.Envelope.model_validate(
+    definition = envelope.VoiceEnvelope.model_validate(
         {
             'clock': 'beats',
             'segments': [{'duration': '4 beat', 'to': 1}],
@@ -188,7 +194,7 @@ def test_beat_controls_follow_supplied_tempo_positions_without_reset() -> None:
     state = envelope.envelope_event(
         definition,
         state,
-        envelope.EnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
+        envelope.VoiceEnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
     )
     phase = lfo.initial_lfo(oscillator, Fraction(0))
     # Host positions for 120 BPM until second 1, then 60 BPM.
@@ -212,13 +218,15 @@ CASES = json.loads(
     (Path(__file__).parents[1] / 'conformance/modulation.json').read_text()
 )
 TOLERANCE = CASES['absolute_tolerance']
-ENVELOPES = {c['name']: EnvelopeCase.model_validate(c) for c in CASES['envelopes']}
+ENVELOPES = {c['name']: VoiceEnvelopeCase.model_validate(c) for c in CASES['envelopes']}
 LFOS = [LFOCase.model_validate(c) for c in CASES['lfos']]
 
 
 @pytest.mark.parametrize('case', ENVELOPES.values(), ids=list(ENVELOPES))
 @pytest.mark.parametrize('extra_observations', [False, True])
-def test_envelope_conformance(case: EnvelopeCase, extra_observations: bool) -> None:
+def test_envelope_conformance(
+    case: VoiceEnvelopeCase, extra_observations: bool
+) -> None:
     check_envelope(case, extra_observations)
     document = EnvelfoScore(
         name='envelope',

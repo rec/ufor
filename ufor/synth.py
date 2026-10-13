@@ -8,7 +8,7 @@ from reccy.configuration import units
 
 from . import base, control, modulation
 from .base import Identifier, Model, unique
-from .envelope import Envelope
+from .envelope import VoiceEnvelope
 from .events import ControlChange, PerformanceEvent, Trigger
 from .fm import FM, edge_target_name
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
@@ -58,7 +58,7 @@ class VoiceTemplate(SoundSettings):
 class SynthVoice(VoiceTemplate):
     oscillator: Oscillator
     synchronize_oscillator: bool = False
-    envelope: Envelope = Envelope(
+    envelope: VoiceEnvelope = VoiceEnvelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )
@@ -66,7 +66,7 @@ class SynthVoice(VoiceTemplate):
 
 class NoiseVoice(VoiceTemplate):
     noise: Literal['white']
-    envelope: Envelope = Envelope(
+    envelope: VoiceEnvelope = VoiceEnvelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )

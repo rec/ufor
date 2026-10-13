@@ -7,7 +7,7 @@ from reccy.configuration import units
 
 from . import control
 from .base import Identifier, Model, unique
-from .envelope import Envelope
+from .envelope import VoiceEnvelope
 from .oscillator import Waveform
 from .segments import Segment
 
@@ -20,7 +20,7 @@ class Operator(Model):
         default=0, ge=0, lt=1
     )
     waveform: Waveform = Waveform.sine
-    envelope: Envelope = Envelope(
+    envelope: VoiceEnvelope = VoiceEnvelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )

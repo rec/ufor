@@ -20,7 +20,7 @@ class Case(Model):
 
 
 def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
-    definition = envelope.Envelope.model_validate(
+    definition = envelope.VoiceEnvelope.model_validate(
         {
             'segments': [{'duration': '2 s', 'to': 1}],
             'release': [{'duration': '1 s', 'to': 0}],
@@ -30,7 +30,7 @@ def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
     state = envelope.envelope_event(
         definition,
         state,
-        envelope.EnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
+        envelope.VoiceEnvelopeEvent(at=Fraction(0), ordinal=0, action='trigger'),
     )
     oscillator = lfo.LFO.model_validate(
         {

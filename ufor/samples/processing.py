@@ -32,7 +32,7 @@ from ..envelfo import (
     Threshold,
     stage_event_ports,
 )
-from ..envelope import Envelope
+from ..envelope import VoiceEnvelope
 from ..lfo import Reset
 from ..modulation import Modulation, Target, Unit
 from . import enums
@@ -192,7 +192,7 @@ Binding = Annotated[
 
 class SoundSettings(Model):
     processing: Processing = Processing()
-    envelope: Envelope | None = None
+    envelope: VoiceEnvelope | None = None
     envelfos: dict[Identifier, EnvelfoUse] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
@@ -458,7 +458,7 @@ def parameter_definition(
             units = {'cutoff_hz': modulation.Unit.hz, 'q': modulation.Unit.ratio}
             if target.parameter in units:
                 return units[target.parameter], getattr(filter, target.parameter)
-    definition: Envelope | envelfo.Envelope | None = None
+    definition: VoiceEnvelope | envelfo.Envelope | None = None
     clock: control.Clock | None = None
     if target.name == 'envelope' and settings.envelope is not None:
         definition = settings.envelope

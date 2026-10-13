@@ -32,7 +32,7 @@ class Curve(Model):
         return self
 
 
-class Envelope(Model):
+class VoiceEnvelope(Model):
     clock: control.Clock = control.Clock.seconds
     scope: control.Scope = control.Scope.voice
     polarity: control.Polarity = control.Polarity.unipolar
@@ -59,11 +59,11 @@ class Envelope(Model):
         return self
 
 
-class EnvelopeEvent(control.ControlEvent):
+class VoiceEnvelopeEvent(control.ControlEvent):
     action: Literal['trigger', 'release']
 
 
-class EnvelopeState(Model):
+class VoiceEnvelopeState(Model):
     at: control.Rational
     ordinal: int = -1
     started_at: control.Rational
@@ -71,7 +71,7 @@ class EnvelopeState(Model):
     phase: Literal['idle', 'on', 'release'] = 'idle'
 
 
-class EnvelopeValue(Model):
+class VoiceEnvelopeValue(Model):
     value: float
     status: Literal['idle', 'running', 'held', 'complete']
     segment: int | None = None
@@ -93,16 +93,16 @@ def curve_at(curve: Curve, at: Fraction) -> float:
     return value
 
 
-def initial_envelope(envelope: Envelope, at: Fraction) -> EnvelopeState:
-    return EnvelopeState(at=at, started_at=at, start_value=envelope.initial)
+def initial_envelope(envelope: VoiceEnvelope, at: Fraction) -> VoiceEnvelopeState:
+    return VoiceEnvelopeState(at=at, started_at=at, start_value=envelope.initial)
 
 
 def envelope_at(
-    envelope: Envelope, state: EnvelopeState, at: Fraction
-) -> EnvelopeValue:
+    envelope: VoiceEnvelope, state: VoiceEnvelopeState, at: Fraction
+) -> VoiceEnvelopeValue:
     control.elapsed(at, state.at)
     if state.phase == 'idle':
-        return EnvelopeValue(value=envelope.initial, status='idle')
+        return VoiceEnvelopeValue(value=envelope.initial, status='idle')
     remaining = control.elapsed(at, state.started_at)
     value = state.start_value
     segments = envelope.release if state.phase == 'release' else envelope.segments
@@ -110,16 +110,16 @@ def envelope_at(
         if remaining < segment.duration:
             progress = float(remaining / segment.duration)
             value += (segment.to - value) * curve_progress(progress, segment.curve)
-            return EnvelopeValue(value=value, status='running', segment=index)
+            return VoiceEnvelopeValue(value=value, status='running', segment=index)
         remaining -= segment.duration
         value = segment.to
     status = 'held' if state.phase == 'on' and envelope.hold else 'complete'
-    return EnvelopeValue(value=value, status=status)
+    return VoiceEnvelopeValue(value=value, status=status)
 
 
 def envelope_event(
-    envelope: Envelope, state: EnvelopeState, event: EnvelopeEvent
-) -> EnvelopeState:
+    envelope: VoiceEnvelope, state: VoiceEnvelopeState, event: VoiceEnvelopeEvent
+) -> VoiceEnvelopeState:
     control.check_order(state.at, state.ordinal, event)
     observation = envelope_at(envelope, state, event.at)
     start = state.started_at
@@ -137,7 +137,7 @@ def envelope_event(
             phase = 'on'
     elif state.phase == 'on' and observation.status != 'complete':
         start, value, phase = event.at, observation.value, 'release'
-    return EnvelopeState(
+    return VoiceEnvelopeState(
         at=event.at,
         ordinal=event.ordinal,
         started_at=start,

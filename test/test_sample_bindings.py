@@ -142,7 +142,7 @@ def test_key_curves_require_integer_knots_without_midi_key_limits() -> None:
 
 
 def test_envelope_segment_targets_use_the_declared_clock_and_latch_inputs() -> None:
-    definition = envelope.Envelope.model_validate(
+    definition = envelope.VoiceEnvelope.model_validate(
         {
             'clock': 'beats',
             'segments': [{'duration': '1/3 beat', 'to': 1}],

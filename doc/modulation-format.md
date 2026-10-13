@@ -15,7 +15,7 @@ Python reference in `ufor.envelope` and `ufor.lfo`.
 Autonomous light controls also use `envelope.Curve`: an initial value and shared
 segments, with final-value holding or whole-curve repetition. Curve values may
 exceed the normalized domain, for example a gain above one. Trigger/release
-`Envelope` retains its normalized bounds. The light profile adds `part` scope
+`VoiceEnvelope` retains its normalized bounds. The light profile adds `part` scope
 and uses the same modulation evaluation; see [light-format.md](light-format.md).
 
 ## Clock, scope, and observation
@@ -54,13 +54,13 @@ implicitly the OR of every key in the instrument.
 
 ## Embedded envelope semantics and reusable envelope scores
 
-The existing embedded `Envelope` still owns its clock, scope, polarity, hold,
+The existing embedded `VoiceEnvelope` still owns its clock, scope, polarity, hold,
 and retrigger policy. A standalone reusable envelope is now a `EnvelfoScore` with
 `kind = "envelope"` in its body. Its LFO counterpart uses `kind = "lfo"`.
 Instance ownership and playback policy are not part of these standalone
 definitions yet.
 
-`Envelope` has an `initial` level, nonempty `segments` and `release` lists,
+`VoiceEnvelope` has an `initial` level, nonempty `segments` and `release` lists,
 `hold`, `retrigger`, clock, scope, and polarity. Every segment has a
 nonnegative `duration`, `target`, and finite `curve` (default zero). Targets
 and the initial value lie in [0,1] for `unipolar`, the default, or [-1,1] for
@@ -138,7 +138,7 @@ an event. A zero-duration segment immediately sets its target. This also
 applies at trigger and release time, and finite lists cannot create an
 infinite zero-time transition loop.
 
-## Envelope events and state
+## VoiceEnvelope events and state
 
 Events contain rational `at`, nonnegative integer `ordinal`, and `action`:
 `trigger` or `release`. Process them in strictly increasing `(at, ordinal)`
@@ -168,9 +168,11 @@ Release durations are measured anew and in full from the release event; they
 are not shortened in proportion to the current level. Definition edits and
 changes to segment durations require a new prepared instance in profile 1.
 
-`EnvelopeState` records the last event coordinate/ordinal, current list
+`VoiceEnvelopeEvent` supplies each trigger/release event. `VoiceEnvelopeState`
+records the last event coordinate/ordinal, current list
 (`idle`, `on`, or `release`), its start coordinate, and its captured start value.
-`envelope_at` returns value, status (`idle`, `running`, `held`, or `complete`),
+`envelope_at` returns `VoiceEnvelopeValue`: value, status
+(`idle`, `running`, `held`, or `complete`),
 and the active segment index when running. Observations do not mutate state.
 
 Physical key release and logical gate release are distinct. Sustain-pedal and

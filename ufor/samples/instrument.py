@@ -15,7 +15,7 @@ from reccy.configuration import units
 from .. import base, control
 from ..assets import Asset, AudioDescription, is_finite_audio_source
 from ..base import Identifier, Model, Text, unique
-from ..envelope import Envelope
+from ..envelope import VoiceEnvelope
 from ..events import ControlChange, PerformanceEvent, Trigger
 from ..interface import (
     AudioBinding,
@@ -48,7 +48,7 @@ from .variation import Variation
 
 
 class SampleSettings(SoundSettings):
-    envelope: Envelope = Envelope(
+    envelope: VoiceEnvelope = VoiceEnvelope(
         segments=[Segment(duration=0, to=1)],
         release=[Segment(duration=0, to=0)],
     )
@@ -128,7 +128,7 @@ class SampleSlot(SoundSettings):
     @field_validator(
         'envelope',
         mode='before',
-        json_schema_input_type=Envelope | Literal[False] | None,
+        json_schema_input_type=VoiceEnvelope | Literal[False] | None,
     )
     @classmethod
     def no_envelope(cls, value: object) -> object:
