@@ -10,7 +10,7 @@ minimum = 0.1
 maximum = 20.0
 
 [body]
-kind = "cycle"
+kind = "lfo"
 shape = "square"
 rate = { parameter = "speed" }
 duty_cycle = "1/4"

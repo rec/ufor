@@ -8,7 +8,7 @@ def test_quantize_origin_and_range_do_not_clip() -> None:
     body = Patch.model_validate(
         {
             'envelfos': {
-                'wave': {'kind': 'cycle', 'rate': '1'},
+                'wave': {'kind': 'lfo', 'rate': '1'},
                 'steps': {
                     'kind': 'quantize',
                     'input': 'wave',

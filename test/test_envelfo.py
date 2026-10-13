@@ -6,8 +6,8 @@ from pydantic import ValidationError
 
 from ufor.codec import parse_score, score_toml
 from ufor.envelfo import (
+    LFO,
     Contour,
-    Cycle,
     EnterStage,
     EnvelfoParameter,
     EnvelfoScore,
@@ -44,7 +44,7 @@ def staged_envelfo() -> EnvelfoUse:
                 ),
                 Stage(
                     name='sway',
-                    envelfo=Cycle(
+                    envelfo=LFO(
                         rate=Fraction(2),
                         center=0.7,
                         depth=0.2,
@@ -91,7 +91,7 @@ def staged_envelfo() -> EnvelfoUse:
 
 
 def test_envelfo_score_rejects_previous_kind() -> None:
-    score = EnvelfoScore(name='pulse', title='Pulse', body=Cycle(rate=1))
+    score = EnvelfoScore(name='pulse', title='Pulse', body=LFO(rate=1))
     text = score_toml(score)
     assert parse_score(text) == score
     with pytest.raises(ValidationError, match='union_tag_invalid'):
@@ -103,6 +103,13 @@ def test_envelfo_fields_reject_previous_spelling() -> None:
         Stage.model_validate({'name': 'held', 'motion': {'kind': 'hold', 'value': 0}})
     with pytest.raises(ValidationError, match='Extra inputs are not permitted'):
         SoundSettings.model_validate({'motions': {}})
+
+
+def test_lfo_rejects_previous_body_kind() -> None:
+    definition = EnvelfoUse(body=LFO(rate=1))
+    assert definition.model_dump()['body']['kind'] == 'lfo'
+    with pytest.raises(ValidationError, match='union_tag_invalid'):
+        EnvelfoUse.model_validate({'body': {'kind': 'cycle', 'rate': 1}})
 
 
 def test_stage_contour_durations_match_the_envelfo_clock() -> None:
@@ -213,7 +220,7 @@ def test_named_contour_release_timing_is_explicit_and_contour_only() -> None:
     raw['envelfos']['envelfo']['body']['release'] = []
     with pytest.raises(ValidationError, match='releasing contour'):
         SoundSettings.model_validate(raw)
-    raw['envelfos']['envelfo']['body'] = {'kind': 'cycle', 'rate': '1'}
+    raw['envelfos']['envelfo']['body'] = {'kind': 'lfo', 'rate': '1'}
     raw['modulation']['sources'][0]['minimum'] = -1
     with pytest.raises(ValidationError, match='releasing contour'):
         SoundSettings.model_validate(raw)
@@ -224,7 +231,7 @@ def test_patch_sample_commands_select_only_sample_hold_children() -> None:
         {
             'envelfos': {
                 'clock': {
-                    'kind': 'cycle',
+                    'kind': 'lfo',
                     'rate': '1',
                     'markers': [{'name': 'pulse', 'position': '1/2'}],
                 },
@@ -259,14 +266,14 @@ def test_patch_sample_commands_select_only_sample_hold_children() -> None:
 
 @pytest.mark.parametrize(
     ('inputs', 'message'),
-    [(['missing', 'carrier'], 'unknown child'), (['output', 'carrier'], 'cycle')],
+    [(['missing', 'carrier'], 'unknown child'), (['output', 'carrier'], 'lfo')],
 )
 def test_patch_transform_dependencies_are_validated(
     inputs: list[str], message: str
 ) -> None:
     with pytest.raises(ValidationError, match=message):
         Patch(
-            envelfos={'carrier': Cycle(rate=1), 'output': Sum(inputs=inputs)},
+            envelfos={'carrier': LFO(rate=1), 'output': Sum(inputs=inputs)},
             outputs={'signal': 'output'},
         )
 
@@ -278,8 +285,8 @@ def test_patch_transformed_output_requires_a_covering_source_domain() -> None:
                 'body': {
                     'kind': 'patch',
                     'envelfos': {
-                        'cycle': {'kind': 'cycle', 'rate': '1'},
-                        'sum': {'kind': 'sum', 'inputs': ['cycle', 'cycle']},
+                        'lfo': {'kind': 'lfo', 'rate': '1'},
+                        'sum': {'kind': 'sum', 'inputs': ['lfo', 'lfo']},
                     },
                     'outputs': {'signal': 'sum'},
                 }
@@ -316,7 +323,7 @@ def test_patch_named_outputs_select_child_signal_domains() -> None:
                             'kind': 'contour',
                             'segments': [{'duration': '1 s', 'to': 1}],
                         },
-                        'vibrato': {'kind': 'cycle', 'rate': '5'},
+                        'vibrato': {'kind': 'lfo', 'rate': '5'},
                     },
                     'outputs': {'level': 'amp', 'pitch': 'vibrato'},
                 }
@@ -394,7 +401,7 @@ def test_patch_marker_cues_child_stages() -> None:
         'kind': 'patch',
         'envelfos': {
             'clock': {
-                'kind': 'cycle',
+                'kind': 'lfo',
                 'rate': '2',
                 'markers': [{'name': 'peak', 'position': '1/4'}],
             },
@@ -446,7 +453,7 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
             {
                 'name': 'playing',
                 'envelfo': {
-                    'kind': 'cycle',
+                    'kind': 'lfo',
                     'rate': '2',
                     'markers': [{'name': 'peak', 'position': '1/4'}],
                 }
@@ -516,10 +523,10 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
         EnvelfoUse.model_validate({'body': body})
 
 
-@pytest.mark.parametrize('child_kind', ['cycle', 'stages'])
+@pytest.mark.parametrize('child_kind', ['lfo', 'stages'])
 def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
     child = {
-        'kind': 'cycle',
+        'kind': 'lfo',
         'rate': '1',
         'markers': [{'name': 'peak', 'position': '1/4'}],
     }
@@ -594,7 +601,7 @@ def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
 @pytest.mark.parametrize(
     ('body', 'expected'),
     [
-        ('kind = "cycle"\nshape = "sine"\nrate = "5 Hz"', Cycle),
+        ('kind = "lfo"\nshape = "sine"\nrate = "5 Hz"', LFO),
         (
             'kind = "contour"\ninitial = 0.0\n'
             'segments = [{ duration = "10 ms", to = 1.0 }]\n'
@@ -620,23 +627,23 @@ def test_old_generator_score_kinds_are_rejected(kind: str) -> None:
         parse_score(f'kind = "{kind}"\nname = "old"\ntitle = "Old"\n')
 
 
-def test_public_cycle_rate_is_explicitly_bound_and_instantiated() -> None:
+def test_public_lfo_rate_is_explicitly_bound_and_instantiated() -> None:
     score = EnvelfoScore(
         name='vibrato',
         title='Vibrato',
         parameters={
             'speed': EnvelfoParameter(unit='hz', default=5, minimum=0.1, maximum=20)
         },
-        body=Cycle(rate=ParameterReference(parameter='speed')),
+        body=LFO(rate=ParameterReference(parameter='speed')),
     )
     assert parse_score(score_toml(score)) == score
-    assert instantiate_envelfo(score).body == Cycle(rate=Fraction(5))
-    assert instantiate_envelfo(score, {'speed': 6}).body == Cycle(rate=Fraction(6))
+    assert instantiate_envelfo(score).body == LFO(rate=Fraction(5))
+    assert instantiate_envelfo(score, {'speed': 6}).body == LFO(rate=Fraction(6))
     with pytest.raises(ValueError, match='unknown public'):
         instantiate_envelfo(score, {'depth': 1})
     with pytest.raises(ValueError, match='outside its range'):
         instantiate_envelfo(score, {'speed': 30})
-    with pytest.raises(ValidationError, match='inline cycle rate'):
+    with pytest.raises(ValidationError, match='inline LFO rate'):
         EnvelfoUse(body=score.body)
 
 
@@ -645,7 +652,7 @@ def test_envelfo_use_requires_exactly_one_definition() -> None:
         EnvelfoUse()
     with pytest.raises(ValidationError, match='exactly one'):
         EnvelfoUse.model_validate(
-            {'body': {'kind': 'cycle', 'rate': '1'}, 'score': {'selector': 'vibrato'}}
+            {'body': {'kind': 'lfo', 'rate': '1'}, 'score': {'selector': 'vibrato'}}
         )
 
 
@@ -667,13 +674,13 @@ def test_example_envelfo_library_resolves_all_scores() -> None:
             segments=[Segment(duration=Fraction(1), to=1)],
             markers=[Marker(name='done', position=Fraction(1, 2))],
         ),
-        Cycle(
+        LFO(
             rate=Fraction(1),
             markers=[Marker(name='done', position=Fraction(1, 2))],
         ),
     ],
 )
-def test_staged_marker_cannot_claim_completion_port(envelfo: Contour | Cycle) -> None:
+def test_staged_marker_cannot_claim_completion_port(envelfo: Contour | LFO) -> None:
     with pytest.raises(ValidationError, match='reserved for completion'):
         Stages(
             initial_stage='moving',

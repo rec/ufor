@@ -3,7 +3,7 @@
 `sample_hold` is a voice-owned, event-driven scalar Envelfo, usable directly or
 inside a Patch. Its `minimum` and `maximum` default to -1 and 1 and must be
 ordered within [-1, 1]. It draws once at voice activation, holds that value,
-and draws again only on Patch connections with `action = "sample"`. Cycle
+and draws again only on Patch connections with `action = "sample"`. LFO
 markers and Stages event ports can drive those connections; division,
 probability, and seconds-based delay have their usual delivery semantics.
 SampleHold does not emit events or advance with elapsed time or beats.
@@ -61,8 +61,8 @@ the inferred range. A wider declared domain is allowed; transforms do not clip.
 
 Evaluate dependencies before consumers, retaining authored input order within a
 sum or product. Each primitive child has one shared state, regardless of how
-many nodes or outputs consume it. Transform inputs use a Cycle's value times its
-delay/fade weight, so an inactive Cycle contributes zero; affine's offset still
+many nodes or outputs consume it. Transform inputs use a LFO's value times its
+delay/fade weight, so an inactive LFO contributes zero; affine's offset still
 applies. Contour and Stages inputs have weight one. Transform outputs have weight
 one and then pass through ordinary modulation mapping.
 

@@ -8,9 +8,9 @@ unit = "hz"
 default = 5.0
 minimum = 0.1
 maximum = 20.0
-description = "Cycles per second"
+description = "LFOs per second"
 
 [body]
-kind = "cycle"
+kind = "lfo"
 shape = "sine"
 rate = { parameter = "speed" }

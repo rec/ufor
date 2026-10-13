@@ -21,7 +21,7 @@ integer counts are rejected.
 | Frequency, sample rate | hertz | `440Hz`, `48kHz` |
 | Musical duration | quarter-note beat | `1/3 beat` |
 | Tempo | beats per minute | `120bpm`, `2 beat/s` |
-| Beat-clock cycle rate | inverse beat | `2/beat` |
+| Beat-clock LFO rate | inverse beat | `2/beat` |
 | Native position or duration | tick | `48000 tick` |
 | Audio sample position or count | frame | `48000 frame` |
 | Encoded byte length | byte | `2KiB`, `1MB` |

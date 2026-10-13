@@ -56,7 +56,7 @@ implicitly the OR of every key in the instrument.
 
 The existing embedded `Envelope` still owns its clock, scope, polarity, hold,
 and retrigger policy. A standalone reusable contour is now a `EnvelfoScore` with
-`kind = "contour"` in its body. Its cycle counterpart uses `kind = "cycle"`.
+`kind = "contour"` in its body. Its LFO counterpart uses `kind = "lfo"`.
 Instance ownership and playback policy are not part of these standalone
 definitions yet.
 

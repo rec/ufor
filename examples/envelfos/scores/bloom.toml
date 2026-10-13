@@ -19,7 +19,7 @@ envelfo = { kind = "contour", initial = "current", segments = [
 
 [[body.stages]]
 name = "sway"
-envelfo = { kind = "cycle", shape = "sine", rate = "3 Hz", center = 0.7, depth = 0.2,
+envelfo = { kind = "lfo", shape = "sine", rate = "3 Hz", center = 0.7, depth = 0.2,
   markers = [{ name = "peak", position = "1/4" }] }
 
 [[body.stages]]

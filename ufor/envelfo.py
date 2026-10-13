@@ -72,8 +72,8 @@ class PositionDriver(StrEnum):
     transport = auto()
 
 
-class Cycle(Model):
-    kind: Literal['cycle'] = 'cycle'
+class LFO(Model):
+    kind: Literal['lfo'] = 'lfo'
     shape: Waveform = Waveform.sine
     rate: ParameterReference | Annotated[control.Rational, Field(ge=0)]
     phase: Annotated[control.Rational, units.unit_validator('turn', exact=True)] = (
@@ -90,10 +90,10 @@ class Cycle(Model):
     @model_validator(mode='after')
     def output_and_markers(self) -> Self:
         if not -1 <= self.center - self.depth <= self.center + self.depth <= 1:
-            raise ValueError('cycle output must remain within [-1, 1]')
+            raise ValueError('LFO output must remain within [-1, 1]')
         if any(m.position == 1 for m in self.markers):
-            raise ValueError('cycle marker positions must be less than one')
-        unique((m.name for m in self.markers), 'cycle marker')
+            raise ValueError('LFO marker positions must be less than one')
+        unique((m.name for m in self.markers), 'LFO marker')
         return self
 
     @model_validator(mode='before')
@@ -147,7 +147,7 @@ class Contour(Model):
 
 class Stage(Model):
     name: Identifier
-    envelfo: Annotated[Hold | Cycle | Contour, Field(discriminator='kind')]
+    envelfo: Annotated[Hold | LFO | Contour, Field(discriminator='kind')]
 
 
 class EnterStage(Model):
@@ -186,12 +186,12 @@ class Stages(Model):
             raise ValueError('initial stage cannot capture a current value')
         for stage in self.stages:
             body = stage.envelfo
-            if isinstance(body, (Cycle, Contour)) and any(
+            if isinstance(body, (LFO, Contour)) and any(
                 m.name == 'done' for m in body.markers
             ):
                 raise ValueError('stage marker name done is reserved for completion')
-            if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
-                raise ValueError('stage cycle rate must be a literal')
+            if isinstance(body, LFO) and isinstance(body.rate, ParameterReference):
+                raise ValueError('stage LFO rate must be a literal')
             if isinstance(body, Contour) and body.start == 'event':
                 raise ValueError('stage contours start on stage entry')
             if isinstance(body, Contour) and (
@@ -223,7 +223,7 @@ class Stages(Model):
                     body = next(s.envelfo for s in self.stages if s.name == name)
                     ports = (
                         {m.name for m in body.markers}
-                        if isinstance(body, (Cycle, Contour))
+                        if isinstance(body, (LFO, Contour))
                         else set()
                     )
                     if (
@@ -360,7 +360,7 @@ class Patch(Model):
     envelfos: dict[
         Identifier,
         Annotated[
-            Cycle
+            LFO
             | Contour
             | Stages
             | SampleHold
@@ -455,7 +455,7 @@ class Patch(Model):
             body = self.envelfos.get(child)
             if not separator or not port:
                 raise ValueError('patch event output must name a child event')
-            if isinstance(body, Cycle):
+            if isinstance(body, LFO):
                 ports = {marker.name for marker in body.markers}
             elif isinstance(body, Stages):
                 ports = stage_event_ports(body)
@@ -466,10 +466,10 @@ class Patch(Model):
             if port not in ports:
                 raise ValueError('patch event output references an unknown child event')
         if any(
-            isinstance(body, Cycle) and isinstance(body.rate, ParameterReference)
+            isinstance(body, LFO) and isinstance(body.rate, ParameterReference)
             for body in self.envelfos.values()
         ):
-            raise ValueError('patch cycle rates must be literals')
+            raise ValueError('patch LFO rates must be literals')
         if any(
             isinstance(body, Contour) and body.initial == 'current'
             for body in self.envelfos.values()
@@ -481,7 +481,7 @@ class Patch(Model):
             target = self.envelfos.get(connection.target)
             if not separator or not port:
                 raise ValueError('patch event source must name a child event')
-            if isinstance(origin, Cycle):
+            if isinstance(origin, LFO):
                 ports = {marker.name for marker in origin.markers}
             elif isinstance(origin, Stages):
                 ports = stage_event_ports(origin)
@@ -492,7 +492,7 @@ class Patch(Model):
             if port not in ports:
                 raise ValueError(
                     'patch event source references an unknown '
-                    + ('marker' if isinstance(origin, Cycle) else 'stage event')
+                    + ('marker' if isinstance(origin, LFO) else 'stage event')
                 )
             if connection.action == 'capture':
                 if not isinstance(target, Latch):
@@ -525,7 +525,7 @@ class EnvelfoUse(Model):
     position_driver: PositionDriver = PositionDriver.elapsed
     body: (
         Annotated[
-            Cycle | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
+            LFO | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
         ]
         | None
     ) = None
@@ -550,14 +550,14 @@ class EnvelfoUse(Model):
             self.clock != control.Clock.beats
             or self.body is not None
             and (
-                not isinstance(self.body, Cycle)
+                not isinstance(self.body, LFO)
                 or self.body.reset != Reset.transport
                 or self.body.delay != 0
                 or self.body.fade_in != 0
             )
         ):
             raise ValueError(
-                'transport position requires a beat-clock Cycle with '
+                'transport position requires a beat-clock LFO with '
                 'transport reset and no onset fade'
             )
         if (self.body is None) == (self.score is None):
@@ -566,10 +566,10 @@ class EnvelfoUse(Model):
             raise ValueError('inline envelfos do not accept public parameters')
         if self.score is not None and self.origin is not None:
             raise ValueError('unresolved envelfos cannot claim a materialized origin')
-        if isinstance(self.body, Cycle) and isinstance(
+        if isinstance(self.body, LFO) and isinstance(
             self.body.rate, ParameterReference
         ):
-            raise ValueError('inline cycle rate cannot reference a public parameter')
+            raise ValueError('inline LFO rate cannot reference a public parameter')
         if isinstance(self.body, Contour) and self.body.initial == 'current':
             raise ValueError('current contour initial requires a parent stage')
         if isinstance(self.body, SampleHold) and self.scope != control.Scope.voice:
@@ -607,29 +607,27 @@ class EnvelfoUse(Model):
                 and self.scope != control.Scope.voice
             ):
                 raise ValueError('sample-and-hold requires voice scope')
-            cycle_sources = {
+            lfo_sources = {
                 name
                 for connection in self.body.events
                 if isinstance(
                     self.body.envelfos[name := connection.source.partition('.')[0]],
-                    Cycle,
+                    LFO,
                 )
             } | {
                 source.partition('.')[0]
                 for source in self.body.event_outputs.values()
-                if isinstance(self.body.envelfos[source.partition('.')[0]], Cycle)
+                if isinstance(self.body.envelfos[source.partition('.')[0]], LFO)
             }
-            if (
-                self.body.events or cycle_sources
-            ) and self.scope != control.Scope.voice:
+            if (self.body.events or lfo_sources) and self.scope != control.Scope.voice:
                 raise ValueError('patch event connections require voice scope')
-            if cycle_sources and self.clock != control.Clock.seconds:
+            if lfo_sources and self.clock != control.Clock.seconds:
                 raise ValueError(
-                    'patch marker connections require simple voice seconds Cycles'
+                    'patch marker connections require simple voice seconds LFOs'
                 )
-            for child_name in cycle_sources:
+            for child_name in lfo_sources:
                 child = self.body.envelfos[child_name]
-                assert isinstance(child, Cycle)
+                assert isinstance(child, LFO)
                 if (
                     child.rate == 0
                     or child.reset != Reset.trigger
@@ -637,7 +635,7 @@ class EnvelfoUse(Model):
                     or child.fade_in
                 ):
                     raise ValueError(
-                        'patch marker connections require simple voice seconds Cycles'
+                        'patch marker connections require simple voice seconds LFOs'
                     )
             for child in self.body.envelfos.values():
                 contours = (
@@ -666,7 +664,7 @@ def _clock_body(value: object, clock: control.Clock | str) -> object:
     if not isinstance(value, dict):
         return value
     normalized = (
-        control.clock_fields(value, clock) if value.get('kind') == 'cycle' else value
+        control.clock_fields(value, clock) if value.get('kind') == 'lfo' else value
     )
     assert isinstance(normalized, dict)
     return {k: _clock_body(v, clock) for k, v in normalized.items()}
@@ -715,7 +713,7 @@ class EnvelfoPosition(Model):
     age: control.Rational = Field(default=Fraction(0), ge=0)
 
 
-class CycleState(Model):
+class LFOState(Model):
     at: control.Rational
     ordinal: int = -1
     position: EnvelfoPosition
@@ -752,7 +750,7 @@ class SampleHoldState(Model):
 
 
 class EnvelfoState(Model):
-    runtime: CycleState | ContourState | StageState | SampleHoldState
+    runtime: LFOState | ContourState | StageState | SampleHoldState
 
 
 class EnvelfoValue(Model):
@@ -778,12 +776,12 @@ class EnvelfoScore(Score):
     kind: Literal['envelfo'] = 'envelfo'
     parameters: dict[Identifier, EnvelfoParameter] = Field(default_factory=dict)
     body: Annotated[
-        Cycle | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
+        LFO | Contour | Stages | SampleHold | Patch, Field(discriminator='kind')
     ]
 
     @model_validator(mode='after')
     def public_parameters(self) -> Self:
-        rate = self.body.rate if isinstance(self.body, Cycle) else None
+        rate = self.body.rate if isinstance(self.body, LFO) else None
         used = {rate.parameter} if isinstance(rate, ParameterReference) else set()
         if used != self.parameters.keys():
             raise ValueError('envelfo parameters must each bind to a supported field')
@@ -791,7 +789,7 @@ class EnvelfoScore(Score):
             isinstance(rate, ParameterReference)
             and self.parameters[rate.parameter].unit != Unit.hz
         ):
-            raise ValueError('cycle rate requires a Hz parameter')
+            raise ValueError('LFO rate requires a Hz parameter')
         return self
 
 
@@ -807,7 +805,7 @@ def instantiate_envelfo(
     if values.keys() - score.parameters.keys():
         raise ValueError('unknown public envelfo parameters')
     body = score.body
-    if isinstance(body, Cycle) and isinstance(body.rate, ParameterReference):
+    if isinstance(body, LFO) and isinstance(body.rate, ParameterReference):
         declared = score.parameters[body.rate.parameter]
         value = unit_number(
             values.get(body.rate.parameter, declared.default), declared.unit
@@ -816,7 +814,7 @@ def instantiate_envelfo(
             raise ValueError(
                 f'envelfo parameter {body.rate.parameter} is outside its range'
             )
-        body = Cycle.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
+        body = LFO.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
     return EnvelfoUse(
         scope=scope,
         clock=clock,

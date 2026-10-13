@@ -10,7 +10,7 @@ from pydantic import ValidationError
 
 from ufor import library_files
 from ufor.codec import parse_score, score_toml
-from ufor.envelfo import Cycle, EnvelfoParameter, EnvelfoScore, ParameterReference
+from ufor.envelfo import LFO, EnvelfoParameter, EnvelfoScore, ParameterReference
 from ufor.interface import ScoreReference
 from ufor.library import Entry, Library, State
 from ufor.musical import OscillatorScore
@@ -103,7 +103,7 @@ def test_envelfo_library_materializes_relative_references_and_presets() -> None:
         parameters={
             'speed': EnvelfoParameter(unit='hz', default=5, minimum=0.1, maximum=20)
         },
-        body=Cycle(rate=ParameterReference(parameter='speed')),
+        body=LFO(rate=ParameterReference(parameter='speed')),
     )
     raw = json.loads(Path('conformance/synth-instrument.json').read_text())
     raw['body']['voices'][0]['envelfos'] = {
@@ -151,8 +151,8 @@ def test_envelfo_library_materializes_relative_references_and_presets() -> None:
     assert isinstance(prepared, SynthInstrumentScore)
     first = prepared.body.voices[0].envelfos['first']
     second = prepared.body.voices[0].envelfos['second']
-    assert first.body == Cycle(rate=2)
-    assert second.body == Cycle(rate=6)
+    assert first.body == LFO(rate=2)
+    assert second.body == LFO(rate=6)
     assert first.origin is not None
     assert first.origin.identity == 'local:/slow.toml'
     assert first.origin.sha256 == 'b' * 64

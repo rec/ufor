@@ -19,9 +19,9 @@ from ..base import (
     unique,
 )
 from ..envelfo import (
+    LFO,
     Affine,
     Contour,
-    Cycle,
     EnvelfoUse,
     Latch,
     Patch,
@@ -229,7 +229,7 @@ class SoundSettings(Model):
                     ports = origin.body.event_outputs.keys()
                 elif isinstance(origin.body, Stages):
                     ports = stage_event_ports(origin.body)
-                elif isinstance(origin.body, Cycle):
+                elif isinstance(origin.body, LFO):
                     if (
                         origin.clock != control.Clock.seconds
                         or origin.body.rate == 0
@@ -238,7 +238,7 @@ class SoundSettings(Model):
                         or origin.body.fade_in
                     ):
                         raise ValueError(
-                            'Cycle event source requires a simple seconds clock'
+                            'LFO event source requires a simple seconds clock'
                         )
                     ports = {marker.name for marker in origin.body.markers}
                 else:
@@ -485,7 +485,7 @@ def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
         b.name
         for b in settings.bindings
         if isinstance(b, GeneratorBinding)
-        and isinstance(body := settings.envelfos[b.reference].body, Cycle)
+        and isinstance(body := settings.envelfos[b.reference].body, LFO)
         and (body.delay or body.fade_in)
     }
     for route in settings.modulation.routes:

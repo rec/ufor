@@ -8,7 +8,7 @@ def test_slew_range_includes_initial_value_and_validates_dependencies() -> None:
     body = Patch.model_validate(
         {
             'envelfos': {
-                'clock': {'kind': 'cycle', 'rate': '1'},
+                'clock': {'kind': 'lfo', 'rate': '1'},
                 'smooth': {
                     'kind': 'slew',
                     'input': 'clock',

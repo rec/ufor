@@ -8,7 +8,7 @@ def test_threshold_patch_exposes_gate_and_event_ports() -> None:
     body = Patch.model_validate(
         {
             'envelfos': {
-                'clock': {'kind': 'cycle', 'rate': '1'},
+                'clock': {'kind': 'lfo', 'rate': '1'},
                 'edge': {
                     'kind': 'threshold',
                     'input': 'clock',

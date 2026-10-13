@@ -9,7 +9,7 @@ def test_latch_graph_validates_capture_commands_ranges_and_scope() -> None:
         {
             'envelfos': {
                 'wave': {
-                    'kind': 'cycle',
+                    'kind': 'lfo',
                     'rate': '2',
                     'markers': [{'name': 'tick', 'position': '1/4'}],
                 },
