@@ -4,13 +4,14 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
+from ufor import envelfo
 from ufor.codec import parse_score, score_toml
 from ufor.envelfo import (
     LFO,
     EnterStage,
+    EnveLFO,
     EnvelfoParameter,
     EnvelfoScore,
-    EnvelfoUse,
     Envelope,
     FinishStage,
     Hold,
@@ -29,8 +30,8 @@ from ufor.samples.processing import ReleaseTiming, SoundSettings
 from ufor.segments import Segment
 
 
-def staged_envelfo() -> EnvelfoUse:
-    return EnvelfoUse(
+def staged_envelfo() -> EnveLFO:
+    return EnveLFO(
         body=Stages(
             initial_stage='waiting',
             stages=[
@@ -105,18 +106,23 @@ def test_envelfo_fields_reject_previous_spelling() -> None:
         SoundSettings.model_validate({'motions': {}})
 
 
+def test_envelfo_name_has_no_previous_alias() -> None:
+    assert EnveLFO.model_json_schema()['title'] == 'EnveLFO'
+    assert not hasattr(envelfo, 'EnvelfoUse')
+
+
 def test_lfo_rejects_previous_body_kind() -> None:
-    definition = EnvelfoUse(body=LFO(rate=1))
+    definition = EnveLFO(body=LFO(rate=1))
     assert definition.model_dump()['body']['kind'] == 'lfo'
     with pytest.raises(ValidationError, match='union_tag_invalid'):
-        EnvelfoUse.model_validate({'body': {'kind': 'cycle', 'rate': 1}})
+        EnveLFO.model_validate({'body': {'kind': 'cycle', 'rate': 1}})
 
 
 def test_envelope_rejects_previous_body_kind() -> None:
-    definition = EnvelfoUse(body=Envelope(segments=[Segment(duration=1, to=1)]))
+    definition = EnveLFO(body=Envelope(segments=[Segment(duration=1, to=1)]))
     assert definition.model_dump()['body']['kind'] == 'envelope'
     with pytest.raises(ValidationError, match='union_tag_invalid'):
-        EnvelfoUse.model_validate(
+        EnveLFO.model_validate(
             {'body': {'kind': 'contour', 'segments': [{'duration': '1 s', 'to': 1}]}}
         )
 
@@ -135,15 +141,15 @@ def test_stage_envelope_durations_match_the_envelfo_clock() -> None:
             }
         ],
     }
-    envelfo = EnvelfoUse.model_validate({'clock': 'beats', 'body': body})
+    envelfo = EnveLFO.model_validate({'clock': 'beats', 'body': body})
     assert envelfo.clock.value == 'beats'
     with pytest.raises(ValidationError, match='stage envelope segment units'):
-        EnvelfoUse.model_validate({'clock': 'seconds', 'body': body})
+        EnveLFO.model_validate({'clock': 'seconds', 'body': body})
 
 
 def test_voice_envelfo_event_connections_validate_ports_and_cues() -> None:
     source = staged_envelfo()
-    destination = EnvelfoUse(
+    destination = EnveLFO(
         body=Stages(
             initial_stage='waiting',
             stages=[
@@ -268,7 +274,7 @@ def test_patch_sample_commands_select_only_sample_hold_children() -> None:
     with pytest.raises(ValidationError, match='sample target'):
         Patch.model_validate(raw)
     with pytest.raises(ValidationError, match='voice scope'):
-        EnvelfoUse(body=patch, scope='instrument')
+        EnveLFO(body=patch, scope='instrument')
     with pytest.raises(ValidationError, match='minimum'):
         SampleHold(minimum=0.5, maximum=0.25)
 
@@ -395,9 +401,9 @@ def test_patch_output_and_clock_references_are_validated() -> None:
         {'name': 'gesture', 'title': 'Gesture', 'body': body}
     )
     assert parse_score(score_toml(score)) == score
-    assert isinstance(EnvelfoUse(clock='beats', body=score.body).body, type(score.body))
+    assert isinstance(EnveLFO(clock='beats', body=score.body).body, type(score.body))
     with pytest.raises(ValidationError, match='patch envelope segment units'):
-        EnvelfoUse(body=score.body)
+        EnveLFO(body=score.body)
     body['outputs']['level'] = 'missing'
     with pytest.raises(ValidationError, match='unknown child Envelfo'):
         EnvelfoScore.model_validate(
@@ -446,10 +452,10 @@ def test_patch_marker_cues_child_stages() -> None:
     assert parse_score(score_toml(score)) == score
     body['events'][0]['cue'] = 'missing'
     with pytest.raises(ValidationError, match='matching stage transition'):
-        EnvelfoUse.model_validate({'body': body})
+        EnveLFO.model_validate({'body': body})
     body['events'][0].pop('cue')
     with pytest.raises(ValidationError, match='require a cue name'):
-        EnvelfoUse.model_validate({'body': body})
+        EnveLFO.model_validate({'body': body})
 
 
 @pytest.mark.parametrize('source_kind', ['marker', 'stage.done'])
@@ -509,10 +515,10 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
     )
     assert parse_score(score_toml(score)) == score
     with pytest.raises(ValidationError, match='voice scope'):
-        EnvelfoUse.model_validate({'body': body, 'scope': 'part'})
+        EnveLFO.model_validate({'body': body, 'scope': 'part'})
     body['events'][0]['source'] = 'clock.missing'
     with pytest.raises(ValidationError, match='unknown stage event'):
-        EnvelfoUse.model_validate({'body': body})
+        EnveLFO.model_validate({'body': body})
     body['envelfos']['accent'] = {
         'kind': 'envelope',
         'start': 'event',
@@ -529,7 +535,7 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
     assert parse_score(score_toml(score)) == score
     body['envelfos']['accent']['start'] = 'activation'
     with pytest.raises(ValidationError, match='event-start Envelope'):
-        EnvelfoUse.model_validate({'body': body})
+        EnveLFO.model_validate({'body': body})
 
 
 @pytest.mark.parametrize('child_kind', ['lfo', 'stages'])
@@ -551,8 +557,8 @@ def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
         'outputs': {'signal': 'pulse'},
         'event_outputs': {'strike': 'pulse.peak'},
     }
-    patch = EnvelfoUse.model_validate({'body': body})
-    assert EnvelfoUse.model_validate_json(patch.model_dump_json()) == patch
+    patch = EnveLFO.model_validate({'body': body})
+    assert EnveLFO.model_validate_json(patch.model_dump_json()) == patch
     settings = {
         'envelfos': {
             'patch': {'body': body},
@@ -601,10 +607,10 @@ def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
     assert SoundSettings.model_validate(settings)
     if child_kind == 'stages':
         body['event_outputs']['strike'] = 'pulse.stage.done'
-        assert EnvelfoUse.model_validate({'body': body})
+        assert EnveLFO.model_validate({'body': body})
     body['event_outputs']['strike'] = 'pulse.missing'
     with pytest.raises(ValidationError, match='unknown child event'):
-        EnvelfoUse.model_validate({'body': body})
+        EnveLFO.model_validate({'body': body})
 
 
 @pytest.mark.parametrize(
@@ -653,14 +659,14 @@ def test_public_lfo_rate_is_explicitly_bound_and_instantiated() -> None:
     with pytest.raises(ValueError, match='outside its range'):
         instantiate_envelfo(score, {'speed': 30})
     with pytest.raises(ValidationError, match='inline LFO rate'):
-        EnvelfoUse(body=score.body)
+        EnveLFO(body=score.body)
 
 
 def test_envelfo_use_requires_exactly_one_definition() -> None:
     with pytest.raises(ValidationError, match='exactly one'):
-        EnvelfoUse()
+        EnveLFO()
     with pytest.raises(ValidationError, match='exactly one'):
-        EnvelfoUse.model_validate(
+        EnveLFO.model_validate(
             {'body': {'kind': 'lfo', 'rate': '1'}, 'score': {'selector': 'vibrato'}}
         )
 

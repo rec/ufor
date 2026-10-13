@@ -17,9 +17,9 @@ from ufor.effects import ExpandingRipples, Hamiltonian, Interference, SaberBlade
 from ufor.envelfo import (
     LFO,
     Affine,
+    EnveLFO,
     EnvelfoParameter,
     EnvelfoScore,
-    EnvelfoUse,
     instantiate_envelfo,
 )
 from ufor.light_animation import Fade
@@ -157,7 +157,7 @@ def test_lfo_and_nested_envelfo_use_their_declared_clock() -> None:
     assert oscillator.rate == 2
     assert oscillator.delay == Fraction(1, 3)
     assert oscillator.phase == Fraction(1, 4)
-    envelfo = EnvelfoUse(
+    envelfo = EnveLFO(
         clock='beats', body={'kind': 'lfo', 'rate': '2/beat', 'delay': '1/3 beat'}
     )
     assert isinstance(envelfo.body, LFO)
@@ -165,7 +165,7 @@ def test_lfo_and_nested_envelfo_use_their_declared_clock() -> None:
     with pytest.raises(ValidationError):
         lfo.LFO(clock='beats', rate='2Hz')
     with pytest.raises(ValidationError):
-        EnvelfoUse(clock='beats', body={'kind': 'lfo', 'rate': '2Hz'})
+        EnveLFO(clock='beats', body={'kind': 'lfo', 'rate': '2Hz'})
 
 
 def test_parameters_routes_and_automation_use_the_declared_dimension() -> None:

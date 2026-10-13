@@ -21,7 +21,7 @@ from ..base import (
 from ..envelfo import (
     LFO,
     Affine,
-    EnvelfoUse,
+    EnveLFO,
     Latch,
     Patch,
     Product,
@@ -193,7 +193,7 @@ Binding = Annotated[
 class SoundSettings(Model):
     processing: Processing = Processing()
     envelope: VoiceEnvelope | None = None
-    envelfos: dict[Identifier, EnvelfoUse] = Field(default_factory=dict)
+    envelfos: dict[Identifier, EnveLFO] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
     event_connections: list[EnvelfoEventConnection] = Field(default_factory=list)

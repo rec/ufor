@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.envelfo import EnvelfoUse, Patch, Slew
+from ufor.envelfo import EnveLFO, Patch, Slew
 
 
 def test_slew_range_includes_initial_value_and_validates_dependencies() -> None:
@@ -24,7 +24,7 @@ def test_slew_range_includes_initial_value_and_validates_dependencies() -> None:
     assert body.signal_order.index('clock') < body.signal_order.index('smooth')
     assert Patch.model_validate_json(body.model_dump_json()) == body
     with pytest.raises(ValidationError, match='slew requires voice scope'):
-        EnvelfoUse(body=body, scope='part')
+        EnveLFO(body=body, scope='part')
     raw = body.model_dump()
     raw['envelfos']['smooth']['input'] = 'smooth'
     with pytest.raises(ValidationError, match='cycle'):

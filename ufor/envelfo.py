@@ -521,7 +521,7 @@ class Patch(Model):
         return self
 
 
-class EnvelfoUse(Model):
+class EnveLFO(Model):
     scope: control.Scope = control.Scope.voice
     clock: control.Clock = control.Clock.seconds
     position_driver: PositionDriver = PositionDriver.elapsed
@@ -563,7 +563,7 @@ class EnvelfoUse(Model):
                 'transport reset and no onset fade'
             )
         if (self.body is None) == (self.score is None):
-            raise ValueError('EnvelfoUse requires exactly one body or score reference')
+            raise ValueError('EnveLFO requires exactly one body or score reference')
         if self.score is None and self.parameters:
             raise ValueError('inline envelfos do not accept public parameters')
         if self.score is not None and self.origin is not None:
@@ -804,7 +804,7 @@ def instantiate_envelfo(
     clock: control.Clock = control.Clock.seconds,
     origin: EnvelfoOrigin | None = None,
     position_driver: PositionDriver = PositionDriver.elapsed,
-) -> EnvelfoUse:
+) -> EnveLFO:
     values = parameters or {}
     if values.keys() - score.parameters.keys():
         raise ValueError('unknown public envelfo parameters')
@@ -819,7 +819,7 @@ def instantiate_envelfo(
                 f'envelfo parameter {body.rate.parameter} is outside its range'
             )
         body = LFO.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
-    return EnvelfoUse(
+    return EnveLFO(
         scope=scope,
         clock=clock,
         position_driver=position_driver,

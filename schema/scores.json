@@ -4258,6 +4258,99 @@
       "title": "EnumValue",
       "type": "object"
     },
+    "EnveLFO": {
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "body": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "envelope": "#/$defs/Envelope",
+                  "lfo": "#/$defs/ufor__envelfo__LFO",
+                  "patch": "#/$defs/Patch",
+                  "sample_hold": "#/$defs/SampleHold",
+                  "stages": "#/$defs/Stages"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/ufor__envelfo__LFO"
+                },
+                {
+                  "$ref": "#/$defs/Envelope"
+                },
+                {
+                  "$ref": "#/$defs/Stages"
+                },
+                {
+                  "$ref": "#/$defs/SampleHold"
+                },
+                {
+                  "$ref": "#/$defs/Patch"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Body"
+        },
+        "score": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScoreReference"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "parameters": {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "title": "Parameters",
+          "type": "object"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "title": "EnveLFO",
+      "type": "object"
+    },
     "EnvelfoChange": {
       "additionalProperties": false,
       "description": "Control named Envelfos on the voices started by one trigger.",
@@ -4596,99 +4689,6 @@
         "body"
       ],
       "title": "EnvelfoScore",
-      "type": "object"
-    },
-    "EnvelfoUse": {
-      "additionalProperties": false,
-      "properties": {
-        "scope": {
-          "$ref": "#/$defs/Scope",
-          "default": "voice"
-        },
-        "clock": {
-          "$ref": "#/$defs/Clock",
-          "default": "seconds"
-        },
-        "position_driver": {
-          "$ref": "#/$defs/PositionDriver",
-          "default": "elapsed"
-        },
-        "body": {
-          "anyOf": [
-            {
-              "discriminator": {
-                "mapping": {
-                  "envelope": "#/$defs/Envelope",
-                  "lfo": "#/$defs/ufor__envelfo__LFO",
-                  "patch": "#/$defs/Patch",
-                  "sample_hold": "#/$defs/SampleHold",
-                  "stages": "#/$defs/Stages"
-                },
-                "propertyName": "kind"
-              },
-              "oneOf": [
-                {
-                  "$ref": "#/$defs/ufor__envelfo__LFO"
-                },
-                {
-                  "$ref": "#/$defs/Envelope"
-                },
-                {
-                  "$ref": "#/$defs/Stages"
-                },
-                {
-                  "$ref": "#/$defs/SampleHold"
-                },
-                {
-                  "$ref": "#/$defs/Patch"
-                }
-              ]
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null,
-          "title": "Body"
-        },
-        "score": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ScoreReference"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "parameters": {
-          "additionalProperties": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "string"
-              }
-            ]
-          },
-          "title": "Parameters",
-          "type": "object"
-        },
-        "origin": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/EnvelfoOrigin"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        }
-      },
-      "title": "EnvelfoUse",
       "type": "object"
     },
     "Envelope": {
@@ -5540,7 +5540,7 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnvelfoUse"
+            "$ref": "#/$defs/EnveLFO"
           },
           "title": "Envelfos",
           "type": "object"
@@ -8472,7 +8472,7 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnvelfoUse"
+            "$ref": "#/$defs/EnveLFO"
           },
           "title": "Envelfos",
           "type": "object"
@@ -12178,7 +12178,7 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnvelfoUse"
+            "$ref": "#/$defs/EnveLFO"
           },
           "title": "Envelfos",
           "type": "object"
@@ -12315,7 +12315,7 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnvelfoUse"
+            "$ref": "#/$defs/EnveLFO"
           },
           "title": "Envelfos",
           "type": "object"
@@ -13628,7 +13628,7 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnvelfoUse"
+            "$ref": "#/$defs/EnveLFO"
           },
           "title": "Envelfos",
           "type": "object"
@@ -14492,7 +14492,7 @@
         },
         "envelfos": {
           "additionalProperties": {
-            "$ref": "#/$defs/EnvelfoUse"
+            "$ref": "#/$defs/EnveLFO"
           },
           "title": "Envelfos",
           "type": "object"

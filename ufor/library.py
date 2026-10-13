@@ -8,7 +8,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 
 from .base import Model
 from .composition import Composition, ScoreRecord
-from .envelfo import EnvelfoOrigin, EnvelfoScore, EnvelfoUse, instantiate_envelfo
+from .envelfo import EnveLFO, EnvelfoOrigin, EnvelfoScore, instantiate_envelfo
 from .interface import InterfaceScore, ScoreReference
 from .modulation import unit_number
 from .preset import PresetScore
@@ -114,7 +114,7 @@ class Library:
         return TypeAdapter(ScoreValue).validate_python(value.model_dump())
 
     def _materialize_envelfos(self, value: object, paths: dict[str, str]) -> object:
-        if isinstance(value, EnvelfoUse) and value.score is not None:
+        if isinstance(value, EnveLFO) and value.score is not None:
             reference = value.score
             key = (
                 paths[str(reference.path)]
