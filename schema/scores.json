@@ -4325,7 +4325,7 @@
     },
     "EnvelfoChange": {
       "additionalProperties": false,
-      "description": "Control named Envelfos on the voices started by one trigger.",
+      "description": "Control named Envelfos or amplitude envelopes owned by one trigger.",
       "properties": {
         "tick": {
           "anyOf": [
@@ -4352,9 +4352,38 @@
           "title": "Kind",
           "type": "string"
         },
-        "name": {
-          "title": "Name",
+        "target": {
+          "default": "envelfo",
+          "enum": [
+            "envelfo",
+            "envelope"
+          ],
+          "title": "Target",
           "type": "string"
+        },
+        "name": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Name"
+        },
+        "op": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Op"
         },
         "part": {
           "title": "Part",
@@ -4421,7 +4450,6 @@
       "required": [
         "tick",
         "ordinal",
-        "name",
         "part",
         "trigger_id",
         "action"

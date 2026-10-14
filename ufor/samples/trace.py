@@ -416,6 +416,8 @@ def prepare(
                     tick=event.tick,
                     ordinal=event.ordinal,
                     name=event.name,
+                    target=event.target,
+                    op=event.op,
                     part=event.part,
                     trigger_id=event.trigger_id,
                     action=event.action,

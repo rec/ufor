@@ -93,7 +93,9 @@ class LFOObservation(TraceAction):
 
 class EnvelfoObservation(TraceAction):
     kind: Literal['envelfo'] = 'envelfo'
-    name: Identifier
+    target: Literal['envelfo', 'envelope'] = 'envelfo'
+    name: Identifier | None = None
+    op: Identifier | None = None
     part: Identifier
     trigger_id: Identifier
     action: Literal['pause', 'resume', 'reverse', 'seek', 'shift', 'advance']
@@ -102,6 +104,10 @@ class EnvelfoObservation(TraceAction):
 
     @model_validator(mode='after')
     def seek_payload(self) -> Self:
+        if self.target == 'envelfo' and (self.name is None or self.op is not None):
+            raise ValueError('named Envelfo commands require name and forbid op')
+        if self.target == 'envelope' and self.name is not None:
+            raise ValueError('envelope commands use optional op, not name')
         if (self.action == 'seek') != (self.position is not None):
             raise ValueError('only Envelfo seek observations require a position')
         if (self.action == 'shift') != (self.offset is not None):
