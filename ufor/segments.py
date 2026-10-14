@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field, StrictBool, field_serializer, model_validator
 from pydantic.functional_validators import BeforeValidator
@@ -59,3 +59,9 @@ class Segment(Model):
     def serialized_duration(self, value: Fraction) -> str:
         unit = 'beat' if self.duration_unit == DurationUnit.beats else 's'
         return f'{value} {unit}'
+
+
+class IndefiniteSegment(Model):
+    """Hold the incoming Envelope value until an explicit advance command."""
+
+    duration: Literal[None] = None

@@ -15,7 +15,6 @@ from ufor.envelfo import (
     Envelope,
     FinishStage,
     Generator,
-    Hold,
     Marker,
     ParameterReference,
     Patch,
@@ -28,14 +27,17 @@ from ufor.envelfo import (
 )
 from ufor.library_files import read_library
 from ufor.samples.processing import ReleaseTiming, SoundSettings
-from ufor.segments import Segment
+from ufor.segments import IndefiniteSegment, Segment
 
 
 def staged_envelfo() -> EnveLFO:
     return Stages(
         initial_stage='waiting',
         stages=[
-            Stage(name='waiting', envelfo=Hold(value=0.0)),
+            Stage(
+                name='waiting',
+                envelfo=Envelope(initial=0.0, segments=[IndefiniteSegment()]),
+            ),
             Stage(
                 name='attack',
                 envelfo=Envelope(
@@ -98,7 +100,17 @@ def test_envelfo_score_rejects_previous_kind() -> None:
 
 def test_envelfo_fields_reject_previous_spelling() -> None:
     with pytest.raises(ValidationError, match='Extra inputs are not permitted'):
-        Stage.model_validate({'name': 'held', 'motion': {'kind': 'hold', 'value': 0}})
+        Stage.model_validate(
+            {
+                'name': 'held',
+                'motion': {
+                    'kind': 'envelope',
+                    'initial': 0,
+                    'polarity': 'bipolar',
+                    'segments': [{'duration': None}],
+                },
+            }
+        )
     with pytest.raises(ValidationError, match='Extra inputs are not permitted'):
         SoundSettings.model_validate({'motions': {}})
 
@@ -149,8 +161,14 @@ def test_voice_envelfo_event_connections_validate_ports_and_cues() -> None:
     destination = Stages(
         initial_stage='waiting',
         stages=[
-            Stage(name='waiting', envelfo=Hold(value=0.0)),
-            Stage(name='bright', envelfo=Hold(value=1.0)),
+            Stage(
+                name='waiting',
+                envelfo=Envelope(initial=0.0, segments=[IndefiniteSegment()]),
+            ),
+            Stage(
+                name='bright',
+                envelfo=Envelope(initial=1.0, segments=[IndefiniteSegment()]),
+            ),
         ],
         transitions=[
             StageTransition(
@@ -417,8 +435,22 @@ def test_patch_marker_cues_child_stages() -> None:
                 'kind': 'stages',
                 'initial_stage': 'waiting',
                 'stages': [
-                    {'name': 'waiting', 'envelfo': {'kind': 'hold'}},
-                    {'name': 'bright', 'envelfo': {'kind': 'hold', 'value': 1}},
+                    {
+                        'name': 'waiting',
+                        'envelfo': {
+                            'kind': 'envelope',
+                            'segments': [{'duration': None}],
+                        },
+                    },
+                    {
+                        'name': 'bright',
+                        'envelfo': {
+                            'kind': 'envelope',
+                            'initial': 1,
+                            'polarity': 'bipolar',
+                            'segments': [{'duration': None}],
+                        },
+                    },
                 ],
                 'transitions': [
                     {
@@ -481,8 +513,22 @@ def test_patch_stage_event_commands_children(source_kind: str) -> None:
                 'kind': 'stages',
                 'initial_stage': 'waiting',
                 'stages': [
-                    {'name': 'waiting', 'envelfo': {'kind': 'hold'}},
-                    {'name': 'bright', 'envelfo': {'kind': 'hold', 'value': 1}},
+                    {
+                        'name': 'waiting',
+                        'envelfo': {
+                            'kind': 'envelope',
+                            'segments': [{'duration': None}],
+                        },
+                    },
+                    {
+                        'name': 'bright',
+                        'envelfo': {
+                            'kind': 'envelope',
+                            'initial': 1,
+                            'polarity': 'bipolar',
+                            'segments': [{'duration': None}],
+                        },
+                    },
                 ],
                 'transitions': [
                     {
@@ -559,8 +605,22 @@ def test_patch_named_event_output_validates_child_port(child_kind: str) -> None:
                 'kind': 'stages',
                 'initial_stage': 'waiting',
                 'stages': [
-                    {'name': 'waiting', 'envelfo': {'kind': 'hold'}},
-                    {'name': 'bright', 'envelfo': {'kind': 'hold', 'value': 1}},
+                    {
+                        'name': 'waiting',
+                        'envelfo': {
+                            'kind': 'envelope',
+                            'segments': [{'duration': None}],
+                        },
+                    },
+                    {
+                        'name': 'bright',
+                        'envelfo': {
+                            'kind': 'envelope',
+                            'initial': 1,
+                            'polarity': 'bipolar',
+                            'segments': [{'duration': None}],
+                        },
+                    },
                 ],
                 'transitions': [
                     {

@@ -25,7 +25,7 @@ from .lfo import Reset
 from .modulation import Unit, unit_fields, unit_number
 from .oscillator import Waveform
 from .score import Score
-from .segments import Segment
+from .segments import IndefiniteSegment, Segment
 
 
 class ParameterReference(Model):
@@ -61,11 +61,6 @@ class EnvelfoOrigin(Model):
 class Marker(Model):
     name: Identifier
     position: control.Rational = Field(ge=0, le=1)
-
-
-class Hold(Model):
-    kind: Literal['hold'] = 'hold'
-    value: FiniteScalar = 0.0
 
 
 class PlaybackMode(StrEnum):
@@ -162,12 +157,13 @@ class EnveLFO(Model):
         if isinstance(self, SampleHold) and self.scope != control.Scope.voice:
             raise ValueError('sample-and-hold requires voice scope')
         if isinstance(self, Envelope) and any(
-            s.duration_unit.value != self.clock.value
+            isinstance(s, Segment) and s.duration_unit.value != self.clock.value
             for s in [*self.segments, *self.release]
         ):
             raise ValueError('envelope segment units must match its clock')
         if isinstance(self, Stages) and any(
-            segment.duration_unit.value != self.clock.value
+            isinstance(segment, Segment)
+            and segment.duration_unit.value != self.clock.value
             for stage in self.stages
             if isinstance(stage.envelfo, Envelope)
             for segment in stage.envelfo.segments
@@ -237,7 +233,8 @@ class EnveLFO(Model):
                     else []
                 )
                 if any(
-                    segment.duration_unit.value != self.clock.value
+                    isinstance(segment, Segment)
+                    and segment.duration_unit.value != self.clock.value
                     for envelope in envelopes
                     for segment in [*envelope.segments, *envelope.release]
                 ):
@@ -276,8 +273,8 @@ class Envelope(EnveLFO):
     kind: Literal['envelope'] = 'envelope'
     initial: FiniteScalar | Literal['current'] = 0.0
     start: Literal['activation', 'event'] = 'activation'
-    segments: list[Segment] = Field(min_length=1)
-    release: list[Segment] = Field(default_factory=list)
+    segments: list[Segment | IndefiniteSegment] = Field(min_length=1)
+    release: list[Segment | IndefiniteSegment] = Field(default_factory=list)
     polarity: control.Polarity = control.Polarity.unipolar
     hold: bool = True
     retrigger: Retrigger = Retrigger.current
@@ -291,13 +288,20 @@ class Envelope(EnveLFO):
     def levels_match_polarity(self) -> Self:
         levels = [
             *(v for v in [self.initial] if isinstance(v, float)),
-            *(s.to for s in [*self.segments, *self.release]),
+            *(s.to for s in [*self.segments, *self.release] if isinstance(s, Segment)),
         ]
         if any(not -1 <= value <= 1 for value in levels):
             raise ValueError('envelope levels must be in [-1, 1]')
         if self.polarity == control.Polarity.unipolar and min(levels) < 0:
             raise ValueError('unipolar envelope levels must be in [0, 1]')
         unique((m.name for m in self.markers), 'envelope marker')
+        if any(s.duration is None for s in [*self.segments, *self.release]) and (
+            self.markers or self.playback != PlaybackMode.once
+        ):
+            raise ValueError(
+                'indefinite envelopes cannot use normalized markers '
+                'or repeated playback'
+            )
         if (self.loop_start is None) != (self.loop_end is None):
             raise ValueError('envelope loop boundaries must be named together')
         if self.loop_start is not None:
@@ -317,7 +321,7 @@ class Envelope(EnveLFO):
 
 class Stage(Model):
     name: Identifier
-    envelfo: Annotated[Hold | LFO | Envelope, Field(discriminator='kind')]
+    envelfo: Annotated[LFO | Envelope, Field(discriminator='kind')]
 
 
 class EnterStage(Model):
@@ -365,7 +369,8 @@ class Stages(EnveLFO):
             if isinstance(body, Envelope) and body.start == 'event':
                 raise ValueError('stage envelopes start on stage entry')
             if isinstance(body, Envelope) and (
-                body.release or not sum(s.duration for s in body.segments)
+                body.release
+                or not any(s.duration is None or s.duration > 0 for s in body.segments)
             ):
                 raise ValueError(
                     'stage envelopes need positive duration and no release'
@@ -729,6 +734,7 @@ def _inherit_child(value: object, clock: object, scope: object) -> object:
 class EnvelfoEvent(control.ControlEvent):
     action: Literal[
         'start',
+        'advance',
         'sample',
         'note_on',
         'note_off',
@@ -783,6 +789,7 @@ class EnvelopeState(Model):
     position: EnvelfoPosition
     traversals: int = 0
     complete_coordinate: control.Rational | None = None
+    segment_index: int = Field(default=0, ge=0)
 
 
 class StageState(Model):
@@ -796,6 +803,8 @@ class StageState(Model):
     completed: bool = False
     complete_value: FiniteScalar | None = None
     traversals: int = 0
+    segment_index: int = Field(default=0, ge=0)
+    stage_done: bool = False
 
 
 class SampleHoldState(Model):

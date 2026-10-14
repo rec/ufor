@@ -482,6 +482,10 @@ def parameter_definition(
         ):
             for index, segment in enumerate(segments):
                 if target.parameter == f'{phase}-{index}-duration':
+                    if segment.duration is None:
+                        raise ValueError(
+                            'indefinite segment duration cannot be modulated'
+                        )
                     unit = (
                         modulation.Unit.seconds
                         if clock == control.Clock.seconds

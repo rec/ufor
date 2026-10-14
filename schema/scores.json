@@ -4361,7 +4361,8 @@
             "resume",
             "reverse",
             "seek",
-            "shift"
+            "shift",
+            "advance"
           ],
           "title": "Action",
           "type": "string"
@@ -4710,7 +4711,14 @@
         },
         "segments": {
           "items": {
-            "$ref": "#/$defs/Segment"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Segment"
+              },
+              {
+                "$ref": "#/$defs/IndefiniteSegment"
+              }
+            ]
           },
           "minItems": 1,
           "title": "Segments",
@@ -4718,7 +4726,14 @@
         },
         "release": {
           "items": {
-            "$ref": "#/$defs/Segment"
+            "anyOf": [
+              {
+                "$ref": "#/$defs/Segment"
+              },
+              {
+                "$ref": "#/$defs/IndefiniteSegment"
+              }
+            ]
           },
           "title": "Release",
           "type": "array"
@@ -6805,22 +6820,18 @@
       "title": "HitStep",
       "type": "object"
     },
-    "Hold": {
+    "IndefiniteSegment": {
       "additionalProperties": false,
+      "description": "Hold the incoming Envelope value until an explicit advance command.",
       "properties": {
-        "kind": {
-          "const": "hold",
-          "default": "hold",
-          "title": "Kind",
-          "type": "string"
-        },
-        "value": {
-          "default": 0.0,
-          "title": "Value",
-          "type": "number"
+        "duration": {
+          "const": null,
+          "default": null,
+          "title": "Duration",
+          "type": "null"
         }
       },
-      "title": "Hold",
+      "title": "IndefiniteSegment",
       "type": "object"
     },
     "IndexPattern": {
@@ -14047,15 +14058,11 @@
           "discriminator": {
             "mapping": {
               "envelope": "#/$defs/Envelope",
-              "hold": "#/$defs/Hold",
               "lfo": "#/$defs/ufor__envelfo__LFO"
             },
             "propertyName": "kind"
           },
           "oneOf": [
-            {
-              "$ref": "#/$defs/Hold"
-            },
             {
               "$ref": "#/$defs/ufor__envelfo__LFO"
             },

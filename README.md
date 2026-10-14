@@ -67,3 +67,13 @@ Extracted from Recs, Tuney and Lyte. MIT licensed.
 
 Sequence cropping, seeking, loop ownership, and UMP storage are described in
 [sequence playback](doc/sequence-playback.md).
+# Indefinite Envelope segments
+
+An Envelope segment with `duration: null` holds its incoming value until an
+`advance` command moves playback to the next segment. It has no destination or
+curve. In TOML, use an empty segment table (`{}`), since TOML has no null value.
+Use a preceding finite or zero-duration segment to set a new held level.
+Note-off enters the release section directly. Release segments may also wait.
+Indefinite Envelopes cannot use normalized seek/shift, percentage-position markers,
+or loop/ping-pong playback. Stages use these Envelopes instead of a separate Hold
+generator; the former `kind = "hold"` is not supported.

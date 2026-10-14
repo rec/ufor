@@ -175,9 +175,9 @@ class SynthInstrument(Model):
             if any(p.scope != control.Scope.voice for p in voice.modulation.parameters):
                 raise ValueError('Synth voice parameters must have voice scope')
             if any(
-                    g.scope != control.Scope.voice
-                    for g in voice.envelfos.values()
-                    if g is not None and g.kind == 'envelope'
+                g.scope != control.Scope.voice
+                for g in voice.envelfos.values()
+                if g is not None and g.kind == 'envelope'
             ):
                 raise ValueError('Synth voice envelopes must have voice scope')
             if (

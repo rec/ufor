@@ -179,7 +179,7 @@ class EnvelfoChange(Event):
     name: Identifier
     part: Identifier
     trigger_id: Identifier
-    action: Literal['pause', 'resume', 'reverse', 'seek', 'shift']
+    action: Literal['pause', 'resume', 'reverse', 'seek', 'shift', 'advance']
     position: float | None = Field(default=None, ge=0, le=1)
     offset: float | None = Field(default=None, allow_inf_nan=False)
     quantize_beats: Annotated[
