@@ -11,9 +11,36 @@ from ufor.arpeggiator import (
     Descending,
     Grid,
     HeldBank,
+    Octaves,
     Shuffle,
 )
 from ufor.codec import parse_score, score_toml
+
+
+@pytest.mark.parametrize('traversal', ['notes_first', 'octaves_first'])
+def test_octave_profiles_round_trip_with_signed_and_repeated_layers(
+    traversal: str,
+) -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'kind': 'arpeggiator',
+            'name': 'octaves',
+            'title': 'Octaves',
+            'body': {
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                'octaves': {'offsets': [-1, 0, 1, 0], 'traversal': traversal},
+            },
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize('offsets', [[], [True], [0.5], [2**63]])
+def test_octave_layers_require_nonempty_signed_integer_offsets(
+    offsets: list[object],
+) -> None:
+    with pytest.raises(ValidationError):
+        Octaves.model_validate({'offsets': offsets})
 
 
 @pytest.mark.parametrize(

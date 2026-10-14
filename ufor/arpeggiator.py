@@ -198,6 +198,18 @@ class SelectionOffset(Model, frozen=True):
     boundary: Literal['wrap', 'rest'] = 'wrap'
 
 
+class OctaveTraversal(StrEnum):
+    notes_first = auto()
+    octaves_first = auto()
+
+
+class Octaves(Model, frozen=True):
+    offsets: list[Annotated[int, Field(strict=True, ge=-(2**63), le=2**63 - 1)]] = (
+        Field(default_factory=lambda: [0], min_length=1)
+    )
+    traversal: OctaveTraversal = OctaveTraversal.notes_first
+
+
 class Arpeggiator(Model):
     bank: Annotated[
         HeldBank | LatchedBank | HistoryBank | PhraseBank | RegionsBank,
@@ -223,6 +235,7 @@ class Arpeggiator(Model):
     probability: Rational = Field(default=Fraction(1), ge=0, le=1)
     transposition: Transposition = Transposition()
     selection_offset: SelectionOffset = SelectionOffset()
+    octaves: Octaves = Octaves()
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)

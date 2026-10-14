@@ -744,6 +744,15 @@
             "boundary": "wrap"
           }
         },
+        "octaves": {
+          "$ref": "#/$defs/Octaves",
+          "default": {
+            "offsets": [
+              0
+            ],
+            "traversal": "notes_first"
+          }
+        },
         "retrigger": {
           "default": "on_empty",
           "enum": [
@@ -8775,6 +8784,35 @@
         }
       },
       "title": "OceanCurrent",
+      "type": "object"
+    },
+    "OctaveTraversal": {
+      "enum": [
+        "notes_first",
+        "octaves_first"
+      ],
+      "title": "OctaveTraversal",
+      "type": "string"
+    },
+    "Octaves": {
+      "additionalProperties": false,
+      "properties": {
+        "offsets": {
+          "items": {
+            "maximum": 9223372036854775807,
+            "minimum": -9223372036854775808,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Offsets",
+          "type": "array"
+        },
+        "traversal": {
+          "$ref": "#/$defs/OctaveTraversal",
+          "default": "notes_first"
+        }
+      },
+      "title": "Octaves",
       "type": "object"
     },
     "OpaqueState": {
