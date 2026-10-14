@@ -198,6 +198,30 @@ class SelectionOffset(Model, frozen=True):
     boundary: Literal['wrap', 'rest'] = 'wrap'
 
 
+class ScaleMapping(StrEnum):
+    nearest = auto()
+    up = auto()
+    down = auto()
+    drop = auto()
+
+
+class PitchScale(Model, frozen=True):
+    root: int = Field(strict=True, ge=0, le=11)
+    intervals: list[Annotated[int, Field(strict=True, ge=0, le=11)]] = Field(
+        min_length=1, max_length=12
+    )
+    degrees: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
+    mapping: ScaleMapping = ScaleMapping.nearest
+
+    @model_validator(mode='after')
+    def ordered_intervals(self) -> Self:
+        if self.intervals[0] != 0 or any(
+            a >= b for a, b in zip(self.intervals, self.intervals[1:], strict=False)
+        ):
+            raise ValueError('scale intervals must start at zero and increase strictly')
+        return self
+
+
 class PitchRegister(Model, frozen=True):
     low: int = Field(default=0, strict=True, ge=0, le=127)
     high: int = Field(default=127, strict=True, ge=0, le=127)
@@ -249,6 +273,7 @@ class Arpeggiator(Model):
     selection_offset: SelectionOffset = SelectionOffset()
     octaves: Octaves = Octaves()
     register_limits: PitchRegister | None = None
+    scale: PitchScale | None = None
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)
