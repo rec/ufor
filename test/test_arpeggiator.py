@@ -12,9 +12,44 @@ from ufor.arpeggiator import (
     Grid,
     HeldBank,
     Octaves,
+    PitchRegister,
     Shuffle,
 )
 from ufor.codec import parse_score, score_toml
+
+
+@pytest.mark.parametrize('boundary', ['drop', 'fold', 'error'])
+def test_register_profiles_round_trip_with_inclusive_bounds(boundary: str) -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'register',
+            'title': 'Register',
+            'body': {
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                'register_limits': {'low': 48, 'high': 72, 'boundary': boundary},
+            },
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+    assert PitchRegister(low=60, high=60).low == 60
+
+
+@pytest.mark.parametrize(
+    'bounds',
+    [
+        {'low': 73, 'high': 72},
+        {'low': -1},
+        {'high': 128},
+        {'low': True},
+        {'high': 60.5},
+        {'boundary': 'clamp'},
+    ],
+)
+def test_register_rejects_invalid_bounds_and_policies(
+    bounds: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        PitchRegister.model_validate(bounds)
 
 
 @pytest.mark.parametrize('traversal', ['notes_first', 'octaves_first'])

@@ -198,6 +198,18 @@ class SelectionOffset(Model, frozen=True):
     boundary: Literal['wrap', 'rest'] = 'wrap'
 
 
+class PitchRegister(Model, frozen=True):
+    low: int = Field(default=0, strict=True, ge=0, le=127)
+    high: int = Field(default=127, strict=True, ge=0, le=127)
+    boundary: Literal['drop', 'fold', 'error'] = 'drop'
+
+    @model_validator(mode='after')
+    def ordered_bounds(self) -> Self:
+        if self.low > self.high:
+            raise ValueError('register low must not exceed high')
+        return self
+
+
 class OctaveTraversal(StrEnum):
     notes_first = auto()
     octaves_first = auto()
@@ -236,6 +248,7 @@ class Arpeggiator(Model):
     transposition: Transposition = Transposition()
     selection_offset: SelectionOffset = SelectionOffset()
     octaves: Octaves = Octaves()
+    register_limits: PitchRegister | None = None
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)

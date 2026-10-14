@@ -753,6 +753,17 @@
             "traversal": "notes_first"
           }
         },
+        "register_limits": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PitchRegister"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "retrigger": {
           "default": "on_empty",
           "enum": [
@@ -10259,6 +10270,37 @@
         }
       },
       "title": "PhraseBank",
+      "type": "object"
+    },
+    "PitchRegister": {
+      "additionalProperties": false,
+      "properties": {
+        "low": {
+          "default": 0,
+          "maximum": 127,
+          "minimum": 0,
+          "title": "Low",
+          "type": "integer"
+        },
+        "high": {
+          "default": 127,
+          "maximum": 127,
+          "minimum": 0,
+          "title": "High",
+          "type": "integer"
+        },
+        "boundary": {
+          "default": "drop",
+          "enum": [
+            "drop",
+            "fold",
+            "error"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "title": "PitchRegister",
       "type": "object"
     },
     "PixelPingPong": {
