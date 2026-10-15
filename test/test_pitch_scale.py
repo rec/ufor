@@ -63,3 +63,16 @@ def test_tuning_requires_explicit_bend_range() -> None:
                 'tuning': {'source': {'kind': 'computed'}},
             }
         )
+
+
+def test_register_policy_overrides_unused_legacy_folding_for_finite_tuning() -> None:
+    arp = Arpeggiator.model_validate(
+        {
+            'rhythm': {'kind': 'grid', 'step': '1 beat'},
+            'tuning': {'source': {'kind': 'frequencies', 'values': ['440']}},
+            'bend_range': 2,
+            'transposition': {'boundary': 'fold'},
+            'register_limits': {'boundary': 'drop'},
+        }
+    )
+    assert arp.register_limits is not None

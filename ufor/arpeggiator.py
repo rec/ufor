@@ -303,10 +303,11 @@ class Arpeggiator(Model):
             transforms = (
                 self.inversion or any(self.octaves.offsets) or any(self.voicing or [])
             )
-            folding = self.transposition.boundary == 'fold' or (
-                self.register_limits is not None
-                and self.register_limits.boundary == 'fold'
-            )
+            folding = (
+                self.register_limits.boundary
+                if self.register_limits is not None
+                else self.transposition.boundary
+            ) == 'fold'
             if not repeating and (transforms or folding):
                 raise ValueError(
                     'finite tunings cannot use period-based transforms or folding'
