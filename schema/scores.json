@@ -767,13 +767,37 @@
         "scale": {
           "anyOf": [
             {
-              "$ref": "#/$defs/PitchScale"
+              "$ref": "#/$defs/ScaleTransform"
             },
             {
               "type": "null"
             }
           ],
           "default": null
+        },
+        "tuning": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Tuning"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "bend_range": {
+          "anyOf": [
+            {
+              "exclusiveMinimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Bend Range"
         },
         "inversion": {
           "default": 0,
@@ -10339,45 +10363,6 @@
       "title": "PitchRegister",
       "type": "object"
     },
-    "PitchScale": {
-      "additionalProperties": false,
-      "properties": {
-        "root": {
-          "maximum": 11,
-          "minimum": 0,
-          "title": "Root",
-          "type": "integer"
-        },
-        "intervals": {
-          "items": {
-            "maximum": 11,
-            "minimum": 0,
-            "type": "integer"
-          },
-          "maxItems": 12,
-          "minItems": 1,
-          "title": "Intervals",
-          "type": "array"
-        },
-        "degrees": {
-          "default": 0,
-          "maximum": 9223372036854775807,
-          "minimum": -9223372036854775808,
-          "title": "Degrees",
-          "type": "integer"
-        },
-        "mapping": {
-          "$ref": "#/$defs/ScaleMapping",
-          "default": "nearest"
-        }
-      },
-      "required": [
-        "root",
-        "intervals"
-      ],
-      "title": "PitchScale",
-      "type": "object"
-    },
     "PixelPingPong": {
       "additionalProperties": false,
       "properties": {
@@ -13128,6 +13113,30 @@
         "body"
       ],
       "title": "ScaleScore",
+      "type": "object"
+    },
+    "ScaleTransform": {
+      "additionalProperties": false,
+      "properties": {
+        "definition": {
+          "$ref": "#/$defs/Scale"
+        },
+        "degrees": {
+          "default": 0,
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Degrees",
+          "type": "integer"
+        },
+        "mapping": {
+          "$ref": "#/$defs/ScaleMapping",
+          "default": "nearest"
+        }
+      },
+      "required": [
+        "definition"
+      ],
+      "title": "ScaleTransform",
       "type": "object"
     },
     "Scope": {
