@@ -114,6 +114,7 @@ class Walk(Model):
 class Grid(Model):
     kind: Literal['grid'] = 'grid'
     step: str
+    swing: Rational = Field(default=Fraction(1, 2), ge=0.5, lt=1)
 
     @field_validator('step')
     @classmethod
@@ -123,6 +124,7 @@ class Grid(Model):
 
 class Euclidean(Model):
     kind: Literal['euclidean'] = 'euclidean'
+    swing: Rational = Field(default=Fraction(1, 2), ge=0.5, lt=1)
     steps: int = Field(strict=True, ge=1)
     pulses: int = Field(strict=True, ge=0)
     rotation: int = Field(default=0, strict=True)

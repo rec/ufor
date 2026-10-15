@@ -300,3 +300,39 @@ def test_alternating_endpoint_policy_round_trips(repeat_endpoints: bool) -> None
         }
     )
     assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize('kind', ['grid', 'euclidean'])
+def test_swung_rhythms_round_trip_exact_pair_shares(kind: str) -> None:
+    rhythm = {'kind': kind, 'step': '1/4 beat', 'swing': '2/3'}
+    if kind == 'euclidean':
+        rhythm.update(steps=5, pulses=3)
+    score = ArpeggiatorScore.model_validate(
+        {'name': 'swing', 'title': 'Swing', 'body': {'rhythm': rhythm}}
+    )
+    assert score.body.rhythm.swing == Fraction(2, 3)
+    assert parse_score(score_toml(score)) == score
+    assert Grid(step='1/4 beat').swing == Fraction(1, 2)
+
+
+@pytest.mark.parametrize('swing', ['0', '1/3', '1', '3/2'])
+def test_swing_requires_a_long_first_step_and_positive_second_step(swing: str) -> None:
+    with pytest.raises(ValidationError):
+        Grid(step='1/4 beat', swing=Fraction(swing))
+
+
+def test_custom_patterns_reject_swing() -> None:
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {
+                'name': 'swing',
+                'title': 'Swing',
+                'body': {
+                    'rhythm': {
+                        'kind': 'pattern',
+                        'swing': '2/3',
+                        'steps': [{'kind': 'hit', 'duration': '1/4 beat'}],
+                    }
+                },
+            }
+        )
