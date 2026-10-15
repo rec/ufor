@@ -9,8 +9,10 @@ from reccy.configuration import units
 
 from .base import Model
 from .control import Rational
+from .scale import Scale
 from .score import Score
 from .selector import parse_selector
+from .tuning import Computed, IntervalPattern, RatioTable, Tuning
 
 
 class HeldBank(Model):
@@ -205,20 +207,15 @@ class ScaleMapping(StrEnum):
     drop = auto()
 
 
-class PitchScale(Model, frozen=True):
-    root: int = Field(strict=True, ge=0, le=11)
-    intervals: list[Annotated[int, Field(strict=True, ge=0, le=11)]] = Field(
-        min_length=1, max_length=12
-    )
+class ScaleTransform(Model, frozen=True):
+    definition: Scale
     degrees: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
     mapping: ScaleMapping = ScaleMapping.nearest
 
     @model_validator(mode='after')
-    def ordered_intervals(self) -> Self:
-        if self.intervals[0] != 0 or any(
-            a >= b for a, b in zip(self.intervals, self.intervals[1:], strict=False)
-        ):
-            raise ValueError('scale intervals must start at zero and increase strictly')
+    def usable_scale(self) -> Self:
+        if self.definition.octave_length <= 0 or not self.definition.note_numbers:
+            raise ValueError('scale mapping requires a nonempty, positive-period scale')
         return self
 
 
@@ -273,7 +270,9 @@ class Arpeggiator(Model):
     selection_offset: SelectionOffset = SelectionOffset()
     octaves: Octaves = Octaves()
     register_limits: PitchRegister | None = None
-    scale: PitchScale | None = None
+    scale: ScaleTransform | None = None
+    tuning: Tuning | None = None
+    bend_range: float | None = Field(default=None, gt=0)
     inversion: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
     voicing: (
         list[Annotated[int, Field(strict=True, ge=-(2**63), le=2**63 - 1)]] | None
@@ -290,6 +289,30 @@ class Arpeggiator(Model):
             self.bank, (HeldBank, LatchedBank)
         ):
             raise ValueError('voicing requires a held or latched bank')
+        if self.tuning is not None:
+            if self.bend_range is None:
+                raise ValueError(
+                    'tuning requires an explicit MIDI bend_range in semitones'
+                )
+            source = self.tuning.source
+            repeating = (
+                isinstance(source, Computed)
+                or (isinstance(source, RatioTable) and source.repeat_ratio is not None)
+                or (isinstance(source, IntervalPattern) and source.repeat)
+            )
+            transforms = (
+                self.inversion or any(self.octaves.offsets) or any(self.voicing or [])
+            )
+            folding = self.transposition.boundary == 'fold' or (
+                self.register_limits is not None
+                and self.register_limits.boundary == 'fold'
+            )
+            if not repeating and (transforms or folding):
+                raise ValueError(
+                    'finite tunings cannot use period-based transforms or folding'
+                )
+        elif self.bend_range is not None:
+            raise ValueError('bend_range requires tuning')
         random_walk = isinstance(self.selection, Walk) and len(self.selection.moves) > 1
         if (
             0 < self.probability < 1
