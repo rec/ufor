@@ -175,6 +175,15 @@ class Pattern(Model):
     ] = Field(min_length=1)
 
 
+class StepPatterns(Model):
+    accents: list[Annotated[Rational, Field(ge=0)]] = Field(
+        default_factory=lambda: [Fraction(1)], min_length=1
+    )
+    gates: list[Annotated[Rational, Field(ge=0)]] = Field(
+        default_factory=lambda: [Fraction(1)], min_length=1
+    )
+
+
 class ExpressionLane(StrEnum):
     breath = auto()
     bend = auto()
@@ -267,6 +276,7 @@ class Arpeggiator(Model):
         Grid | Euclidean | SourceRhythm | Pattern, Field(discriminator='kind')
     ]
     gate: Rational = Field(default=Fraction(4, 5), ge=0)
+    patterns: StepPatterns | None = None
     probability: Rational = Field(default=Fraction(1), ge=0, le=1)
     transposition: Transposition = Transposition()
     selection_offset: SelectionOffset = SelectionOffset()

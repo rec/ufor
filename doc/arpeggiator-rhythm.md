@@ -16,3 +16,25 @@ it does not reset swing. Odd-length Euclidean loops alternate their swing
 alignment. Chord edits do not reset rhythm phase. Transport seeks find the
 first swung opportunity at or after the target beat without replaying earlier
 opportunities. Swing is preset-only; there is no live swing control port.
+
+## Accent and gate patterns
+
+An optional `body.patterns` table supplies independent nonempty lists of exact,
+nonnegative multipliers: `accents` and `gates`. Each omitted list defaults to
+`[1]`. Omitting the table preserves the source velocity and ordinary gate.
+
+Lists index the absolute local rhythm step, including rests, rejected chance,
+empty banks, and ties, and loop independently. Chord edits do not reset phase;
+seeks use the target rhythm position. Repeats reuse their parent step's values.
+A zero accent rejects a new start before chance or selection, without cancelling
+already sounding occurrences. Untied zero-gate hits still create an immediate start/end.
+
+Gates multiply the current global gate after start times are established. Tie
+lookahead uses the multiplier at each tied cell to find the final release; ties
+retain the originating accent and never create a new start. Already scheduled
+repeats and ties keep their realized settings when controls or banks change.
+
+MIDI adapters multiply source attack velocity, round halves upward, and clamp
+positive results to 1–127. Release velocity, raw source events, and breath,
+bend, and pressure values are retained. Generic occurrences carry the exact
+accent multiplier without interpreting the payload. These lists are preset-only.

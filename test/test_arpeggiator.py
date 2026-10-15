@@ -336,3 +336,35 @@ def test_custom_patterns_reject_swing() -> None:
                 },
             }
         )
+
+
+def test_accent_and_gate_patterns_round_trip_independent_exact_multipliers() -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'patterns',
+            'title': 'Patterns',
+            'body': {
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                'patterns': {'accents': ['1', '1/2', '0', '2'], 'gates': ['1', '1/2']},
+            },
+        }
+    )
+    assert score.body.patterns is not None
+    assert score.body.patterns.accents == [
+        Fraction(1),
+        Fraction(1, 2),
+        Fraction(0),
+        Fraction(2),
+    ]
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize('field', ['accents', 'gates'])
+@pytest.mark.parametrize('values', [[], [-1], [0.5], [True], ['1/0']])
+def test_step_patterns_require_nonempty_nonnegative_exact_values(
+    field: str, values: list[object]
+) -> None:
+    from ufor.arpeggiator import StepPatterns
+
+    with pytest.raises(ValidationError):
+        StepPatterns.model_validate({field: values})

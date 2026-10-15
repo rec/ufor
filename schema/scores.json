@@ -722,6 +722,17 @@
           "title": "Gate",
           "type": "string"
         },
+        "patterns": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/StepPatterns"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "probability": {
           "default": "1",
           "format": "fraction",
@@ -14612,6 +14623,33 @@
       ],
       "title": "StateOrder",
       "type": "string"
+    },
+    "StepPatterns": {
+      "additionalProperties": false,
+      "properties": {
+        "accents": {
+          "items": {
+            "format": "fraction",
+            "ge": 0,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Accents",
+          "type": "array"
+        },
+        "gates": {
+          "items": {
+            "format": "fraction",
+            "ge": 0,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Gates",
+          "type": "array"
+        }
+      },
+      "title": "StepPatterns",
+      "type": "object"
     },
     "StopBehavior": {
       "additionalProperties": false,
