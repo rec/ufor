@@ -6,7 +6,7 @@ import pytest
 from pydantic import TypeAdapter, ValidationError
 from reccy.configuration import units
 
-from ufor import base, lfo
+from ufor import base
 from ufor.arpeggiator import Grid
 from ufor.assets import ContentIdentity
 from ufor.automation import TimelineCurve
@@ -150,17 +150,10 @@ def test_relay_buffer_uses_positive_programme_ticks() -> None:
 
 
 def test_lfo_and_nested_envelfo_use_their_declared_clock() -> None:
-    oscillator = lfo.LFO(
-        clock='beats', rate='2/beat', delay='1/3 beat', phase='90degree'
-    )
+    oscillator = LFO(clock='beats', rate='2/beat', delay='1/3 beat', phase='90degree')
     assert oscillator.rate == 2
     assert oscillator.delay == Fraction(1, 3)
     assert oscillator.phase == Fraction(1, 4)
-    envelfo = LFO(clock='beats', rate='2/beat', delay='1/3 beat')
-    assert isinstance(envelfo, LFO)
-    assert envelfo.delay == Fraction(1, 3)
-    with pytest.raises(ValidationError):
-        lfo.LFO(clock='beats', rate='2Hz')
     with pytest.raises(ValidationError):
         LFO(clock='beats', rate='2Hz')
 

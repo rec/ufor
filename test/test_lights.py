@@ -20,6 +20,7 @@ from ufor.base import Model
 from ufor.codec import parse_score, score_toml
 from ufor.composition import Composition, ScoreRecord
 from ufor.control import Scope
+from ufor.envelfo import LFO
 from ufor.interface import (
     LightBinding,
     Output,
@@ -28,7 +29,7 @@ from ufor.interface import (
     Part,
     ScoreReference,
 )
-from ufor.lfo import LFO, Reset
+from ufor.lfo import Reset
 from ufor.time import Rate, Timebase
 
 

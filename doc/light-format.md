@@ -186,7 +186,11 @@ Autonomous controls have part scope and use either shared `envelope.Curve` or
 `LFO` data. Curves reuse `Segment` and its exponential curve calculation; they
 can hold or repeat, with arbitrary finite scalar levels including gains above
 one. Trigger/release `Envelope` still validates its original normalized domain.
-Light LFOs require seconds, part scope and free reset. Delay and fade weights use
+Light LFOs use the canonical `ufor.envelfo.LFO` model and its `shape` field,
+not a separate lighting LFO type. They require seconds, part scope, free reset
+and a resolved numeric rate. Stateless score sampling uses shared shape and
+activation mathematics without importing the enveLFO runtime.
+Delay and fade weights use
 the existing modulation rules, including the neutral value for multiplication.
 `operation_at()` evaluates controls and revalidates the resulting settings.
 An integer field must still receive an integer-valued result.

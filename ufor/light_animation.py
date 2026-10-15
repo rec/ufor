@@ -8,12 +8,14 @@ from reccy.configuration import units
 
 from . import effects, modulation
 from .base import Identifier, Model, unique
-from .control import Rational, Scope
+from .control import Rational, Scope, elapsed
+from .envelfo import LFO
 from .envelope import Curve, curve_at
 from .interface import InterfaceScore, LightBinding, OutputSelection, Part
-from .lfo import LFO, initial_lfo, lfo_at
+from .lfo import activation_weight
 from .lights import Interpretation, LightType
 from .modulation import Modulation, Parameter
+from .oscillator import shape_value
 from .recursive import RecursiveModel
 
 
@@ -136,6 +138,7 @@ class Control(Model):
             self.curve.clock.value != 'seconds'
             or self.curve.scope != Scope.part
             or self.curve.reset.value != 'free'
+            or not isinstance(self.curve.rate, Fraction)
         ):
             raise ValueError('light LFO requires seconds, part scope and free reset')
         return self
@@ -281,8 +284,17 @@ def configured_operation(operation: Model, parameters: dict[str, float]) -> Mode
 def control_value(control: Control, at: Fraction) -> modulation.SourceValue:
     if isinstance(control.curve, Curve):
         return modulation.SourceValue(value=curve_at(control.curve, at))
-    value = lfo_at(control.curve, initial_lfo(control.curve, Fraction(0)), at)
-    return modulation.SourceValue(value=value.value, weight=value.weight)
+    at = elapsed(at, Fraction(0))
+    curve = control.curve
+    assert isinstance(curve.rate, Fraction)
+    return modulation.SourceValue(
+        value=curve.center
+        + curve.depth
+        * shape_value(
+            curve.shape, (curve.phase + curve.rate * at) % 1, curve.duty_cycle
+        ),
+        weight=activation_weight(at, curve.delay, curve.fade_in),
+    )
 
 
 def operation_at(
