@@ -275,6 +275,9 @@ class Arpeggiator(Model):
     register_limits: PitchRegister | None = None
     scale: PitchScale | None = None
     inversion: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
+    voicing: (
+        list[Annotated[int, Field(strict=True, ge=-(2**63), le=2**63 - 1)]] | None
+    ) = Field(default=None, min_length=1)
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)
@@ -283,6 +286,10 @@ class Arpeggiator(Model):
     def seeded_probability(self) -> Self:
         if self.inversion and not isinstance(self.bank, (HeldBank, LatchedBank)):
             raise ValueError('inversion requires a held or latched bank')
+        if self.voicing is not None and not isinstance(
+            self.bank, (HeldBank, LatchedBank)
+        ):
+            raise ValueError('voicing requires a held or latched bank')
         random_walk = isinstance(self.selection, Walk) and len(self.selection.moves) > 1
         if (
             0 < self.probability < 1

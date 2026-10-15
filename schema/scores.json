@@ -782,6 +782,24 @@
           "title": "Inversion",
           "type": "integer"
         },
+        "voicing": {
+          "anyOf": [
+            {
+              "items": {
+                "maximum": 9223372036854775807,
+                "minimum": -9223372036854775808,
+                "type": "integer"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Voicing"
+        },
         "retrigger": {
           "default": "on_empty",
           "enum": [
