@@ -7,7 +7,7 @@ import pytest
 import tomlkit
 from pydantic import Field, ValidationError
 
-from ufor import envelope, lfo, modulation
+from ufor import envelfo, envelope, light_animation, modulation
 from ufor.base import Model
 
 
@@ -25,21 +25,21 @@ def test_routes_consume_actual_envelope_and_lfo_observations() -> None:
             'segments': [{'duration': '2 s', 'to': 1}],
         }
     )
-    oscillator = lfo.LFO.model_validate(
+    oscillator = envelfo.LFO.model_validate(
         {
-            'scope': 'instrument',
+            'scope': 'part',
             'reset': 'free',
             'rate': '0',
-            'waveform': 'triangle',
+            'shape': 'triangle',
             'delay': '1',
             'fade_in': '2',
         }
     )
-    phase = lfo.initial_lfo(oscillator, Fraction(0))
+    source = light_animation.Control(name='tremolo', curve=oscillator)
     for at, expected in [('1/2', 0.25), ('1', 0.5), ('2', 0.6), ('3', 0.2)]:
         position = Fraction(at)
         level = envelope.curve_at(definition, position)
-        tremolo = lfo.lfo_at(oscillator, phase, position)
+        tremolo = light_animation.control_value(source, position)
         result = modulation.evaluate(
             DEFINITIONS['amplitude'],
             {

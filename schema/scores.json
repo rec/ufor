@@ -3510,7 +3510,7 @@
               "$ref": "#/$defs/Curve"
             },
             {
-              "$ref": "#/$defs/ufor__lfo__LFO"
+              "$ref": "#/$defs/LFO"
             }
           ],
           "title": "Curve"
@@ -4728,7 +4728,7 @@
           "discriminator": {
             "mapping": {
               "envelope": "#/$defs/Envelope",
-              "lfo": "#/$defs/ufor__envelfo__LFO",
+              "lfo": "#/$defs/LFO",
               "patch": "#/$defs/Patch",
               "sample_hold": "#/$defs/SampleHold",
               "stages": "#/$defs/Stages"
@@ -4737,7 +4737,7 @@
           },
           "oneOf": [
             {
-              "$ref": "#/$defs/ufor__envelfo__LFO"
+              "$ref": "#/$defs/LFO"
             },
             {
               "$ref": "#/$defs/Envelope"
@@ -5652,7 +5652,7 @@
             "discriminator": {
               "mapping": {
                 "envelope": "#/$defs/Envelope",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "patch": "#/$defs/Patch",
                 "reference": "#/$defs/EnveLFOReference",
                 "sample_hold": "#/$defs/SampleHold",
@@ -5662,7 +5662,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -7468,6 +7468,121 @@
       "title": "KeySwitch",
       "type": "object"
     },
+    "LFO": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "lfo",
+          "default": "lfo",
+          "title": "Kind",
+          "type": "string"
+        },
+        "scope": {
+          "$ref": "#/$defs/Scope",
+          "default": "voice"
+        },
+        "clock": {
+          "$ref": "#/$defs/Clock",
+          "default": "seconds"
+        },
+        "position_driver": {
+          "$ref": "#/$defs/PositionDriver",
+          "default": "elapsed"
+        },
+        "origin": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EnvelfoOrigin"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "shape": {
+          "$ref": "#/$defs/Waveform",
+          "default": "sine"
+        },
+        "rate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ParameterReference"
+            },
+            {
+              "format": "fraction",
+              "ge": 0,
+              "type": "string"
+            }
+          ],
+          "title": "Rate"
+        },
+        "phase": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "0",
+          "title": "Phase"
+        },
+        "duty_cycle": {
+          "default": "1/2",
+          "format": "fraction",
+          "ge": 0,
+          "le": 1,
+          "title": "Duty Cycle",
+          "type": "string"
+        },
+        "reset": {
+          "$ref": "#/$defs/Reset",
+          "default": "trigger"
+        },
+        "delay": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Delay",
+          "type": "string"
+        },
+        "fade_in": {
+          "default": "0",
+          "format": "fraction",
+          "ge": 0,
+          "title": "Fade In",
+          "type": "string"
+        },
+        "center": {
+          "default": 0.0,
+          "title": "Center",
+          "type": "number"
+        },
+        "depth": {
+          "default": 1.0,
+          "minimum": 0,
+          "title": "Depth",
+          "type": "number"
+        },
+        "markers": {
+          "items": {
+            "$ref": "#/$defs/Marker"
+          },
+          "title": "Markers",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rate"
+      ],
+      "title": "LFO",
+      "type": "object"
+    },
     "LFOChange": {
       "additionalProperties": false,
       "description": "Change one instrument-scoped named LFO at an exact performance tick.",
@@ -8619,7 +8734,7 @@
             "discriminator": {
               "mapping": {
                 "envelope": "#/$defs/Envelope",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "patch": "#/$defs/Patch",
                 "reference": "#/$defs/EnveLFOReference",
                 "sample_hold": "#/$defs/SampleHold",
@@ -8629,7 +8744,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -10029,7 +10144,7 @@
                 "affine": "#/$defs/Affine",
                 "envelope": "#/$defs/Envelope",
                 "latch": "#/$defs/Latch",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "product": "#/$defs/Product",
                 "quantize": "#/$defs/Quantize",
                 "sample_hold": "#/$defs/SampleHold",
@@ -10042,7 +10157,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -12479,7 +12594,7 @@
             "discriminator": {
               "mapping": {
                 "envelope": "#/$defs/Envelope",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "patch": "#/$defs/Patch",
                 "reference": "#/$defs/EnveLFOReference",
                 "sample_hold": "#/$defs/SampleHold",
@@ -12489,7 +12604,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -12646,7 +12761,7 @@
             "discriminator": {
               "mapping": {
                 "envelope": "#/$defs/Envelope",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "patch": "#/$defs/Patch",
                 "reference": "#/$defs/EnveLFOReference",
                 "sample_hold": "#/$defs/SampleHold",
@@ -12656,7 +12771,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -14023,7 +14138,7 @@
             "discriminator": {
               "mapping": {
                 "envelope": "#/$defs/Envelope",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "patch": "#/$defs/Patch",
                 "reference": "#/$defs/EnveLFOReference",
                 "sample_hold": "#/$defs/SampleHold",
@@ -14033,7 +14148,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -14260,13 +14375,13 @@
           "discriminator": {
             "mapping": {
               "envelope": "#/$defs/Envelope",
-              "lfo": "#/$defs/ufor__envelfo__LFO"
+              "lfo": "#/$defs/LFO"
             },
             "propertyName": "kind"
           },
           "oneOf": [
             {
-              "$ref": "#/$defs/ufor__envelfo__LFO"
+              "$ref": "#/$defs/LFO"
             },
             {
               "$ref": "#/$defs/Envelope"
@@ -14945,7 +15060,7 @@
             "discriminator": {
               "mapping": {
                 "envelope": "#/$defs/Envelope",
-                "lfo": "#/$defs/ufor__envelfo__LFO",
+                "lfo": "#/$defs/LFO",
                 "patch": "#/$defs/Patch",
                 "reference": "#/$defs/EnveLFOReference",
                 "sample_hold": "#/$defs/SampleHold",
@@ -14955,7 +15070,7 @@
             },
             "oneOf": [
               {
-                "$ref": "#/$defs/ufor__envelfo__LFO"
+                "$ref": "#/$defs/LFO"
               },
               {
                 "$ref": "#/$defs/Envelope"
@@ -16257,121 +16372,6 @@
       "title": "Transition",
       "type": "object"
     },
-    "ufor__envelfo__LFO": {
-      "additionalProperties": false,
-      "properties": {
-        "kind": {
-          "const": "lfo",
-          "default": "lfo",
-          "title": "Kind",
-          "type": "string"
-        },
-        "scope": {
-          "$ref": "#/$defs/Scope",
-          "default": "voice"
-        },
-        "clock": {
-          "$ref": "#/$defs/Clock",
-          "default": "seconds"
-        },
-        "position_driver": {
-          "$ref": "#/$defs/PositionDriver",
-          "default": "elapsed"
-        },
-        "origin": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/EnvelfoOrigin"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
-        "shape": {
-          "$ref": "#/$defs/Waveform",
-          "default": "sine"
-        },
-        "rate": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/ParameterReference"
-            },
-            {
-              "format": "fraction",
-              "ge": 0,
-              "type": "string"
-            }
-          ],
-          "title": "Rate"
-        },
-        "phase": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "default": "0",
-          "title": "Phase"
-        },
-        "duty_cycle": {
-          "default": "1/2",
-          "format": "fraction",
-          "ge": 0,
-          "le": 1,
-          "title": "Duty Cycle",
-          "type": "string"
-        },
-        "reset": {
-          "$ref": "#/$defs/Reset",
-          "default": "trigger"
-        },
-        "delay": {
-          "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Delay",
-          "type": "string"
-        },
-        "fade_in": {
-          "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Fade In",
-          "type": "string"
-        },
-        "center": {
-          "default": 0.0,
-          "title": "Center",
-          "type": "number"
-        },
-        "depth": {
-          "default": 1.0,
-          "minimum": 0,
-          "title": "Depth",
-          "type": "number"
-        },
-        "markers": {
-          "items": {
-            "$ref": "#/$defs/Marker"
-          },
-          "title": "Markers",
-          "type": "array"
-        }
-      },
-      "required": [
-        "rate"
-      ],
-      "title": "LFO",
-      "type": "object"
-    },
     "ufor__envelfo__PlaybackMode": {
       "enum": [
         "once",
@@ -16392,75 +16392,6 @@
         }
       },
       "title": "ControlBinding",
-      "type": "object"
-    },
-    "ufor__lfo__LFO": {
-      "additionalProperties": false,
-      "properties": {
-        "waveform": {
-          "$ref": "#/$defs/Waveform",
-          "default": "sine"
-        },
-        "duty_cycle": {
-          "default": "1/2",
-          "format": "fraction",
-          "ge": 0,
-          "le": 1,
-          "title": "Duty Cycle",
-          "type": "string"
-        },
-        "clock": {
-          "$ref": "#/$defs/Clock",
-          "default": "seconds"
-        },
-        "scope": {
-          "$ref": "#/$defs/Scope",
-          "default": "voice"
-        },
-        "rate": {
-          "format": "fraction",
-          "ge": 0,
-          "title": "Rate",
-          "type": "string"
-        },
-        "phase": {
-          "anyOf": [
-            {
-              "type": "integer"
-            },
-            {
-              "type": "number"
-            },
-            {
-              "type": "string"
-            }
-          ],
-          "default": "0",
-          "title": "Phase"
-        },
-        "reset": {
-          "$ref": "#/$defs/Reset",
-          "default": "trigger"
-        },
-        "delay": {
-          "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Delay",
-          "type": "string"
-        },
-        "fade_in": {
-          "default": "0",
-          "format": "fraction",
-          "ge": 0,
-          "title": "Fade In",
-          "type": "string"
-        }
-      },
-      "required": [
-        "rate"
-      ],
-      "title": "LFO",
       "type": "object"
     },
     "ufor__modulation__Interpolation": {

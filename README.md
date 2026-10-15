@@ -17,9 +17,16 @@ Today, Ufor covers:
 - Tunings, scales and oscillator definitions, with fractional ratios and Scala import.
 - Sample instruments and asset slices; [safaz](https://github.com/rec/safaz) owns SFZ conversion.
 - Segment envelopes, LFOs and typed modulation routes.
+
 - Scalar timeline automation for gain, frequency and logical gates, with explicit units.
 - Light animation descriptions, arbitrary component counts, layouts and wiring,
   with exact composition and shared parameter controls.
+
+`ufor.envelfo.LFO` is the single LFO definition, including lighting controls.
+Use `shape`, not the removed low-level model's `waveform` field. Timestamped
+playback and state transitions live in the standalone enveLFO library.
+`ufor.lfo` retains only reset declarations and stateless activation mathematics;
+the former LFO models and execution functions have no compatibility aliases.
 
 Ufor also defines fixture cues/patches, slideshow images and finite video clips,
 and broadcast programmes. Device output, video decoding, and playback belong to

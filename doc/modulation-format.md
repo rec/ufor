@@ -209,6 +209,10 @@ the previous rate, then installs the new rate without changing phase or the
 activation start. Profile 1 rate automation is piecewise constant; continuous
 rate ramps need a separately specified integration contract.
 
+`ufor.envelfo.LFO` is the canonical model, with `shape` selecting the waveform.
+Initialization and timestamped playback use `envelfo.runtime`, not an evaluator
+inside uFor. A trigger is delivered as an `EnvelfoEvent(action="note_on")`.
+
 `reset` selects which host events reset phase and activation age:
 
 | Policy | Trigger event | Transport event | Explicit reset event |
@@ -228,7 +232,8 @@ source is not itself a trigger event to that source.
 
 `delay` and `fade_in` are nonnegative durations, default zero, measured from
 activation or the latest applicable reset. Phase advances during both. The
-observation is `(phase, value, weight)`: waveform value is always bipolar;
+observation is an `EnvelfoValue(value, weight, status)`; exact phase remains in
+the playback position. With the default center zero and depth one, value is bipolar;
 weight is zero before delay, ramps linearly from zero to one during fade-in,
 then is one. A zero fade makes activation immediate at the delay endpoint.
 Rate changes do not restart delay or fade. A separate envelope can describe

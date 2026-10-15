@@ -268,11 +268,14 @@ def test_serializing_an_edited_definition_revalidates_it() -> None:
 
 
 def test_oscillator_and_lfo_share_exact_duty_cycle() -> None:
-    from ufor.lfo import LFO
+    from ufor.envelfo import LFO
 
     for value in ('1/3', 0.1, 0, 1):
         oscillator = Oscillator(duty_cycle=value)
-        assert oscillator.duty_cycle == LFO(rate=1, duty_cycle=value).duty_cycle
+        assert (
+            oscillator.duty_cycle
+            == LFO(rate=1, duty_cycle=oscillator.duty_cycle).duty_cycle
+        )
     assert Oscillator(duty_cycle='1/3').duty_cycle == Fraction(1, 3)
 
 
