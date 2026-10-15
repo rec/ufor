@@ -274,12 +274,15 @@ class Arpeggiator(Model):
     octaves: Octaves = Octaves()
     register_limits: PitchRegister | None = None
     scale: PitchScale | None = None
+    inversion: int = Field(default=0, strict=True, ge=-(2**63), le=2**63 - 1)
     retrigger: Literal['on_empty', 'bank_edit'] = 'on_empty'
     expression: Expression = Expression()
     seed: int | None = Field(default=None, strict=True)
 
     @model_validator(mode='after')
     def seeded_probability(self) -> Self:
+        if self.inversion and not isinstance(self.bank, (HeldBank, LatchedBank)):
+            raise ValueError('inversion requires a held or latched bank')
         random_walk = isinstance(self.selection, Walk) and len(self.selection.moves) > 1
         if (
             0 < self.probability < 1

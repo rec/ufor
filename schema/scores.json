@@ -775,6 +775,13 @@
           ],
           "default": null
         },
+        "inversion": {
+          "default": 0,
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Inversion",
+          "type": "integer"
+        },
         "retrigger": {
           "default": "on_empty",
           "enum": [
