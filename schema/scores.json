@@ -651,6 +651,7 @@
               "outside_in": "#/$defs/OutsideIn",
               "played": "#/$defs/Played",
               "shuffle": "#/$defs/Shuffle",
+              "transition": "#/$defs/ufor__arpeggiator__Transition",
               "walk": "#/$defs/Walk"
             },
             "propertyName": "kind"
@@ -682,6 +683,9 @@
             },
             {
               "$ref": "#/$defs/Choice"
+            },
+            {
+              "$ref": "#/$defs/ufor__arpeggiator__Transition"
             },
             {
               "$ref": "#/$defs/Walk"
@@ -16481,6 +16485,60 @@
         }
       },
       "title": "WhiteTwinkle",
+      "type": "object"
+    },
+    "ufor__arpeggiator__Transition": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "transition",
+          "default": "transition",
+          "title": "Kind",
+          "type": "string"
+        },
+        "weights": {
+          "items": {
+            "items": {
+              "maximum": 4294967295,
+              "minimum": 0,
+              "type": "integer"
+            },
+            "type": "array"
+          },
+          "minItems": 1,
+          "title": "Weights",
+          "type": "array"
+        },
+        "missing_weight": {
+          "default": 1,
+          "maximum": 4294967295,
+          "minimum": 0,
+          "title": "Missing Weight",
+          "type": "integer"
+        },
+        "start": {
+          "default": "lowest",
+          "enum": [
+            "lowest",
+            "random"
+          ],
+          "title": "Start",
+          "type": "string"
+        },
+        "blocked": {
+          "default": "rest",
+          "enum": [
+            "rest",
+            "uniform"
+          ],
+          "title": "Blocked",
+          "type": "string"
+        }
+      },
+      "required": [
+        "weights"
+      ],
+      "title": "Transition",
       "type": "object"
     },
     "ufor__automation__Interpolation": {

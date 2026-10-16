@@ -96,6 +96,16 @@ class Choice(Model, frozen=True):
     no_repeat: bool = Field(default=False, strict=True)
 
 
+class Transition(Model, frozen=True):
+    kind: Literal['transition'] = 'transition'
+    weights: list[list[Annotated[int, Field(strict=True, ge=0, le=2**32 - 1)]]] = Field(
+        min_length=1
+    )
+    missing_weight: int = Field(default=1, strict=True, ge=0, le=2**32 - 1)
+    start: Literal['lowest', 'random'] = 'lowest'
+    blocked: Literal['rest', 'uniform'] = 'rest'
+
+
 class Walk(Model):
     kind: Literal['walk'] = 'walk'
     moves: list[int] = Field(min_length=1)
@@ -303,6 +313,7 @@ class Arpeggiator(Model):
         | IndexPattern
         | Shuffle
         | Choice
+        | Transition
         | Walk,
         Field(discriminator='kind'),
     ] = Ascending()
@@ -364,7 +375,7 @@ class Arpeggiator(Model):
         if (
             0 < self.probability < 1
             or random_walk
-            or isinstance(self.selection, (Shuffle, Choice))
+            or isinstance(self.selection, (Shuffle, Choice, Transition))
         ) and self.seed is None:
             raise ValueError('random probability or selection requires a seed')
         return self
