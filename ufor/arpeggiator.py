@@ -155,9 +155,23 @@ class RhythmStep(Model):
         return _beat_step(value)
 
 
+class PassCondition(Model, frozen=True):
+    passes: list[Annotated[int, Field(strict=True, ge=1)]] = Field(min_length=1)
+    out_of: int = Field(strict=True, ge=1)
+
+    @model_validator(mode='after')
+    def valid_passes(self) -> Self:
+        if any(p > self.out_of for p in self.passes):
+            raise ValueError('passes must not exceed out_of')
+        if len(set(self.passes)) != len(self.passes):
+            raise ValueError('passes must be unique')
+        return self
+
+
 class HitStep(RhythmStep):
     kind: Literal['hit'] = 'hit'
     repeats: int = Field(default=1, strict=True, ge=1)
+    condition: PassCondition | None = None
 
 
 class RestStep(RhythmStep):
