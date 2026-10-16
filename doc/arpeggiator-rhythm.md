@@ -159,3 +159,28 @@ phase and uses the existing selector reset. Snapshots preserve both. Realization
 and selection offsets retain their existing order. Held/latched and generic item
 banks are supported; captured history/phrase selection and file rendering are
 outside the first implementation.
+
+
+## Finite grammar preparation
+
+`selection = {kind = "grammar", axiom = ["A"], rules = {A = ["A", "B"],
+B = ["A"]}, terminals = {A = 0, B = 1}, rounds = 3}` prepares the index pattern
+`[0, 1, 0, 0, 1]`. Each round simultaneously replaces every current symbol once;
+new symbols wait until the next round. Symbols without rules persist unchanged.
+Only final symbols need terminal mappings. Empty replacements can erase symbols,
+but the final pattern must be nonempty and every final symbol must have a rank.
+
+Symbols are nonempty strings, including multi-character and Unicode names.
+Terminal ranks are nonnegative signed-64-bit integers. `rounds` defaults to zero
+and must be an integer from 0 to 32. The axiom and every intermediate/final
+expansion may contain at most 4,096 symbols. Exceeding a limit rejects preparation
+without truncating it, even if a later rewrite could shrink the pattern.
+
+`boundary = "wrap"` is the default; `"rest"` skips unavailable ranks. Preparation
+returns an ordinary index pattern with the same boundary. Playback loops that
+pattern and inherits index-pattern advancement, repeats, chord-edit/retrigger,
+empty-bank, chance, and snapshot behavior. No seed is required for grammar rules.
+Ranks address the current expanded bank and preserve source gestures. The first
+implementation supports held/latched and generic item banks; captured history,
+phrase, region selection, and file rendering retain their existing restrictions.
+No grammar rewriting or executable external code runs in playback callbacks.

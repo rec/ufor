@@ -9,6 +9,7 @@ from ufor.arpeggiator import (
     Ascending,
     Choice,
     Descending,
+    Grammar,
     Grid,
     HeldBank,
     HitStep,
@@ -580,3 +581,67 @@ def test_interval_envelopes_round_trip_and_require_a_seed() -> None:
     data['body']['seed'] = 42
     score = ArpeggiatorScore.model_validate(data)
     assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize(
+    'grammar',
+    [
+        {'axiom': []},
+        {'axiom': ['']},
+        {'axiom': [1]},
+        {'rounds': -1},
+        {'rounds': 33},
+        {'rounds': True},
+        {'rounds': 1.5},
+        {'rules': {'A': ['']}},
+        {'rules': {'': ['A']}},
+        {'rules': {'A': 'A'}},
+        {'terminals': {'A': -1}},
+        {'terminals': {'A': True}},
+        {'terminals': {'A': 1.5}},
+        {'terminals': {'A': 2**63}},
+        {'terminals': {}},
+        {'rules': {'A': []}, 'rounds': 1},
+        {'boundary': 'clamp'},
+    ],
+)
+def test_grammar_rejects_invalid_inputs(grammar: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        Grammar.model_validate({'axiom': ['A'], 'terminals': {'A': 0}} | grammar)
+
+
+def test_grammar_simultaneous_rounds_and_unchanged_symbols_round_trip() -> None:
+    grammar = Grammar(
+        axiom=['A'],
+        rules={'A': ['A', 'B'], 'B': ['A']},
+        terminals={'A': 0, 'B': 1},
+        rounds=3,
+    )
+    assert grammar.expand().indices == [0, 1, 0, 0, 1]
+    assert Grammar(
+        axiom=['S'], rules={'S': ['A', 'B']}, terminals={'A': 0, 'B': 1}, rounds=2
+    ).expand().indices == [0, 1]
+    assert Grammar(
+        axiom=['A', 'B'], rules={'A': []}, terminals={'B': 1}, rounds=1
+    ).expand().indices == [1]
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'grammar',
+            'title': 'Grammar',
+            'body': {
+                'selection': grammar.model_dump(),
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+            },
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+
+
+def test_grammar_preparation_has_exact_round_and_length_limits() -> None:
+    data = {'axiom': ['A'], 'rules': {'A': ['A', 'A']}, 'terminals': {'A': 0}}
+    assert len(Grammar.model_validate(data | {'rounds': 12}).expand().indices) == 4096
+    with pytest.raises(ValidationError, match='4096'):
+        Grammar.model_validate(data | {'rounds': 13})
+    with pytest.raises(ValidationError):
+        Grammar(axiom=['A'] * 4097, terminals={'A': 0})
+    assert Grammar(axiom=['A'], terminals={'A': 0}, rounds=32).expand().indices == [0]

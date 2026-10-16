@@ -80,6 +80,45 @@ class IndexPattern(Model, frozen=True):
     boundary: Literal['wrap', 'rest'] = 'wrap'
 
 
+class Grammar(Model, frozen=True):
+    kind: Literal['grammar'] = 'grammar'
+    axiom: list[Annotated[str, Field(min_length=1)]] = Field(
+        min_length=1, max_length=4096
+    )
+    rules: dict[
+        Annotated[str, Field(min_length=1)], list[Annotated[str, Field(min_length=1)]]
+    ] = Field(default_factory=dict)
+    terminals: dict[
+        Annotated[str, Field(min_length=1)],
+        Annotated[int, Field(strict=True, ge=0, le=2**63 - 1)],
+    ]
+    rounds: int = Field(default=0, strict=True, ge=0, le=32)
+    boundary: Literal['wrap', 'rest'] = 'wrap'
+
+    def expand(self) -> IndexPattern:
+        symbols = self.axiom
+        for _ in range(self.rounds):
+            expanded: list[str] = []
+            for symbol in symbols:
+                replacement = self.rules.get(symbol, [symbol])
+                if len(expanded) + len(replacement) > 4096:
+                    raise ValueError('grammar expansion exceeds 4096 symbols')
+                expanded.extend(replacement)
+            symbols = expanded
+        if not symbols:
+            raise ValueError('grammar expansion must not be empty')
+        if any(s not in self.terminals for s in symbols):
+            raise ValueError('every final grammar symbol requires a terminal rank')
+        return IndexPattern(
+            indices=[self.terminals[s] for s in symbols], boundary=self.boundary
+        )
+
+    @model_validator(mode='after')
+    def valid_expansion(self) -> Self:
+        self.expand()
+        return self
+
+
 class Shuffle(Model, frozen=True):
     kind: Literal['shuffle'] = 'shuffle'
     mode: Literal['once', 'cycle'] = 'cycle'
@@ -330,6 +369,7 @@ class Arpeggiator(Model):
         | InsideOut
         | OutsideIn
         | IndexPattern
+        | Grammar
         | Shuffle
         | Choice
         | Transition
