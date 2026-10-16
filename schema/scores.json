@@ -648,6 +648,7 @@
               "descending": "#/$defs/Descending",
               "index_pattern": "#/$defs/IndexPattern",
               "inside_out": "#/$defs/InsideOut",
+              "interval_envelope": "#/$defs/IntervalEnvelope",
               "outside_in": "#/$defs/OutsideIn",
               "played": "#/$defs/Played",
               "shuffle": "#/$defs/Shuffle",
@@ -686,6 +687,9 @@
             },
             {
               "$ref": "#/$defs/ufor__arpeggiator__Transition"
+            },
+            {
+              "$ref": "#/$defs/IntervalEnvelope"
             },
             {
               "$ref": "#/$defs/Walk"
@@ -7310,6 +7314,39 @@
       "title": "Interpretation",
       "type": "string"
     },
+    "IntervalEnvelope": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "interval_envelope",
+          "default": "interval_envelope",
+          "title": "Kind",
+          "type": "string"
+        },
+        "ranges": {
+          "items": {
+            "$ref": "#/$defs/RankRange"
+          },
+          "minItems": 1,
+          "title": "Ranges",
+          "type": "array"
+        },
+        "boundary": {
+          "default": "wrap",
+          "enum": [
+            "wrap",
+            "rest"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "ranges"
+      ],
+      "title": "IntervalEnvelope",
+      "type": "object"
+    },
     "IntervalPattern": {
       "additionalProperties": false,
       "description": "Adjacent frequency ratios; degree zero is unison.",
@@ -11546,6 +11583,29 @@
       ],
       "title": "RangePolicy",
       "type": "string"
+    },
+    "RankRange": {
+      "additionalProperties": false,
+      "properties": {
+        "min": {
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Min",
+          "type": "integer"
+        },
+        "max": {
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
+          "title": "Max",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "min",
+        "max"
+      ],
+      "title": "RankRange",
+      "type": "object"
     },
     "Rate": {
       "additionalProperties": false,

@@ -128,3 +128,34 @@ the independent `transition` random lane. Realization and selection offsets foll
 selection as usual, without replacing its remembered source identity. The first
 implementation supports held/latched banks and generic item banks; captured
 history/phrase selection and file rendering remain unsupported.
+
+
+## Interval envelopes
+
+`selection = {kind = "interval_envelope", ranges = [{min = 1, max = 1},
+{min = -2, max = 2}], boundary = "wrap"}` repeats inclusive signed rank-move
+ranges. Entries refer to the expanded traversal, so this also works for opaque
+nonmusical payloads. An explicit seed is required. Range endpoints are signed
+64-bit integers, `min <= max`, with at most `2**64 - 1` possible moves per range.
+The list is nonempty. Ranges are sampled arithmetically without enumerating moves.
+
+The first selection is rank zero and does not apply a range or draw randomness.
+Later selections use `ranges[absolute_step_index % len(ranges)]`. Every rhythm
+opportunity advances this phase, including masks, rests, ties, zero accents,
+blocked ranges, rejected chance, and empty banks. Repeats share one selection.
+A surviving previous identity uses its current rank after edits; removal or
+normal retrigger resets selection to rank zero without resetting rhythmic phase.
+
+`boundary = "wrap"` (default) draws uniformly among inclusive signed moves,
+then wraps the destination rank. Different moves may reach the same entry, so
+wrapping does not deduplicate destinations. `boundary = "rest"` first intersects
+the range with moves remaining inside the bank, then draws uniformly. An empty
+intersection emits a rest while preserving the previous entry; the next rhythm
+opportunity advances to the next range and can recover.
+
+Draws use the `interval_envelope` lane and absolute rhythm index. Pause preserves
+selection while skipping crossed opportunities; seek derives the destination
+phase and uses the existing selector reset. Snapshots preserve both. Realization
+and selection offsets retain their existing order. Held/latched and generic item
+banks are supported; captured history/phrase selection and file rendering are
+outside the first implementation.

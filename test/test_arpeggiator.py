@@ -12,6 +12,7 @@ from ufor.arpeggiator import (
     Grid,
     HeldBank,
     HitStep,
+    IntervalEnvelope,
     Octaves,
     PitchRegister,
     Shuffle,
@@ -532,6 +533,46 @@ def test_transition_profiles_round_trip_and_require_a_seed() -> None:
                 'start': 'random',
                 'blocked': 'uniform',
             },
+        },
+    }
+    with pytest.raises(ValidationError, match='seed'):
+        ArpeggiatorScore.model_validate(data)
+    data['body']['seed'] = 42
+    score = ArpeggiatorScore.model_validate(data)
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize(
+    'selection',
+    [
+        {'ranges': []},
+        {'ranges': [{'min': 2, 'max': 1}]},
+        {'ranges': [{'min': True, 'max': 1}]},
+        {'ranges': [{'min': 0, 'max': 1.5}]},
+        {'ranges': [{'min': -(2**63) - 1, 'max': 0}]},
+        {'ranges': [{'min': 0, 'max': 2**63}]},
+        {'ranges': [{'min': -(2**63), 'max': 2**63 - 1}]},
+        {'ranges': [{'min': 0}]},
+        {'ranges': [{'min': 0, 'max': 1, 'unknown': 2}]},
+        {'ranges': [{'min': 0, 'max': 1}], 'boundary': 'clamp'},
+    ],
+)
+def test_interval_envelopes_reject_invalid_ranges(selection: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        IntervalEnvelope.model_validate(selection)
+
+
+def test_interval_envelopes_round_trip_and_require_a_seed() -> None:
+    data = {
+        'name': 'interval-envelope',
+        'title': 'Interval envelope',
+        'body': {
+            'selection': {
+                'kind': 'interval_envelope',
+                'ranges': [{'min': 1, 'max': 1}],
+                'boundary': 'rest',
+            },
+            'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
         },
     }
     with pytest.raises(ValidationError, match='seed'):

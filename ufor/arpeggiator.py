@@ -106,6 +106,25 @@ class Transition(Model, frozen=True):
     blocked: Literal['rest', 'uniform'] = 'rest'
 
 
+class RankRange(Model, frozen=True):
+    min: int = Field(strict=True, ge=-(2**63), le=2**63 - 1)
+    max: int = Field(strict=True, ge=-(2**63), le=2**63 - 1)
+
+    @model_validator(mode='after')
+    def valid_range(self) -> Self:
+        if self.min > self.max:
+            raise ValueError('range min must not exceed max')
+        if self.max - self.min >= 2**64 - 1:
+            raise ValueError('range size must fit u64')
+        return self
+
+
+class IntervalEnvelope(Model, frozen=True):
+    kind: Literal['interval_envelope'] = 'interval_envelope'
+    ranges: list[RankRange] = Field(min_length=1)
+    boundary: Literal['wrap', 'rest'] = 'wrap'
+
+
 class Walk(Model):
     kind: Literal['walk'] = 'walk'
     moves: list[int] = Field(min_length=1)
@@ -314,6 +333,7 @@ class Arpeggiator(Model):
         | Shuffle
         | Choice
         | Transition
+        | IntervalEnvelope
         | Walk,
         Field(discriminator='kind'),
     ] = Ascending()
@@ -375,7 +395,9 @@ class Arpeggiator(Model):
         if (
             0 < self.probability < 1
             or random_walk
-            or isinstance(self.selection, (Shuffle, Choice, Transition))
+            or isinstance(
+                self.selection, (Shuffle, Choice, Transition, IntervalEnvelope)
+            )
         ) and self.seed is None:
             raise ValueError('random probability or selection requires a seed')
         return self
