@@ -15,6 +15,7 @@ from ufor.arpeggiator import (
     Octaves,
     PitchRegister,
     Shuffle,
+    Transition,
 )
 from ufor.codec import parse_score, score_toml
 
@@ -493,3 +494,48 @@ def test_grooves_require_grid_or_euclidean_rhythm(kind: str) -> None:
         ArpeggiatorScore.model_validate(
             {'name': 'groove', 'title': 'Groove', 'body': {'rhythm': rhythm}}
         )
+
+
+@pytest.mark.parametrize(
+    'selection',
+    [
+        {'weights': []},
+        {'weights': [[-1]]},
+        {'weights': [[True]]},
+        {'weights': [[1.5]]},
+        {'weights': [[2**32]]},
+        {'weights': [1]},
+        {'weights': [[1]], 'missing_weight': -1},
+        {'weights': [[1]], 'missing_weight': True},
+        {'weights': [[1]], 'missing_weight': 2**32},
+        {'weights': [[1]], 'start': 'middle'},
+        {'weights': [[1]], 'blocked': 'repeat'},
+    ],
+)
+def test_transition_rejects_invalid_tables_and_policies(
+    selection: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        Transition.model_validate(selection)
+
+
+def test_transition_profiles_round_trip_and_require_a_seed() -> None:
+    data = {
+        'name': 'transition',
+        'title': 'Transition',
+        'body': {
+            'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+            'selection': {
+                'kind': 'transition',
+                'weights': [[0, 3, 1], []],
+                'missing_weight': 0,
+                'start': 'random',
+                'blocked': 'uniform',
+            },
+        },
+    }
+    with pytest.raises(ValidationError, match='seed'):
+        ArpeggiatorScore.model_validate(data)
+    data['body']['seed'] = 42
+    score = ArpeggiatorScore.model_validate(data)
+    assert parse_score(score_toml(score)) == score

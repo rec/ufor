@@ -96,3 +96,35 @@ Omitting `groove` retains existing swing behavior. An explicit groove requires
 straight `swing = "1/2"` (the default); non-straight swing with a groove is an
 error. Weights `[2, 1]` express the same timing as swing `"2/3"`. Custom/source
 rhythms do not accept grooves. Groove settings are preset-only.
+
+
+## Weighted transition selection
+
+`selection = {kind = "transition", weights = [[0, 3, 1], [1, 0, 1], [4, 1, 0]]}`
+selects the next entry from the row for the previously selected entry's current
+rank. Rows and columns address the expanded traversal, like weighted choice;
+entries retain source/layer identities. Nonnegative u32 integer weights express
+relative likelihood; explicit zero forbids an edge. A nonempty table is required.
+Rows may be empty or unequal in length. Missing rows/columns use `missing_weight`,
+a nonnegative u32 value defaulting to 1. An explicit seed is always required.
+
+`start = "lowest"` emits rank zero initially without consuming a transition draw;
+`start = "random"` chooses uniformly with a seeded draw. When the previous entry
+survives a chord edit, use its new rank. If it disappears, use the opening rule.
+Bank-edit retrigger overrides preservation. Empty banks, clear, and stop forget
+the previous entry; random draw counters retain their existing reset semantics.
+
+If all weights for currently available destinations are zero, `blocked = "rest"`
+(the default) emits nothing and retains the previous entry and transition draw
+counter. This can remain silent until a bank edit, retrigger, or reset exposes a
+path. `blocked = "uniform"` permits a uniform draw over all available entries,
+including the previous entry. It deliberately relaxes zero/missing restrictions.
+The first opening choice is independent of outgoing edge restrictions.
+
+Rhythm masks, conditions, zero accents, empty banks, and rejected chance decisions
+do not advance transitions. Probability is evaluated before selection, including
+on a blocked opportunity. Repeats reuse one selected entry. Transition draws use
+the independent `transition` random lane. Realization and selection offsets follow
+selection as usual, without replacing its remembered source identity. The first
+implementation supports held/latched banks and generic item banks; captured
+history/phrase selection and file rendering remain unsupported.
