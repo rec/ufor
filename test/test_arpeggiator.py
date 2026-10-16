@@ -411,3 +411,46 @@ def test_conditional_hits_round_trip_without_changing_unconditional_hits() -> No
     )
     assert parse_score(score_toml(score)) == score
     assert score_toml(score).count('out_of') == 1
+
+
+@pytest.mark.parametrize('cycles', [0, -1, True, 1.5, '2'])
+@pytest.mark.parametrize('kind', ['euclidean', 'pattern', 'grid'])
+def test_rhythms_reject_invalid_cycle_limits(kind: str, cycles: object) -> None:
+    rhythm = (
+        {'steps': 3, 'pulses': 2, 'step': '1/4 beat'}
+        if kind == 'euclidean'
+        else {'steps': [{'kind': 'hit', 'duration': '1/4 beat'}]}
+        if kind == 'pattern'
+        else {'step': '1/4 beat'}
+    )
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {
+                'name': 'finite',
+                'title': 'Finite',
+                'body': {'rhythm': {'kind': kind, 'cycles': cycles, **rhythm}},
+            }
+        )
+
+
+@pytest.mark.parametrize('kind', ['euclidean', 'pattern'])
+def test_finite_rhythm_limits_round_trip(kind: str) -> None:
+    rhythm = (
+        {'steps': 3, 'pulses': 2, 'step': '1/4 beat'}
+        if kind == 'euclidean'
+        else {'steps': [{'kind': 'hit', 'duration': '1/4 beat'}]}
+    )
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'finite',
+            'title': 'Finite',
+            'body': {'rhythm': {'kind': kind, 'cycles': 2, **rhythm}},
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+    assert score.body.rhythm.cycles == 2
+
+
+def test_grid_has_no_finite_cycle_setting() -> None:
+    with pytest.raises(ValidationError):
+        Grid(step='1/4 beat', cycles=2)

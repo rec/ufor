@@ -56,3 +56,22 @@ neither a chance draw nor a selected note. Accent and gate lists keep advancing.
 Repeats share the hit's condition result. Admitted hits sustain through following
 ties, including ties across a pass boundary; skipped hits start no occurrence
 for those ties to extend. Conditions do not cut off previously scheduled notes.
+
+## Finite rhythm passes
+
+Custom patterns and Euclidean rhythms may specify `cycles = N`, a strictly
+positive integer. Omission loops indefinitely. A custom pass contains every
+cell in `steps`, including rests and ties; a Euclidean pass contains its declared
+number of steps, independent of rotation, pulses, and swing. Plain grids and
+source rhythms do not accept this setting.
+
+Passes follow absolute transport position and include silent or empty-bank
+passes. Chord edits do not restart the allowance. Seeking before the ending
+makes the corresponding passes available; seeking to or beyond it admits no
+hits. Conditional pass counters retain their existing transport phase.
+
+At the limit no further attacks or cycle-start notifications are generated.
+The underlying step clock and controls continue. Already scheduled attacks and
+gates complete normally, including gates beyond the ending. Tie lookahead stops
+before cells in unplayed passes. Stop, pause, and seek retain their existing
+cleanup semantics; pausing does not renew the allowance.

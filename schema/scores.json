@@ -4984,6 +4984,19 @@
           "title": "Kind",
           "type": "string"
         },
+        "cycles": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cycles"
+        },
         "swing": {
           "default": "1/2",
           "format": "fraction",
@@ -10373,6 +10386,19 @@
           "default": "pattern",
           "title": "Kind",
           "type": "string"
+        },
+        "cycles": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cycles"
         },
         "steps": {
           "items": {

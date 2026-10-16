@@ -124,6 +124,7 @@ class Grid(Model):
 
 class Euclidean(Model):
     kind: Literal['euclidean'] = 'euclidean'
+    cycles: int | None = Field(default=None, strict=True, ge=1)
     swing: Rational = Field(default=Fraction(1, 2), ge=0.5, lt=1)
     steps: int = Field(strict=True, ge=1)
     pulses: int = Field(strict=True, ge=0)
@@ -184,6 +185,7 @@ class TieStep(RhythmStep):
 
 class Pattern(Model):
     kind: Literal['pattern'] = 'pattern'
+    cycles: int | None = Field(default=None, strict=True, ge=1)
     steps: list[
         Annotated[HitStep | RestStep | TieStep, Field(discriminator='kind')]
     ] = Field(min_length=1)
