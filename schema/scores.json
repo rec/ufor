@@ -5005,6 +5005,24 @@
           "title": "Swing",
           "type": "string"
         },
+        "groove": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "fraction",
+                "gt": 0,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groove"
+        },
         "steps": {
           "minimum": 1,
           "title": "Steps",
@@ -6788,6 +6806,24 @@
           "lt": 1,
           "title": "Swing",
           "type": "string"
+        },
+        "groove": {
+          "anyOf": [
+            {
+              "items": {
+                "format": "fraction",
+                "gt": 0,
+                "type": "string"
+              },
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Groove"
         }
       },
       "required": [
