@@ -11,6 +11,7 @@ from ufor.arpeggiator import (
     Descending,
     Grid,
     HeldBank,
+    HitStep,
     Octaves,
     PitchRegister,
     Shuffle,
@@ -368,3 +369,45 @@ def test_step_patterns_require_nonempty_nonnegative_exact_values(
 
     with pytest.raises(ValidationError):
         StepPatterns.model_validate({field: values})
+
+
+@pytest.mark.parametrize(
+    'condition',
+    [
+        {'passes': [], 'out_of': 4},
+        {'passes': [0], 'out_of': 4},
+        {'passes': [5], 'out_of': 4},
+        {'passes': [1, 1], 'out_of': 4},
+        {'passes': [1], 'out_of': 0},
+        {'passes': [True], 'out_of': 4},
+        {'passes': [1], 'out_of': 1.5},
+        {'passes': [1], 'out_of': 4, 'unknown': 1},
+    ],
+)
+def test_hit_rejects_invalid_pass_conditions(condition: dict[str, object]) -> None:
+    with pytest.raises(ValidationError):
+        HitStep.model_validate({'duration': '1/4 beat', 'condition': condition})
+
+
+def test_conditional_hits_round_trip_without_changing_unconditional_hits() -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'conditional',
+            'title': 'Conditional',
+            'body': {
+                'rhythm': {
+                    'kind': 'pattern',
+                    'steps': [
+                        {
+                            'kind': 'hit',
+                            'duration': '1/4 beat',
+                            'condition': {'passes': [1, 3], 'out_of': 4},
+                        },
+                        {'kind': 'hit', 'duration': '1/4 beat'},
+                    ],
+                }
+            },
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+    assert score_toml(score).count('out_of') == 1

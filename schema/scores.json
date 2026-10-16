@@ -6947,6 +6947,17 @@
           "minimum": 1,
           "title": "Repeats",
           "type": "integer"
+        },
+        "condition": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/PassCondition"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -10130,6 +10141,31 @@
         }
       },
       "title": "PartyMode",
+      "type": "object"
+    },
+    "PassCondition": {
+      "additionalProperties": false,
+      "properties": {
+        "passes": {
+          "items": {
+            "minimum": 1,
+            "type": "integer"
+          },
+          "minItems": 1,
+          "title": "Passes",
+          "type": "array"
+        },
+        "out_of": {
+          "minimum": 1,
+          "title": "Out Of",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "passes",
+        "out_of"
+      ],
+      "title": "PassCondition",
       "type": "object"
     },
     "Patch": {

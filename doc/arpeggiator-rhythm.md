@@ -38,3 +38,21 @@ MIDI adapters multiply source attack velocity, round halves upward, and clamp
 positive results to 1–127. Release velocity, raw source events, and breath,
 bend, and pressure values are retained. Generic occurrences carry the exact
 accent multiplier without interpreting the payload. These lists are preset-only.
+
+
+## Conditional hits
+
+A custom hit cell may include `condition = {passes = [1, 3], out_of = 4}`.
+Passes are numbered from 1 and repeat after `out_of` complete rhythm-pattern
+passes. The list must be nonempty, contain unique positive integers, and not
+exceed the positive integer `out_of`. Omission admits the hit on every pass.
+Only hit cells accept conditions.
+
+For absolute cell index `i` and pattern length `n`, the current pass is
+`(i // n) % out_of + 1`. All cells, silent passes, empty banks, and chord edits
+retain this rhythm phase. Seeking derives it from the target transport position.
+A failed condition acts as a rest before probability and selection, consuming
+neither a chance draw nor a selected note. Accent and gate lists keep advancing.
+Repeats share the hit's condition result. Admitted hits sustain through following
+ties, including ties across a pass boundary; skipped hits start no occurrence
+for those ties to extend. Conditions do not cut off previously scheduled notes.
