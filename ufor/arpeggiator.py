@@ -115,17 +115,29 @@ class Grid(Model):
     kind: Literal['grid'] = 'grid'
     step: str
     swing: Rational = Field(default=Fraction(1, 2), ge=0.5, lt=1)
+    groove: list[Annotated[Rational, Field(gt=0)]] | None = Field(
+        default=None, min_length=1
+    )
 
     @field_validator('step')
     @classmethod
     def beat_step(cls, value: str) -> str:
         return _beat_step(value)
 
+    @model_validator(mode='after')
+    def exclusive_timing_shape(self) -> Self:
+        if self.groove is not None and self.swing != Fraction(1, 2):
+            raise ValueError('groove cannot be combined with non-straight swing')
+        return self
+
 
 class Euclidean(Model):
     kind: Literal['euclidean'] = 'euclidean'
     cycles: int | None = Field(default=None, strict=True, ge=1)
     swing: Rational = Field(default=Fraction(1, 2), ge=0.5, lt=1)
+    groove: list[Annotated[Rational, Field(gt=0)]] | None = Field(
+        default=None, min_length=1
+    )
     steps: int = Field(strict=True, ge=1)
     pulses: int = Field(strict=True, ge=0)
     rotation: int = Field(default=0, strict=True)
@@ -135,6 +147,12 @@ class Euclidean(Model):
     @classmethod
     def beat_step(cls, value: str) -> str:
         return _beat_step(value)
+
+    @model_validator(mode='after')
+    def exclusive_timing_shape(self) -> Self:
+        if self.groove is not None and self.swing != Fraction(1, 2):
+            raise ValueError('groove cannot be combined with non-straight swing')
+        return self
 
     @model_validator(mode='after')
     def pulse_count(self) -> Self:

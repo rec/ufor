@@ -454,3 +454,42 @@ def test_finite_rhythm_limits_round_trip(kind: str) -> None:
 def test_grid_has_no_finite_cycle_setting() -> None:
     with pytest.raises(ValidationError):
         Grid(step='1/4 beat', cycles=2)
+
+
+@pytest.mark.parametrize('kind', ['grid', 'euclidean'])
+@pytest.mark.parametrize('groove', [[], [0], [-1], [True], [0.5], ['1/0']])
+def test_rhythms_reject_invalid_groove_weights(kind: str, groove: object) -> None:
+    rhythm = {'kind': kind, 'step': '1/4 beat', 'groove': groove}
+    if kind == 'euclidean':
+        rhythm.update(steps=3, pulses=2)
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {'name': 'groove', 'title': 'Groove', 'body': {'rhythm': rhythm}}
+        )
+
+
+@pytest.mark.parametrize('kind', ['grid', 'euclidean'])
+def test_grooves_round_trip_and_exclude_nonstraight_swing(kind: str) -> None:
+    rhythm = {'kind': kind, 'step': '1/4 beat', 'groove': ['3/2', 1, 2, 2]}
+    if kind == 'euclidean':
+        rhythm.update(steps=3, pulses=2)
+    score = ArpeggiatorScore.model_validate(
+        {'name': 'groove', 'title': 'Groove', 'body': {'rhythm': rhythm}}
+    )
+    assert parse_score(score_toml(score)) == score
+    rhythm['swing'] = '2/3'
+    with pytest.raises(ValidationError, match='non-straight swing'):
+        ArpeggiatorScore.model_validate(
+            {'name': 'groove', 'title': 'Groove', 'body': {'rhythm': rhythm}}
+        )
+
+
+@pytest.mark.parametrize('kind', ['pattern', 'source'])
+def test_grooves_require_grid_or_euclidean_rhythm(kind: str) -> None:
+    rhythm = {'kind': kind, 'groove': [1, 2]}
+    if kind == 'pattern':
+        rhythm['steps'] = [{'kind': 'hit', 'duration': '1/4 beat'}]
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {'name': 'groove', 'title': 'Groove', 'body': {'rhythm': rhythm}}
+        )

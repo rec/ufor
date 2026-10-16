@@ -75,3 +75,24 @@ The underlying step clock and controls continue. Already scheduled attacks and
 gates complete normally, including gates beyond the ending. Tie lookahead stops
 before cells in unplayed passes. Stop, pause, and seek retain their existing
 cleanup semantics; pausing does not renew the allowance.
+
+
+## Groove templates
+
+Grid and Euclidean rhythms may specify `groove = [3, 1, 2, 2]`, a nonempty
+list of strictly positive exact rational interval weights. The interval at
+absolute step `i` is `step * len(groove) * groove[i % len(groove)] / sum(groove)`.
+Each complete timing template retains `step * len(groove)` beats. On a quarter
+beat grid the example intervals are 3/8, 1/8, 1/4, 1/4 beats. Starts follow those
+intervals; gates multiply the resulting interval. Authored weights round-trip
+without normalization in the document.
+
+The template repeats independently of Euclidean pass length, rotation, finite
+cycle limits, accent/gate lists, and note selection. Rests, rejected hits, empty
+banks, and chord edits preserve phase. Seeking uses the destination's exact
+rhythm position. A partial template at a finite ending is not renormalized.
+
+Omitting `groove` retains existing swing behavior. An explicit groove requires
+straight `swing = "1/2"` (the default); non-straight swing with a groove is an
+error. Weights `[2, 1]` express the same timing as swing `"2/3"`. Custom/source
+rhythms do not accept grooves. Groove settings are preset-only.
