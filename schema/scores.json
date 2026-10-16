@@ -646,6 +646,7 @@
               "ascending": "#/$defs/Ascending",
               "choice": "#/$defs/Choice",
               "descending": "#/$defs/Descending",
+              "grammar": "#/$defs/Grammar",
               "index_pattern": "#/$defs/IndexPattern",
               "inside_out": "#/$defs/InsideOut",
               "interval_envelope": "#/$defs/IntervalEnvelope",
@@ -678,6 +679,9 @@
             },
             {
               "$ref": "#/$defs/IndexPattern"
+            },
+            {
+              "$ref": "#/$defs/Grammar"
             },
             {
               "$ref": "#/$defs/Shuffle"
@@ -6741,6 +6745,75 @@
         "path"
       ],
       "title": "GitFileLocation",
+      "type": "object"
+    },
+    "Grammar": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "grammar",
+          "default": "grammar",
+          "title": "Kind",
+          "type": "string"
+        },
+        "axiom": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "maxItems": 4096,
+          "minItems": 1,
+          "title": "Axiom",
+          "type": "array"
+        },
+        "rules": {
+          "additionalProperties": {
+            "items": {
+              "minLength": 1,
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Rules",
+          "type": "object"
+        },
+        "terminals": {
+          "additionalProperties": {
+            "maximum": 9223372036854775807,
+            "minimum": 0,
+            "type": "integer"
+          },
+          "propertyNames": {
+            "minLength": 1
+          },
+          "title": "Terminals",
+          "type": "object"
+        },
+        "rounds": {
+          "default": 0,
+          "maximum": 32,
+          "minimum": 0,
+          "title": "Rounds",
+          "type": "integer"
+        },
+        "boundary": {
+          "default": "wrap",
+          "enum": [
+            "wrap",
+            "rest"
+          ],
+          "title": "Boundary",
+          "type": "string"
+        }
+      },
+      "required": [
+        "axiom",
+        "terminals"
+      ],
+      "title": "Grammar",
       "type": "object"
     },
     "GreyCode": {
