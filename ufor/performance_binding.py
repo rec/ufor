@@ -22,6 +22,19 @@ class MidiController(Model):
         return self
 
 
+class MidiPitchBend(Model):
+    control: Identifier
+    minimum: Bipolar = -1.0
+    center: Bipolar = 0.0
+    maximum: Bipolar = 1.0
+
+    @model_validator(mode='after')
+    def ordered_range(self) -> Self:
+        if not self.minimum < self.center < self.maximum:
+            raise ValueError('MIDI pitch-bend minimum < center < maximum required')
+        return self
+
+
 class MidiPerformanceInput(Model):
     channels: list[Annotated[int, Field(strict=True, ge=1, le=16)]] = Field(
         min_length=1
@@ -30,6 +43,7 @@ class MidiPerformanceInput(Model):
     repeated_key_release: Literal['oldest', 'newest']
     tuning: ScoreReference | None = None
     controllers: list[MidiController] = Field(default_factory=list)
+    pitch_bend: MidiPitchBend | None = None
 
     @model_validator(mode='after')
     def distinct_sources(self) -> Self:

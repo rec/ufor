@@ -17,6 +17,15 @@ def test_performance_binding_round_trips_with_explicit_midi_pairing() -> None:
     assert PerformanceBindingScore.model_validate_json(score.model_dump_json()) == score
     assert 'performance_binding' in score_schema()['discriminator']['mapping']
     assert score.body.midi[0].controllers[0].control == 'sustain'
+    bend = score.body.midi[0].pitch_bend
+    assert bend is not None
+    assert bend.control == 'bend'
+
+
+def test_performance_binding_does_not_assume_a_pitch_bend_target() -> None:
+    raw = json.loads(Path('conformance/performance-binding.json').read_text())
+    del raw['body']['midi'][0]['pitch_bend']
+    assert PerformanceBindingScore.model_validate(raw).body.midi[0].pitch_bend is None
 
 
 @pytest.mark.parametrize(
@@ -26,6 +35,14 @@ def test_performance_binding_round_trips_with_explicit_midi_pairing() -> None:
         ({'channels': [1, 1]}, 'duplicate MIDI channel'),
         ({'repeated_key_release': None}, 'repeated_key_release'),
         ({'controllers': [{'number': 128, 'control': 'sustain'}]}, 'less than'),
+        (
+            {'pitch_bend': {'control': 'bend', 'center': 1.0}},
+            'minimum < center < maximum',
+        ),
+        (
+            {'pitch_bend': {'control': 'bend', 'minimum': -1.1}},
+            'greater than or equal',
+        ),
         (
             {
                 'controllers': [

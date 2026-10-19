@@ -8709,6 +8709,17 @@
           },
           "title": "Controllers",
           "type": "array"
+        },
+        "pitch_bend": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/MidiPitchBend"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -8717,6 +8728,41 @@
         "repeated_key_release"
       ],
       "title": "MidiPerformanceInput",
+      "type": "object"
+    },
+    "MidiPitchBend": {
+      "additionalProperties": false,
+      "properties": {
+        "control": {
+          "title": "Control",
+          "type": "string"
+        },
+        "minimum": {
+          "default": -1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Minimum",
+          "type": "number"
+        },
+        "center": {
+          "default": 0.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Center",
+          "type": "number"
+        },
+        "maximum": {
+          "default": 1.0,
+          "maximum": 1,
+          "minimum": -1,
+          "title": "Maximum",
+          "type": "number"
+        }
+      },
+      "required": [
+        "control"
+      ],
+      "title": "MidiPitchBend",
       "type": "object"
     },
     "Mix": {

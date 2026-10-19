@@ -32,11 +32,22 @@ have no effect. Sustain has no implicit CC number: mapping CC 64 to `sustain`
 must be explicit. Initial control values come from the instrument declaration
 until a mapped message arrives.
 
+Optional `pitch_bend` maps signed MIDI bend `b` (−8192 through +8191) to a
+declared named control. Its `control`, `minimum`, `center` and `maximum` fields
+describe an increasing piecewise-linear mapping, with default values −1, 0 and
++1. Require `minimum < center < maximum`, all in the native bipolar domain,
+and validate that the instrument's control accepts the whole range. For `b < 0`,
+the value is `center + (center - minimum) * b / 8192`; otherwise it is
+`center + (maximum - center) * b / 8191`. Thus −8192, zero and +8191 reach the
+three declared values exactly. The result is a part-scoped `ControlChange`,
+not an implicit alteration of `Trigger.pitch_hz`. Without `pitch_bend`, bend
+has no effect. There is no assumed bend name or semitone range.
+
 The score defines conversion semantics, not a live MIDI adapter. A host must
 still open the input, track note identities, resolve the referenced instrument
 and tuning, validate declared controls, and emit native performance events.
 The [portable example](../conformance/performance-binding.json) records one
-explicit repeated-key rule and a sustain-pedal mapping.
+explicit repeated-key rule, a sustain-pedal mapping and an explicit bend target.
 
 safaz can produce this binding score during SFZ import. Its conversion
 contract and source-specific diagnostics live in the
