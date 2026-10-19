@@ -146,6 +146,27 @@ combined pan/balance bounds; the generic evaluator still checks actual results.
 `body.kind = "sample_instrument"` identifies the specialized musical body.
 There is one native format; the old `format_version` score is removed.
 
+`body.pan_law` selects per-instrument spatial processing and defaults to
+`native`. Add the instrument and effective slot processing positions before
+applying the selected law once per voice. For position `p` in `[-1, 1]` and
+`a = (p + 1) * pi / 4`, native mono pan has absolute output gains
+`[cos(a), sin(a)]`. Its canonical mono channel routes already contain
+`1/sqrt(2)`; these gains replace that centered attenuation, rather than
+applying it twice. Native stereo balance has gains
+`[1 - max(p, 0), 1 + min(p, 0)]` on the original left/right channels, without
+crossfeed. Centered stereo is unchanged and hard endpoints mute exactly.
+
+The explicit `sfizz` convention uses mono gains
+`10**(3/20) * [cos(a), sin(a)]` and stereo gains
+`10**(6/20) / sqrt(2) * [cos(a), sin(a)]`. The stereo formula includes the
+centered position stage at full stereo width. It does not introduce width or
+position controls. These are mathematical conventions, without sfizz's lookup
+quantization, SIMD discrepancies, MIDI timing or client master gain. The law
+applies when mono or left/right sources feed left/right output; other channel
+maps without spatial processing retain their explicit route gains. Pan/balance
+modulation uses the same law when supported by the consumer. The selection is
+serialized in the document so playback does not depend on a host-wide switch.
+
 | Owner | Fields |
 | --- | --- |
 | Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |

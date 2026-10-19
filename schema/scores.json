@@ -9941,6 +9941,14 @@
       "title": "PaletteConveyor",
       "type": "object"
     },
+    "PanLaw": {
+      "enum": [
+        "native",
+        "sfizz"
+      ],
+      "title": "PanLaw",
+      "type": "string"
+    },
     "Parameter": {
       "additionalProperties": false,
       "properties": {
@@ -12704,6 +12712,10 @@
           "default": "sample_instrument",
           "title": "Kind",
           "type": "string"
+        },
+        "pan_law": {
+          "$ref": "#/$defs/PanLaw",
+          "default": "native"
         },
         "slices": {
           "items": {

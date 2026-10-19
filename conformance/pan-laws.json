@@ -1,0 +1,24 @@
+{
+  "cases": [
+    {"law": "native", "stereo": false, "position": -1, "gains": [1, 0]},
+    {"law": "native", "stereo": false, "position": -0.5, "gains": [0.9238795325112867, 0.3826834323650898]},
+    {"law": "native", "stereo": false, "position": 0, "gains": [0.7071067811865476, 0.7071067811865476]},
+    {"law": "native", "stereo": false, "position": 0.5, "gains": [0.3826834323650898, 0.9238795325112867]},
+    {"law": "native", "stereo": false, "position": 1, "gains": [0, 1]},
+    {"law": "native", "stereo": true, "position": -1, "gains": [1, 0]},
+    {"law": "native", "stereo": true, "position": -0.5, "gains": [1, 0.5]},
+    {"law": "native", "stereo": true, "position": 0, "gains": [1, 1]},
+    {"law": "native", "stereo": true, "position": 0.5, "gains": [0.5, 1]},
+    {"law": "native", "stereo": true, "position": 1, "gains": [0, 1]},
+    {"law": "sfizz", "stereo": false, "position": -1, "gains": [1.4125375446227544, 0]},
+    {"law": "sfizz", "stereo": false, "position": -0.5, "gains": [1.3050145263807111, 0.5405547159207919]},
+    {"law": "sfizz", "stereo": false, "position": 0, "gains": [0.9988148764833452, 0.9988148764833452]},
+    {"law": "sfizz", "stereo": false, "position": 0.5, "gains": [0.5405547159207919, 1.3050145263807111]},
+    {"law": "sfizz", "stereo": false, "position": 1, "gains": [0, 1.4125375446227544]},
+    {"law": "sfizz", "stereo": true, "position": -1, "gains": [1.4108635131604637, 0]},
+    {"law": "sfizz", "stereo": true, "position": -0.5, "gains": [1.3034679229759207, 0.5399140918149152]},
+    {"law": "sfizz", "stereo": true, "position": 0, "gains": [0.9976311574844398, 0.9976311574844398]},
+    {"law": "sfizz", "stereo": true, "position": 0.5, "gains": [0.5399140918149152, 1.3034679229759207]},
+    {"law": "sfizz", "stereo": true, "position": 1, "gains": [0, 1.4108635131604637]}
+  ]
+}

@@ -63,6 +63,11 @@ class FilterOrder(StrEnum):
     after_amplitude = auto()
 
 
+class PanLaw(StrEnum):
+    native = auto()
+    sfizz = auto()
+
+
 class FilterTolerance(Model):
     coefficient: Positive = 1e-12
     response_db: Annotated[Positive, units.unit_validator('decibel')] = 1e-6
@@ -103,6 +108,23 @@ class Processing(Model):
         unique((b.name for b in self.equalizer), 'EQ band ID')
         unique((f.name for f in self.filters), 'filter ID')
         return self
+
+
+def pan_gains(position: float, law: PanLaw, *, stereo: bool) -> list[float]:
+    """Return absolute stereo output gains for mono pan or stereo balance."""
+    if not -1 <= position <= 1:
+        raise ValueError('pan position must be between -1 and 1')
+    if stereo and law == PanLaw.native:
+        return [1 - max(position, 0), 1 + min(position, 0)]
+    angle = (position + 1) * pi / 4
+    gains = [
+        0.0 if position == 1 else cos(angle),
+        0.0 if position == -1 else sin(angle),
+    ]
+    if law == PanLaw.sfizz:
+        compensation = 10 ** (6 / 20) / 2**0.5 if stereo else 10 ** (3 / 20)
+        gains = [g * compensation for g in gains]
+    return gains
 
 
 def biquad_coefficients(filter: ResonantFilter, rate_hz: float) -> BiquadCoefficients:

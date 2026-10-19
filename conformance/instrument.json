@@ -47,6 +47,7 @@
   ],
   "body": {
     "kind": "sample_instrument",
+    "pan_law": "native",
     "slices": [
       {
         "name": "slice-1",

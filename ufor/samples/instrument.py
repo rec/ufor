@@ -30,7 +30,13 @@ from . import enums
 from .controls import ControlDeclaration
 from .crossfade import ControlCrossfade, LayerCrossfade
 from .playback import Mapping, Playback, Slice, SlotPlayback
-from .processing import ChannelRoute, EventBinding, SoundSettings, spatial_bounds
+from .processing import (
+    ChannelRoute,
+    EventBinding,
+    PanLaw,
+    SoundSettings,
+    spatial_bounds,
+)
 from .selection import (
     Articulations,
     Choke,
@@ -255,6 +261,7 @@ class SampleInstrument(Model):
     """Sample instrument body. Slice frames belong to each referenced native asset."""
 
     kind: Literal['sample_instrument'] = 'sample_instrument'
+    pan_law: PanLaw = PanLaw.native
     slices: list[Slice] = Field(min_length=1)
     settings: SampleSettings
     groups: list[SlotGroup] = Field(default_factory=list)
