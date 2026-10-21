@@ -7112,6 +7112,7 @@
     },
     "IndexPattern": {
       "additionalProperties": false,
+      "description": "Substitute ascending bank ranks, then offset each selected pitch grid index.\n\nIntervals follow octave expansion and precede scale mapping and tuning.\nOmission leaves pitches unchanged. Repeats share a pattern entry; ordinary\nrests do not consume one. An outside-rank rest consumes its entry.",
       "properties": {
         "kind": {
           "const": "index_pattern",
@@ -7136,6 +7137,23 @@
           ],
           "title": "Boundary",
           "type": "string"
+        },
+        "intervals": {
+          "anyOf": [
+            {
+              "items": {
+                "maximum": 9223372036854775807,
+                "minimum": -9223372036854775808,
+                "type": "integer"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Intervals"
         }
       },
       "required": [

@@ -75,9 +75,25 @@ class OutsideIn(Model, frozen=True):
 
 
 class IndexPattern(Model, frozen=True):
+    """Substitute ascending bank ranks, then offset each selected pitch grid index.
+
+    Intervals follow octave expansion and precede scale mapping and tuning.
+    Omission leaves pitches unchanged. Repeats share a pattern entry; ordinary
+    rests do not consume one. An outside-rank rest consumes its entry.
+    """
+
     kind: Literal['index_pattern'] = 'index_pattern'
     indices: list[Annotated[int, Field(strict=True, ge=0)]] = Field(min_length=1)
     boundary: Literal['wrap', 'rest'] = 'wrap'
+    intervals: (
+        list[Annotated[int, Field(strict=True, ge=-(2**63), le=2**63 - 1)]] | None
+    ) = None
+
+    @model_validator(mode='after')
+    def matching_intervals(self) -> Self:
+        if self.intervals is not None and len(self.intervals) != len(self.indices):
+            raise ValueError('intervals must have one value per index')
+        return self
 
 
 class Grammar(Model, frozen=True):

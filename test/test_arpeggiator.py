@@ -201,6 +201,37 @@ def test_index_pattern_boundary_defaults_to_wrap_and_accepts_rest() -> None:
         IndexPattern.model_validate({'indices': [0], 'boundary': 'clamp'})
 
 
+def test_index_pattern_intervals_round_trip_as_a_phrase_template() -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'phrase-template',
+            'title': 'Phrase template',
+            'body': {
+                'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                'selection': {
+                    'kind': 'index_pattern',
+                    'indices': [0, 1, 0],
+                    'intervals': [0, 12, -12],
+                },
+            },
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize(
+    'intervals',
+    [[], [0], [0, 1, 2], [True, 0], [0.5, 0], ['1', 0], [2**63, 0], [-(2**63) - 1, 0]],
+)
+def test_index_pattern_intervals_require_matching_signed_integers(
+    intervals: list[object],
+) -> None:
+    from ufor.arpeggiator import IndexPattern
+
+    with pytest.raises(ValidationError):
+        IndexPattern.model_validate({'indices': [0, 1], 'intervals': intervals})
+
+
 def test_bank_edit_retrigger_round_trips() -> None:
     data = {
         'name': 'restart-on-edit',
