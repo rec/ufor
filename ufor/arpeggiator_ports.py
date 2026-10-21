@@ -58,6 +58,7 @@ class ArpeggiatorControl(Model, frozen=True):
 
 
 class ArpeggiatorOutput(Model, frozen=True):
+    channel: int = Field(default=1, ge=1, le=16, strict=True)
     at: Rational = Field(ge=0)
     port: ArpeggiatorOutputPort
     index: int = Field(ge=0, strict=True)
@@ -70,6 +71,7 @@ class ArpeggiatorNotePort(StrEnum):
 
 
 class ArpeggiatorNoteEvent(Model, frozen=True):
+    channel: int = Field(default=1, ge=1, le=16, strict=True)
     at: Rational = Field(ge=0)
     port: ArpeggiatorNotePort
     occurrence: int = Field(ge=0, strict=True)
@@ -79,6 +81,6 @@ class ArpeggiatorNoteEvent(Model, frozen=True):
 
 
 class ArpeggiatorPortBatch(Model, frozen=True):
-    events: list[ArpeggiatorOutput] = Field(default_factory=list, max_length=4096)
-    notes: list[ArpeggiatorNoteEvent] = Field(default_factory=list, max_length=4096)
+    events: list[ArpeggiatorOutput] = Field(default_factory=list, max_length=65536)
+    notes: list[ArpeggiatorNoteEvent] = Field(default_factory=list, max_length=65536)
     exhausted: bool = False

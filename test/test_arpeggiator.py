@@ -22,6 +22,79 @@ from ufor.arpeggiator import (
 from ufor.codec import parse_score, score_toml
 
 
+def test_strum_and_independent_channels_round_trip() -> None:
+    score = ArpeggiatorScore.model_validate(
+        {
+            'name': 'lanes',
+            'title': 'Lanes',
+            'body': {
+                'strum': {'spacing': '1/32 beat'},
+                'rhythm': {'kind': 'grid', 'step': '1/2 beat'},
+                'lanes': {
+                    'bass': {
+                        'channel': 2,
+                        'rhythm': {'kind': 'grid', 'step': '1/3 beat'},
+                    }
+                },
+            },
+        }
+    )
+    assert parse_score(score_toml(score)) == score
+
+
+@pytest.mark.parametrize(
+    'changes',
+    [
+        {'channel': 0},
+        {'channel': 17},
+        {'channel': True},
+        {'strum': {'spacing': '0 beat'}},
+        {'strum': {'spacing': '-1 beat'}},
+        {'strum': {'spacing': '1/32 beat'}, 'bank': {'kind': 'phrase'}},
+        {
+            'strum': {'spacing': '1/32 beat'},
+            'selection': {'kind': 'index_pattern', 'indices': [0]},
+        },
+        {'lanes': {}},
+        {'lanes': {'bass': {'rhythm': {'kind': 'grid', 'step': '1/3 beat'}}}},
+        {
+            'lanes': {
+                'bass': {
+                    'channel': 2,
+                    'bank': {'kind': 'history'},
+                    'rhythm': {'kind': 'grid', 'step': '1/3 beat'},
+                }
+            }
+        },
+        {
+            'lanes': {
+                'bass': {
+                    'channel': 2,
+                    'rhythm': {'kind': 'grid', 'step': '1/3 beat'},
+                    'lanes': {
+                        'nested': {
+                            'channel': 3,
+                            'rhythm': {'kind': 'grid', 'step': '1/4 beat'},
+                        }
+                    },
+                }
+            }
+        },
+    ],
+)
+def test_strum_and_lane_contracts_reject_conflicting_configuration(
+    changes: dict[str, object],
+) -> None:
+    with pytest.raises(ValidationError):
+        ArpeggiatorScore.model_validate(
+            {
+                'name': 'invalid',
+                'title': 'Invalid',
+                'body': {'rhythm': {'kind': 'grid', 'step': '1/4 beat'}} | changes,
+            }
+        )
+
+
 @pytest.mark.parametrize('boundary', ['drop', 'fold', 'error'])
 def test_register_profiles_round_trip_with_inclusive_bounds(boundary: str) -> None:
     score = ArpeggiatorScore.model_validate(

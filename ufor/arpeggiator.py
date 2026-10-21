@@ -1,5 +1,7 @@
 """Portable arpeggiator profiles, independent of MIDI and audio devices."""
 
+from __future__ import annotations
+
 from enum import StrEnum, auto
 from fractions import Fraction
 from typing import Annotated, Literal, Self
@@ -7,7 +9,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, field_validator, model_validator
 from reccy.configuration import units
 
-from .base import Model
+from .base import Identifier, Model
 from .control import Rational
 from .scale import Scale
 from .score import Score
@@ -372,7 +374,23 @@ class Octaves(Model, frozen=True):
     traversal: OctaveTraversal = OctaveTraversal.notes_first
 
 
+class Strum(Model, frozen=True):
+    spacing: str
+
+    @field_validator('spacing')
+    @classmethod
+    def beat_spacing(cls, value: str) -> str:
+        return _beat_step(value)
+
+
 class Arpeggiator(Model):
+    channel: int = Field(
+        default=1, strict=True, ge=1, le=16, exclude_if=lambda c: c == 1
+    )
+    strum: Strum | None = None
+    lanes: dict[Identifier, Arpeggiator] | None = Field(
+        default=None, min_length=1, max_length=15
+    )
     bank: Annotated[
         HeldBank | LatchedBank | HistoryBank | PhraseBank | RegionsBank,
         Field(discriminator='kind'),
@@ -416,6 +434,27 @@ class Arpeggiator(Model):
 
     @model_validator(mode='after')
     def seeded_probability(self) -> Self:
+        if self.strum is not None:
+            if not isinstance(self.bank, (HeldBank, LatchedBank)) or not isinstance(
+                self.selection, (Ascending, Descending, Played)
+            ):
+                raise ValueError(
+                    'strums require a held or latched bank and classic selection'
+                )
+        if self.lanes is not None:
+            if not isinstance(self.bank, (HeldBank, LatchedBank)):
+                raise ValueError('multiple lanes require held or latched banks')
+            channels = [self.channel]
+            for lane in self.lanes.values():
+                if lane.lanes is not None or not isinstance(
+                    lane.bank, (HeldBank, LatchedBank)
+                ):
+                    raise ValueError(
+                        'additional lanes need held/latched banks without nested lanes'
+                    )
+                channels.append(lane.channel)
+            if len(channels) != len(set(channels)):
+                raise ValueError('each lane requires a distinct MIDI channel')
         if self.inversion and not isinstance(self.bank, (HeldBank, LatchedBank)):
             raise ValueError('inversion requires a held or latched bank')
         if self.voicing is not None and not isinstance(

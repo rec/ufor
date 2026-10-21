@@ -601,6 +601,41 @@
     "Arpeggiator": {
       "additionalProperties": false,
       "properties": {
+        "channel": {
+          "default": 1,
+          "maximum": 16,
+          "minimum": 1,
+          "title": "Channel",
+          "type": "integer"
+        },
+        "strum": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Strum"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "lanes": {
+          "anyOf": [
+            {
+              "additionalProperties": {
+                "$ref": "#/$defs/Arpeggiator"
+              },
+              "maxProperties": 15,
+              "minProperties": 1,
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Lanes"
+        },
         "bank": {
           "default": {
             "kind": "held"
@@ -15140,6 +15175,20 @@
         "direction"
       ],
       "title": "StreamMapping",
+      "type": "object"
+    },
+    "Strum": {
+      "additionalProperties": false,
+      "properties": {
+        "spacing": {
+          "title": "Spacing",
+          "type": "string"
+        }
+      },
+      "required": [
+        "spacing"
+      ],
+      "title": "Strum",
       "type": "object"
     },
     "Subtype": {
