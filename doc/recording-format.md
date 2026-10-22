@@ -1,5 +1,11 @@
 # Recording and sequence scores
 
+Finite assets may omit `content.sha256` and `content.byte_length` when those
+facts have not been measured. An empty `content = {}` still declares a finite
+file. A sealed recording describes completed capture, not a claim that its
+files have been inspected or hashed. Consumers check the facts that are present;
+they must not treat omitted facts as zero bytes or as verified integrity.
+
 The initial common format supports arrangements, recording descriptions, and
 ordered event sequences. TOML is the score syntax; `format = "recs"`,
 `version = 4`, `kind`, `name`, and `title` form its common envelope.
@@ -25,7 +31,7 @@ recovery scan reports the missing score even if the journal has a footer.
 uFor does not open or verify asset payloads.
 
 Finalized recordings use finite `relative_file`, `volume_file`, `download`, or
-`git_file` locations with verified content identity. Capturing a URL or Python
+`git_file` locations with optional measured content facts. Capturing a URL or Python
 stream writes a finite asset; the live location is not the recording payload.
 Open callback and client-buffer providers therefore never make a recording
 sealed merely because their declarations are stable.

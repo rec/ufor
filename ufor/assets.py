@@ -140,8 +140,12 @@ AssetLocation = Annotated[
 
 
 class ContentIdentity(Model):
-    byte_length: Annotated[int, units.unit_validator('byte')] = Field(ge=0, strict=True)
-    sha256: str = Field(pattern=r'^[0-9a-f]{64}$')
+    """Measured file facts; omitted values have not been measured or verified."""
+
+    byte_length: Annotated[int | None, units.unit_validator('byte')] = Field(
+        default=None, ge=0, strict=True
+    )
+    sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
 
 
 class Asset(Model):

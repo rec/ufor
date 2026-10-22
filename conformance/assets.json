@@ -1,6 +1,18 @@
 {
   "valid": [
     {
+      "name": "unmeasured",
+      "location": {"kind": "relative_file", "path": "audio/take.wav"},
+      "encoding": "wav",
+      "content": {}
+    },
+    {
+      "name": "unhashed",
+      "location": {"kind": "relative_file", "path": "audio/take.wav"},
+      "encoding": "wav",
+      "content": {"byte_length": 44}
+    },
+    {
       "name": "relative",
       "location": {"kind": "relative_file", "path": "audio/take.wav"},
       "encoding": "wav",

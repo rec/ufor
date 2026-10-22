@@ -33,6 +33,19 @@ def test_finite_asset_identity_round_trips() -> None:
     assert Asset.model_validate_json(asset.model_dump_json()) == asset
 
 
+@pytest.mark.parametrize('facts', [{}, {'byte_length': 44}, {'sha256': 'a' * 64}])
+def test_finite_assets_allow_unmeasured_content_facts(facts: dict[str, object]) -> None:
+    asset = Asset.model_validate(
+        {
+            'name': 'take',
+            'location': {'kind': 'relative_file', 'path': 'audio/take.wav'},
+            'encoding': 'wav',
+            'content': facts,
+        }
+    )
+    assert Asset.model_validate_json(asset.model_dump_json(exclude_none=True)) == asset
+
+
 @pytest.mark.parametrize(
     'location',
     [
@@ -153,6 +166,8 @@ def test_provider_references_use_python_names(module: str, function: str) -> Non
 def test_language_neutral_asset_conformance() -> None:
     cases = json.loads(Path('conformance/assets.json').read_text())
     assert [Asset.model_validate(v).name for v in cases['valid']] == [
+        'unmeasured',
+        'unhashed',
         'relative',
         'volume',
         'download',

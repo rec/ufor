@@ -47,7 +47,7 @@ The source determines which facts are legal:
 
 | Location | Required content identity | Audio extent | Access |
 | --- | --- | --- | --- |
-| `relative_file`, `volume_file`, `download`, `git_file` | Byte length and SHA-256 | Required for audio | Finite random access after resolution |
+| `relative_file`, `volume_file`, `download`, `git_file` | `content` with optional measured byte length and SHA-256 | Required for audio | Finite random access after resolution |
 | `stream` | Forbidden | Optional | Sequential unless the host reports seeking |
 | Python `buffer` provider | Forbidden | Required | Random access in the returned array |
 | Python `callback` provider | Forbidden | Optional | Provider-owned sequential push |
