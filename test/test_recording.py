@@ -13,6 +13,7 @@ from ufor.assets import (
 )
 from ufor.codec import parse_score, score_toml
 from ufor.recording import (
+    AudioDiscontinuity,
     AudioFragment,
     AudioStream,
     EventStream,
@@ -25,6 +26,45 @@ from ufor.recording import (
 )
 from ufor.streams import AudioType
 from ufor.time import Rate, Timebase
+
+
+def test_unknown_loss_conformance_example() -> None:
+    score = parse_score(Path('conformance/unknown-audio-loss.toml').read_text())
+    assert isinstance(score, RecordingScore)
+    stream = score.body.streams[0]
+    assert isinstance(stream, AudioStream)
+    assert stream.discontinuities == [AudioDiscontinuity(frame=24000)]
+    assert parse_score(score_toml(score)) == score
+
+
+def test_unknown_loss_round_trips_without_an_invented_duration() -> None:
+    score = recording()
+    stream = score.body.streams[0]
+    assert isinstance(stream, AudioStream)
+    changed = stream.model_dump() | {'discontinuities': [{'frame': 1}]}
+    parsed = AudioStream.model_validate(changed)
+    assert parsed.discontinuities == [AudioDiscontinuity(frame=1)]
+    replacement = score.model_copy(
+        update={'body': score.body.model_copy(update={'streams': [parsed]})}
+    )
+    assert parse_score(score_toml(replacement)) == replacement
+
+
+def test_unknown_loss_can_also_have_no_established_frame_position() -> None:
+    stream = recording().body.streams[0]
+    parsed = AudioStream.model_validate(stream.model_dump() | {'discontinuities': [{}]})
+    assert parsed.discontinuities == [AudioDiscontinuity(frame=None)]
+
+
+@pytest.mark.parametrize('frames', [[-1], [144_001], [1, 1], [2, 1]])
+def test_unknown_loss_boundaries_must_be_ordered_and_within_the_stream(
+    frames: list[int],
+) -> None:
+    stream = recording().body.streams[0]
+    with pytest.raises(ValidationError):
+        AudioStream.model_validate(
+            stream.model_dump() | {'discontinuities': [{'frame': f} for f in frames]}
+        )
 
 
 def recording() -> RecordingScore:

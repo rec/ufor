@@ -45,6 +45,15 @@ class UnmappedAudioFragment(Model):
     reason: Literal['frame_count_mismatch'] = 'frame_count_mismatch'
 
 
+class AudioDiscontinuity(Model):
+    """Loss before a delivered frame, with no established lost-frame count."""
+
+    frame: Annotated[int | None, units.unit_validator('frame')] = Field(
+        default=None, ge=0, strict=True
+    )
+    reason: Literal['input_overflow'] = 'input_overflow'
+
+
 class AudioStream(Model):
     kind: Literal['audio'] = 'audio'
     name: Identifier
@@ -56,9 +65,19 @@ class AudioStream(Model):
     fragments: list[AudioFragment] = Field(default_factory=list)
     unmapped_fragments: list[UnmappedAudioFragment] = Field(default_factory=list)
     gaps: list[Gap] = Field(default_factory=list)
+    discontinuities: list[AudioDiscontinuity] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def timeline(self) -> Self:
+        boundaries = [d.frame for d in self.discontinuities if d.frame is not None]
+        if (
+            sum(d.frame is None for d in self.discontinuities) > 1
+            or boundaries != sorted(set(boundaries))
+            or any(f > self.end for f in boundaries)
+        ):
+            raise ValueError(
+                'audio discontinuities must be ordered, unique, and within the stream'
+            )
         fragments = sorted(self.fragments, key=lambda f: (f.start, f.count))
         unique(
             [f'{f.asset}:{f.asset_start}:{f.start}' for f in fragments],

@@ -1,0 +1,34 @@
+format = "recs"
+version = 4
+kind = "recording"
+name = "unknown-audio-loss"
+title = "Unknown audio loss"
+
+[[timebases]]
+name = "audio"
+rate = { numerator = 48000, denominator = 1 }
+
+[[assets]]
+name = "take"
+encoding = "WAV/FLOAT"
+location = { kind = "relative_file", path = "take.wav" }
+content = {}
+
+[body]
+state = "sealed"
+
+[[body.streams]]
+kind = "audio"
+name = "main"
+source_id = "audio:main"
+stream = { timebase = "audio", channels = ["mono"] }
+end = 48000
+
+[[body.streams.fragments]]
+asset = "take"
+start = 0
+count = 48000
+
+[[body.streams.discontinuities]]
+frame = 24000
+reason = "input_overflow"

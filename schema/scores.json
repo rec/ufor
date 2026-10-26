@@ -1421,6 +1421,35 @@
       "title": "AudioDescription",
       "type": "object"
     },
+    "AudioDiscontinuity": {
+      "additionalProperties": false,
+      "description": "Loss before a delivered frame, with no established lost-frame count.",
+      "properties": {
+        "frame": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": null,
+          "title": "Frame"
+        },
+        "reason": {
+          "const": "input_overflow",
+          "default": "input_overflow",
+          "title": "Reason",
+          "type": "string"
+        }
+      },
+      "title": "AudioDiscontinuity",
+      "type": "object"
+    },
     "AudioFragment": {
       "additionalProperties": false,
       "properties": {
@@ -1642,6 +1671,13 @@
             "$ref": "#/$defs/Gap"
           },
           "title": "Gaps",
+          "type": "array"
+        },
+        "discontinuities": {
+          "items": {
+            "$ref": "#/$defs/AudioDiscontinuity"
+          },
+          "title": "Discontinuities",
           "type": "array"
         }
       },

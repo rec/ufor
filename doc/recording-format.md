@@ -38,6 +38,16 @@ sealed merely because their declarations are stable.
 
 ## Recording fields
 
+An audio stream may declare ordered `discontinuities` with a `frame` and
+`reason = "input_overflow"`. Each marks loss of unknown duration before that
+delivered frame. It is not a zero-length gap or an exact lost-frame count.
+Samples after the boundary keep their delivered-frame positions, but elapsed
+time across it is unresolved. Automatic alignment, playback, and rendering
+must require an explicit resolution before joining across such a stream.
+The samples and native fragment offsets remain available for recovery.
+If even the delivered-frame boundary is unknown, omit `frame`. This marks
+unlocated loss and does not invent a boundary at frame zero.
+
 | Field | Meaning |
 | --- | --- |
 | `assets` | Sealed payloads: local ID, structured finite location, encoding, and byte length/SHA-256 content identity |
