@@ -98,6 +98,17 @@ def test_dx7_decodes_algorithm_routing_in_visible_operator_order() -> None:
     assert last.feedback == 6
 
 
+def test_dx7_algorithm_23_keeps_operator_2_as_a_carrier() -> None:
+    algorithm = dx7_algorithm(23)
+    assert [(e.source, e.destination) for e in algorithm.edges] == [
+        (3, 2),
+        (6, 4),
+        (6, 5),
+    ]
+    assert algorithm.carriers == [1, 2, 4, 5]
+    assert algorithm.feedback == 6
+
+
 def test_dx7_voice_exposes_its_algorithm_routing() -> None:
     payload = bytearray(155)
     payload[134] = 31
