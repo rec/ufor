@@ -4,7 +4,7 @@ from pathlib import Path
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
-from ufor import modulation
+from ufor import instrument_trace, modulation
 from ufor.events import ControlChange, Release, Trigger
 from ufor.samples import crossfade, playback, processing, selection, trace
 from ufor.samples.instrument import (
@@ -457,6 +457,7 @@ def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> Non
         'trigger_context',
         'voice_start',
         'voice_start',
+        'trigger_release',
         'voice_retirement',
         'voice_retirement',
         'diagnostic',
@@ -464,6 +465,50 @@ def test_prepare_emits_linked_start_release_and_unknown_release_actions() -> Non
     assert result.actions[2].alignment_frames == -12
     assert result.actions[1].variation == result.actions[2].variation
     assert result.actions[-1].code == 'unknown-release'
+
+
+@pytest.mark.parametrize('mode', ['one_shot', 'while_held'])
+@pytest.mark.parametrize('sustained', [False, True])
+def test_physical_release_is_observed_once_before_release_samples(
+    mode: str, sustained: bool
+) -> None:
+    raw = document(
+        instrument={
+            'controls': {'sustain': {'default': int(sustained)}},
+            'sustain': {'control': 'sustain'},
+        },
+        slot={'playback': {'mode': mode}},
+    )
+    release = raw['slots'][0].copy()
+    release.update(
+        {'name': 'release', 'trigger': 'release', 'playback': {'mode': 'one_shot'}}
+    )
+    raw['slots'].append(release)
+    result = trace.prepare(
+        SampleInstrument.model_validate(raw),
+        [
+            Trigger(tick=0, ordinal=0, part='piano', trigger_id='note', key=60),
+            Release(tick=1, ordinal=1, part='piano', trigger_id='note'),
+            Release(tick=2, ordinal=2, part='piano', trigger_id='note'),
+        ],
+        seed=42,
+    )
+    releases = [
+        a for a in result.actions if isinstance(a, instrument_trace.TriggerRelease)
+    ]
+    assert releases == [
+        instrument_trace.TriggerRelease(
+            tick=1, ordinal=1, part='piano', trigger_id='note'
+        )
+    ]
+    index = result.actions.index(releases[0])
+    assert isinstance(result.actions[index + 1], trace.VoiceStart)
+    assert result.actions[index + 1].template == 'release'
+    retirements = [
+        a for a in result.actions if isinstance(a, instrument_trace.VoiceRetirement)
+    ]
+    assert len(retirements) == int(mode != 'one_shot' and not sustained)
+    assert trace.SampleTrace.model_validate_json(result.model_dump_json()) == result
 
 
 def test_prepare_keeps_repeated_keys_until_their_first_releases() -> None:

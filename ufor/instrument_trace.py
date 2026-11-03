@@ -34,6 +34,14 @@ class TriggerContext(TraceAction):
     controls: dict[Identifier, Bipolar]
 
 
+class TriggerRelease(TraceAction):
+    """Observe physical release independently of voice retirement or sustain."""
+
+    kind: Literal['trigger_release'] = 'trigger_release'
+    part: Identifier
+    trigger_id: Identifier
+
+
 class VoiceStart(TraceAction):
     kind: Literal['voice_start'] = 'voice_start'
     voice_id: Identifier

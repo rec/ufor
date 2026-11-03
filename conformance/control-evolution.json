@@ -45,6 +45,9 @@
     }
   ],
   "context": {
+    "sample_trigger_releases": [
+      {"kind": "trigger_release", "tick": 240, "ordinal": 0, "part": "main", "trigger_id": "note"}
+    ],
     "settings": {"controls": {"expression": {"default": 0.25}, "bend": {"polarity": "bipolar"}}},
     "templates": [{"name": "voice", "mapping": {"lowest_key": 60, "highest_key": 60, "pitch_tracking": false}}],
     "events": [

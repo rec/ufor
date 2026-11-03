@@ -25,6 +25,7 @@ from ..instrument_trace import (
     LifecycleSnapshot,
     RetirementCause,
     TriggerContext,
+    TriggerRelease,
     VoiceRetirement,
 )
 from ..instrument_trace import (
@@ -58,6 +59,7 @@ Action = Annotated[
     VoiceStart
     | VoiceRetirement
     | TriggerContext
+    | TriggerRelease
     | ControlObservation
     | LFOObservation
     | EnvelfoObservation
@@ -531,6 +533,14 @@ def prepare(
                     )
                 )
             elif not trigger.physically_released:
+                actions.append(
+                    TriggerRelease(
+                        tick=event.tick,
+                        ordinal=event.ordinal,
+                        part=event.part,
+                        trigger_id=event.trigger_id,
+                    )
+                )
                 if any(s.key_conditions for s in instrument.slots):
                     held = dict(state.held_keys.get(trigger.part, {}))
                     held.pop(trigger.trigger_id, None)

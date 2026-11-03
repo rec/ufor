@@ -6,7 +6,7 @@ from pydantic import TypeAdapter
 
 from ufor import modulation, synth, synth_trace
 from ufor.events import ControlChange, PerformanceEvent, Release, Trigger
-from ufor.instrument_trace import TriggerContext, VoiceRetirement
+from ufor.instrument_trace import TriggerContext, TriggerRelease, VoiceRetirement
 from ufor.samples import trace
 from ufor.samples.instrument import SampleInstrument
 from ufor.synth import SynthInstrument
@@ -497,8 +497,15 @@ def test_control_context_conformance(kind: str) -> None:
     case = CONTROL_CASES['context']
     events = TypeAdapter(list[PerformanceEvent]).validate_python(case['events'])
     result = prepare(kind, case['templates'], events, case['settings'])
-    assert len(result.actions) == len(case['actions'])
-    for action, expected in zip(result.actions, case['actions'], strict=True):
+    releases = [
+        a.model_dump(mode='json')
+        for a in result.actions
+        if isinstance(a, TriggerRelease)
+    ]
+    assert releases == (case['sample_trigger_releases'] if kind == 'sample' else [])
+    actions = [a for a in result.actions if not isinstance(a, TriggerRelease)]
+    assert len(actions) == len(case['actions'])
+    for action, expected in zip(actions, case['actions'], strict=True):
         actual = action.model_dump(mode='json')
         assert {k: actual[k] for k in expected} == expected
     assert type(result).model_validate_json(result.model_dump_json()) == result
