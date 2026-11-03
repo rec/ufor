@@ -109,8 +109,9 @@ class DX7Voice(Model):
             start = (6 - number) * 17
             data = self.data[start : start + 17]
             curves = data[11]
-            sensitivities = data[12]
-            mode = data[14]
+            detune_scaling = data[12]
+            sensitivities = data[13]
+            mode = data[15]
             return DX7Operator(
                 number=number,
                 rates=list(data[:4]),
@@ -120,16 +121,16 @@ class DX7Voice(Model):
                 right_depth=data[10],
                 left_curve=curves & 3,
                 right_curve=(curves >> 2) & 3,
-                rate_scaling=(curves >> 4) & 7,
+                rate_scaling=detune_scaling & 7,
                 amplitude_modulation_sensitivity=sensitivities & 3,
                 key_velocity_sensitivity=(sensitivities >> 2) & 7,
-                output_level=data[13],
+                output_level=data[14],
                 frequency_mode=(
                     DX7FrequencyMode.fixed if mode & 1 else DX7FrequencyMode.ratio
                 ),
                 coarse=(mode >> 1) & 31,
-                fine=data[15],
-                detune=data[16],
+                fine=data[16],
+                detune=detune_scaling >> 3,
             )
         start = (6 - number) * 21
         data = self.data[start : start + 21]

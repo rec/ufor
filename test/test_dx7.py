@@ -57,12 +57,12 @@ def test_dx7_decodes_packed_operator_parameters_in_yamaha_order() -> None:
             9,
             10,
             11,
-            0b01101110,
+            0b00001110,
+            0b01110110,
             0b00011110,
             13,
             0b00101101,
             15,
-            14,
         ]
     )
     operator = DX7Voice(data=bytes(payload)).operator(6)
@@ -75,6 +75,7 @@ def test_dx7_decodes_packed_operator_parameters_in_yamaha_order() -> None:
     assert operator.rate_scaling == 6
     assert operator.amplitude_modulation_sensitivity == 2
     assert operator.key_velocity_sensitivity == 7
+    assert operator.output_level == 13
     assert operator.frequency_mode == DX7FrequencyMode.fixed
     assert operator.coarse == 22
     assert operator.fine == 15
