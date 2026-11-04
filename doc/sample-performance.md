@@ -5,7 +5,8 @@ when its types moved to Ufor. The [native instrument format](instrument-format.m
 defines the implemented data. This appendix records the intended future player
 behavior, not implemented scheduling or audio processing. Semantic traces now
 cover selection, chokes, physical and logical release, and sustain transitions;
-rendering and randomized parameter variation remain later work.
+seeded parameter variation is also resolved during preparation. Rendering
+remains host work.
 Any conflict with the new shared envelope/LFO model is resolved in favor of
 [that model](modulation-format.md): exact cumulative times, whole envelope
 overrides, and separate completion/lifetime policy.
@@ -23,7 +24,8 @@ the original instrument definition. Consumers require both the trace and that
 definition. It records the explicit performance seed, actions ordered by
 `(tick, ordinal)`, and optional observational snapshots. Snapshots describe the
 preparer's logical voices and triggers, not complete restorable player state:
-they omit current control values, sustain state, and renderer completion state.
+Sample snapshots retain selection controls and articulation state, but omit
+complete smoothed control trajectories, sustain state, and renderer completion state.
 Seeking currently requires replay from the beginning; no snapshot-resume API is
 provided. SelectionState alone remains serializable and usable by `choose`.
 
@@ -314,8 +316,10 @@ unless separate selected layers have crossfade settings.
 
 Declare articulation IDs, a default, and optional key/control bindings.
 
-The articulation table requires a nonempty, duplicate-free `ids` list and a
-`default` naming one of them. Key and control binding arrays default to empty.
+The articulation table requires a duplicate-free `ids` list, which may be empty,
+and an optional `default` naming one of them. With no default, gated slots remain
+silent until an articulation is selected. A keyswitch without an articulation
+clears selection and may consume its note. Key and control binding arrays default to empty.
 Slot articulation lists are duplicate-free references; an empty list means
 eligible in every articulation. Tags remain descriptive.
 
@@ -339,16 +343,18 @@ events drive these bindings. A match changes persistent selection; an
 unmatched value leaves it unchanged. Bindings are latched and do not consume
 the event: it may also affect sustain and modulation.
 
-Selection affects future start and sustain-transition triggers, never remaps
-existing voices. Release and logical-release samples use the original
-trigger's captured articulation. Sustain samples use the part's current one.
+Selection affects newly selected slots and never remaps existing voices.
+The current sample preparer reads the part's current articulation for release,
+logical-release, and sustain slots as well as starts. `ActiveTrigger` retains
+selected template IDs, but no separate onset articulation; preserving the onset's
+articulation for release selection would require an implementation change.
 Switching does not reset alternate-selection counters. Loading/resetting
 restores defaults and clears held switch IDs without generating samples.
 Control initialization does not execute bindings.
 
 Future execution conformance must cover consumed/playable switches, exact-ID releases of repeated
 keys, nested momentary switches, latched changes underneath them, independent
-parts, control gaps, and captured articulation for release samples.
+parts and control gaps. Onset-articulation retention is not an implemented guarantee.
 
 ## Playback Direction
 
@@ -397,10 +403,9 @@ wrap or reflection. A release can disable an `until_release` loop earlier; a
 effective playback mode `while_held`, so a one-shot voice
 cannot loop forever without a release event.
 
-Forward playback enters from the trimmed start, then repeats the loop toward
-increasing frames. Backward playback enters from the trimmed end, then repeats
-it toward decreasing frames. Mirror enters from the trimmed start and reflects
-between loop boundaries without repeating either turning frame. For loop
+Whole-sample `direction` selects the approach to the loop. The loop's own
+`direction` independently selects forward wrapping, backward wrapping, or mirror
+reflection between its boundaries without repeating either turning frame. For loop
 material `B C D`, its steady mirror sequence is `B C D C B C D ...`.
 
 On release, `until_release` disables future wrapping and reflection immediately.
@@ -473,8 +478,9 @@ voice output after filters, independently of envelope and retirement gains.
 
 ## Release And Sustain Samples
 
-Each slot's `trigger` is `start` (default), `release`, `logical_release`,
-`sustain_press`, or `sustain_release`. Release means the explicit input event;
+Each slot's `trigger` is `start` (default), `control`, `release`, `logical_release`,
+`sustain_press`, or `sustain_release`. Control-triggered voices follow the
+separate condition rules above. Release means the explicit input event;
 logical release means the eventual release after sustain deferral.
 
 Sustain is absent by default. When present it requires a declared unipolar
@@ -485,7 +491,7 @@ threshold crossings generate sustain-transition samples. Sustain slots are
 invalid without a sustain declaration. No control name has hidden semantics.
 
 A Trigger creates an instance identified by `(part, trigger_id)`, owning its
-voices, original key, velocity, target pitch, articulation, and trigger-scoped
+voices, original key, velocity, target pitch, and trigger-scoped
 controls. The host must not reuse this identity while it is held or owns live
 voices, including release voices. Repeated keys have distinct IDs and may be
 released in any order. Retain ownership of held triggers even after their
@@ -504,8 +510,9 @@ Recheck original-voice eligibility then: exhausted/choked triggers generate
 no release samples. Sustain never resurrects a voice or interrupts a release
 already underway.
 
-Release samples use the original key, velocity, target pitch, and articulation,
-not values inferred from the release event. They share their owning trigger's
+Release samples use the original key, velocity, and target pitch,
+not values inferred from the release event. Articulation selection follows the
+current-part limitation above. They share their owning trigger's
 live controls. Selection happens once per trigger instance, not once per layer.
 Release and sustain samples require one-shot playback without loops; they
 cannot recursively generate releases. Chokes are not input Release events.

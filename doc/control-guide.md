@@ -1,5 +1,9 @@
 # Choosing a control representation
 
+Ufor defines these controls and their validation contracts. Stateful Envelfo
+evaluation is provided by enveLFO; enge owns sample-frame Patch execution and
+audio rendering. The state and snapshot behavior below describes those consumers.
+
 `sample_hold` is a voice-owned, event-driven scalar Envelfo, usable directly or
 inside a Patch. Its `minimum` and `maximum` default to -1 and 1 and must be
 ordered within [-1, 1]. It draws once at voice activation, holds that value,

@@ -18,12 +18,14 @@ acyclic graph. `carrier` names the one audible operator. Carrier level is a
 nonnegative linear gain. Operator ratios are positive, tuning is in cents, and
 initial phases are cycles in [0, 1).
 
-At output frame n, render before advancing either phase:
+At output frame n, render before advancing each phase. The following equations
+describe the operator graph and its carrier output before downstream processing:
 
 ```
-output_i[n] = envelope_i[n] * waveform_i(phase_i[n]
-              + sum(current_edge_index[n] * output_source[n])
-              + sum(delayed_edge_index[n] * output_source[n-1]))
+offset_radians_i[n] = sum(current_edge_index[n] * output_source[n])
+                     + sum(delayed_edge_index[n] * output_source[n-1])
+output_i[n] = envelope_i[n] * waveform_i(
+                (phase_i[n] + offset_radians_i[n] / (2*pi)) modulo 1)
 c[n] = carrier_level[n] * output_carrier[n]
 frequency_i[n] = prepared_pitch_hz * ratio_i[n]
                  * 2**((processing_tuning[n] + operator_tuning_i[n])/1200)
@@ -37,12 +39,18 @@ Index modulation changes phase deviation, not instantaneous frequency deviation.
 The profile renders at output rate and permits aliasing; no implicit clipping,
 normalization, oversampling, phase reset, or smoothing is specified.
 
-Each operator uses a held linear unipolar voice envelope on the seconds clock.
+Each operator declares a shared unipolar `Envelope`. Renderer preparation must
+check which clocks, shapes, playback modes, and commands it supports; the Ufor
+operator model does not restrict every envelope to a held linear seconds profile.
 All receive the same effective release after minimum hold. The carrier's release
 completion ends the voice, even if another operator has a longer tail. A completed
 operator contributes zero. Immediate stop discards all operators. No separate
-voice amplitude envelope is allowed. Apply carrier envelope/level, then ordered
-voice filters, then processing amplitude/gain and channel routing.
+voice amplitude envelope is allowed. Modulator envelopes remain part of graph
+evaluation. The carrier's audible envelope and processing gain follow
+`processing.filter_order`: before-amplitude filters process the raw carrier
+before that amplitude stage; after-amplitude filters process the shaped carrier.
+The envelope-scaled operator values used by graph edges are unchanged by this
+audible-path ordering. Channel routing follows processing.
 
 Modulation addresses are `operator-NAME.ratio` (ratio),
 `operator-NAME.tuning_cents` (cents), `edge-NAME.index` (radians), and
@@ -57,3 +65,7 @@ Controls take effect before their addressed sample; pitch/ratio changes preserve
 phase. Topology, phases, and envelope definitions are latched at trigger time.
 Audio snapshots must retain both phases and accumulation corrections, delayed
 feedback, operator envelope/release state, and the usual controls and filters.
+
+Yamaha DX7 and TX81Z templates preserve dedicated patch bytes and envelope
+semantics instead of being converted implicitly to this graph. See
+[Yamaha voice templates](sample-performance.md#yamaha-synth-voice-templates).

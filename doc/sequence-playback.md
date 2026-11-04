@@ -33,10 +33,12 @@ Each returned `PlaybackIteration` contains native `timebase`, `start`, `end`,
 2. `events`: executable semantic triggers, releases, and control changes.
    Retriggered notes precede their restored trigger controls and selected events.
    Retriggering restarts envelopes; it does not reconstruct an audio voice.
-3. `captured`: inert raw MIDI, UMP, OSC, or key events within the selection.
+3. `captured`: records other than Trigger, Release, and ControlChange within the selection.
    Their payloads and source ordinals are preserved, with ticks moved to the
    destination timeline. Keep the source sequence for original timestamps.
-   These records are not another dispatch list.
+   These records are not another dispatch list. This currently includes
+   `lfo_change` and `envelfo_change` as well as raw MIDI, UMP, OSC, and key events;
+   the planner does not reconstruct their state or rewrite their trigger IDs.
 4. `cleanup`: releases at the exclusive end for every still-owned trigger.
    Apply these before the next iteration's snapshot and events, even when their
    timestamps match. Cleanup is separate because end events are outside the

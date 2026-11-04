@@ -1,13 +1,14 @@
-# Modulation profile 1
+# Envelfo modulation
 
 This profile defines portable envelopes and LFO controls. It includes frozen
 definitions, exact clock coordinates, event/state transitions, and scalar
-reference calculations. It does not render audio, schedule devices, interpret
-MIDI pedals, allocate voices, or implement a sampler. Existing Recsam and Tuney
-engines are not changed by adding this profile.
+reference mathematics. Stateful generator evaluation lives in the separate
+enveLFO runtime; Ufor owns its definitions and state records. Ufor does not
+render audio, schedule devices, or implement a sampler.
 
-`envelope` and `lfo` are common score kinds, using the existing `format =
-"recs"`, `version = 4`, `name`, `title`, and `body` fields. Both round-trip through
+`envelfo` is the common score kind, using `format =
+"recs"`, `version = 4`, `name`, `title`, and `body` fields. Its body is tagged
+`envelope`, `lfo`, `stages`, `sample_hold`, or `patch`. These round-trip through
 the common TOML codec. The generated schema and
 [scalar conformance fixtures](https://github.com/rec/envelfo/blob/main/conformance/modulation.json)
 accompany the Python runtime in enveLFO and the shared curve mathematics in uFor.
@@ -26,8 +27,12 @@ rationals. Wire values are strings such as `"1/3"`; integers are also accepted
 on input. Decimal strings such as `"0.1"` mean exactly 1/10. Floating-point
 numbers and booleans are rejected in these fields. Canonical output is a
 reduced fraction string, or an integer string when the denominator is one.
-This is rational-number notation, not the frequency-expression language:
-exponentiation and arithmetic expressions are not accepted here.
+Envelope segment duration strings additionally require an explicit `s` or `beat`
+unit, such as `"1/3 s"`; they serialize with that unit. An indefinite segment is
+`{}` in TOML or `{"duration": null}` in JSON and holds until `advance`.
+Bare rational text is distinct from the frequency-expression language; it does
+not accept exponentiation. Unit-bearing authoring values additionally support
+the quantity expressions described in [units](units.md).
 
 The host supplies monotonically increasing coordinates in the chosen clock.
 For a beat envelope, a tempo change alters elapsed seconds but does not restart
@@ -44,7 +49,8 @@ sample position. An event between observations affects the next observation,
 using its original time to compute interrupted values and subsequent progress.
 Evaluation frequency and host block size cannot move an event or boundary.
 
-`scope` is `voice` by default or `instrument`. The owner allocates state for
+`scope` is `voice` by default, or `part` or `instrument`. Generator-specific
+restrictions still apply, including voice-only sample-and-hold. The owner allocates state for
 each instance, separately from the validated definition. A shared instrument
 LFO has one state per instrument instance; all joining voices observe that
 state. A voice source has state per voice, including separately layered voices.
@@ -65,7 +71,7 @@ scope, and playback configuration directly on the definition.
 
 `Envelope` has an `initial` level, nonempty `segments` and an optional `release` list,
 `hold`, `retrigger`, clock, scope, and polarity. Every segment has a
-nonnegative `duration`, `target`, and finite `curve` (default zero). Targets
+nonnegative `duration`, `to`, and finite `curve` (default zero). Targets
 and the initial value lie in [0,1] for `unipolar`, the default, or [-1,1] for
 `bipolar`. These are dimensionless control levels; a route assigns their
 meaning as gain, cents, a frequency ratio, light intensity, or another quantity.
@@ -156,13 +162,13 @@ by release at the same timestamp differs from release followed by trigger.
 
 | Input/state | Result |
 | --- | --- |
-| Initial state | Idle at `initial`; no implicit trigger |
+| Initial state | Idle at `initial` when a release list or event-start policy is declared; otherwise the activation-start on-list begins immediately |
 | First trigger | Begin on-list at `initial` |
 | Active trigger with `current` (default) | Restart the complete on-list from the observed level |
 | Active trigger with `reset` | Restart the complete on-list from `initial`, allowing a jump |
 | Active trigger with `ignore` | Continue the current traversal or held level |
 | Trigger after completion | Start again; `current` uses the terminal value, other policies use `initial` |
-| Release during any on-segment or held state | Begin release-list from the exact current value |
+| Release during any on-segment or held state | Begin a declared release-list from the exact current value; without a release-list, keep running |
 | Release while idle, completed, or already releasing | No change to the envelope |
 
 Restarting the complete on-list includes any authored delay. `current` promises
@@ -179,7 +185,7 @@ or `complete`). Observations do not mutate state. Audio voice retirement belongs
 to enge, not the envelope model or standalone runtime.
 
 Physical key release and logical gate release are distinct. Sustain-pedal and
-legato policy belongs to the future instrument adapter: it may defer a gate
+legato policy belongs to the instrument/host: it may defer a gate
 release or omit a retrigger. Once a logical release is delivered, the envelope
 does not reinterpret it. Choke, voice stealing, release samples, and transport
 stop are also instrument/host decisions, not alternate spellings of release.
@@ -225,6 +231,10 @@ A reset uses the definition's phase but retains the current rate. Transport
 events denote explicit starts/discontinuities; they are not ordinary host block
 boundaries. Stopping the transport stops advancement of its clock. A free
 source that should keep running needs a continuously advancing host clock.
+`control.TempoMap` supplies exact beat integration, pause and relocation
+coordinates, and beat-quantization queries. This does not add musical-time
+placement to `Composition`. A `position_driver = "transport"` LFO requires a
+beat clock, transport reset, and no onset delay or fade.
 Absolute song-grid alignment is obtained by starting at the designated origin
 and replaying its rate/reset events, not by resetting at the requested seek
 position. Scope and reset policy are independent: joining a shared instrument
@@ -237,13 +247,13 @@ the playback position. With the default center zero and depth one, value is bipo
 weight is zero before delay, ramps linearly from zero to one during fade-in,
 then is one. A zero fade makes activation immediate at the delay endpoint.
 Rate changes do not restart delay or fade. A separate envelope can describe
-fade-out when a future instrument route combines their controls; profile 1
+fade-out when an instrument route combines their controls; this LFO model
 does not add a second LFO stop/tail state machine.
 
 ## Mapping and combination contract
 
 The generators output dimensionless values. Instrument/processor routes must
-name their source instance, structured target `{part, parameter}`, mapping,
+name their source instance, structured target `{name, parameter}`, mapping,
 operation, and target domain. The embedded `ufor.modulation.Modulation`
 collection now implements [typed routes](instrument-format.md#modulation-routes)
 for the later instrument/processor bodies. Reusable timeline automation reaches
@@ -286,37 +296,15 @@ tolerance 1e-12, including transcendental curves and sine. No WAV data or
 scores include negative durations/rates, invalid polarity/phase/duty, and
 invalid loops and random ranges.
 
-## Changes from Recsam and remaining boundaries
+## Runtime boundary
 
-| Existing declaration or behavior | Profile 1 treatment |
-| --- | --- |
-| Fixed DAHDSR fields | Expand to one segment list plus release list; hold is a property of completion |
-| `linear` / `exponential` attack | Curve 0 / +5 |
-| `linear` / `exponential` decay or release | Curve 0 / -5, reproducing the old reversed curve |
-| Per-stage `ceil(seconds * sample_rate)` | Exact cumulative times, observed on the host's grid |
-| Release from current level; repeated release ignored | Preserved |
-| Per-field slot envelope inheritance | Removed; native slots store a complete override or inherit the instrument envelope |
-| Fixed voice retrigger | Explicit current/reset/ignore policy |
-| Hz-only LFO, fixed rate | Seconds or beats; exact phase-preserving rate events; zero rate may freeze |
-| Phase frozen during LFO delay | Phase advances; to preserve the old phase at activation, use reset phase `(old_phase-rate*delay) mod 1` |
-| LFO delay contributes neutral route amount | Preserved through activation weight; fade-in added |
-| Sine/symmetric triangle only | Tuney shape vocabulary also permits square and explicit rational duty/skew |
+Envelope playback also supports loops, ping-pong traversal, named boundaries,
+finite repeats, and indefinite segments advanced explicitly. Stages define
+event-driven transitions between child generators. Patch composes signal nodes
+and bounded event connections; see [control choices](control-guide.md).
 
-An attack interrupted during delay, a curved decay to zero, an ordinary ADSR,
-and a bipolar one-shot are represented without extra engines. The shared
-Envelope runtime also supports looping, ping-pong playback, named loop boundaries
-and finite repeats. Patch supports deterministic sample-and-hold and signal/event
-composition. Audio hosts declare their supported rendering profiles separately;
-these features do not automatically become amplitude-lifetime policies.
-
-Shared performance events and typed modulation routes are now implemented.
-The native instrument cutover is implemented in
-[the instrument format](instrument-format.md). Sample settings use these exact
-envelope/LFO definitions and the shared route evaluator; the old Recsam models
-are removed. Pure instrument lifecycle preparation is implemented; final DSP and
-audio generation remain host work. See [capabilities](capabilities.md) and the
-[control comparison](control-guide.md) for the supported boundaries.
-
-## Additional work beyond the prompt
-
-None.
+These definitions do not imply that every host supports every generator or
+assigns it an amplitude-lifetime role. Hosts validate their supported subset
+before output. The [instrument format](instrument-format.md) uses the same
+definitions and route evaluator, and pure lifecycle preparation remains separate
+from audio rendering. See [capabilities](capabilities.md).

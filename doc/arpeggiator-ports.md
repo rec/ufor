@@ -30,7 +30,8 @@ Inputs:
   outside the bank. Skips advance the selector and emit rest. Density rejection
   and rhythm rests still leave the selector untouched. Repeats retain one target.
 
-Outputs carry exact beat `at`, zero-based rhythm `index`, and bank `revision`.
+Outputs carry one-based MIDI `channel` (default 1), exact beat `at`, zero-based
+rhythm `index`, and bank `revision`.
 Expression controls are realized by the MIDI player, rather than queued by the
 pure step engines. `breath` and `pressure` accept exact normalized values in
 [0, 1]; `bend` accepts [-1, 1], the wheel position rather than a musical interval.
@@ -71,7 +72,7 @@ boundaries. Each event carries the boundary step's time, index, and bank revisio
 Order is `capture_ready` when present, `cycle` when present, then `step` and its
 outcome. This event describes rhythm loops, independently of selector traversal.
 
-The output batch contains at most 4096 events. Reserve two event slots before
+Each running lane retains at most 4096 decision events. Reserve two event slots before
 admitting a step, plus one for each `capture_ready` or `cycle`, so notifications,
 step, and outcome are admitted together. If full, skip new step
 admissions and their notifications while keeping the published bank and owned
@@ -80,7 +81,7 @@ steps. No skipped attacks or notifications are replayed. Hosts drain after each
 operation; the bank revision remains available in subsequent step events.
 
 The MIDI player's same batch also carries `notes`, a bounded list of realized
-`note_start`/`note_end` notifications. Each contains exact beat `at`, a unique
+`note_start`/`note_end` notifications. Each contains one-based `channel`, exact beat `at`, a unique
 player-local `occurrence`, source identity `source`, delivered MIDI `key`, and
 attack or release `velocity`. Held/latched sources use `input:ID`; captured sources
 use `CAPTURE:NOTE`. Repeats and repeated pitches get distinct occurrences; ends
@@ -97,6 +98,10 @@ output attacks and their gestures, while owned releases continue. The batch's
 replaying skipped ones. Python snapshots preserve occurrences, the sounding
 notification, and undrained lists. These notifications do not reconcile hardware
 state after snapshot restoration.
+
+`ArpeggiatorPortBatch` permits up to 65536 entries in each list so a host can
+combine lanes. This aggregate interchange limit does not increase the per-lane
+runtime admission budgets. Multi-lane presets use distinct MIDI channels.
 
 These ports do not execute a Envelfo graph. The host owns graph evaluation and
 ordering, applies scalar samples before the target step, and routes output

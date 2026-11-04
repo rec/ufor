@@ -1,10 +1,10 @@
 # Composition example: rehearsal, drums and piano
 
-This version-3 example is accepted by the codec and resolved in the test suite.
+This version-4 example is accepted by the codec and resolved in the test suite.
 Its complete [score package](../conformance/composition/concert.toml) includes
 all five scores. Asset metadata is synthetic; media and a sampler are not
 included. See the [design](composition-design.md) and
-[implementation plan](composition-implementation.md).
+[implementation profile](composition-implementation.md).
 
 | Score | Public interface |
 | --- | --- |
@@ -101,7 +101,7 @@ contribute silence, so no extra recorded frames are requested. The note sequence
 need not be extended: its end generates no events and does not stop active voices.
 
 Reading the same piano instance twice reads the same performance history. Adding
-a second part with the same `definition.path` creates an independent performance,
+a second part with the same `score.path` creates an independent performance,
 with its own inputs, settings and state. File paths may repeat; there is no
 separate dependency-ID namespace.
 

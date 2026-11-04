@@ -2,8 +2,8 @@
 
 Status: implemented for the initial offline profile in score version 4.
 Ufor resolves interfaces and
-event histories; Recs renders nested recording arrangements. Sampler execution
-remains deferred.
+event histories; Recs renders nested recording arrangements. Instrument audio
+rendering belongs to engines such as enge, outside Ufor's composition resolver.
 
 A score can use a recording, another mix or an instrument through its public
 interface. Four questions describe the composition.
@@ -139,10 +139,6 @@ Preserve event ordering and trigger identity. Separate receiving instances have
 separate part/trigger namespaces, even when fed identical events. Flattening a
 nested graph is permitted only if these state and timing rules are preserved.
 
-The [implementation plan](composition-implementation.md) defines the first
-supported profile, resolution and packaging, migration, and acceptance criteria.
+The [implementation profile](composition-implementation.md) defines the
+supported resolution, event delivery, and packaging boundaries.
 Those implementation limits do not restrict the general composition concepts.
-
-## Additional work beyond the prompt
-
-None.

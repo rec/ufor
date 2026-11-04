@@ -239,5 +239,4 @@ manual multi-monitor, high-DPI, audio-device, and packaged-app tests on each OS.
 
 ## Additional work beyond the prompt
 
-None. This request creates the plan only; application development, dependency
-changes, format changes, and release packaging belong to its implementation.
+None.

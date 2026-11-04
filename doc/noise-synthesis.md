@@ -7,8 +7,8 @@ unused. Keys still select notes and modulation sources. Frequency offsets,
 processing tuning, and tuning modulation are rejected. Event pitch does not
 alter the noise stream. Amplitude and filter cutoff/Q use the existing targets.
 
-The mono source passes through ordered processing filters, then its amplitude
-envelope and gain, then channel routes. Minimum hold, sustain, release, stop,
+The mono source passes through amplitude and ordered filters in the declared
+`processing.filter_order`, then channel routes. Minimum hold, sustain, release, stop,
 and completion follow oscillator lifecycle semantics; completion discards filter
 state. Zero gain does not pause generation. Other colors are not defined.
 

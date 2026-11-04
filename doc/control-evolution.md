@@ -168,7 +168,3 @@ This contract does not add live envelope-definition editing, LFO rate ramps,
 audio-rate filters, structural voice edits, automation-to-instrument wiring,
 or a resumable instrument preparer. Existing envelope/LFO/route contracts remain
 the definitions of their behavior. Engines must declare the subset they support.
-
-## Additional work beyond the prompt
-
-None.

@@ -3,7 +3,7 @@
 The native `instrument` score, sample models, and source bindings are
 implemented in uFor. `ufor.codec` reads and writes this profile
 alongside recordings, sequences, arrangements, tunings, scales, oscillators,
-envelopes, and LFOs. The defining modules are `ufor.samples.*`.
+Envelfo controls, and synth instruments. The defining modules are `ufor.samples.*`.
 [safaz](https://github.com/rec/safaz) owns SFZ conversion and asset inspection.
 
 This includes format validation, scalar controls, and pure sample/synth lifecycle
@@ -12,11 +12,12 @@ scheduling remain separate work. See the [capability matrix](capabilities.md).
 
 ## Performance input
 
-The defining module is `ufor.events`. `Trigger`, `Release`, and `ControlChange`
+The defining module is `ufor.events`. `Trigger`, `Release`, `ControlChange`,
+`LFOChange`, and `EnvelfoChange`
 extend the same native `Event` envelope as captured MIDI, OSC, and keys. They
 belong to both `PerformanceEvent` and `StoredEvent`. Common sequence scores
 and native JSONL parsing can therefore carry semantic performance events.
-Recording event-kind filters also recognize their three kind names. Existing
+Recording event-kind filters also recognize all five kind names. Existing
 capture adapters do not infer musical triggers from incoming raw MIDI.
 The separate [performance input binding](performance-binding.md) score now
 defines MIDI channel and controller mappings without coupling them to a host
@@ -38,6 +39,18 @@ the common TOML codec and native event JSON.
 | `trigger` | `part`, `trigger_id`, integer `key`, `velocity`, optional positive `pitch_hz`, `controls` | Start one independently identified performance onset |
 | `release` | `part`, `trigger_id` | Physically release that onset, not whichever voice happens to share its key |
 | `control_change` | `control`, normalized `value`, `scope`, optional addressed part/trigger | Change the explicitly addressed control context |
+| `lfo_change` | `name`, `action`, action-specific rate/position/offset | Control a named instrument LFO |
+| `envelfo_change` | `part`, `trigger_id`, `target`, optional `name` or `op`, `action`, optional quantization | Control a trigger-owned named Envelfo or amplitude envelope |
+
+LFO actions are reset, rate, pause, resume, reverse, seek, and shift. Envelfo
+actions are pause, resume, reverse, seek, shift, and advance. Rate, seek, and
+shift require their corresponding payload and reject it for other actions.
+An Envelfo target requires `name` and forbids `op`; an envelope target forbids
+`name` and may select an FM operator with `op`. `quantize_beats` is positive.
+These records are stored and traced separately from ordinary controls. Synth
+preparation can quantize commands with a supplied tempo map and sample rate;
+their presence in `StoredEvent` does not widen instrument public input contracts,
+which currently declare trigger, release, and control_change only.
 
 Keys are unrestricted integers and select sample regions independently of
 pitch. `pitch_hz` is already resolved Hz, not a MIDI note number. Tunings remain
@@ -45,7 +58,7 @@ separate definitions used by the caller to resolve it. Zero velocity remains
 a trigger. Velocity lies in [0,1]; event controls lie in [-1,1] and undergo
 the instrument's declared polarity/domain check. Trigger IDs cannot be reused
 within a part while held or still owning live voices, preserving Recsam's rule.
-The eventual performance state machine, rather than a generic sequence
+The sample lifecycle preparer, rather than a generic sequence
 parser, enforces that lifetime rule and requires pitch when a selected slot
 tracks pitch.
 
@@ -78,15 +91,17 @@ not another native score root. Its schema is
 
 | Model | Fields and ownership |
 | --- | --- |
-| `Target` | Structured `{part, parameter}` identity; neither field is a dotted path |
-| `Parameter` | Target, unit, voice/instrument scope, finite minimum/maximum, and in-domain default |
+| `Target` | Structured `{name, parameter}` identity; neither field is a dotted path |
+| `Parameter` | Target, unit, instrument/part/voice scope, finite minimum/maximum, and in-domain default |
 | `Source` | Local source ID, instrument/part/trigger/voice scope, and finite input domain |
 | `Route` | Stable ID, source ID, target, add/multiply operation, output unit, ordered mapping points, interpolation |
 | `SourceValue` | One instance's observed value and activation weight in [0,1] |
 | `ParameterValue` | One addressed parameter and its scalar value |
 
 Supported parameter units are `ratio`, `db`, `cents`, `hz`, `normalized`,
-`volts`, `seconds`, and `beats`. Hertz domains are strictly positive; duration domains
+`volts`, `seconds`, `beats`, `radians`, and `logical`. Boolean gate automation
+uses the separate typed automation contract; numeric routes do not infer gates.
+Hertz domains are strictly positive; duration domains
 are nonnegative; normalized domains are within [-1,1]. Other numeric bounds
 are explicit declarations. Addition must use the target's unit. Multiplication
 must use `ratio`; a cents or dB conversion must already have been made by an
@@ -169,7 +184,7 @@ serialized in the document so playback does not depend on a host-wide switch.
 
 | Owner | Fields |
 | --- | --- |
-| Root | `name`, `title`, optional `description`, `tags`, native `timebases`, sealed `assets`, public `inputs`, `outputs` and `parameters`, `body` |
+| Root | `name`, `title`, optional `description`, `tags`, native `timebases`, declared `assets`, public `inputs`, `outputs` and `parameters`, `body` |
 | Body | `settings` defaults and optional voice policy, named `slices`, optional non-nested slot `groups`, nonempty `slots` |
 | Audio asset | Common ID, structured location, encoding, optional content identity, plus `audio` description with native timebase, frames, and channel names |
 | Slice | ID, asset ID, nonnegative `start_frame`, required exclusive `end_frame`, optional loop |
@@ -297,7 +312,8 @@ A slot's amplitude `envelope` is either absent or one complete shared
 `ufor.envelfo.Envelope`; it never merges individual stages. The instrument
 supplies a default instantaneous gate. Amplitude envelopes are unipolar and
 voice-scoped. Named `envelfos` are keyed by local IDs. Each use owns its scope
-and clock, and contains a tagged `cycle` or `envelope` body. The old named
+and clock, with flat tagged `lfo`, `envelope`, `stages`, `sample_hold`, `patch`,
+or `reference` definitions. The old named
 `envelopes` and `lfos` fields are rejected.
 
 A slot may name one non-nested group. A group provides an optional selection set
@@ -372,7 +388,7 @@ require the declared unipolar sustain control, an untracked mapping containing
 An instrument may declare `voice_policy` when it has a fixed capacity.
 `maximum_voices` is a positive integer and counts rendered slot voices, so a
 layered trigger may consume several voices. `same_key` applies first to voices
-with the same logical input key and articulation: `stack` keeps them,
+with the same logical input key in that part: `stack` keeps them,
 `release` sends them through their normal release path, and `replace` ends them
 immediately. When capacity is still needed, `overflow` applies to the oldest
 remaining active voices: `release_oldest` releases them and `replace_oldest`
@@ -391,9 +407,13 @@ silently dropping a new layer.
 Articulation IDs and references are unique and checked. Keyswitches are latched
 or momentary and may consume their trigger. Control selectors use disjoint
 inclusive ranges inside the declared control domain. The intended player keeps
-selection per part, captures articulation for each onset, and matches momentary
-release by trigger identity. These are declarations and future state-machine
-requirements, not an implemented voice engine.
+selection per part. The sample preparer
+implements latched keyswitches, including consumed switches and clearing a
+selection. It rejects momentary and control-driven articulation bindings. Synth
+preparation rejects articulation declarations entirely. Matching momentary
+release by trigger identity remains a requirement for future support. Release-slot
+selection currently reads the part's articulation at release time; the trace does
+not retain an independent onset articulation for later release selection.
 
 Layer crossfades remain separate from modulation routes. Key/velocity transitions
 must fit inside the slot's eligibility range; control fades use declared control
@@ -411,7 +431,8 @@ smoothing follows [instrument control evolution](control-evolution.md).
 Each filter has a response (`lowpass`, `highpass`, `bandpass`, or `notch`),
 `cutoff_hz`, positive `q`, and one or two `stages`. Stages cascade identical
 filters, producing a configurable second- or fourth-order response. Filters run
-after sample traversal and before gain, pan, channel routing, and mixing; their
+after sample traversal; `filter_order` selects their position relative to
+amplitude, and pan, channel routing, and mixing follow. Their
 order in the list is their processing order. Each rendered voice owns the state
 for every stage.
 
@@ -512,10 +533,10 @@ same ID. Bindings have tagged forms:
 
 | Kind | Binding fields | Source contract |
 | --- | --- | --- |
-| `key` | `id`, `kind` | Voice scope; integer bounds covering selected keys and integer mapping knots |
-| `velocity` | `id`, `kind` | Voice scope and [0,1] domain |
-| `control` | `id`, `kind`, `control`, exact seconds `smoothing` (default `1/200`) | Declared polarity domain; instrument/part/trigger scope |
-| `envelope` / `lfo` | `id`, `kind`, `reference` | Existing local named generator; exact scope and polarity domain match |
+| `key` | `name`, `kind` | Voice scope; integer bounds covering selected keys and integer mapping knots |
+| `velocity` | `name`, `kind` | Voice scope and [0,1] domain |
+| `control` | `name`, `kind`, `control`, exact seconds `smoothing` (default `1/200`) | Declared polarity domain; instrument/part/trigger scope |
+| `envelfo` | `name`, `kind`, `reference`, optional `output`, `release_timing` | Existing named generator; scope and output domain checked; Patch bindings select an output |
 
 Control smoothing is an interruptible linear transition in the source domain,
 before route mapping. Exact timing, scope lifetime, and trigger initialization
@@ -527,9 +548,9 @@ be shared by voices through explicit bindings; slot generators are voice-only.
 LFO activation weight remains separate from its scalar signal. There is no
 second sample-specific envelope, LFO, waveform, or route implementation.
 
-Structured target parts and parameters are:
+Structured target names and parameters are:
 
-| Part | Parameter | Unit |
+| Name | Parameter | Unit |
 | --- | --- | --- |
 | `processing` | `amplitude` | ratio, base 1 |
 | `processing` | `volume_db`, `tuning_cents`, `pan`, `stereo_balance` | db, cents, normalized, normalized |
@@ -563,9 +584,10 @@ Custom matrices are allowed when spatial controls are unused.
 input/output. Both require their canonical channel map. Instrument and slot
 values, including routes, combine into one spatial operation. Pan varies the
 canonical map to `cos(pi*(p+1)/4)` / `sin(pi*(p+1)/4)`; it does not apply a second
-center attenuation. Balance attenuates the opposite channel by
-`cos(pi*abs(b)/2)` and leaves the other channel unchanged. It never folds channels
-together. Combined ranges must stay within [-1,1], including neutral amounts
+center attenuation. Native balance attenuates the opposite channel linearly by
+`1-abs(b)` and leaves the other channel unchanged. The explicit `sfizz` law uses
+the gains specified above. Neither law folds channels together. Combined ranges
+must stay within [-1,1], including neutral amounts
 during delayed/fading LFO activation. No clipping or automatic normalization is
 part of the instrument format.
 
@@ -574,38 +596,16 @@ part of the instrument format.
 [Safaz](https://github.com/rec/safaz) owns SFZ conversion and sample-file
 inspection. It consumes the native instrument models described here.
 
-## Updating old declarations
-
-There is no compatibility reader. Replace `format_version` with the common
-header and put the musical settings under `body`. Move name/description/tags
-to the root. Seal sample paths as assets, move trim/loop data to named slices,
-point slots at those IDs, and declare channel maps/output clocks explicitly.
-
-Resolve old partial DAHDSR overrides once and expand complete envelopes into
-segments. For old exponential attack use +5; exponential decay/release use -5.
-Replace LFO Hz/delay/phase fields with rate/delay/phase in the shared clock model.
-Phase now advances during delay; an intentional preservation of old activation
-phase uses `(old_phase - rate * delay) mod 1`.
-
-Replace old Key/Control/GeneratedModulation objects with the one shared source,
-binding, parameter, and route collection. Replace dotted target strings with the
-addresses above. Translate authoring unit strings to canonical numeric magnitudes
-or exact rational time strings before constructing models. Preserve selection,
-choke, articulation, crossfade and mapping concepts using their Ufor classes.
-Import directly from defining modules; old Recsam modules have been removed.
-
-The detailed [performance requirements](sample-performance.md) retain the
-selection-state partitioning, choke ordering, articulation ownership, and loop
-overlap/release rules from Recsam for the future player.
-
 ## Preparation boundary
 
 The pure preparers resolve slot/group settings, enforce logical voice limits and
 trigger lifetimes, and produce ordered action traces. Definitions remain required
 for final playback and DSP decisions. Linked microphones have take/alignment
 metadata and shared selection; media alignment and rendering belong to hosts.
-Articulation execution, audio exhaustion, and generic DSP graphs remain outside
-the supported preparer profile. See [capabilities](capabilities.md).
+Momentary/control-driven articulation execution and audio exhaustion remain outside
+the sample preparer profile. Separate audio effect graphs are defined in
+`ufor.audio_effects`; the lifecycle preparer does not execute them.
+See [capabilities](capabilities.md).
 
 ## Performance and voice state decisions
 
@@ -646,7 +646,3 @@ Selection state belongs to named sets and resets from the explicit performance
 seed at performance start. The pure portable selector covers cycle, random, and
 shuffle modes, and the sample preparer uses that selector. Linked microphone
 take groups share one take-selection identity across microphone slots.
-
-## Additional work beyond the prompt
-
-None.

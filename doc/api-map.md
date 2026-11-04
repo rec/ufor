@@ -16,6 +16,12 @@ historical wire format, not the producer. safaz owns SFZ conversion.
 | Store or plan events | `sequence.EventSequence`, `events`; `playback` plans event cropping, seeking, and loops |
 | Define sample instruments | `samples.instrument.SampleInstrumentScore`, `SampleInstrument`, `SampleSettings`; shared settings are at `body.settings` |
 | Define synth instruments | `synth.SynthInstrumentScore`, `SynthInstrument`, `SynthVoice` |
+| Define other synth sources | `synth.FMVoice`, `fm.FM`; `synth.NoiseVoice`, `noise.stream_key` |
+| Preserve Yamaha synth templates | `synth.YamahaDX7Voice`, `YamahaTX81ZVoice`; raw patch models remain in `dx7` and `tx81z` |
+| Define reusable generators | `envelfo.EnvelfoScore`, `LFO`, `Envelope`, `Stages`, `SampleHold`, `Patch`; stateful execution belongs to enveLFO |
+| Describe audio effect graphs | `audio_effects.EffectGraph`, `ActionBatch`, `validate_action`, `validate_batch`; execution belongs to enge |
+| Describe arpeggiation | `arpeggiator.ArpeggiatorScore`; `arpeggiator_capture` owns captured phrases/occurrences; `arpeggiator_ports` owns controls and notifications |
+| Read Yamaha patch bytes | `vl70.parse_vl70`, `dx7.parse_dx7`, `tx81z.parse_tx81z`; no device I/O |
 | Prepare instrument lifecycles | `samples.trace.prepare` returns `SampleTrace`; `synth_trace.prepare` returns `SynthTrace`; `instrument_trace` owns common actions and `LifecycleSnapshot` |
 | Evolve instrument controls | `samples.controls.initial_control`, `control_event`, `control_at`; `instrument_trace.TriggerContext` preserves onset initialization |
 | Realize scalar instrument pitch | `synth.frequency` consumes prepared Hz and final routed cents; `samples.playback.pitch_ratio` combines tracked pitch, tuning, and resolved variation |
@@ -49,13 +55,13 @@ are shared by sample and synth instruments today, and are not sample-only APIs:
 | Trigger and retirement policies | `samples.enums`, `samples.selection` | Both instrument preparers |
 | Voice/trigger identity and retirement actions | `instrument_trace` | Both preparers |
 
-`SampleSlice`, source-frame traversal, loop points, and sample `Playback` remain
+`samples.playback.Slice`, source-frame traversal, loop points, and sample `Playback` remain
 sample-specific. `samples.enums.CrossfadeInput` selects a key, velocity, or
 controller value; `interface.Input` is a public stream port.
 
 Shared definitions do not imply identical preparation: samples select assets,
 apply seeded selection and variation, and distinguish one-shot playback; synths
-select oscillator templates and preserve oscillator settings. Shared lifecycle
+select source templates and preserve oscillator, FM, noise, or Yamaha settings. Shared lifecycle
 conformance cases run against both preparers. Keep these behavioral checks when
 changing either implementation. A single configurable preparer is not required
 by the format, and module moves should follow a concrete ownership need rather
@@ -63,14 +69,6 @@ than the current filenames alone.
 
 See [capabilities](capabilities.md) for implemented behavior and limits, and
 [control choices](control-guide.md) for overlapping control concepts.
-
-The former public names are intentionally removed, without aliases. Consumers
-must update imports and authored fields together: `ScoreVersion` becomes
-`ScoreReference`; sample `InstrumentScore` becomes `SampleInstrumentScore`;
-sample `Instrument` becomes `SampleSettings` and `body.instrument` becomes
-`body.settings`; selection `name` becomes `part`; binding `channels` becomes
-`stream_mappings`, whose `logical` field becomes `stream`. The common score
-header, discriminators, and media payload formats are unchanged.
 
 Ufor owns asset declarations and validation only. A host maps volumes, downloads
 and verifies finite URLs, resolves pinned Git blobs, opens streams, and imports

@@ -1,7 +1,6 @@
 # Audio arrangement scores
 
-Implemented initial profile of the [master format](../plan/master/master.md).
-The native audio-edit score is now a Recs score with an arrangement body.
+The native audio-edit score uses the common version 4 header with an arrangement body.
 Old flat edit scores are no longer accepted. Session inputs use
 `recording.toml`; successful renders finalize a new recording score beside
 the generated media and operational journal.
@@ -74,10 +73,11 @@ rates require explicit conversion and are currently rejected by preparation.
 The pure `convert_tick` operation converts exact positions and never resamples
 audio. Musical time and generalized DSP remain later capabilities.
 
-Each part contains either a referenced definition with `{ path, sha256? }` or a
+Each part contains either a `ScoreReference` with exactly one `path` or `selector`
+and an optional `sha256`, or a
 complete inline score. Referenced definitions resolve relative to the containing
 score; inline definitions are private to that part and have no separate path or
-hash. Each clip selects its public output with `{ part, port }`. Public `inputs`,
+hash. Each clip selects its public output with `{ part, output }`. Public `inputs`,
 `outputs` bind internal tracks, buses or child ports.
 See the [composition design](composition-design.md) for connections and parameters.
 
@@ -107,7 +107,7 @@ may use the explicit equal-power law for a crossfade.
 
 The Pydantic definition is `ufor.arrangement.ArrangementScore`; its
 `model_json_schema()` describes this implemented profile. The parser and TOML
-writer are in `recs/edit/schema.py`. Authoring recipes still describe operations
+writer are in `ufor.codec`; Recs adds host editing and rendering. Authoring recipes still describe operations
 and defaults; generated arrangements use the new native score. Resolved
 composition stages retain their recipe provenance and store the new scores.
 
@@ -119,6 +119,6 @@ references, and destination ports. Frame positions require integers and gains
 must be finite. `Arrangement.bus_order` supplies dependency order to consumers.
 
 Applications still inspect media to check source channel counts and available
-frames, determine rendered extents, and validate output encodings. Arrangement
+frames, determine rendered extents, and validate output encodings.
 Resolved control clips validate their reusable curve against the target parameter.
 They do not execute it or generate a second audio stream.

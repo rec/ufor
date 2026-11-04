@@ -32,7 +32,7 @@ does not validate edits. The common codec validates again when serializing.
 
 | Quantity | Unit | Values | Interpolation |
 | --- | --- | --- | --- |
-| gain | ratio | Finite, nonnegative numbers; 1 is unity | linear or hold |
+| gain | ratio | Finite, nonnegative numbers; 1 is unity | linear, hold, or direct equal-power |
 | frequency | hz | Finite, strictly positive numbers | linear or hold |
 | gate | logical | Booleans, not numbers or voltages | hold only |
 
@@ -109,8 +109,9 @@ start.
 The current arrangement profile accepts one part-scoped numeric automation score
 per target. Gain curves may use `equal_power`, whose value between `a` and `b` at
 progress `t` is `sqrt((1-t)*a**2 + t*b**2)`; it is only valid for a direct gain
-curve. Competing writers, logical gates, and voice- or instrument-scoped
-automation are rejected rather than given ambiguous behavior. Combining manual
+curve. Multiple control clips addressing the same target, logical gates, and
+voice- or instrument-scoped automation are rejected. A single automation score
+may still combine its direct, additive, and multiplicative curves. Combining manual
 controls, generators, and multiple control writers belongs to later graph
 preparation.
 
@@ -128,5 +129,5 @@ exact source/timeline interval conversion vector for a 1 kHz control score in a
 The score participates in the common codec and generated
 [schema/scores.json](../schema/scores.json). Arrangements resolve it without
 rendering audio or sending device output. No GUI, audio renderer, device adapter,
-dense-array format, general control combiner, or equal-power/logarithmic mapping
+dense-array format, general live-control combiner, or logarithmic interpolation
 is introduced by this profile.

@@ -115,7 +115,8 @@ from right to left. The score still describes the same left and right positions.
 
 `AnimationScore` has one light output, one logical clock, no external inputs,
 and an `Animation` body. The body contains an operation and named `Part`s.
-Parts use existing `ScoreReference(path, sha256=None)` values. References are
+Parts use `ScoreReference` paths or library selectors, or complete inline scores.
+Output references are
 existing `OutputSelection(part, output)` values. No Python import paths occur
 in a score. The common `Composition` resolver checks supplied score records,
 optional hashes, cycles, parameter exports and light output compatibility.
@@ -207,7 +208,8 @@ NumPy dependency, transport, scheduler, device discovery or effect generation.
 Tests establish interchange, validation and these mathematical semantics. They
 do not establish cross-language equivalence for Lyte's stochastic simulations.
 That requires renderer-generated reference frames, specified RNG behavior and
-numerical tolerances in the Lyte port. See [port-lyte.md](port-lyte.md).
+numerical tolerances. The lyte port is implemented; see
+[integration boundaries](port-lyte.md).
 
 ## Audio analysis controls
 

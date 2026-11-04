@@ -1,13 +1,14 @@
 # Portable live-effect graphs
 
-uFor defines fixed acyclic processor graphs for offline and live audio effects.
+`ufor.audio_effects` defines fixed acyclic processor graphs for offline and live audio effects.
 enge owns their numerical realization. A graph belongs to a voice, instrument,
 master, or host attachment and has named audio inputs, processor nodes, explicit
-connections, and one public output. Serial chains normalize into this graph form.
+connections, and one public output. These are embedded models, not a root score
+kind accepted by the common codec. Hosts attach graphs to their owners explicitly.
 
 Every processor has a stable local ID. Audio input ports are fixed by processor
 type and are distinct from scalar modulation. Gain, soft clip, resonant filter,
-and granulator processors have `input`; multiplication has equal-layout `carrier`
+delay, and granulator processors have `input`; multiplication has equal-layout `carrier`
 and `modulator` ports. Connections may fan out, but a port has one source and
 implicit mixing is forbidden. Preparation validates all references, layouts,
 required ports, whole-program cycles, and reachability before establishing a
@@ -30,12 +31,21 @@ samples. Wet/dry uses the designated dry input and linear interpolation:
 output = (1 - mix) * aligned_dry + mix * wet
 ```
 
-Bypass ramps toward dry over 64 frames while processing and state advancement
-continue. Authored mix remains independent, so unbypass returns to its current
-value. Retiring a tail also uses a 64-frame linear fade. Processor-mode resonant
-filters use the existing filter definitions, a `1e-12` tail threshold, and may
-trim only their designated decaying integrator state below `1e-30`. These values
-are portable profile constants, not host preferences.
+Bypass ramps toward dry over `bypass_fade_frames` (default 64) while processing
+and state advancement continue. Authored mix remains independent, so unbypass
+returns to its current value. Tail retirement uses the graph's
+`tail_retirement_fade_frames` (default 64). Filters and delays declare
+`tail_threshold` (default `1e-12`) and `state_floor` (default `1e-30`, strictly
+below the threshold). Only designated decaying state may be trimmed. These are
+serialized settings, not fixed constants that a host may silently substitute.
+
+`TapDelay` declares a positive `delay_seconds`, a prepared
+`maximum_delay_seconds`, and feedback in [0, 1). `ModulatedDelay` adds
+`base_delay_seconds`, `depth_seconds`, `rate_hz`, waveform, and optional per-channel
+phase offsets. Its whole delay span must remain positive and within the prepared
+maximum. Delay realizations use bounded integer-frame reads. Parameter actions
+are checked against the prepared bounds; decoding or allocating a larger delay
+buffer during processing is not part of this contract.
 
 Soft clip is stateless and has neither latency nor a tail. For finite input `x`
 and positive `drive` `d`, its wet output is `tanh(d*x) / tanh(d)`. It does not
@@ -60,7 +70,7 @@ requested source position to `q` in `[0, P)` with modulo `P`. At an integer
 offset `i < X`, the loop value is the linear blend from frozen frame `P + i` to
 frozen frame `i` with weight `i / X`; at other offsets it is frozen frame `i`.
 Linearly interpolate between adjacent loop values, wrapping the upper value from
-`P` to zero. Thus a full history uses the declared 64-frame overlap, while a
+`P` to zero. Thus a full history uses `freeze_crossfade_frames` (default 64), while a
 startup freeze uses only available recorded frames and never exposes initialized
 but unavailable storage. Implementors must retain samples used by active grains
 across unfreeze without allocation.

@@ -263,7 +263,3 @@ Full parameter tables, title editing, additional address families, program
 selection, MIDI-CI discovery and generalized SysEx schemas can follow when a
 concrete operation requires them. This example establishes partial knowledge and
 lossless editing without assuming those larger designs are finished.
-
-## Additional work beyond the prompt
-
-None.

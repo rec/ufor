@@ -102,16 +102,17 @@ parameters = { brightness = 0.25 }
 ## Envelfo uses
 
 The [example Envelfo library](../examples/envelfos/library.toml) contains a sine
-vibrato, a pulse, and a pluck envelope. A Envelfo score may expose a named Hz
+vibrato, a pulse, and a pluck envelope. An Envelfo score may expose a named Hz
 parameter for its LFO rate. A use supplies a public value, or inherits the
-score's default. A Envelfo preset can change that default. Other body fields are
+score's default. An Envelfo preset can change that default. Other body fields are
 currently literal values, not public parameter targets.
 
-Within an instrument voice's settings, a Envelfo use may reference a library
+Within an instrument voice's settings, an Envelfo use may reference a library
 score:
 
 ```toml
 [envelfos.vibrato]
+kind = "reference"
 score = { selector = "envelfos:vibrato" }
 scope = "voice"
 parameters = { speed = 6.0 }

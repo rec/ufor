@@ -50,9 +50,9 @@ unlocated loss and does not invent a boundary at frame zero.
 
 | Field | Meaning |
 | --- | --- |
-| `assets` | Sealed payloads: local ID, structured finite location, encoding, and byte length/SHA-256 content identity |
+| `assets` | Payload declarations: local name, structured location, encoding, and optional measured byte length/SHA-256 within `content` for finite files |
 | `timebases` | Named physical clocks with exact positive rational ticks per second |
-| `body.state` | `sealed` requires an end timestamp and no unfinished files; otherwise `open` |
+| `body.state` | Captured `sealed` recordings require an end timestamp and no unfinished files; imported sealed media may omit capture timestamps |
 | `body.project_name` | Optional project that owned the recording session; retained when its directory is moved or renamed |
 | `body.started_at`, `ended_at` | Observed session wall-clock timestamps; not sample alignment |
 | `body.observed_duration_seconds` | Optional operational elapsed time, never an event count |
@@ -80,7 +80,7 @@ Exact alternate encodings may overlap only with the same explicit
 `variant_group`; other overlapping captures are invalid.
 
 Optional audio `source_name` and `track_name` retain human-facing selectors.
-When absent, selection uses the opaque `source_id` and local stream `id`
+When absent, selection uses the opaque `source_id` and local stream `name`
 respectively; it does not split source IDs on punctuation. New audio capture
 records exact spans through silence trimming. Several fragments may reference
 different offsets in the same file, so the renderer seeks to `asset_start`
@@ -96,7 +96,7 @@ resolved. It does not stretch the file or guess where gaps belong.
 
 Event streams declare `event_schema` and ordered fragments. Native captures also
 set `event_kind` to `midi`, `ump`, `osc`, `key`, `trigger`, `release`,
-`control_change`, or `lfo_change`. Omit it for a mixed-kind stream. Each fragment
+`control_change`, `lfo_change`, or `envelfo_change`. Omit it for a mixed-kind stream. Each fragment
 has an asset, `event_count`, and matching `timing`. Native fragments require
 `start` and `end` in the stream timebase: a half-open stored-event range, empty only when the
 count is zero. Counts never substitute for duration:
@@ -117,7 +117,7 @@ MIDI defaults to host monotonic callback timestamps; the optional Mido-delta
 mode requires meaningful deltas from the source. OSC retains raw packets,
 decoded values or errors, direction, endpoint, and stable ordinals. Every JSONL
 line is complete, independent of prior file compression state. See the
-[capture journal format](../../recs/doc/session-record-format.md) for precise clock semantics,
+[capture format](../../recs/doc/recording-format.md) for clock semantics,
 recovery, and explicit MIDI-file export.
 
 A complete valid empty recording score follows. The example's journal is
@@ -162,7 +162,7 @@ optional text, modifiers, and a repeat flag. These are stored events, not yet a
 universal performance engine. Recs also captures its observed key transitions
 through the same event model.
 
-Semantic `trigger`, `release`, `control_change`, and `lfo_change` records use that same
+Semantic `trigger`, `release`, `control_change`, `lfo_change`, and `envelfo_change` records use that same
 envelope. Their payload and addressing rules are defined in the
 [instrument contract](instrument-format.md#performance-input). A
 [portable performance sequence](../conformance/performance.json) demonstrates
@@ -281,7 +281,7 @@ clocks requires an explicit alignment decision.
 
 ## Public exports and imported media
 
-Version 2 exposes streams through root `outputs`, with an output direction, matching
+Version 4 exposes streams through root `outputs`, with a matching
 stream contract and `binding = { stream = "stable-stream-id" }`. An audio binding
 may select consecutive zero-based `channels`. Native event exports declare their
 physical clock and event kinds; legacy files without native tick positions are

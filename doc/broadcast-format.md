@@ -10,8 +10,9 @@ Sections declare cut, crossfade, or mix transitions; late-join behavior; and an
 availability policy to replace, skip, or stop. Relay sources declare the buffer
 they require before starting, measured in programme timeline ticks. An optional as-aired run records actual starts,
 ends, cues, dropouts, replacements, source instances, local submission, remote
-delivery, and delivery failures. Replaying that record never requires the original
-live source. Ufor does not connect inputs or deliver output.
+delivery, and delivery failures. These observations do not capture the live media
+itself: replay requires retained finite media as well as resolved timing. Ufor
+does not connect inputs, capture live sources, or deliver output.
 
 `provisional_sections` includes cue-dependent sections and all sections starting
 `after` them, transitively, in authored order. Their complete timing is unknown
