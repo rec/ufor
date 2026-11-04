@@ -591,3 +591,36 @@ original 0–1 velocity directly, including for release-triggered notes; other
 synth starts retain their existing control-context velocity contract. Sustain
 triggered Yamaha voices use the control value that selected the voice. These
 portable definitions and traces do not implement a synthesis engine.
+
+### Shared TX81Z outputs
+
+`SynthInstrument.tx81z_outputs` explicitly groups TX81Z templates at a shared
+DAC boundary. Each `TX81ZOutput` has a unique `name`, a nonempty `voices` list
+of template names, mono `channels` routes to the instrument's audio outputs,
+and `processing`. The language-neutral example is
+[`conformance/tx81z-output.json`](../conformance/tx81z-output.json).
+
+Every active instance of a member template contributes to that group's raw
+carrier sum, including instances from different parts. Membership is never
+inferred from routes, parts or matching patches. A template may belong to only
+one group. Its own `channels` must be empty or omitted. Ungrouped templates
+must retain explicit routes and represent raw note output without a shared DAC.
+
+Signal order is raw voice sum, shared DAC conversion, group gain/polarity and
+filters in the declared `filter_order`, then group channel routing. Group
+processing supports static gain, polarity and filters; tuning, pan, balance
+and equalizer settings are rejected. Member templates retain static or dynamic
+tuning and Yamaha controller targets. Per-member host gain, filters and other
+processing modulation are rejected rather than silently moved across the DAC.
+The ordinary trigger, release and retirement identities remain per voice.
+An explicit host fade acts on that voice's raw contribution before summation;
+it is a host lifecycle extension, not a hardware envelope feature. Any
+fractional sum from those fades is rounded to the nearest integer chip unit,
+with ties to even, immediately before DAC conversion.
+
+This contract names an output boundary, not a complete physical TX81Z device.
+It does not impose an eight-note allocator, combine template LFO clocks, or
+specify the hardware's unresolved multitimbral behavior. Consumers must declare
+their DAC model and reject these groups if unsupported. Filter state belongs to
+the group, persists across voice retirement and must be included in snapshots.
+uFor supplies ownership and ordering, not DAC arithmetic or audio execution.

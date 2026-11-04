@@ -17,7 +17,7 @@ from .oscillator import Oscillator
 from .samples import enums
 from .samples.controls import ControlDeclaration
 from .samples.playback import Mapping
-from .samples.processing import ChannelRoute, EventBinding, SoundSettings
+from .samples.processing import ChannelRoute, EventBinding, Processing, SoundSettings
 from .samples.selection import Articulations, Choke, Sustain, VoicePolicy
 from .segments import Segment
 from .streams import AudioType
@@ -185,6 +185,7 @@ class YamahaTX81ZVoice(YamahaVoiceTemplate):
     """Explicitly paired TX81Z VCED and ACED edit buffers."""
 
     yamaha: Literal['tx81z'] = 'tx81z'
+    channels: list[ChannelRoute] = Field(default_factory=list)
     patch: tx81z.TX81ZVoice
     additional: tx81z.TX81ZAdditional
 
@@ -221,6 +222,28 @@ class YamahaTX81ZVoice(YamahaVoiceTemplate):
 type SynthSource = SynthVoice | FMVoice | NoiseVoice | YamahaDX7Voice | YamahaTX81ZVoice
 
 
+class TX81ZOutput(Model):
+    """Explicit raw-voice sum, shared DAC, then host processing and routing."""
+
+    name: Identifier
+    voices: list[Identifier] = Field(min_length=1)
+    channels: list[ChannelRoute] = Field(min_length=1)
+    processing: Processing = Processing()
+
+    @model_validator(mode='after')
+    def output_values(self) -> Self:
+        unique(self.voices, 'TX81Z output voice')
+        unique(((c.input, c.output) for c in self.channels), 'channel route')
+        if self.processing != Processing(
+            volume_db=self.processing.volume_db,
+            invert_polarity=self.processing.invert_polarity,
+            filters=self.processing.filters,
+            filter_order=self.processing.filter_order,
+        ):
+            raise ValueError('TX81Z output processing supports gain and filters only')
+        return self
+
+
 class SynthInstrument(Model):
     """Synth voice templates and their shared performance declarations."""
 
@@ -229,10 +252,34 @@ class SynthInstrument(Model):
     sustain: Sustain | None = None
     articulations: Articulations | None = None
     voices: list[SynthSource] = Field(min_length=1)
+    tx81z_outputs: list[TX81ZOutput] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:
         unique((v.name for v in self.voices), 'synth voice ID')
+        unique((o.name for o in self.tx81z_outputs), 'TX81Z output ID')
+        members = [v for o in self.tx81z_outputs for v in o.voices]
+        unique(members, 'TX81Z output membership')
+        templates = {v.name: v for v in self.voices}
+        for name in members:
+            voice = templates.get(name)
+            if not isinstance(voice, YamahaTX81ZVoice):
+                raise ValueError('TX81Z outputs require existing TX81Z templates')
+            if voice.channels:
+                raise ValueError('Grouped TX81Z voices must omit individual routes')
+            if voice.processing != Processing(
+                tuning_cents=voice.processing.tuning_cents
+            ) or any(
+                p.target.name != 'yamaha'
+                and (p.target.name, p.target.parameter)
+                != ('processing', 'tuning_cents')
+                for p in voice.modulation.parameters
+            ):
+                raise ValueError(
+                    'Grouped TX81Z voices allow tuning and Yamaha controls only'
+                )
+        if any(not v.channels and v.name not in members for v in self.voices):
+            raise ValueError('Unrouted TX81Z voices require output membership')
         if self.sustain is not None:
             declared = self.require_control(self.sustain.control)
             if declared.polarity != control.Polarity.unipolar:
@@ -336,7 +383,7 @@ class SynthInstrumentScore(InterfaceScore):
             raise ValueError(
                 'synth instrument input must accept native performance events'
             )
-        for voice in self.body.voices:
+        for voice in [*self.body.voices, *self.body.tx81z_outputs]:
             if any(
                 c.input != 'mono' or c.output not in output.channels
                 for c in voice.channels

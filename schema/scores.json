@@ -15406,6 +15406,13 @@
           "minItems": 1,
           "title": "Voices",
           "type": "array"
+        },
+        "tx81z_outputs": {
+          "items": {
+            "$ref": "#/$defs/TX81ZOutput"
+          },
+          "title": "Tx81Z Outputs",
+          "type": "array"
         }
       },
       "required": [
@@ -15743,6 +15750,52 @@
         "oscillator"
       ],
       "title": "SynthVoice",
+      "type": "object"
+    },
+    "TX81ZOutput": {
+      "additionalProperties": false,
+      "description": "Explicit raw-voice sum, shared DAC, then host processing and routing.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "voices": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Voices",
+          "type": "array"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelRoute"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "voices",
+        "channels"
+      ],
+      "title": "TX81ZOutput",
       "type": "object"
     },
     "Target": {
@@ -17170,7 +17223,6 @@
           "items": {
             "$ref": "#/$defs/ChannelRoute"
           },
-          "minItems": 1,
           "title": "Channels",
           "type": "array"
         },
@@ -17250,7 +17302,6 @@
       "required": [
         "name",
         "mapping",
-        "channels",
         "patch",
         "additional"
       ],
