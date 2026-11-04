@@ -15413,6 +15413,13 @@
           },
           "title": "Tx81Z Outputs",
           "type": "array"
+        },
+        "tx81z_lfos": {
+          "items": {
+            "$ref": "#/$defs/TX81ZLFOGroup"
+          },
+          "title": "Tx81Z Lfos",
+          "type": "array"
         }
       },
       "required": [
@@ -15750,6 +15757,52 @@
         "oscillator"
       ],
       "title": "SynthVoice",
+      "type": "object"
+    },
+    "TX81ZLFOGroup": {
+      "additionalProperties": false,
+      "description": "Explicit performance LFO owners and per-template modulation selectors.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "first": {
+          "title": "First",
+          "type": "string"
+        },
+        "second": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Second"
+        },
+        "routes": {
+          "additionalProperties": {
+            "enum": [
+              "off",
+              "first",
+              "second",
+              "vibrato"
+            ],
+            "type": "string"
+          },
+          "title": "Routes",
+          "type": "object"
+        }
+      },
+      "required": [
+        "name",
+        "first",
+        "routes"
+      ],
+      "title": "TX81ZLFOGroup",
       "type": "object"
     },
     "TX81ZOutput": {

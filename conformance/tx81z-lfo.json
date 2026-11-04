@@ -1,0 +1,37 @@
+{
+  "format": "recs",
+  "version": 4,
+  "name": "shared-tx81z",
+  "title": "Shared TX81Z output",
+  "kind": "synth_instrument",
+  "timebases": [{"name": "output", "kind": "physical", "rate": {"numerator": 48000, "denominator": 1}}],
+  "body": {
+    "tx81z_lfos": [{"name": "performance", "first": "patch", "routes": {"patch": "first"}}],
+    "voices": [{
+      "name": "patch",
+      "yamaha": "tx81z",
+      "mapping": {"lowest_key": 0, "highest_key": 127, "reference_pitch_hz": 440},
+      "patch": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+      "additional": "0000000000000000000000000000000000000000000000"
+    }],
+    "tx81z_outputs": [{
+      "name": "chip",
+      "voices": ["patch"],
+      "processing": {"volume_db": -6},
+      "channels": [
+        {"input": "mono", "output": "left", "gain": 1},
+        {"input": "mono", "output": "right", "gain": 1}
+      ]
+    }]
+  },
+  "inputs": [{
+    "name": "performance",
+    "stream": {"family": "event", "timebase": "output", "kinds": ["trigger", "release", "control_change"]},
+    "binding": {"performance": true}
+  }],
+  "outputs": [{
+    "name": "audio",
+    "stream": {"family": "sampled", "quantity": "audio_amplitude", "unit": "full_scale", "timebase": "output", "channels": ["left", "right"]},
+    "binding": {"audio": true}
+  }]
+}

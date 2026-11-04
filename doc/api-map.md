@@ -19,6 +19,7 @@ historical wire format, not the producer. safaz owns SFZ conversion.
 | Define other synth sources | `synth.FMVoice`, `fm.FM`; `synth.NoiseVoice`, `noise.stream_key` |
 | Preserve Yamaha synth templates | `synth.YamahaDX7Voice`, `YamahaTX81ZVoice`; raw patch models remain in `dx7` and `tx81z` |
 | Declare shared TX81Z DAC ownership | `synth.TX81ZOutput`, `SynthInstrument.tx81z_outputs`; explicit template membership and post-DAC processing/routes |
+| Declare shared TX81Z LFO ownership | `synth.TX81ZLFOGroup`, `SynthInstrument.tx81z_lfos`; explicit owners and member selectors, independent of DAC groups |
 | Define reusable generators | `envelfo.EnvelfoScore`, `LFO`, `Envelope`, `Stages`, `SampleHold`, `Patch`; stateful execution belongs to enveLFO |
 | Describe audio effect graphs | `audio_effects.EffectGraph`, `ActionBatch`, `validate_action`, `validate_batch`; execution belongs to enge |
 | Describe arpeggiation | `arpeggiator.ArpeggiatorScore`; `arpeggiator_capture` owns captured phrases/occurrences; `arpeggiator_ports` owns controls and notifications |

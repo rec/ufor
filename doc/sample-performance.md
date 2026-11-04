@@ -627,6 +627,24 @@ uFor supplies ownership and ordering, not DAC arithmetic or audio execution.
 
 ### TX81Z performance edit-buffer inspection
 
+`SynthInstrument.tx81z_lfos` declares explicit `TX81ZLFOGroup` ownership.
+Each group names `first`, optional `second`, and a `routes` dictionary from
+member template IDs to `off`, `first`, `second` or `vibrato`. Owners must be
+members and all members must be TX81Z templates belonging to only one group.
+For PCED import, first and second are the first two allocations whose maximum
+notes are nonzero, independently of sounding notes or DAC output membership.
+An owner may itself select off or vibrato and still supply its hardware LFO.
+
+The selected owner supplies rate, waveform, sync, delay and base PMD/AMD.
+Recipient pitch/amplitude sensitivity and operator AM enable remain local.
+Scoped controller assignments remain per recipient, a portable host extension
+that does not claim the hardware's global controller ownership. Any member
+keydown clocks the group's key-sync/delay restart; silent owners do not stop
+their clocks. Off suppresses both PM and AM including controller contributions.
+Vibrato means independent pitch-only modulation from the member's own patch;
+consumers must reject it if unsupported. This declaration does not allocate
+hardware voices, import banks, apply other PCED settings or imply DAC ownership.
+
 `parse_tx81z` recognizes the PCED bulk message with format identifier
 `LM  8976PE` and byte count 120. `TX81ZEntry.performance` retains its 110
 parameter bytes, separately from that identifier. Framing, length and checksum

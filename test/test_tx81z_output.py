@@ -17,6 +17,46 @@ def document() -> dict:
     )
 
 
+def test_tx81z_lfo_ownership_round_trips_independently_of_output_groups() -> None:
+    raw = document()
+    raw['body']['voices'].append({**raw['body']['voices'][0], 'name': 'second'})
+    raw['body']['tx81z_outputs'][0]['voices'].append('second')
+    raw['body']['tx81z_lfos'] = [
+        {
+            'name': 'performance',
+            'first': 'patch',
+            'second': 'second',
+            'routes': {'patch': 'off', 'second': 'first'},
+        }
+    ]
+    score = SynthInstrumentScore.model_validate(raw)
+    assert parse_score(score_toml(score)) == score
+    assert SynthInstrumentScore.model_validate_json(score.model_dump_json()) == score
+    assert score.body.tx81z_lfos[0].first == 'patch'
+    assert score.body.tx81z_lfos[0].routes['patch'] == 'off'
+
+
+@pytest.mark.parametrize(
+    'fault', ['owner', 'second', 'duplicate', 'member', 'selector']
+)
+def test_tx81z_lfo_groups_reject_ambiguous_ownership(fault: str) -> None:
+    raw = document()
+    group = {'name': 'performance', 'first': 'patch', 'routes': {'patch': 'first'}}
+    raw['body']['tx81z_lfos'] = [group]
+    if fault == 'owner':
+        group['first'] = 'missing'
+    elif fault == 'second':
+        group['routes']['patch'] = 'second'
+    elif fault == 'duplicate':
+        raw['body']['tx81z_lfos'].append({**group, 'name': 'other'})
+    elif fault == 'member':
+        group['routes']['missing'] = 'first'
+    else:
+        group['routes']['patch'] = 'unknown'
+    with pytest.raises(ValidationError):
+        SynthInstrumentScore.model_validate(raw)
+
+
 def test_shared_tx81z_output_round_trips_and_preserves_voice_identity() -> None:
     raw = document()
     raw['body']['voices'].append({**raw['body']['voices'][0], 'name': 'second'})

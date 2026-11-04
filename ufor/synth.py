@@ -244,6 +244,27 @@ class TX81ZOutput(Model):
         return self
 
 
+class TX81ZLFOGroup(Model):
+    """Explicit performance LFO owners and per-template modulation selectors."""
+
+    name: Identifier
+    first: Identifier
+    second: Identifier | None = None
+    routes: dict[Identifier, Literal['off', 'first', 'second', 'vibrato']]
+
+    @model_validator(mode='after')
+    def lfo_values(self) -> Self:
+        if self.first == self.second:
+            raise ValueError('TX81Z LFO owners must be distinct')
+        if self.first not in self.routes or (
+            self.second is not None and self.second not in self.routes
+        ):
+            raise ValueError('TX81Z LFO owners must be group members')
+        if self.second is None and 'second' in self.routes.values():
+            raise ValueError('TX81Z second LFO routing requires an owner')
+        return self
+
+
 class SynthInstrument(Model):
     """Synth voice templates and their shared performance declarations."""
 
@@ -253,6 +274,7 @@ class SynthInstrument(Model):
     articulations: Articulations | None = None
     voices: list[SynthSource] = Field(min_length=1)
     tx81z_outputs: list[TX81ZOutput] = Field(default_factory=list)
+    tx81z_lfos: list[TX81ZLFOGroup] = Field(default_factory=list)
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:
@@ -261,6 +283,13 @@ class SynthInstrument(Model):
         members = [v for o in self.tx81z_outputs for v in o.voices]
         unique(members, 'TX81Z output membership')
         templates = {v.name: v for v in self.voices}
+        unique((g.name for g in self.tx81z_lfos), 'TX81Z LFO group ID')
+        unique((n for g in self.tx81z_lfos for n in g.routes), 'TX81Z LFO membership')
+        for group in self.tx81z_lfos:
+            if any(
+                not isinstance(templates.get(n), YamahaTX81ZVoice) for n in group.routes
+            ):
+                raise ValueError('TX81Z LFO groups require existing TX81Z templates')
         for name in members:
             voice = templates.get(name)
             if not isinstance(voice, YamahaTX81ZVoice):
