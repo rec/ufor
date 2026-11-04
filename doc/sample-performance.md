@@ -45,12 +45,13 @@ current preparer rejects a combined fade and envelope-release choke on one
 voice because a single retirement cannot express their combined gain curve.
 `trigger_context` precedes each accepted onset's voice actions and preserves its
 velocity and complete initial control values, even when it selects no voice.
-The sample preparer emits `trigger_release` once for the first physical release
-of a known trigger, carrying its part and trigger ID. It precedes voice actions
+The sample and synth preparers emit `trigger_release` once for the first physical
+release of a known trigger, carrying its part and trigger ID. It precedes voice actions
 created by that release, including release-triggered starts. It is emitted for
 one-shot voices and while sustain defers logical release, independently of voice
-retirement. Consumers use it to cancel pending start-triggered voices; it does
-not release or stop already-playing one-shot or sustained voices. Unknown
+retirement. Consumers use it to cancel pending start-triggered voices and track
+physically held keys independently of sustain; it does not release or stop
+already-playing one-shot or sustained voices. Unknown
 releases remain diagnostics, and repeated releases emit no second observation.
 `control` preserves an addressed control observation, including changes while
 silent and during release. Context lifetime, smoothing, and pitch composition

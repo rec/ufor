@@ -27,6 +27,7 @@ from .instrument_trace import (
     LifecycleSnapshot,
     RetirementCause,
     TriggerContext,
+    TriggerRelease,
     VoiceRetirement,
 )
 from .instrument_trace import (
@@ -80,6 +81,7 @@ Action = Annotated[
     VoiceStart
     | VoiceRetirement
     | TriggerContext
+    | TriggerRelease
     | ControlObservation
     | LFOObservation
     | EnvelfoObservation
@@ -442,6 +444,14 @@ def prepare(
                     )
                 )
             elif not trigger.physically_released:
+                actions.append(
+                    TriggerRelease(
+                        tick=event.tick,
+                        ordinal=event.ordinal,
+                        part=event.part,
+                        trigger_id=event.trigger_id,
+                    )
+                )
                 trigger = update_trigger(trigger, physically_released=True)
                 if start_template_voices(trigger):
                     start_voices(

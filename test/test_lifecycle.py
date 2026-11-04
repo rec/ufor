@@ -107,6 +107,7 @@ def test_release_voices_retain_the_onset_pitch(kind: str, sustain: bool) -> None
             )
         )
     events.append(Release(tick=2, ordinal=2, part='part', trigger_id='note'))
+    events.append(Release(tick=2, ordinal=3, part='part', trigger_id='note'))
     if sustain:
         events.append(
             ControlChange(
@@ -128,6 +129,41 @@ def test_release_voices_retain_the_onset_pitch(kind: str, sustain: bool) -> None
     assert len(contexts) == 1
     assert contexts[0].controls == {'pedal': 0.75}
     assert contexts[0].velocity == 0.6
+    releases = [a for a in result.actions if isinstance(a, TriggerRelease)]
+    assert releases == [
+        TriggerRelease(tick=2, ordinal=2, part='part', trigger_id='note')
+    ]
+    assert result.actions.index(releases[0]) < result.actions.index(starts[0])
+    assert type(result).model_validate_json(result.model_dump_json()) == result
+
+
+@pytest.mark.parametrize('kind', ['sample', 'synth'])
+def test_unmatched_onset_still_observes_physical_release_once(kind: str) -> None:
+    result = prepare(
+        kind,
+        [
+            {
+                'name': 'voice',
+                'mapping': {
+                    'lowest_key': 60,
+                    'highest_key': 60,
+                    'pitch_tracking': False,
+                },
+            }
+        ],
+        [
+            Trigger(tick=0, ordinal=0, part='part', trigger_id='note', key=61),
+            Release(tick=1, ordinal=0, part='part', trigger_id='note'),
+            Release(tick=2, ordinal=0, part='part', trigger_id='note'),
+            Release(tick=3, ordinal=0, part='part', trigger_id='unknown'),
+        ],
+    )
+    assert [a.kind for a in result.actions] == [
+        'trigger_context',
+        'trigger_release',
+        'diagnostic',
+    ]
+    assert result.snapshots[0].triggers[0].physically_released
 
 
 def test_one_shot_survives_ordinary_release() -> None:
@@ -502,7 +538,7 @@ def test_control_context_conformance(kind: str) -> None:
         for a in result.actions
         if isinstance(a, TriggerRelease)
     ]
-    assert releases == (case['sample_trigger_releases'] if kind == 'sample' else [])
+    assert releases == case['trigger_releases']
     actions = [a for a in result.actions if not isinstance(a, TriggerRelease)]
     assert len(actions) == len(case['actions'])
     for action, expected in zip(actions, case['actions'], strict=True):
