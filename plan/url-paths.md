@@ -31,13 +31,13 @@ enveLFO, nmr, or rec**.
 | rec | The repository is a profile/resume/project dashboard, not a media runtime. No acquisition integration identified. |
 | reccy | Owns generic finite-byte acquisition, leases, retention, capture storage, and reusable additions below. It must not depend on uFor, NumPy, media decoders, or host-specific score policy. |
 | recs | `recs/recording/asset_resolver.py` already integrates finite locations for editing/export. Benefits from reusable preflight and package operations, plus the separately planned stream/provider adapters and capture lifecycle. |
-| safaz | `safaz/reader.py` resolves SFZ sample dependencies; `safaz/assets.py` opens samples separately for metadata, hash, and loop inspection. Preparing one verified snapshot for all inspection would keep those facts tied to the same bytes. SFZ parsing and embedded-loop interpretation remain in safaz. |
-| showCo (`showco`) | `showco/provision/media.py` deploys movie/photo inputs and configures streamO. Benefits from a verified media manifest and preflight before deployment, then verification at the destination. It delegates decoding and playback to streamO. |
-| streamO (`streamo`) | `streamo/image_feed.py` downloads bounded JPEGs; its media pipeline consumes photos and movies through external tools. Reuse current-URL acquisition and credential scoping, then retain image validation and feed cursors locally. Outbound RTMPS/Icecast publishing is not an inbound stream asset. |
+| safaz | `safaz/reader.py` preflights sample acquisitions; `safaz/assets.py` inspects metadata, identity and loops from one snapshot. `reader.package()` exports an SFZ and its dependencies as a verified new package. SFZ interpretation remains in safaz. |
+| showCo (`showco`) | `showco/provision/media_package.py` inventories and stages selected media; `media.py` transfers and verifies versioned packages before configuration selects them. Persistent inboxes remain outside the versions. Decoding and playback stay in streamO. |
+| streamO (`streamo`) | `streamo/media_assets.py` snapshots local movies and holds verified paths through encoder shutdown. Existing `image_feed.py` still owns bounded JPEG downloads, validation and cursors; its HTTP-cache adoption is separate work. Outbound publishing is not an inbound stream asset. |
 | tuney | `tuney/scale/scala_browser.py` loads a bundled ZIP of Scala definitions; `tuney/config/text_file.py` reads text. Explicit external tuning/preset/text imports could use finite-byte acquisition. No remote catalogue or new archive-location scheme is needed for the bundled resource. |
 | uFor (`ufor`) | Owns portable locations, identities, media declarations and conformance cases. Keep its explicit local library loader separate from host acquisition and never add network access or provider execution to core models. |
 
-## Existing reccy support and remaining shared additions
+## Implemented infrastructure and remaining adoption
 
 Use the current implementations, rather than recreating them:
 
@@ -54,58 +54,34 @@ Use the current implementations, rather than recreating them:
   caching and bounded fragment capture, including explicit gaps and recovery
   evidence. They do not execute Python audio providers or decode stream protocols.
 
-The following additions are justified by the consumers above. Implement only
-generic byte/lifetime operations in reccy; host integrations remain separate work.
+The three shared additions are implemented in reccy's
+[`asset_sets.py`](../../reccy/reccy/runtime/asset_sets.py) and
+[`AssetStore.verified_path`](../../reccy/reccy/runtime/assets.py): aggregate
+preflight with retained acquisition contexts, verified leased paths, and bounded
+multi-file staging/verification with exclusive publication. See
+[reccy's API guide](../../reccy/doc/shared-features.md#asset-sets-and-finite-packages).
 
-### Asset-set preflight
+Consumer integrations are implemented in recs (selected-fragment and export
+preflight, cache-only policy, manifests and shared publication), safaz (single
+sample snapshots and portable SFZ packages), streamO (leased movie snapshots
+through encoder shutdown), and showCo (content-versioned media deployment,
+destination verification, and persistent upload inboxes).
 
-For recs edits, safaz instruments, enge sample preparation, and showCo/streamO
-media deployment, report every required asset's availability, authorization,
-verified identity and preparation failure before output begins. Include explicit
-offline/cache-only operation so a rehearsal or export can prove that no source
-needs fetching. Distinguish a metadata-only inventory from completed byte
-verification; checking existence is not a successful preflight.
+Remaining adoption boundaries:
 
-Reccy already opens one authorized retained identity through `open_expected()`;
-it lacks an asset-set preparation/report operation. A shared operation should
-accept host-enumerated requests, preserve their diagnostic labels, and retain
-leases or pins through the consuming operation. Each host enumerates score/SFZ
-dependencies and validates decoded facts. Do not move uFor traversal into reccy
-or grant access merely because bytes exist in a cache.
-
-### Managed paths for external consumers
-
-streamO's external media tools need paths, whereas reccy's verified read APIs
-return leased streams. `object_path()` exposes a storage path but does not itself
-verify or lease it; `export_entry()` makes a permanent single-file copy. Add a
-context-managed verified path operation for tools that cannot consume the open
-stream. It must protect the asset for the entire child-process lifetime and
-clean up any temporary materialization after that child exits. Prefer existing
-leased streams wherever the decoder accepts them. The host owns process
-lifecycle and any filename/format requirements. Do not persist transient
-`no-store` HTTP responses through this path.
-
-### Verified multi-file packages
-
-Extend single-entry export with a reusable finite-file manifest and staged
-package publication for recs, safaz instrument dependencies, and showCo's
-streamO media deployment. Deduplicate identical bytes where package semantics
-permit, reject conflicting destination paths, verify every member, and publish
-the package only after preparation succeeds. Destination verification must use
-the manifest's identities, not source filenames or transfer success alone.
-Failure must leave the previous usable package intact.
-
-Reccy can own bounded copying, identity verification, and publication primitives;
-hosts choose layout, enumerate dependencies, rewrite score/config references,
-and perform remote transfer. baccy may consume a completed manifest but retains
-its own permanent backup policy. This does not introduce a distributed
-transaction, automatic directory synchronization, or an archive URI scheme.
-
-Prioritize these finite-media integrations over new inbound HLS/DASH adapters:
-the reviewed applications provide concrete finite-file consumers, while
-streamO's outbound publishing is not evidence of demand for those adapters.
-Keep the stream/provider contracts below as planned host work, not implemented
-reccy features or requirements imposed on every project.
+- **enge and all enge-dependent work, including arpeg sample integration, are
+  explicitly deferred.** Do not change enge to complete this plan until resumed.
+- The conditional baccy, cntrl, lyte, meedee, and tuney opportunities in the audit
+  need concrete host import/distribution workflows before adding integrations.
+  Existing local loading does not justify adding URL options to those libraries.
+- Adopting existing HTTPS acquisition for streamO's feed is separate from the
+  three shared additions. Feed cursor and image-validation policy remain local.
+- Inbound stream adapters and Python providers below remain deferred host work;
+  they were excluded from this implementation scope. Outbound publishing does
+  not establish demand for inbound HLS/DASH adapters.
+- Automated tests do not qualify deployment to the Pi or live playback. Verify
+  version publication, configuration selection, and inbox preservation on a
+  separately authorized deployment before claiming operational acceptance.
 
 ## Finite-location integration
 
