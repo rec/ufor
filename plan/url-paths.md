@@ -6,6 +6,107 @@ sources, Python providers, capability checks, and sealing that remain outside
 the portable format library. The related storage work is in the
 [asset cache plan](asset-cache.md).
 
+## Project applicability audit
+
+Reviewed the local checkouts on 2026-11-04. These are integration opportunities,
+not claims that every project needs every location kind or has adopted reccy's
+asset APIs. Direct beneficiaries are **enge, recs, safaz, streamO, and showCo**.
+**arpeg** benefits through sample preparation in enge. **baccy, cntrl, lyte,
+meedee, and tuney** have narrower or conditional uses described below.
+**reccy** owns reusable infrastructure and **uFor** benefits from consistent host
+implementations. No current acquisition requirement was found for **dvice,
+enveLFO, nmr, or rec**.
+
+| Project / checkout | Evidence and useful scope |
+|---|---|
+| arpeg | The README describes sample-region realization through enge. Verified prepared samples benefit this path; the event core and browser synth need no Python URL resolver. Live sample playback remains unwired. |
+| baccy | `baccy/copy.py` snapshots and hashes local files, including actively growing recording logs. Reusable finite-file verification could help completed-file ingestion, but permanent backups, source stability, append-only log snapshots, and backup catalogue semantics must stay in baccy. An evictable cache cannot replace its backup store. |
+| cntrl | `cntrl/catalogue.py` reads controller definitions; maker tools load graphics and firmware. Verified finite inputs could help an explicit downloaded setup/graphics workflow. Current local catalogue loading alone does not justify remote resolution, and device flashing stays outside this plan. |
+| dvice | `dvice/discovery.py`, `poller.py`, and `supervision.py` supervise device discovery and processes. No media acquisition role; hosts resolve assets. |
+| enge | `enge/sampler.py` prepares immutable decoded sample buffers. Its preparation callers need verified encoded bytes and decoded-fact checks before rendering; acquisition must remain outside the render loop. |
+| enveLFO (`envelfo`) | `envelfo/runtime.py` and `patch.py` execute controls supplied by callers. No asset acquisition requirement in the control runtime. |
+| lyte | `lyte/authoring.py` uses configured uFor libraries. Verified distribution of score libraries is a possible host integration; current procedural pixel/DMX rendering does not require audio-stream or image adapters. Importing downloaded Python declarations still requires explicit trust. |
+| meedee | SMF, SYX, clip, and event-archive codecs accept file data (`meedee/smf.pyi`, `syx.pyi`, `archive.pyi`); `_ufor_cli.py` reads a local score. Hosts could acquire verified MIDI/event files before passing them to codecs. Native MIDI transport needs no URL handling. |
+| nmr | `nmr/words.py` reads bundled or explicitly supplied word lists. Stable vocabulary matters, but there is no current remote vocabulary workflow requiring an asset resolver. |
+| rec | The repository is a profile/resume/project dashboard, not a media runtime. No acquisition integration identified. |
+| reccy | Owns generic finite-byte acquisition, leases, retention, capture storage, and reusable additions below. It must not depend on uFor, NumPy, media decoders, or host-specific score policy. |
+| recs | `recs/recording/asset_resolver.py` already integrates finite locations for editing/export. Benefits from reusable preflight and package operations, plus the separately planned stream/provider adapters and capture lifecycle. |
+| safaz | `safaz/reader.py` resolves SFZ sample dependencies; `safaz/assets.py` opens samples separately for metadata, hash, and loop inspection. Preparing one verified snapshot for all inspection would keep those facts tied to the same bytes. SFZ parsing and embedded-loop interpretation remain in safaz. |
+| showCo (`showco`) | `showco/provision/media.py` deploys movie/photo inputs and configures streamO. Benefits from a verified media manifest and preflight before deployment, then verification at the destination. It delegates decoding and playback to streamO. |
+| streamO (`streamo`) | `streamo/image_feed.py` downloads bounded JPEGs; its media pipeline consumes photos and movies through external tools. Reuse current-URL acquisition and credential scoping, then retain image validation and feed cursors locally. Outbound RTMPS/Icecast publishing is not an inbound stream asset. |
+| tuney | `tuney/scale/scala_browser.py` loads a bundled ZIP of Scala definitions; `tuney/config/text_file.py` reads text. Explicit external tuning/preset/text imports could use finite-byte acquisition. No remote catalogue or new archive-location scheme is needed for the bundled resource. |
+| uFor (`ufor`) | Owns portable locations, identities, media declarations and conformance cases. Keep its explicit local library loader separate from host acquisition and never add network access or provider execution to core models. |
+
+## Existing reccy support and remaining shared additions
+
+Use the current implementations, rather than recreating them:
+
+- `runtime/assets.py` and `file_assets.py`: verified bounded finite-byte imports,
+  volume-root matching, immutable direct handles, snapshot copies, reader leases,
+  references/pins, retention, capacity limits, recovery, and single-entry export.
+- `runtime/http_assets.py`, `http_current.py`, and `http_freshness.py`: known-hash
+  HTTPS acquisition and separate mutable current-URL imports with freshness and
+  conditional requests. streamO's feed image import is a consumer opportunity,
+  not evidence that HTTP freshness is missing.
+- `runtime/git_assets.py`: both local and remote pinned-commit blob acquisition.
+  Hosts still provision and authorize the quota-limited transport repository.
+- `runtime/value_assets.py` and `capture.py`: deterministic encoded-result
+  caching and bounded fragment capture, including explicit gaps and recovery
+  evidence. They do not execute Python audio providers or decode stream protocols.
+
+The following additions are justified by the consumers above. Implement only
+generic byte/lifetime operations in reccy; host integrations remain separate work.
+
+### Asset-set preflight
+
+For recs edits, safaz instruments, enge sample preparation, and showCo/streamO
+media deployment, report every required asset's availability, authorization,
+verified identity and preparation failure before output begins. Include explicit
+offline/cache-only operation so a rehearsal or export can prove that no source
+needs fetching. Distinguish a metadata-only inventory from completed byte
+verification; checking existence is not a successful preflight.
+
+Reccy already opens one authorized retained identity through `open_expected()`;
+it lacks an asset-set preparation/report operation. A shared operation should
+accept host-enumerated requests, preserve their diagnostic labels, and retain
+leases or pins through the consuming operation. Each host enumerates score/SFZ
+dependencies and validates decoded facts. Do not move uFor traversal into reccy
+or grant access merely because bytes exist in a cache.
+
+### Managed paths for external consumers
+
+streamO's external media tools need paths, whereas reccy's verified read APIs
+return leased streams. `object_path()` exposes a storage path but does not itself
+verify or lease it; `export_entry()` makes a permanent single-file copy. Add a
+context-managed verified path operation for tools that cannot consume the open
+stream. It must protect the asset for the entire child-process lifetime and
+clean up any temporary materialization after that child exits. Prefer existing
+leased streams wherever the decoder accepts them. The host owns process
+lifecycle and any filename/format requirements. Do not persist transient
+`no-store` HTTP responses through this path.
+
+### Verified multi-file packages
+
+Extend single-entry export with a reusable finite-file manifest and staged
+package publication for recs, safaz instrument dependencies, and showCo's
+streamO media deployment. Deduplicate identical bytes where package semantics
+permit, reject conflicting destination paths, verify every member, and publish
+the package only after preparation succeeds. Destination verification must use
+the manifest's identities, not source filenames or transfer success alone.
+Failure must leave the previous usable package intact.
+
+Reccy can own bounded copying, identity verification, and publication primitives;
+hosts choose layout, enumerate dependencies, rewrite score/config references,
+and perform remote transfer. baccy may consume a completed manifest but retains
+its own permanent backup policy. This does not introduce a distributed
+transaction, automatic directory synchronization, or an archive URI scheme.
+
+Prioritize these finite-media integrations over new inbound HLS/DASH adapters:
+the reviewed applications provide concrete finite-file consumers, while
+streamO's outbound publishing is not evidence of demand for those adapters.
+Keep the stream/provider contracts below as planned host work, not implemented
+reccy features or requirements imposed on every project.
+
 ## Finite-location integration
 
 Recs already resolves verified relative, volume, HTTPS download, and Git file
