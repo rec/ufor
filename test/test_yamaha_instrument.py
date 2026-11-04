@@ -115,7 +115,7 @@ def test_tx81z_template_requires_explicit_additional_buffer() -> None:
 
 @pytest.mark.parametrize('kind', ['dx7', 'tx81z'])
 @pytest.mark.parametrize(
-    'controller', ['pitch_bend', 'modulation_wheel', 'breath', 'foot']
+    'controller', ['pitch_bend', 'modulation_wheel', 'breath', 'foot', 'portamento']
 )
 def test_yamaha_controller_targets_round_trip_with_bounded_domains(
     kind: str, controller: str
@@ -136,7 +136,7 @@ def test_yamaha_controller_targets_round_trip_with_bounded_domains(
                     'scope': 'voice',
                     'minimum': -1 if controller == 'pitch_bend' else 0,
                     'maximum': 1,
-                    'default': 0,
+                    'default': 1 if controller == 'portamento' else 0,
                 }
             ]
         },
@@ -144,6 +144,10 @@ def test_yamaha_controller_targets_round_trip_with_bounded_domains(
     if kind == 'tx81z':
         template['additional'] = bytes(23).hex()
     raw['body']['voices'] = [template]
+    if kind == 'dx7' and controller == 'portamento':
+        with pytest.raises(ValidationError):
+            SynthInstrumentScore.model_validate(raw)
+        return
     score = SynthInstrumentScore.model_validate(raw)
     assert parse_score(score_toml(score)) == score
     assert SynthInstrumentScore.model_validate_json(score.model_dump_json()) == score

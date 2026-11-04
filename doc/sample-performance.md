@@ -566,6 +566,15 @@ They describe control inputs, not tuning cents or direct audio gain. Rendering
 consumers apply the model's controller assignments and must reject unimplemented
 targets. Patch bytes are not rewritten when controller values change.
 
+TX81Z templates additionally accept `yamaha.portamento`, with unit `ratio`,
+default 1 and a domain inside 0 through 1. Values below 0.5 disable full-time
+portamento; values at or above 0.5 enable it. A MIDI CC65 binding mapped from
+0..127 to 0..1 therefore switches at value 64. Turning it off ends an active
+glide at its target; turning it on permits subsequent glides without restarting
+an ended glide. Fingered portamento is independent of this switch. Existing
+scope and smoothing rules apply before thresholding. DX7 templates do not
+accept this target.
+
 DX7 templates also carry `performance` settings outside the lossless patch.
 `pitch_bend_range` is an integer from 0 to 12 semitones, default 2.
 `modulation_wheel`, `breath` and `foot` each have an integer `range` from 0 to

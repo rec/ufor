@@ -188,6 +188,13 @@ class YamahaTX81ZVoice(YamahaVoiceTemplate):
     patch: tx81z.TX81ZVoice
     additional: tx81z.TX81ZAdditional
 
+    def parameter_definition(
+        self, target: modulation.Target
+    ) -> tuple[modulation.Unit, float]:
+        if target.name == 'yamaha' and target.parameter == 'portamento':
+            return modulation.Unit.ratio, 1.0
+        return super().parameter_definition(target)
+
     @field_validator('patch', mode='before', json_schema_input_type=str)
     @classmethod
     def decode_patch(cls, value: object) -> object:
