@@ -13,6 +13,26 @@ class DX7FrequencyMode(StrEnum):
     fixed = 'fixed'
 
 
+class DX7ControllerAssignment(Model):
+    """Function-mode range and independent controller destinations."""
+
+    range: int = Field(default=0, ge=0, le=99, strict=True)
+    pitch: bool = False
+    amplitude: bool = False
+    eg_bias: bool = False
+
+
+class DX7Performance(Model):
+    """Controller settings stored separately from the DX7 voice dump."""
+
+    pitch_bend_range: int = Field(default=2, ge=0, le=12, strict=True)
+    modulation_wheel: DX7ControllerAssignment = Field(
+        default_factory=DX7ControllerAssignment
+    )
+    breath: DX7ControllerAssignment = Field(default_factory=DX7ControllerAssignment)
+    foot: DX7ControllerAssignment = Field(default_factory=DX7ControllerAssignment)
+
+
 class DX7Operator(Model):
     """One DX7 operator decoded from the stored VCED parameter bytes."""
 

@@ -167,6 +167,7 @@ class YamahaDX7Voice(YamahaVoiceTemplate):
 
     yamaha: Literal['dx7'] = 'dx7'
     patch: dx7.DX7Voice
+    performance: dx7.DX7Performance = Field(default_factory=dx7.DX7Performance)
 
     @field_validator('patch', mode='before', json_schema_input_type=str)
     @classmethod

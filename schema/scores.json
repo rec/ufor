@@ -4197,6 +4197,60 @@
       "title": "Curve",
       "type": "object"
     },
+    "DX7ControllerAssignment": {
+      "additionalProperties": false,
+      "description": "Function-mode range and independent controller destinations.",
+      "properties": {
+        "range": {
+          "default": 0,
+          "maximum": 99,
+          "minimum": 0,
+          "title": "Range",
+          "type": "integer"
+        },
+        "pitch": {
+          "default": false,
+          "title": "Pitch",
+          "type": "boolean"
+        },
+        "amplitude": {
+          "default": false,
+          "title": "Amplitude",
+          "type": "boolean"
+        },
+        "eg_bias": {
+          "default": false,
+          "title": "Eg Bias",
+          "type": "boolean"
+        }
+      },
+      "title": "DX7ControllerAssignment",
+      "type": "object"
+    },
+    "DX7Performance": {
+      "additionalProperties": false,
+      "description": "Controller settings stored separately from the DX7 voice dump.",
+      "properties": {
+        "pitch_bend_range": {
+          "default": 2,
+          "maximum": 12,
+          "minimum": 0,
+          "title": "Pitch Bend Range",
+          "type": "integer"
+        },
+        "modulation_wheel": {
+          "$ref": "#/$defs/DX7ControllerAssignment"
+        },
+        "breath": {
+          "$ref": "#/$defs/DX7ControllerAssignment"
+        },
+        "foot": {
+          "$ref": "#/$defs/DX7ControllerAssignment"
+        }
+      },
+      "title": "DX7Performance",
+      "type": "object"
+    },
     "Descending": {
       "additionalProperties": false,
       "properties": {
@@ -16985,6 +17039,9 @@
         },
         "patch": {
           "type": "string"
+        },
+        "performance": {
+          "$ref": "#/$defs/DX7Performance"
         }
       },
       "required": [

@@ -566,6 +566,15 @@ They describe control inputs, not tuning cents or direct audio gain. Rendering
 consumers apply the model's controller assignments and must reject unimplemented
 targets. Patch bytes are not rewritten when controller values change.
 
+DX7 templates also carry `performance` settings outside the lossless patch.
+`pitch_bend_range` is an integer from 0 to 12 semitones, default 2.
+`modulation_wheel`, `breath` and `foot` each have an integer `range` from 0 to
+99 and independent boolean `pitch`, `amplitude` and `eg_bias` assignments.
+Each range defaults to zero and each assignment defaults to false. These are
+portable neutral defaults, not recovered hardware settings. The original DX7
+voice dump contains none of these function settings. See the
+[DX7 owner's manual, Function Parameters](https://homepages.abdn.ac.uk/d.j.benson/pages/dx7/manuals/dx7-man.pdf).
+
 Shared synth preparation retains template identity, key, resolved pitch, channel
 routes and lifecycle actions. Yamaha VoiceStart actions additionally carry the
 original 0–1 velocity directly, including for release-triggered notes; other

@@ -3,6 +3,7 @@ from pydantic import ValidationError
 from test_synth import fixture
 
 from ufor.codec import parse_score, score_schema, score_toml
+from ufor.dx7 import DX7ControllerAssignment, DX7Performance
 from ufor.events import Release, Trigger
 from ufor.synth import SynthInstrumentScore, YamahaDX7Voice, YamahaTX81ZVoice
 from ufor.synth_trace import SynthTrace, VoiceStart, prepare
@@ -24,6 +25,13 @@ def test_yamaha_patches_and_release_velocity_survive_portable_round_trips(
     }
     if kind == 'tx81z':
         template['additional'] = bytes(range(23)).hex()
+    else:
+        template['performance'] = {
+            'pitch_bend_range': 12,
+            'modulation_wheel': {'range': 99, 'pitch': True},
+            'breath': {'range': 75, 'amplitude': True, 'eg_bias': True},
+            'foot': {'range': 25, 'pitch': True, 'amplitude': True},
+        }
     raw['body']['voices'] = [
         template,
         {**template, 'name': 'release', 'trigger': 'release'},
@@ -60,6 +68,39 @@ def test_yamaha_patches_and_release_velocity_survive_portable_round_trips(
     assert [a.velocity for a in starts] == [0.25, 0.25]
     assert all(a.pitch_hz == 445 and a.oscillator is None for a in starts)
     assert all(a.settings.patch.data == payload for a in starts)
+    if kind == 'dx7':
+        assert all(
+            a.settings.performance == DX7Performance(**template['performance'])
+            for a in starts
+        )
+
+
+def test_dx7_performance_defaults_leave_controller_assignments_disabled() -> None:
+    previous = fixture()['body']['voices'][0]
+    voice = YamahaDX7Voice(
+        name='voice',
+        mapping=previous['mapping'],
+        channels=previous['channels'],
+        patch=bytes(155).hex(),
+    )
+    assert voice.performance.pitch_bend_range == 2
+    for a in (
+        voice.performance.modulation_wheel,
+        voice.performance.breath,
+        voice.performance.foot,
+    ):
+        assert a.range == 0
+        assert not (a.pitch or a.amplitude or a.eg_bias)
+
+
+@pytest.mark.parametrize('value', [-1, 100, 0.5, True])
+def test_dx7_performance_rejects_invalid_hardware_ranges(value: object) -> None:
+    with pytest.raises(ValidationError):
+        DX7ControllerAssignment(range=value)
+    with pytest.raises(ValidationError):
+        DX7Performance(pitch_bend_range=value)
+    with pytest.raises(ValidationError):
+        DX7Performance(pitch_bend_range=13)
 
 
 def test_tx81z_template_requires_explicit_additional_buffer() -> None:
