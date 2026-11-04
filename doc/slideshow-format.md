@@ -22,7 +22,7 @@ its offset makes synchronization inspectable.
 A run record stores ordered entered, advanced, backed-up, held, cue, transition,
 caption, and failure observations. It is not yet a complete replay contract:
 pause/resume, media position, and interrupted playback need the decisions in
-the [player plan](../plan/slyde.md). Image/video decoding, display output, audio
+the [player plan](https://github.com/rec/ufor/blob/main/plan/slyde.md). Image/video decoding, display output, audio
 playback, caption rendering, and cue delivery are host work. Finite asset
 declarations may omit measured hashes and lengths; a host must establish any
 integrity guarantees required by its package policy.
