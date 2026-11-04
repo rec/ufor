@@ -1,4 +1,4 @@
-"""Lossless TX81Z voice-dump inspection, including additional operator data."""
+"""Lossless TX81Z voice and performance edit-buffer inspection."""
 
 from __future__ import annotations
 
@@ -147,6 +147,88 @@ class TX81ZAdditionalOperator(Model):
     eg_shift: int = Field(ge=0, le=3, strict=True)
 
 
+class TX81ZPerformance(Model):
+    """Raw PCED parameters, excluding the ten-byte Yamaha format identifier."""
+
+    data: bytes = Field(strict=True)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if len(value) != 110 or any(x >= 128 for x in value):
+            raise ValueError('TX81Z PCED data must contain 110 seven-bit bytes')
+        return value
+
+    def instrument(self, number: int) -> TX81ZPerformanceInstrument:
+        if not 1 <= number <= 8:
+            raise ValueError('TX81Z instrument number must be from 1 through 8')
+        start = (number - 1) * 12
+        data = self.data[start : start + 12]
+        return TX81ZPerformanceInstrument(
+            number=number,
+            maximum_notes=data[0],
+            voice_number=data[1] * 128 + data[2],
+            receive_channel=data[3],
+            low_note=data[4],
+            high_note=data[5],
+            detune=data[6],
+            note_shift=data[7],
+            volume=data[8],
+            output_assign=data[9],
+            lfo_select=data[10],
+            micro_tune_enable=data[11],
+        )
+
+    @cached_property
+    def instruments(self) -> list[TX81ZPerformanceInstrument]:
+        return [self.instrument(x) for x in range(1, 9)]
+
+    @cached_property
+    def parameter_diagnostic(self) -> str | None:
+        for number in range(1, 9):
+            try:
+                self.instrument(number)
+            except ValidationError as error:
+                field = error.errors()[0]['loc'][0]
+                return f'TX81Z instrument {number} has invalid {field}'
+        for index, maximum, name in (
+            (96, 12, 'micro tune table'),
+            (97, 1, 'assign mode'),
+            (98, 3, 'effect select'),
+            (99, 11, 'micro tune key'),
+        ):
+            if self.data[index] > maximum:
+                return f'TX81Z performance has invalid {name}'
+        if any(x < 32 for x in self.data[100:110]):
+            return 'TX81Z performance has invalid title'
+        return None
+
+    @property
+    def title(self) -> str:
+        return self.data[100:110].decode('ascii')
+
+
+class TX81ZPerformanceInstrument(Model):
+    """One PCED allocation; values retain Yamaha's wire numbering and centers.
+
+    Channel 16 is omni. LFO selectors are off, first allocated instrument,
+    second allocated instrument, and this instrument's pitch-only vibrato.
+    """
+
+    number: int = Field(ge=1, le=8, strict=True)
+    maximum_notes: int = Field(ge=0, le=8, strict=True)
+    voice_number: int = Field(ge=0, le=159, strict=True)
+    receive_channel: int = Field(ge=0, le=16, strict=True)
+    low_note: int = Field(ge=0, le=127, strict=True)
+    high_note: int = Field(ge=0, le=127, strict=True)
+    detune: int = Field(ge=0, le=14, strict=True)
+    note_shift: int = Field(ge=0, le=48, strict=True)
+    volume: int = Field(ge=0, le=99, strict=True)
+    output_assign: int = Field(ge=0, le=3, strict=True)
+    lfo_select: int = Field(ge=0, le=3, strict=True)
+    micro_tune_enable: int = Field(ge=0, le=1, strict=True)
+
+
 class TX81ZEntry(Model):
     """One complete message or opaque span at its original byte offset."""
 
@@ -172,7 +254,20 @@ class TX81ZEntry(Model):
         """Raw ACED payload, or None for VCED and unsupported entries."""
         return (
             TX81ZAdditional(data=self.data[16:-2])
-            if self.diagnostic is None and self.data[3] == 0x7E
+            if self.diagnostic is None
+            and self.data[3] == 0x7E
+            and self.data[6:16] == b'LM  8976AE'
+            else None
+        )
+
+    @cached_property
+    def performance(self) -> TX81ZPerformance | None:
+        """Raw PCED payload, or None for other and unsupported entries."""
+        return (
+            TX81ZPerformance(data=self.data[16:-2])
+            if self.diagnostic is None
+            and self.data[3] == 0x7E
+            and self.data[6:16] == b'LM  8976PE'
             else None
         )
 
@@ -207,6 +302,10 @@ def _diagnostic(data: bytes) -> str | None:
     elif data[3:6] == bytes([0x7E, 0, 33]):
         if len(data) != 41 or data[6:16] != b'LM  8976AE':
             return 'unsupported TX81Z ACED message'
+        payload = data[6:-2]
+    elif data[3:6] == bytes([0x7E, 0, 120]):
+        if len(data) != 128 or data[6:16] != b'LM  8976PE':
+            return 'unsupported TX81Z PCED message'
         payload = data[6:-2]
     else:
         return 'unsupported TX81Z voice message'

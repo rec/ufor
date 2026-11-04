@@ -624,3 +624,28 @@ specify the hardware's unresolved multitimbral behavior. Consumers must declare
 their DAC model and reject these groups if unsupported. Filter state belongs to
 the group, persists across voice retirement and must be included in snapshots.
 uFor supplies ownership and ordering, not DAC arithmetic or audio execution.
+
+### TX81Z performance edit-buffer inspection
+
+`parse_tx81z` recognizes the PCED bulk message with format identifier
+`LM  8976PE` and byte count 120. `TX81ZEntry.performance` retains its 110
+parameter bytes, separately from that identifier. Framing, length and checksum
+errors remain opaque entries; out-of-range parameters remain raw payloads with
+a `parameter_diagnostic`. VCED and ACED accessors do not return PCED data.
+
+`TX81ZPerformance.instruments` decodes eight twelve-byte allocations in front
+panel order. Values retain wire numbering: voice numbers are 0 through 159,
+receive channels 0 through 15 with 16 meaning omni, detune is centered at 7,
+and note shift at 24. LFO selectors 0 through 3 mean off, first allocated
+instrument, second allocated instrument, and this instrument's pitch-only
+vibrato. Allocated means maximum notes greater than zero, independently of
+which notes currently sound. Output assignment is the original two-bit mask;
+micro-tune enable remains the original zero/one value. Global parameters and
+the ten-character title remain in the raw payload, with range diagnostics.
+
+This is inspection of the documented edit buffer, not performance execution
+or implicit resolution of voice-bank numbers into library templates. It does
+not claim support for PMEM banks, performance effects or micro-tuning playback.
+The layouts and selector meanings come from Yamaha's
+[TX81Z owner's manual](https://usa.yamaha.com/files/download/other_assets/9/316769/TX81ZE.pdf),
+printed pages 40, 69 and 73.

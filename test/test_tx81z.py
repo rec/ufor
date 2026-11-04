@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.tx81z import TX81ZAdditional, TX81ZVoice, parse_tx81z
+from ufor.tx81z import TX81ZAdditional, TX81ZPerformance, TX81ZVoice, parse_tx81z
 
 
 def message(header: bytes, payload: bytes) -> bytes:
@@ -26,6 +26,80 @@ def test_tx81z_parses_aced_additional_operator_data() -> None:
     assert entry.diagnostic is None
     assert entry.voice is None
     assert entry.additional == TX81ZAdditional(data=bytes(range(23)))
+    assert entry.performance is None
+
+
+def performance_data() -> bytes:
+    data = bytearray(110)
+    for number in range(8):
+        data[number * 12 : (number + 1) * 12] = bytes(
+            [number, 1, 24 + number, 16, number, 127, 7, 24, 99, 3, number % 4, 1]
+        )
+    data[96:100] = bytes([12, 1, 3, 11])
+    data[100:110] = b'PERFORM123'
+    return bytes(data)
+
+
+def test_tx81z_decodes_performance_allocations_without_changing_data() -> None:
+    data = performance_data()
+    raw = message(bytes([0x7E, 0, 120]), b'LM  8976PE' + data)
+    entry = parse_tx81z(raw)[0]
+    performance = entry.performance
+    assert entry.diagnostic is None
+    assert entry.voice is None
+    assert entry.additional is None
+    assert entry.data == raw
+    assert performance is not None
+    assert performance.data == data
+    assert performance.parameter_diagnostic is None
+    assert performance.title == 'PERFORM123'
+    for number, instrument in enumerate(performance.instruments, 1):
+        assert instrument.number == number
+        assert instrument.maximum_notes == number - 1
+        assert instrument.voice_number == 151 + number
+        assert instrument.receive_channel == 16
+        assert instrument.low_note == number - 1
+        assert instrument.high_note == 127
+        assert instrument.detune == 7
+        assert instrument.note_shift == 24
+        assert instrument.volume == 99
+        assert instrument.output_assign == 3
+        assert instrument.lfo_select == (number - 1) % 4
+        assert instrument.micro_tune_enable == 1
+
+
+@pytest.mark.parametrize('index', [0, 1, 3, 6, 7, 8, 9, 10, 11, 96, 97, 98, 99, 100])
+def test_tx81z_preserves_invalid_performance_parameters(index: int) -> None:
+    data = bytearray(performance_data())
+    data[index] = 0 if index == 100 else 127
+    entry = parse_tx81z(message(bytes([0x7E, 0, 120]), b'LM  8976PE' + data))[0]
+    assert entry.diagnostic is None
+    assert entry.performance is not None
+    assert entry.performance.data == data
+    assert 'invalid' in (entry.performance.parameter_diagnostic or '')
+
+
+@pytest.mark.parametrize('fault', ['length', 'identifier', 'checksum'])
+def test_tx81z_preserves_malformed_performance_messages(fault: str) -> None:
+    raw = bytearray(message(bytes([0x7E, 0, 120]), b'LM  8976PE' + performance_data()))
+    if fault == 'length':
+        del raw[20]
+    elif fault == 'identifier':
+        raw[15] = ord('M')
+    else:
+        raw[-2] ^= 1
+    entries = parse_tx81z(b'opaque' + raw)
+    assert b''.join(x.data for x in entries) == b'opaque' + raw
+    assert entries[1].offset == 6
+    assert entries[1].diagnostic is not None
+    assert entries[1].performance is None
+    assert entries[1].additional is None
+
+
+@pytest.mark.parametrize('data', [bytes(109), bytes(111), bytes([128]) + bytes(109)])
+def test_tx81z_performance_rejects_invalid_payload_shapes(data: bytes) -> None:
+    with pytest.raises(ValidationError, match='110 seven-bit'):
+        TX81ZPerformance(data=data)
 
 
 def test_tx81z_decodes_paired_operator_parameters() -> None:

@@ -23,6 +23,7 @@ historical wire format, not the producer. safaz owns SFZ conversion.
 | Describe audio effect graphs | `audio_effects.EffectGraph`, `ActionBatch`, `validate_action`, `validate_batch`; execution belongs to enge |
 | Describe arpeggiation | `arpeggiator.ArpeggiatorScore`; `arpeggiator_capture` owns captured phrases/occurrences; `arpeggiator_ports` owns controls and notifications |
 | Read Yamaha patch bytes | `vl70.parse_vl70`, `dx7.parse_dx7`, `tx81z.parse_tx81z`; no device I/O |
+| Inspect TX81Z performance allocations | `tx81z.TX81ZEntry.performance`, `TX81ZPerformance.instruments`; lossless PCED bytes and decoded allocation/LFO selectors |
 | Prepare instrument lifecycles | `samples.trace.prepare` returns `SampleTrace`; `synth_trace.prepare` returns `SynthTrace`; `instrument_trace` owns common actions and `LifecycleSnapshot` |
 | Evolve instrument controls | `samples.controls.initial_control`, `control_event`, `control_at`; `instrument_trace.TriggerContext` preserves onset initialization |
 | Realize scalar instrument pitch | `synth.frequency` consumes prepared Hz and final routed cents; `samples.playback.pitch_ratio` combines tracked pitch, tuning, and resolved variation |
