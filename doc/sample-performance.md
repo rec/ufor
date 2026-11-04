@@ -557,6 +557,15 @@ playable profile. The rendering consumer must reject unsupported or malformed
 parameters before starting audio. Yamaha operator envelopes come from the
 patch; a second generic amplitude envelope is not accepted on these templates.
 
+Yamaha modulation targets use `name = "yamaha"` and one of `pitch_bend`,
+`modulation_wheel`, `breath`, or `foot` as the parameter. Each uses unit `ratio`
+and default zero. Pitch-bend domains must stay inside -1 through 1; the other
+controller domains must stay inside 0 through 1. Existing bindings, scoped
+sources, mappings and smoothing deliver these normalized controller positions.
+They describe control inputs, not tuning cents or direct audio gain. Rendering
+consumers apply the model's controller assignments and must reject unimplemented
+targets. Patch bytes are not rewritten when controller values change.
+
 Shared synth preparation retains template identity, key, resolved pitch, channel
 routes and lifecycle actions. Yamaha VoiceStart actions additionally carry the
 original 0–1 velocity directly, including for release-triggered notes; other

@@ -133,7 +133,36 @@ class FMVoice(VoiceTemplate):
         return super().parameter_definition(target)
 
 
-class YamahaDX7Voice(VoiceTemplate):
+class YamahaVoiceTemplate(VoiceTemplate):
+    """Shared Yamaha envelope ownership and normalized hardware controls."""
+
+    @model_validator(mode='after')
+    def yamaha_envelope(self) -> Self:
+        if self.envelope is not None:
+            raise ValueError('Yamaha voices use patch operator envelopes')
+        for p in self.modulation.parameters:
+            if p.target.name == 'yamaha':
+                minimum = -1 if p.target.parameter == 'pitch_bend' else 0
+                if p.minimum < minimum or p.maximum > 1:
+                    raise ValueError(
+                        'Yamaha controller domain exceeds its normalized range'
+                    )
+        return self
+
+    def parameter_definition(
+        self, target: modulation.Target
+    ) -> tuple[modulation.Unit, float]:
+        if target.name == 'yamaha' and target.parameter in (
+            'pitch_bend',
+            'modulation_wheel',
+            'breath',
+            'foot',
+        ):
+            return modulation.Unit.ratio, 0.0
+        return super().parameter_definition(target)
+
+
+class YamahaDX7Voice(YamahaVoiceTemplate):
     """A lossless Yamaha patch with dedicated rate/level envelope semantics."""
 
     yamaha: Literal['dx7'] = 'dx7'
@@ -150,14 +179,8 @@ class YamahaDX7Voice(VoiceTemplate):
     def encode_patch(self, value: dx7.DX7Voice) -> str:
         return value.data.hex()
 
-    @model_validator(mode='after')
-    def yamaha_envelope(self) -> Self:
-        if self.envelope is not None:
-            raise ValueError('Yamaha voices use patch operator envelopes')
-        return self
 
-
-class YamahaTX81ZVoice(VoiceTemplate):
+class YamahaTX81ZVoice(YamahaVoiceTemplate):
     """Explicitly paired TX81Z VCED and ACED edit buffers."""
 
     yamaha: Literal['tx81z'] = 'tx81z'
@@ -185,12 +208,6 @@ class YamahaTX81ZVoice(VoiceTemplate):
     @field_serializer('patch', 'additional', when_used='json')
     def encode_patch(self, value: tx81z.TX81ZVoice | tx81z.TX81ZAdditional) -> str:
         return value.data.hex()
-
-    @model_validator(mode='after')
-    def yamaha_envelope(self) -> Self:
-        if self.envelope is not None:
-            raise ValueError('Yamaha voices use patch operator envelopes')
-        return self
 
 
 type SynthSource = SynthVoice | FMVoice | NoiseVoice | YamahaDX7Voice | YamahaTX81ZVoice
