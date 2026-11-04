@@ -533,3 +533,26 @@ pin multi-draw random progression and three shuffle bags. Common sample/synth
 layered replacement and cross-part choke isolation. Both preparers consume the
 same lifecycle cases in tests; sample-specific inheritance and serialized synth
 settings retain their dedicated regression tests.
+
+## Yamaha Synth Voice Templates
+
+Synth instruments can use `yamaha = "dx7"` or `yamaha = "tx81z"` templates.
+These are dedicated Yamaha profiles, separate from the general `fm` graph.
+The `patch` field contains the lossless voice payload encoded as hexadecimal:
+155-byte VCED or 128-byte packed voice data for DX7, or 93-byte VCED for TX81Z.
+TX81Z also requires an explicit `additional` field containing its 23-byte ACED
+payload in hexadecimal. Pairing is never inferred from neighboring messages.
+Python templates retain the existing DX7Voice/TX81ZVoice/TX81ZAdditional objects;
+JSON and TOML serialization use the hexadecimal fields.
+
+Structural admission preserves parameter bytes even when they are outside a
+playable profile. The rendering consumer must reject unsupported or malformed
+parameters before starting audio. Yamaha operator envelopes come from the
+patch; a second generic amplitude envelope is not accepted on these templates.
+
+Shared synth preparation retains template identity, key, resolved pitch, channel
+routes and lifecycle actions. Yamaha VoiceStart actions additionally carry the
+original 0–1 velocity directly, including for release-triggered notes; other
+synth starts retain their existing control-context velocity contract. Sustain
+triggered Yamaha voices use the control value that selected the voice. These
+portable definitions and traces do not implement a synthesis engine.

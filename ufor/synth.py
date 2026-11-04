@@ -3,10 +3,10 @@
 from fractions import Fraction
 from typing import Annotated, Literal, Self
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_serializer, field_validator, model_validator
 from reccy.configuration import units
 
-from . import base, control, modulation
+from . import base, control, dx7, modulation, tx81z
 from .base import Identifier, Model, unique
 from .envelfo import Envelope
 from .events import ControlChange, PerformanceEvent, Trigger
@@ -133,6 +133,69 @@ class FMVoice(VoiceTemplate):
         return super().parameter_definition(target)
 
 
+class YamahaDX7Voice(VoiceTemplate):
+    """A lossless Yamaha patch with dedicated rate/level envelope semantics."""
+
+    yamaha: Literal['dx7'] = 'dx7'
+    patch: dx7.DX7Voice
+
+    @field_validator('patch', mode='before', json_schema_input_type=str)
+    @classmethod
+    def decode_patch(cls, value: object) -> object:
+        return (
+            dx7.DX7Voice(data=bytes.fromhex(value)) if isinstance(value, str) else value
+        )
+
+    @field_serializer('patch', when_used='json')
+    def encode_patch(self, value: dx7.DX7Voice) -> str:
+        return value.data.hex()
+
+    @model_validator(mode='after')
+    def yamaha_envelope(self) -> Self:
+        if self.envelope is not None:
+            raise ValueError('Yamaha voices use patch operator envelopes')
+        return self
+
+
+class YamahaTX81ZVoice(VoiceTemplate):
+    """Explicitly paired TX81Z VCED and ACED edit buffers."""
+
+    yamaha: Literal['tx81z'] = 'tx81z'
+    patch: tx81z.TX81ZVoice
+    additional: tx81z.TX81ZAdditional
+
+    @field_validator('patch', mode='before', json_schema_input_type=str)
+    @classmethod
+    def decode_patch(cls, value: object) -> object:
+        return (
+            tx81z.TX81ZVoice(data=bytes.fromhex(value))
+            if isinstance(value, str)
+            else value
+        )
+
+    @field_validator('additional', mode='before', json_schema_input_type=str)
+    @classmethod
+    def decode_additional(cls, value: object) -> object:
+        return (
+            tx81z.TX81ZAdditional(data=bytes.fromhex(value))
+            if isinstance(value, str)
+            else value
+        )
+
+    @field_serializer('patch', 'additional', when_used='json')
+    def encode_patch(self, value: tx81z.TX81ZVoice | tx81z.TX81ZAdditional) -> str:
+        return value.data.hex()
+
+    @model_validator(mode='after')
+    def yamaha_envelope(self) -> Self:
+        if self.envelope is not None:
+            raise ValueError('Yamaha voices use patch operator envelopes')
+        return self
+
+
+type SynthSource = SynthVoice | FMVoice | NoiseVoice | YamahaDX7Voice | YamahaTX81ZVoice
+
+
 class SynthInstrument(Model):
     """Synth voice templates and their shared performance declarations."""
 
@@ -140,7 +203,7 @@ class SynthInstrument(Model):
     voice_policy: VoicePolicy | None = None
     sustain: Sustain | None = None
     articulations: Articulations | None = None
-    voices: list[SynthVoice | FMVoice | NoiseVoice] = Field(min_length=1)
+    voices: list[SynthSource] = Field(min_length=1)
 
     @model_validator(mode='after')
     def instrument_values(self) -> Self:

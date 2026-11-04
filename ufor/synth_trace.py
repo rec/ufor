@@ -7,7 +7,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, model_validator
 
 from . import envelfo_random
-from .base import Identifier, Model, unique
+from .base import Identifier, Model, UnitInterval, unique
 from .control import TempoMap, TransportSeekError
 from .events import (
     ControlChange,
@@ -36,13 +36,21 @@ from .noise import stream_key
 from .oscillator import Oscillator
 from .samples import enums
 from .samples.processing import ChannelRoute
-from .synth import FMVoice, NoiseVoice, SynthInstrument, SynthVoice
+from .synth import (
+    NoiseVoice,
+    SynthInstrument,
+    SynthSource,
+    SynthVoice,
+    YamahaDX7Voice,
+    YamahaTX81ZVoice,
+)
 
 
 class VoiceStart(LifecycleVoiceStart):
     oscillator: Oscillator | None = None
     channels: list[ChannelRoute]
-    settings: SynthVoice | FMVoice | NoiseVoice
+    settings: SynthSource
+    velocity: UnitInterval | None = Field(default=None, exclude_if=lambda v: v is None)
 
     noise_key: int | None = Field(
         default=None, strict=True, ge=0, lt=2**64, exclude_if=lambda v: v is None
@@ -50,6 +58,12 @@ class VoiceStart(LifecycleVoiceStart):
 
     @model_validator(mode='after')
     def source_matches_settings(self) -> Self:
+        if isinstance(self.settings, (YamahaDX7Voice, YamahaTX81ZVoice)) != (
+            self.velocity is not None
+        ):
+            raise ValueError(
+                'Yamaha starts require velocity; other synth starts forbid it'
+            )
         expected = (
             self.settings.oscillator if isinstance(self.settings, SynthVoice) else None
         )
@@ -149,7 +163,7 @@ def prepare(
 
     def selected_voices(
         kind: enums.TriggerKind, key: int, velocity: float
-    ) -> list[SynthVoice | FMVoice | NoiseVoice]:
+    ) -> list[SynthSource]:
         return [
             voice
             for voice in instrument.voices
@@ -188,15 +202,17 @@ def prepare(
         voices.remove(voice)
 
     def start_voices(
-        selected: list[SynthVoice | FMVoice | NoiseVoice],
+        selected: list[SynthSource],
         event: PerformanceEvent,
         part: Identifier,
         trigger_id: Identifier | None,
         key: int,
         pitch_hz: float | None = None,
+        velocity: float = 1,
     ) -> None:
         nonlocal next_voice
         pitch_hz = event.pitch_hz if isinstance(event, Trigger) else pitch_hz
+        velocity = event.velocity if isinstance(event, Trigger) else velocity
         for voice in list(voices):
             rules = [
                 c
@@ -266,6 +282,9 @@ def prepare(
                     else None,
                     channels=template.channels,
                     settings=template,
+                    velocity=velocity
+                    if isinstance(template, (YamahaDX7Voice, YamahaTX81ZVoice))
+                    else None,
                     noise_key=stream_key(seed, voice_id)
                     if isinstance(template, NoiseVoice)
                     else None,
@@ -294,7 +313,12 @@ def prepare(
         }
         for key in sorted(keys):
             start_voices(
-                selected_voices(kind, key, event.value), event, part, None, key
+                selected_voices(kind, key, event.value),
+                event,
+                part,
+                None,
+                key,
+                velocity=event.value,
             )
 
     def update_trigger(trigger: ActiveTrigger, **changes: object) -> ActiveTrigger:
@@ -388,6 +412,7 @@ def prepare(
                                     trigger.trigger_id,
                                     trigger.key,
                                     trigger.pitch_hz,
+                                    trigger.velocity,
                                 )
                                 for voice in list(start_template_voices(trigger)):
                                     retire(
@@ -428,6 +453,7 @@ def prepare(
                         trigger.trigger_id,
                         trigger.key,
                         trigger.pitch_hz,
+                        trigger.velocity,
                     )
                 pressed = sustain.get(
                     trigger.part,
@@ -448,6 +474,7 @@ def prepare(
                             trigger.trigger_id,
                             trigger.key,
                             trigger.pitch_hz,
+                            trigger.velocity,
                         )
                         for voice in list(start_template_voices(trigger)):
                             retire(
