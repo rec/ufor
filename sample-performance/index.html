@@ -1,0 +1,4213 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="🛸 universal Format: portable definitions for time-based data 🛸">
+      
+      
+      
+        <link rel="canonical" href="https://rec.github.io/ufor/sample-performance/">
+      
+      
+      
+        <link rel="prev" href="../recording-format/">
+      
+      
+        <link rel="next" href="../sequence-playback/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.73">
+    
+    
+      
+        <title>Sample performance requirements - ufor</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="ufor" class="md-header__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ufor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Sample performance requirements
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="ufor" class="md-nav__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    ufor
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API and ownership map
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator-ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator Envelfo ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator-rhythm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator swing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arrangement-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Audio arrangement scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../automation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scalar timeline automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binding-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broadcast-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Broadcast scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Implemented capabilities
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition design
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Composition example: rehearsal, drums and piano
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition-implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition implementation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-evolution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Instrument control evolution
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Choosing a control representation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Fixture scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fm-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Graph FM profile
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../instrument-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample instrument format
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  User score libraries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../light-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Light animations, layouts and wiring
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../live-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Portable live-effect graphs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modulation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Envelfo modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../musical-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Musical definitions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../noise-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  White noise synthesis
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance-binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Performance input bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../port-lyte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lyte integration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recording-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recording and sequence scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample performance requirements
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample performance requirements
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#semantic-trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Semantic trace
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#note-and-control-selection-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Note and control selection conditions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternate-sample-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alternate Sample Selection
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#note-on-position-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Note-On Position Conditions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#random-range-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Random Range Conditions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameter-variation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Parameter Variation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choke-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Choke Groups
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-crossfades" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Layer Crossfades
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#named-articulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Named Articulations
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#playback-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Playback Direction
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sustain-loops" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sustain Loops
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repeated-whole-sample-playback" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Repeated Whole-Sample Playback
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delayed-voice-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Delayed Voice Start
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-sample-fade" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Final Sample Fade
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-and-sustain-samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Release And Sustain Samples
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yamaha-synth-voice-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Yamaha Synth Voice Templates
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sequence-playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sequence selection and playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../slideshow-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Slideshow scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Units
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Editing and validation boundaries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vl70m-sysex-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  VL70m: an incomplete SysEx description that still supports a librarian
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33" >
+        
+          
+          <label class="md-nav__link" for="__nav_33" id="__nav_33_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_33_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  API Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/ufor/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1" id="__nav_33_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_33_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  ufor
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/accidentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  accidentals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arpeggiator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arpeggiator_capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_capture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arpeggiator_ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arrangement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arrangement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  assets
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/audio_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/audio_features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_features
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  base
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/broadcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  broadcast
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/codec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  codec
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  composition
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  control
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/dx7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  dx7
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  encoding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/envelfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/envelfo_random/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo_random
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelope
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  events
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/expression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  expression
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fixture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/fm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fm
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/instrument_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  interface
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/lfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/library_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library_files
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/light_animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_animation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/light_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_math
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/lights/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lights
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/modulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/musical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  musical
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/noise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  noise
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/number/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  number
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/oscillator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  oscillator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/performance_binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  performance_binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/preset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  preset
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/recording/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recording
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/recursive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recursive
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  references
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1_46" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/ufor/samples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  samples
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1_46" id="__nav_33_1_46_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_33_1_46_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33_1_46">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  samples
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  controls
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/crossfade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  crossfade
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  enums
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/instrument/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  metadata
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  processing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selection
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/variation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  variation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/scala/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scala
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/scale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scale
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/score/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/score_types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score_types
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  segments
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/selector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selector
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  sequence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/slideshow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  slideshow
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  streams
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/synth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/synth_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  time
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tuning
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/tx81z/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tx81z
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/vl70/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  vl70
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#semantic-trace" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Semantic trace
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#note-and-control-selection-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Note and control selection conditions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternate-sample-selection" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Alternate Sample Selection
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#note-on-position-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Note-On Position Conditions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#random-range-conditions" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Random Range Conditions
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#parameter-variation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Parameter Variation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#choke-groups" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Choke Groups
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#layer-crossfades" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Layer Crossfades
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#named-articulations" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Named Articulations
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#playback-direction" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Playback Direction
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sustain-loops" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Sustain Loops
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#repeated-whole-sample-playback" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Repeated Whole-Sample Playback
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#delayed-voice-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Delayed Voice Start
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#final-sample-fade" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Final Sample Fade
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#release-and-sustain-samples" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Release And Sustain Samples
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#yamaha-synth-voice-templates" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Yamaha Synth Voice Templates
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+
+<h1 id="sample-performance-requirements">Sample performance requirements<a class="headerlink" href="#sample-performance-requirements" title="Permanent link">&para;</a></h1>
+<p>These musical behavior requirements were retained from the Recsam specification
+when its types moved to Ufor. The <a href="../instrument-format/">native instrument format</a>
+defines the implemented data. This appendix records the intended future player
+behavior, not implemented scheduling or audio processing. Semantic traces now
+cover selection, chokes, physical and logical release, and sustain transitions;
+seeded parameter variation is also resolved during preparation. Rendering
+remains host work.
+Any conflict with the new shared envelope/LFO model is resolved in favor of
+<a href="../modulation-format/">that model</a>: exact cumulative times, whole envelope
+overrides, and separate completion/lifetime policy.</p>
+<p>Instrument and slot processing remain per voice, before mixing. Phase during
+LFO delay follows the shared model. Native events use tick/ordinal ordering;
+references below to equal-frame input order mean that explicit ordering.
+Random and shuffle selection use the portable state contract below. It is pure
+preparation logic, not audio rendering or voice scheduling.</p>
+<h2 id="semantic-trace">Semantic trace<a class="headerlink" href="#semantic-trace" title="Permanent link">&para;</a></h2>
+<p><code>ufor.samples.trace.SampleTrace</code> records reference lifecycle decisions against
+the original instrument definition. Consumers require both the trace and that
+definition. It records the explicit performance seed, actions ordered by
+<code>(tick, ordinal)</code>, and optional observational snapshots. Snapshots describe the
+preparer's logical voices and triggers, not complete restorable player state:
+Sample snapshots retain selection controls and articulation state, but omit
+complete smoothed control trajectories, sustain state, and renderer completion state.
+Seeking currently requires replay from the beginning; no snapshot-resume API is
+provided. SelectionState alone remains serializable and usable by <code>choose</code>.</p>
+<p><code>voice_start</code> records a stable voice ID, part and optional trigger ID, chosen slot and
+slice, resolved native start and alignment frames, channel routes, and effective
+slot/group sound settings. Instrument-level settings, mapping, playback, loops,
+and crossfades remain in the original definition. The current preparer does not
+evaluate modulation into <code>parameters</code>; consumers must not interpret its empty
+list as a resolved set of controls. Synth actions serialize the full <code>SynthVoice</code>
+settings, including synchronization and minimum hold time. <code>voice_retirement</code> names the
+voice, its distinct cause (physical/logical release, choke, same-key policy,
+voice limit, or transport stop), and whether the voice releases or stops.
+Fade retirements use <code>action = "fade"</code> with positive <code>fade_seconds</code>. Chokes
+affect only existing voices on the event's part. Simultaneous immediate chokes
+win over other modes, and simultaneous fades use the shortest duration. The
+current preparer rejects a combined fade and envelope-release choke on one
+voice because a single retirement cannot express their combined gain curve.
+<code>trigger_context</code> precedes each accepted onset's voice actions and preserves its
+velocity and complete initial control values, even when it selects no voice.
+The sample preparer emits <code>trigger_release</code> once for the first physical release
+of a known trigger, carrying its part and trigger ID. It precedes voice actions
+created by that release, including release-triggered starts. It is emitted for
+one-shot voices and while sustain defers logical release, independently of voice
+retirement. Consumers use it to cancel pending start-triggered voices; it does
+not release or stop already-playing one-shot or sustained voices. Unknown
+releases remain diagnostics, and repeated releases emit no second observation.
+<code>control</code> preserves an addressed control observation, including changes while
+silent and during release. Context lifetime, smoothing, and pitch composition
+are specified in <a href="../control-evolution/">instrument control evolution</a>.
+<code>diagnostic</code> records a
+recoverable preparation failure without inventing a voice.</p>
+<p>The trace deliberately excludes audio blocks, interpolation positions, filter
+delay elements, oscillator phase buffers, and generated audio. Those remain
+renderer choices. The sample preparer supports latched key articulations and
+rejects momentary and control-driven articulations. A trace is not proof that a renderer supports
+every feature in its definition.</p>
+<p>Input events are processed in increasing <code>(tick, ordinal)</code> order; duplicate
+coordinates are rejected. Snapshots use the final processed coordinate. Voice IDs
+are trace-local <code>voice-N</code> identifiers numbered from zero in start-action order,
+independent of punctuation in part/template/trigger names. A trigger ID cannot be
+reused until logically released and no longer owning a logical voice in the trace.
+The current preparer receives no audio-exhaustion feedback, so one-shot and release
+voices remain logically active unless explicitly retired.</p>
+<h2 id="note-and-control-selection-conditions">Note and control selection conditions<a class="headerlink" href="#note-and-control-selection-conditions" title="Permanent link">&para;</a></h2>
+<p>Each slot's <code>key_conditions</code> requires every named key to be physically pressed
+or released in the event's part. <code>SelectionState.held_keys</code> maps each part's
+still-pressed trigger IDs to keys, so overlapping presses remain held until all
+matching releases arrive. A press is recorded before note-on selection and a
+release before release selection. Sustain does not retain physical presses.
+Conditions combine with articulation and control conditions; they select new
+voices without changing voices already playing. An articulation declaration may
+have an empty <code>ids</code> list and consumed keys with no articulation, allowing switch
+notes to be consumed independently of sticky selection.</p>
+<p>A slot's optional <code>previous_key</code> requires the preceding note-on key in its part.
+<code>SelectionState.previous_keys</code> starts empty, is checked before recording the
+current note-on, and includes consumed switches and unmatched note-ons. History
+survives releases and silence. Native release conditions consult current history;
+source formats must diagnose release-history rules without a verified equivalent.</p>
+<p>A slot with <code>trigger="control"</code> requires <code>control_trigger</code>: a declared named
+control, inclusive range, explicit <code>pitch_hz</code>, and explicit <code>velocity</code>. It starts
+on every matching part-scoped <code>ControlChange</code>, including repeated values. The
+control value is updated before selection. Instrument- and trigger-scoped changes
+do not start these voices. Defaults do not generate events. Ordinary control,
+key, and articulation conditions evaluate the current part state.</p>
+<p>Control voices require one-shot playback and have no note key or trigger ID;
+their <code>voice_start</code> records <code>key=null</code>, <code>trigger_id=null</code>, and the authored pitch
+and velocity. Existing chokes and voice limits apply, while same-key rules do
+not. They do not update previous keys, physical presses, or note-on counters, and
+note releases, sustain, or leaving the controller range do not release them.
+Sequence positions, random ranges, alternate selections, and crossfades are
+outside this first control-trigger model. The reference preparer still has no
+audio-completion feedback: the consumer finishes one-shots naturally, while the
+trace retains their logical voices until an explicit choke or voice limit.</p>
+<p>The portable <a href="../../conformance/note-conditions.json">note-condition vectors</a> and
+<a href="../../conformance/control-triggers.json">control-trigger vectors</a> define the exact
+selection, overlap, part isolation, and retirement results.</p>
+<h2 id="alternate-sample-selection">Alternate Sample Selection<a class="headerlink" href="#alternate-sample-selection" title="Permanent link">&para;</a></h2>
+<p>Declare named selection sets on the instrument and associate each alternative slot
+with one set. A selection set is not a shared processing group.</p>
+<p>Set IDs are unique. Each requires <code>mode = "cycle"</code>, <code>"random"</code>, or <code>"shuffle"</code>;
+there is no implicit choice. A slot may reference only one existing set. Slots
+without <code>selection</code> continue to layer normally.</p>
+<p>First evaluate mapping conditions. Partition eligible slots by selection set,
+then choose exactly one eligible slot from each nonempty set. Empty sets make
+no choice and do not advance state. Filter before selecting: differing velocity
+layers or key ranges must not create silent holes in a sequence. Zero gain is
+not a mapping exclusion.</p>
+<ul>
+<li><code>cycle</code>: visit eligible slot IDs in ascending Unicode code-point order, wrapping at the
+  end. The initial choice is the first ID.</li>
+<li><code>random</code>: choose uniformly among eligible slots on every trigger; immediate
+  repetitions are allowed.</li>
+<li><code>shuffle</code>: choose a uniform random permutation, consume it once, then refill.
+  With at least two candidates, refills are uniformly chosen from permutations
+  whose first slot differs from the previous choice. A single candidate always
+  plays.</li>
+</ul>
+<p>State is independent per set, part, trigger kind, trigger key, and
+ordered tuple of eligible slot IDs. Velocity layers therefore have independent
+sequences when their eligible IDs differ; changing velocity without changing
+that tuple advances the same sequence. State advances once per selected set
+per triggering event, not per audio block or active voice. Returning to a
+previous eligible tuple resumes its state. Loading or explicitly resetting an
+instrument clears all sequence state; ordinary release events do not reset it.</p>
+<p><code>SelectionState</code> begins with the explicit unsigned 64-bit performance <code>seed</code>.
+It contains independent <code>SelectionSequence</code> values keyed by part, set ID,
+trigger kind, trigger key, and ordered eligible slot IDs. The sequence records
+its counter, the remaining shuffle bag, and the previous choice. A performance
+start creates fresh state from its seed. SelectionState can be serialized and
+supplied to subsequent selector calls. An instrument snapshot includes that state
+for observation, but is not resumable; instrument seeking replays from the seed
+and original event history. Controls, releases, inactive sets,
+audio block boundaries, and unrelated state partitions do not advance a
+sequence.</p>
+<p>For <code>random</code>, derive the candidate index from SHA-256 using length-prefixed UTF-8
+values: the decimal seed, part ID, set ID, trigger kind, decimal key, each sorted
+candidate ID, decimal counter, empty excluded-candidate field, and decimal retry
+number. Interpret the 32-byte digest as an unsigned big-endian integer and use
+rejection sampling to reduce it into the candidate count. Increment the counter
+once after each choice. This is the named <code>sha256-counter-v1</code> algorithm.</p>
+<p>For <code>shuffle</code>, use the same indexed draws to form a Fisher-Yates permutation. On
+a refill after a prior choice, choose the first item uniformly from candidates
+other than that choice, then shuffle the remaining positions. Thus every allowed
+permutation is equally likely and a refill never immediately repeats the prior
+choice. Increment the counter once for every indexed draw. The state format and
+these inputs are sufficient for independent implementations to reproduce every
+choice exactly.</p>
+<p>Future execution conformance must cover layering outside sets, several independent sets,
+candidate filtering before selection, one/zero eligible candidates, shuffle
+refill boundaries, and invariance under audio block-size changes.</p>
+<h2 id="note-on-position-conditions">Note-On Position Conditions<a class="headerlink" href="#note-on-position-conditions" title="Permanent link">&para;</a></h2>
+<p><code>body.slots.sequence</code> is an optional <code>{length, position}</code> condition on a start
+slot. Both values are positive integers and <code>position</code> cannot exceed <code>length</code>.
+Each part has a note-on count, initially zero. Every accepted trigger event in
+that part increments the count once, before slot mapping and selection, even
+when its key or velocity matches no slot. A sequence slot is eligible when
+<code>(count - 1) % length + 1 == position</code>. Other slots are unaffected. Multiple
+slots at one position layer unless a separate named selection restricts them.
+Release and control events do not increment the count. Counts are independent
+between parts and appear in <code>SelectionState.note_on_counts</code> in snapshots.</p>
+<p>This is the explicit <code>all_note_ons</code> counter rule. It is distinct from the
+eligible-candidate counters of named selection sets and may produce silent
+steps. Source-format conversion rules belong to safaz.</p>
+<h2 id="random-range-conditions">Random Range Conditions<a class="headerlink" href="#random-range-conditions" title="Permanent link">&para;</a></h2>
+<p><code>body.slots.random_range</code> filters a slot after its trigger, key, velocity, and
+sustain-event mapping match, and before named selection sets resolve. Its
+<code>minimum</code> is inclusive and its <code>maximum</code> is exclusive. The interval must be
+nonempty within <code>[0, 1]</code>; intervals may overlap to layer slots or leave gaps that
+select none. This is separate from <code>Selection</code>: it never requires exactly one
+slot to match.</p>
+<p>For every input event, all candidate slots share one random value. Derive it with
+SHA-256 from length-prefixed UTF-8 values: the domain tag
+<code>sample-random-range-v1</code>, decimal seed, part ID, trigger ID (or empty), decimal
+event tick, and decimal ordinal. Interpret the first seven digest bytes as an
+unsigned integer and divide by <code>2 ** 56</code>, producing <code>[0, 1)</code>. This has no mutable
+state, so unrelated voices, selections, and block boundaries cannot affect it.
+<code>conformance/random-ranges.json</code> pins the portable case.</p>
+<h2 id="parameter-variation">Parameter Variation<a class="headerlink" href="#parameter-variation" title="Permanent link">&para;</a></h2>
+<p><code>body.slots.variation</code> declares independent maximum variation for delay in
+seconds, native sample offset in frames, pitch in cents, and gain in dB. Delay
+and offset are drawn from <code>[0, maximum)</code> and <code>[0, maximum]</code> respectively; pitch
+and gain are drawn from <code>[-maximum, maximum)</code>. Zero is the default for every
+field and creates no variation.</p>
+<p>The performance seed owns every draw. <code>sample-variation-v1</code> derives a SHA-256
+digest from length-prefixed UTF-8 fields: the domain tag, decimal seed, part,
+trigger ID (or empty), decimal event tick and ordinal, selected take ID or slot
+ID, parameter name, and retry number for integer offsets. The top 53 digest
+bits form floating draws in <code>[0, 1)</code>; offsets use rejection sampling across the
+inclusive integer range. The resolved values are recorded on <code>voice_start</code>.</p>
+<p>There is no mutable variation stream: a matching seed and event identity always
+produces the same result regardless of block size, other voices, or prior draws.
+The event coordinate distinguishes later reuse of a trigger ID. Linked microphone
+slots use their shared take ID as the draw identity, keeping their random delay,
+offset, pitch, and gain aligned. Sustain samples use their threshold-crossing
+control event and slot ID. <code>conformance/variation.json</code> pins the first portable
+case.</p>
+<h2 id="choke-groups">Choke Groups<a class="headerlink" href="#choke-groups" title="Permanent link">&para;</a></h2>
+<p><code>body.slots.choke_group</code> labels voices created by that slot. Each <code>[[body.slots.chokes]]</code>
+entry describes existing voices to stop when that slot is actually selected.</p>
+<p>Choke groups are instrument-local IDs declared by membership, not processing groups
+or selection sets. A slot belongs to at most one choke group and may choke
+several groups. Every target must name a group used by at least one slot.
+Membership alone does not cause mutual choking.</p>
+<p>Each rule requires <code>group</code> and <code>mode</code>. Modes are <code>"immediate"</code> (stop before the
+next output sample), <code>"fade"</code> (multiply the current output by a linear ramp
+from one to zero), and <code>"release"</code> (enter the voice's release envelope).
+<code>fade_seconds</code> is required, finite, and positive for fade; other modes
+require it to be absent or null. Release also applies to one-shot voices when explicitly
+choked; it follows the loop's release policy. Fades and immediate stops create
+no sample tail beyond the voice's existing material.</p>
+<p>After all slots for one event have been selected, take a snapshot of existing
+voices on that event's part. Apply selected slots' choke rules to that
+snapshot, then create all new voices. Voices created by the same event never
+choke one another. Later events at the same frame are processed in event-stream
+order and can choke voices from earlier events.</p>
+<p>A selected closed-hat slot with a matching choke rule stops earlier open and closed hats, including older
+instances of itself. Open-hat membership alone stops nothing. An unselected
+alternate slot has no choke effect; a selected zero-gain slot still does.</p>
+<p>Reject duplicate targets within one slot. If several selected slots target the
+same voice, combine their termination gains by taking their minimum rather
+than restarting or multiplying fades. An already-releasing envelope continues
+from its current state; another choke never extends a voice's lifetime.
+Choking is not a synthetic Release event and must not trigger release samples.</p>
+<p>Future execution conformance must cover self-choking, layered event atomicity, part isolation,
+unselected alternatives, already-releasing voices, and simultaneous rules.</p>
+<h2 id="layer-crossfades">Layer Crossfades<a class="headerlink" href="#layer-crossfades" title="Permanent link">&para;</a></h2>
+<p>Crossfades give overlapping layers complementary amplitude weights. They use
+the same bounded curve evaluation as modulation, with a normalized position
+instead of a separate arbitrary gain-automation language. These fragments go
+in the respective existing slots.</p>
+<p>Each entry requires <code>input</code> (key/velocity or a live input defined below),
+<code>direction</code> (<code>"in"</code> or <code>"out"</code>), and <code>start &lt; end</code> in that input's valid
+range. Key coordinates are integers; velocity and control coordinates are floats.
+<code>curve</code> is <code>"linear"</code> (default) or <code>"equal_power"</code>. A slot may have one entry per
+<code>(input, scope, control, direction)</code>, allowing a fade-in and fade-out on each
+axis. Static key/velocity inputs have no scope or control field.</p>
+<p>Clamp <code>t = (input_value - start) / (end - start)</code> to <code>[0, 1]</code>. Linear weights
+are <code>t</code> for fade-in and <code>1 - t</code> for fade-out. Equal-power weights are
+<code>sin(pi * t / 2)</code> and <code>cos(pi * t / 2)</code> respectively, with exact zero and one
+at the endpoints. The opposing slots must use the same interval and curve to
+be complementary. Their mapping ranges must both include the entire fade
+interval for key/velocity inputs; a reader rejects a slot whose mapping cuts
+off its nonzero transition. Live inputs do not widen or constrain key/velocity
+mappings.</p>
+<p>Complementary layers need velocity mappings that overlap across the entire transition,
+not just the shared endpoint in the complete instrument example. Crossfades neither widen mapping ranges nor
+cause nonmatching slots to play. Matched slots with zero weight still create
+voices and take part in selection and choking; silence is not a trigger filter.</p>
+<p>Multiply all weights within a slot, then apply the result as a separate layer
+gain alongside its envelope and volume before its EQ. Exact zero is silence,
+not a fabricated finite dB value. Existing instrument and slot volume curves still
+apply; neither replaces the crossfade. Key/velocity weights are captured at
+trigger time; live-input weights use the source smoothing rules in
+<a href="../control-evolution/">instrument control evolution</a> before the fade law.</p>
+<p>Pairing is explicit through matching parameters, not inferred from neighboring
+slots. With three or more overlapping layers, all their weighted signals sum
+without normalization. Equal-power weights preserve the sum of squared gains
+for a complementary pair, not constant peak level for correlated recordings.
+Authors remain responsible for headroom.</p>
+<p>Future execution conformance must cover exact endpoints, midpoint gain laws, simultaneous key
+and velocity fades, zero-weight voices, clipped mapping ranges, and three-layer
+overlaps. Alternate selection still chooses takes; it does not crossfade them
+unless separate selected layers have crossfade settings.</p>
+<h2 id="named-articulations">Named Articulations<a class="headerlink" href="#named-articulations" title="Permanent link">&para;</a></h2>
+<p>Declare articulation IDs, a default, and optional key/control bindings.</p>
+<p>The articulation table requires a duplicate-free <code>ids</code> list, which may be empty,
+and an optional <code>default</code> naming one of them. With no default, gated slots remain
+silent until an articulation is selected. A keyswitch without an articulation
+clears selection and may consume its note. Key and control binding arrays default to empty.
+Slot articulation lists are duplicate-free references; an empty list means
+eligible in every articulation. Tags remain descriptive.</p>
+<p>Selection is independent per part. Key bindings have unique unrestricted
+integer <code>key</code> values. <code>behavior</code> is <code>latched</code> (default) or <code>momentary</code>;
+<code>consume</code> defaults to true. A latched trigger changes the persistent selection.
+A momentary trigger overrides it until Release for that exact trigger ID.
+The most recently started still-held momentary switch wins; latched changes
+continue underneath it. Releasing the last momentary switch exposes the
+latest persistent selection. Repeated keys do not require FIFO matching.</p>
+<p>Switch releases are immediate, not deferred by sustain. A consumed switch
+retains its trigger-ID ownership but creates no sample voices or release
+samples. With <code>consume = false</code>, update articulation before selecting samples
+for the same trigger; those voices retain their captured articulation.</p>
+<p>A control binding names a declared control and an inclusive, ordered
+<code>minimum_value</code>/<code>maximum_value</code> interval within its polarity's domain.
+Intervals for the same control cannot overlap. Only part-scoped ControlChange
+events drive these bindings. A match changes persistent selection; an
+unmatched value leaves it unchanged. Bindings are latched and do not consume
+the event: it may also affect sustain and modulation.</p>
+<p>Selection affects newly selected slots and never remaps existing voices.
+The current sample preparer reads the part's current articulation for release,
+logical-release, and sustain slots as well as starts. <code>ActiveTrigger</code> retains
+selected template IDs, but no separate onset articulation; preserving the onset's
+articulation for release selection would require an implementation change.
+Switching does not reset alternate-selection counters. Loading/resetting
+restores defaults and clears held switch IDs without generating samples.
+Control initialization does not execute bindings.</p>
+<p>Future execution conformance must cover consumed/playable switches, exact-ID releases of repeated
+keys, nested momentary switches, latched changes underneath them, independent
+parts and control gaps. Onset-articulation retention is not an implemented guarantee.</p>
+<h2 id="playback-direction">Playback Direction<a class="headerlink" href="#playback-direction" title="Permanent link">&para;</a></h2>
+<p><code>direction</code> is exactly one of:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Traversal of the selected interval</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"forward"</code></td>
+<td>First selected frame to last selected frame</td>
+</tr>
+<tr>
+<td><code>"backward"</code></td>
+<td>Last selected frame to first selected frame</td>
+</tr>
+<tr>
+<td><code>"mirror"</code></td>
+<td>First to last, then back to first, once</td>
+</tr>
+</tbody>
+</table>
+<p>For selected frames <code>A B C D</code>, the traversal sequences at native rate and
+original pitch are:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>forward:  A B C D
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>backward: D C B A
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>mirror:   A B C D C B A
+</span></code></pre></div>
+<p>The turning frame is not duplicated. For <code>N</code> selected frames, mirror traverses
+<code>2 * N - 1</code> frames; a one-frame sample plays once in every direction. At other
+pitch or output rates, resampling follows that traversal. Reversal affects
+frame order, not channel order or sample polarity.</p>
+<p>Mirror alone does not mean indefinite ping-pong looping. Without an explicit
+loop, every direction eventually exhausts its selected material.</p>
+<p>The instrument supplies the default direction. A slot's explicit direction replaces
+that default, so a backward instrument plus a backward slot still plays backward,
+not forward. Direction is not a numeric modulation target.</p>
+<h2 id="sustain-loops">Sustain Loops<a class="headerlink" href="#sustain-loops" title="Permanent link">&para;</a></h2>
+<p>A named slice may declare a loop inside its interval. Loop boundaries never
+inherit from instrument settings because they address one particular asset.</p>
+<p>Both boundaries are required native-frame integers. They define a half-open
+interval inside the trimmed sample containing at least two frames. <code>mode</code> is
+<code>"until_release"</code> (default) or <code>"through_release"</code>; <code>crossfade_frames</code> defaults
+to zero. <code>repeat_count</code> is either null (unbounded) or a nonnegative number of
+additional traversals after the first pass through the loop. When the count is
+exhausted, playback continues toward the trimmed sample boundary without another
+wrap or reflection. A release can disable an <code>until_release</code> loop earlier; a
+<code>through_release</code> loop still ends if its finite count is exhausted. Loops require
+effective playback mode <code>while_held</code>, so a one-shot voice
+cannot loop forever without a release event.</p>
+<p>Whole-sample <code>direction</code> selects the approach to the loop. The loop's own
+<code>direction</code> independently selects forward wrapping, backward wrapping, or mirror
+reflection between its boundaries without repeating either turning frame. For loop
+material <code>B C D</code>, its steady mirror sequence is <code>B C D C B C D ...</code>.</p>
+<p>On release, <code>until_release</code> disables future wrapping and reflection immediately.
+Playback continues in its current direction toward that trimmed sample boundary
+while the release envelope runs. It does not jump to the tail. If a boundary
+and release coincide, process release before the boundary transition.
+<code>through_release</code> keeps repeating until amplitude release completes, even
+when its final target is nonzero; it does not subsequently play a tail. Exhaustion or envelope completion,
+whichever comes first, ends the voice. If release occurs before loop entry,
+<code>until_release</code> never enters repetition.</p>
+<p>For forward or backward wrapping, a positive crossfade overlaps the final <code>M</code>
+frames of the traversal with the first <code>M</code> frames of its next traversal. Require
+<code>M &gt;= 2</code> and <code>2 * M &lt; loop_length</code>. At overlap position <code>j</code>, use incoming weight
+<code>j / (M - 1)</code> and outgoing weight <code>1 - j / (M - 1)</code>. After the overlap, resume
+at frame <code>M</code> of the next traversal, not at its already-consumed first frame.
+Thus the repeat period is <code>loop_length - M</code> native frames. All channels use the
+same weights; fractional playback positions interpolate this traversal.</p>
+<p>If release disables repetition during an overlap, finish that overlap and then
+continue from the incoming head without further wrapping. Mirror requires
+<code>crossfade_frames = 0</code>: its reflection already joins adjacent frames, and this
+version does not define a separate turn-smoothing algorithm.</p>
+<p>Future execution conformance must cover forward/backward wrapping, mirror endpoint order,
+crossfade duration and head consumption, release before entry, release during
+an overlap, and both release modes. The no-loop direction examples remain
+unchanged.</p>
+<h2 id="repeated-whole-sample-playback">Repeated Whole-Sample Playback<a class="headerlink" href="#repeated-whole-sample-playback" title="Permanent link">&para;</a></h2>
+<p>A slot may set <code>play_count</code> to a positive integer when its effective playback
+mode is <code>one_shot</code>. The selected sample interval plays that many times in its
+chosen direction. The amplitude envelope and other voice state start once and
+continue across each sample restart; they are not retriggered. The voice ends
+on envelope completion or after the final traversal, whichever occurs first.
+This is distinct from a loop's <code>repeat_count</code>, which repeats only the loop
+interval and then continues into the sample tail.</p>
+<h2 id="delayed-voice-start">Delayed Voice Start<a class="headerlink" href="#delayed-voice-start" title="Permanent link">&para;</a></h2>
+<p><code>start_delay_seconds</code> on a slot defaults to zero. A positive value postpones
+the start of both sample traversal and all voice envelopes by that duration.
+For a start-triggered slot, release of the owning trigger before delayed start
+cancels the pending voice without sounding. For a release-triggered slot, the
+release event creates the pending voice and starts this timer; that same event
+does not cancel it. This differs from an
+amplitude envelope's delay phase, which begins when the voice itself starts.</p>
+<h2 id="final-sample-fade">Final Sample Fade<a class="headerlink" href="#final-sample-fade" title="Permanent link">&para;</a></h2>
+<p><code>end_fade_seconds</code> on a slot defaults to zero. A positive value applies a
+linear amplitude fade during the final seconds before the sample reaches its
+trimmed playback boundary. The duration is measured in playback time, not
+source frames, so pitch changes do not change the requested fade time. It is
+independent of the amplitude envelope and does not begin merely because a note
+is released. An early release or envelope completion can end the voice before
+the fade is reached.</p>
+<p>The fade occurs once at final exhaustion, not at each loop or whole-sample
+repeat. Remaining distance includes all finite repeats, mirrored turns and
+committed crossfades. An indefinite loop has no predicted exhaustion until its
+release policy allows it to exit. At each output frame before onset, divide
+remaining source distance by current playback speed; start the fade when that
+time is no greater than the authored duration. Latch that frame and run the
+linear gain from one to zero over the authored duration. Subsequent pitch
+changes do not retime it: faster playback may exhaust the source early, while
+slower playback ends when the fade reaches zero. The fade multiplies final
+voice output after filters, independently of envelope and retirement gains.</p>
+<h2 id="release-and-sustain-samples">Release And Sustain Samples<a class="headerlink" href="#release-and-sustain-samples" title="Permanent link">&para;</a></h2>
+<p>Each slot's <code>trigger</code> is <code>start</code> (default), <code>control</code>, <code>release</code>, <code>logical_release</code>,
+<code>sustain_press</code>, or <code>sustain_release</code>. Control-triggered voices follow the
+separate condition rules above. Release means the explicit input event;
+logical release means the eventual release after sustain deferral.</p>
+<p>Sustain is absent by default. When present it requires a declared unipolar
+<code>control</code> and a finite threshold in <code>(0, 1]</code>, default 0.5. State is per part,
+initially derived from the control's default. Only part-scoped changes to that
+control affect sustain. Values at or above threshold mean pressed; only
+threshold crossings generate sustain-transition samples. Sustain slots are
+invalid without a sustain declaration. No control name has hidden semantics.</p>
+<p>A Trigger creates an instance identified by <code>(part, trigger_id)</code>, owning its
+voices, original key, velocity, target pitch, and trigger-scoped
+controls. The host must not reuse this identity while it is held or owns live
+voices, including release voices. Repeated keys have distinct IDs and may be
+released in any order. Retain ownership of held triggers even after their
+audio exhausts. Ignore unknown or already-released Release events.</p>
+<p>Same-key policy retires prior voices before starting any layer of a new trigger.
+The preparer reserves capacity for the complete new start batch, retiring older
+voices according to the overflow policy. If the batch alone exceeds
+<code>maximum_voices</code>, preparation rejects it rather than dropping selected layers.</p>
+<p>On the first matched Release, generate <code>release</code> once if at least one original
+start voice is active and neither released nor choked. If sustain is off,
+generate <code>logical_release</code> under the same condition and release owned
+while-held voices. Otherwise defer logical release until sustain goes off.
+Recheck original-voice eligibility then: exhausted/choked triggers generate
+no release samples. Sustain never resurrects a voice or interrupts a release
+already underway.</p>
+<p>Release samples use the original key, velocity, and target pitch,
+not values inferred from the release event. Articulation selection follows the
+current-part limitation above. They share their owning trigger's
+live controls. Selection happens once per trigger instance, not once per layer.
+Release and sustain samples require one-shot playback without loops; they
+cannot recursively generate releases. Chokes are not input Release events.</p>
+<p>Sustain samples use their own <code>event_key</code> and the current control value as
+velocity, including zero on release. They have no owning performance trigger:
+trigger-scoped routes use control defaults and cannot be addressed later.
+Within one selection set and sustain-trigger kind, alternatives must share
+<code>event_key</code> so they participate in the same selection decision.</p>
+<p>On sustain release, update state, process pending triggers in their start
+order, and generate sustain-release samples. All voices derived from one
+input event form an atomic batch; select them before applying chokes to
+previous voices. Later events at the same frame retain input order.
+Reset clears held/deferred IDs and restores control-derived sustain state
+without generating release or sustain samples.</p>
+<p>Future execution conformance must cover out-of-order releases of repeated keys, zero-velocity
+starts and sustain releases, independent parts, sustain deferral, exhausted
+voices, ignored duplicate releases, and nonrecursive tails.</p>
+<p>Portable selection vectors in <a href="../../conformance/selection.json">selection.json</a>
+pin multi-draw random progression and three shuffle bags. Common sample/synth
+<a href="../../conformance/instrument-lifecycle.json">lifecycle cases</a> pin action ordering,
+layered replacement and cross-part choke isolation. Both preparers consume the
+same lifecycle cases in tests; sample-specific inheritance and serialized synth
+settings retain their dedicated regression tests.</p>
+<h2 id="yamaha-synth-voice-templates">Yamaha Synth Voice Templates<a class="headerlink" href="#yamaha-synth-voice-templates" title="Permanent link">&para;</a></h2>
+<p>Synth instruments can use <code>yamaha = "dx7"</code> or <code>yamaha = "tx81z"</code> templates.
+These are dedicated Yamaha profiles, separate from the general <code>fm</code> graph.
+The <code>patch</code> field contains the lossless voice payload encoded as hexadecimal:
+155-byte VCED or 128-byte packed voice data for DX7, or 93-byte VCED for TX81Z.
+TX81Z also requires an explicit <code>additional</code> field containing its 23-byte ACED
+payload in hexadecimal. Pairing is never inferred from neighboring messages.
+Python templates retain the existing DX7Voice/TX81ZVoice/TX81ZAdditional objects;
+JSON and TOML serialization use the hexadecimal fields.</p>
+<p>Structural admission preserves parameter bytes even when they are outside a
+playable profile. The rendering consumer must reject unsupported or malformed
+parameters before starting audio. Yamaha operator envelopes come from the
+patch; a second generic amplitude envelope is not accepted on these templates.</p>
+<p>Shared synth preparation retains template identity, key, resolved pitch, channel
+routes and lifecycle actions. Yamaha VoiceStart actions additionally carry the
+original 0–1 velocity directly, including for release-triggered notes; other
+synth starts retain their existing control-context velocity contract. Sustain
+triggered Yamaha voices use the control value that selected the voice. These
+portable definitions and traces do not implement a synthesis engine.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.indexes","content.code.copy"],"redirect":null,"search":"../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.77dd0ce9.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,3848 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="🛸 universal Format: portable definitions for time-based data 🛸">
+      
+      
+      
+        <link rel="canonical" href="https://rec.github.io/ufor/modulation-format/">
+      
+      
+      
+        <link rel="prev" href="../live-effects/">
+      
+      
+        <link rel="next" href="../musical-format/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.73">
+    
+    
+      
+        <title>Envelfo modulation - ufor</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="./.." title="ufor" class="md-header__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ufor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Envelfo modulation
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="./.." title="ufor" class="md-nav__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    ufor
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="./.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API and ownership map
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator-ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator Envelfo ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator-rhythm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator swing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arrangement-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Audio arrangement scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../automation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scalar timeline automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binding-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broadcast-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Broadcast scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Implemented capabilities
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition design
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Composition example: rehearsal, drums and piano
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition-implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition implementation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-evolution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Instrument control evolution
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Choosing a control representation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Fixture scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fm-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Graph FM profile
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../instrument-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample instrument format
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  User score libraries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../light-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Light animations, layouts and wiring
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../live-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Portable live-effect graphs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Envelfo modulation
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Envelfo modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#clock-scope-and-observation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Clock, scope, and observation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#embedded-envelope-semantics-and-reusable-envelope-scores" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Embedded envelope semantics and reusable envelope scores
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#envelope-events-and-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Envelope events and state
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lfo-phase-resets-and-activation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        LFO phase, resets, and activation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mapping-and-combination-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Mapping and combination contract
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#seeking-and-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Seeking and conformance
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Runtime boundary
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../musical-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Musical definitions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../noise-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  White noise synthesis
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance-binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Performance input bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../port-lyte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lyte integration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recording-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recording and sequence scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sample-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample performance requirements
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sequence-playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sequence selection and playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../slideshow-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Slideshow scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Units
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Editing and validation boundaries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vl70m-sysex-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  VL70m: an incomplete SysEx description that still supports a librarian
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33" >
+        
+          
+          <label class="md-nav__link" for="__nav_33" id="__nav_33_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_33_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  API Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/ufor/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1" id="__nav_33_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_33_1_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  ufor
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/accidentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  accidentals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arpeggiator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arpeggiator_capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_capture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arpeggiator_ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/arrangement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arrangement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  assets
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/audio_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/audio_features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_features
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  base
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/broadcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  broadcast
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/codec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  codec
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  composition
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  control
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/dx7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  dx7
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  encoding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/envelfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/envelfo_random/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo_random
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelope
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  events
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/expression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  expression
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fixture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/fm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fm
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/instrument_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  interface
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/lfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/library_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library_files
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/light_animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_animation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/light_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_math
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/lights/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lights
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/modulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/musical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  musical
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/noise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  noise
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/number/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  number
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/oscillator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  oscillator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/performance_binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  performance_binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/preset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  preset
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/recording/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recording
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/recursive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recursive
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  references
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1_46" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../reference/ufor/samples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  samples
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1_46" id="__nav_33_1_46_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_33_1_46_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33_1_46">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  samples
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  controls
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/crossfade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  crossfade
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  enums
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/instrument/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  metadata
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  processing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selection
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/samples/variation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  variation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/scala/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scala
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/scale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scale
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/score/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/score_types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score_types
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  segments
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/selector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selector
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  sequence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/slideshow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  slideshow
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  streams
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/synth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/synth_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  time
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tuning
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/tx81z/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tx81z
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../reference/ufor/vl70/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  vl70
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                      
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#clock-scope-and-observation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Clock, scope, and observation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#embedded-envelope-semantics-and-reusable-envelope-scores" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Embedded envelope semantics and reusable envelope scores
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#envelope-events-and-state" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Envelope events and state
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lfo-phase-resets-and-activation" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        LFO phase, resets, and activation
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#mapping-and-combination-contract" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Mapping and combination contract
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#seeking-and-conformance" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Seeking and conformance
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#runtime-boundary" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Runtime boundary
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+
+<h1 id="envelfo-modulation">Envelfo modulation<a class="headerlink" href="#envelfo-modulation" title="Permanent link">&para;</a></h1>
+<p>This profile defines portable envelopes and LFO controls. It includes frozen
+definitions, exact clock coordinates, event/state transitions, and scalar
+reference mathematics. Stateful generator evaluation lives in the separate
+enveLFO runtime; Ufor owns its definitions and state records. Ufor does not
+render audio, schedule devices, or implement a sampler.</p>
+<p><code>envelfo</code> is the common score kind, using <code>format =
+"recs"</code>, <code>version = 4</code>, <code>name</code>, <code>title</code>, and <code>body</code> fields. Its body is tagged
+<code>envelope</code>, <code>lfo</code>, <code>stages</code>, <code>sample_hold</code>, or <code>patch</code>. These round-trip through
+the common TOML codec. The generated schema and
+<a href="https://github.com/rec/envelfo/blob/main/conformance/modulation.json">scalar conformance fixtures</a>
+accompany the Python runtime in enveLFO and the shared curve mathematics in uFor.</p>
+<p>Autonomous light controls also use <code>envelope.Curve</code>: an initial value and shared
+segments, with final-value holding or whole-curve repetition. Curve values may
+exceed the normalized domain, for example a gain above one. Trigger/release
+<code>Envelope</code> retains its normalized bounds. The light profile adds <code>part</code> scope
+and uses the same modulation evaluation; see <a href="../light-format/">light-format.md</a>.</p>
+<h2 id="clock-scope-and-observation">Clock, scope, and observation<a class="headerlink" href="#clock-scope-and-observation" title="Permanent link">&para;</a></h2>
+<p>Each definition chooses one clock: <code>seconds</code> or <code>beats</code>, where one beat is a
+quarter note. Durations, positions, cycles, duty fractions, and rates use exact
+rationals. Wire values are strings such as <code>"1/3"</code>; integers are also accepted
+on input. Decimal strings such as <code>"0.1"</code> mean exactly 1/10. Floating-point
+numbers and booleans are rejected in these fields. Canonical output is a
+reduced fraction string, or an integer string when the denominator is one.
+Envelope segment duration strings additionally require an explicit <code>s</code> or <code>beat</code>
+unit, such as <code>"1/3 s"</code>; they serialize with that unit. An indefinite segment is
+<code>{}</code> in TOML or <code>{"duration": null}</code> in JSON and holds until <code>advance</code>.
+Bare rational text is distinct from the frequency-expression language; it does
+not accept exponentiation. Unit-bearing authoring values additionally support
+the quantity expressions described in <a href="../units/">units</a>.</p>
+<p>The host supplies monotonically increasing coordinates in the chosen clock.
+For a beat envelope, a tempo change alters elapsed seconds but does not restart
+or rescale the segment's beat progress. At 120 BPM until second 1 and 60 BPM
+afterward, beat positions at seconds 0, 0.5, 1, and 2 are 0, 1, 2, and 3. A
+four-beat linear attack is respectively 0, 0.25, 0.5, and 0.75 complete. An LFO
+at &frac14; cycles per beat has those same phases. Neither generator owns the tempo
+map; the current recording <code>Timebase</code> remains physical. A beat-clock host must
+supply the integrated musical position, not pass seconds to a beat definition.</p>
+<p>No segment is rounded separately to an audio or control frame. Boundaries are
+exact sums of durations. A host observes the value at its actual rational
+sample position. An event between observations affects the next observation,
+using its original time to compute interrupted values and subsequent progress.
+Evaluation frequency and host block size cannot move an event or boundary.</p>
+<p><code>scope</code> is <code>voice</code> by default, or <code>part</code> or <code>instrument</code>. Generator-specific
+restrictions still apply, including voice-only sample-and-hold. The owner allocates state for
+each instance, separately from the validated definition. A shared instrument
+LFO has one state per instrument instance; all joining voices observe that
+state. A voice source has state per voice, including separately layered voices.
+Two uses of a score never share state merely because their definition IDs
+match. Gate routing to an instrument envelope must be explicit; it is not
+implicitly the OR of every key in the instrument.</p>
+<h2 id="embedded-envelope-semantics-and-reusable-envelope-scores">Embedded envelope semantics and reusable envelope scores<a class="headerlink" href="#embedded-envelope-semantics-and-reusable-envelope-scores" title="Permanent link">&para;</a></h2>
+<p><code>Envelope</code> and <code>LFO</code> inherit clock, scope, and position policy from <code>EnveLFO</code>.
+Their generator-specific fields are flat, without a <code>body</code> wrapper. Patch and
+Stage children inherit clock and scope; child overrides are rejected and inherited
+settings are omitted from nested serialization. <code>EnveLFOReference</code> carries a
+library score reference and parameter overrides. A reusable score is an <code>EnvelfoScore</code> with
+<code>kind = "envelope"</code> in its body. Its LFO counterpart uses <code>kind = "lfo"</code>.
+Only the score document has a <code>body</code> field. Concrete generators have their clock,
+scope, and playback configuration directly on the definition.</p>
+<p><code>Envelope</code> has an <code>initial</code> level, nonempty <code>segments</code> and an optional <code>release</code> list,
+<code>hold</code>, <code>retrigger</code>, clock, scope, and polarity. Every segment has a
+nonnegative <code>duration</code>, <code>to</code>, and finite <code>curve</code> (default zero). Targets
+and the initial value lie in [0,1] for <code>unipolar</code>, the default, or [-1,1] for
+<code>bipolar</code>. These are dimensionless control levels; a route assigns their
+meaning as gain, cents, a frequency ratio, light intensity, or another quantity.</p>
+<p>On a trigger, traverse <code>segments</code>. On release, abandon that traversal and
+traverse <code>release</code> from the current level. Each list has its own local segment
+indices starting at zero. The last on-segment target is held when <code>hold = true</code>
+(the default). With <code>hold = false</code>, finishing the on-list completes a one-shot
+envelope. Finishing the release-list always completes the envelope. Completion
+holds its terminal value, which need not be zero. A host chooses whether a
+particular amplitude envelope's completion retires a voice; a modulation
+envelope's completion alone does not.</p>
+<p>ADSR is an authoring preset that expands into this representation. There is
+no second ADSR evaluator. Delay and hold are ordinary segments whose target
+equals their entry level. For example, delay 1/10 second, attack &frac12; second,
+hold 1/10 second, decay &frac14; second to 0.6, then sustain and release:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">format</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"recs"</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">4</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"soft-amplitude"</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">title</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"Soft amplitude"</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">kind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"envelfo"</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="k">[body]</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="n">kind</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"envelope"</span>
+</span><span id="__span-0-9"><a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">initial</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>
+</span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a><span class="k">[[body.segments]]</span>
+</span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1/10 s"</span>
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a><span class="n">to</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="k">[[body.segments]]</span>
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1/2 s"</span>
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a><span class="n">to</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
+</span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a><span class="n">curve</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">5.0</span>
+</span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>
+</span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a><span class="k">[[body.segments]]</span>
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1/10 s"</span>
+</span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a><span class="n">to</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">1.0</span>
+</span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>
+</span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a><span class="k">[[body.segments]]</span>
+</span><span id="__span-0-25"><a id="__codelineno-0-25" name="__codelineno-0-25" href="#__codelineno-0-25"></a><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1/4 s"</span>
+</span><span id="__span-0-26"><a id="__codelineno-0-26" name="__codelineno-0-26" href="#__codelineno-0-26"></a><span class="n">to</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.6</span>
+</span><span id="__span-0-27"><a id="__codelineno-0-27" name="__codelineno-0-27" href="#__codelineno-0-27"></a><span class="n">curve</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-5.0</span>
+</span><span id="__span-0-28"><a id="__codelineno-0-28" name="__codelineno-0-28" href="#__codelineno-0-28"></a>
+</span><span id="__span-0-29"><a id="__codelineno-0-29" name="__codelineno-0-29" href="#__codelineno-0-29"></a><span class="k">[[body.release]]</span>
+</span><span id="__span-0-30"><a id="__codelineno-0-30" name="__codelineno-0-30" href="#__codelineno-0-30"></a><span class="n">duration</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">"1/2 s"</span>
+</span><span id="__span-0-31"><a id="__codelineno-0-31" name="__codelineno-0-31" href="#__codelineno-0-31"></a><span class="n">to</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">0.0</span>
+</span><span id="__span-0-32"><a id="__codelineno-0-32" name="__codelineno-0-32" href="#__codelineno-0-32"></a><span class="n">curve</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mf">-5.0</span>
+</span></code></pre></div>
+<p>For entry value a, target b, duration d &gt; 0, and elapsed time t in [0,d],
+let u = t/d. The value is <code>a + (b-a)*F(u,k)</code>, where k is <code>curve</code>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>F(u,0) = u
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>F(u,k) = (exp(k*u)-1)/(exp(k)-1), when k != 0
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>F(0,k) = 0 and F(1,k) = 1 exactly
+</span></code></pre></div>
+<p>Positive k makes progress slow initially and fast near the end; negative k
+does the reverse. The rule is independent of whether b is above or below a.
+There is no asymptotic tail or logarithm of the target, so decay to zero and
+crossing zero are well defined. Implementations should use <code>expm1</code> and the
+algebraically equivalent negative-exponent form for positive k to avoid
+overflow. Curve zero is the exact linear branch.</p>
+<p>Segments occupy half-open intervals. At an endpoint, consume the segment and
+any following zero-duration segments in order before observing or applying
+an event. A zero-duration segment immediately sets its target. This also
+applies at trigger and release time, and finite lists cannot create an
+infinite zero-time transition loop.</p>
+<h2 id="envelope-events-and-state">Envelope events and state<a class="headerlink" href="#envelope-events-and-state" title="Permanent link">&para;</a></h2>
+<p>Events contain rational <code>at</code>, nonnegative integer <code>ordinal</code>, and <code>action</code>:
+<code>note_on</code> or <code>note_off</code> for an activation-start envelope. Process them in strictly increasing <code>(at, ordinal)</code>
+order within a source instance. Ordinals break equal-time ties; they may start
+again at a later time. The host merges inputs and assigns these ordinals before
+delivery. The reference rejects backward events and duplicate equal-time
+ordinals. It does not silently sort or impose an action-type priority.</p>
+<p>At a timestamp, advance the envelope through completed/zero-time segments,
+apply each event in ordinal order, then observe. Consequently trigger followed
+by release at the same timestamp differs from release followed by trigger.</p>
+<table>
+<thead>
+<tr>
+<th>Input/state</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Initial state</td>
+<td>Idle at <code>initial</code> when a release list or event-start policy is declared; otherwise the activation-start on-list begins immediately</td>
+</tr>
+<tr>
+<td>First trigger</td>
+<td>Begin on-list at <code>initial</code></td>
+</tr>
+<tr>
+<td>Active trigger with <code>current</code> (default)</td>
+<td>Restart the complete on-list from the observed level</td>
+</tr>
+<tr>
+<td>Active trigger with <code>reset</code></td>
+<td>Restart the complete on-list from <code>initial</code>, allowing a jump</td>
+</tr>
+<tr>
+<td>Active trigger with <code>ignore</code></td>
+<td>Continue the current traversal or held level</td>
+</tr>
+<tr>
+<td>Trigger after completion</td>
+<td>Start again; <code>current</code> uses the terminal value, other policies use <code>initial</code></td>
+</tr>
+<tr>
+<td>Release during any on-segment or held state</td>
+<td>Begin a declared release-list from the exact current value; without a release-list, keep running</td>
+</tr>
+<tr>
+<td>Release while idle, completed, or already releasing</td>
+<td>No change to the envelope</td>
+</tr>
+</tbody>
+</table>
+<p>Restarting the complete on-list includes any authored delay. <code>current</code> promises
+no jump at its entry, but an authored zero-duration segment can still jump.
+Release durations are measured anew and in full from the release event; they
+are not shortened in proportion to the current level. Definition edits and
+changes to segment durations require a new prepared instance in profile 1.</p>
+<p><code>EnvelfoEvent</code> supplies <code>note_on</code>/<code>note_off</code> events and playback commands.
+<code>EnvelfoState.runtime</code> holds <code>EnvelopeState</code>: event ordering, phase, captured
+start value, exact playback position and traversal count. enveLFO's <code>envelfo_at</code>
+returns <code>EnvelfoValue</code>: value, weight and status (<code>idle</code>, <code>running</code>, <code>held</code>,
+or <code>complete</code>). Observations do not mutate state. Audio voice retirement belongs
+to enge, not the envelope model or standalone runtime.</p>
+<p>Physical key release and logical gate release are distinct. Sustain-pedal and
+legato policy belongs to the instrument/host: it may defer a gate
+release or omit a retrigger. Once a logical release is delivered, the envelope
+does not reinterpret it. Choke, voice stealing, release samples, and transport
+stop are also instrument/host decisions, not alternate spellings of release.</p>
+<h2 id="lfo-phase-resets-and-activation">LFO phase, resets, and activation<a class="headerlink" href="#lfo-phase-resets-and-activation" title="Permanent link">&para;</a></h2>
+<p><code>LFO.rate</code> is nonnegative cycles per clock unit. Zero freezes phase. <code>phase</code>
+is the reset phase in [0,1), default zero; <code>duty_cycle</code> lies in [0,1], default
+&frac12;. Both are rational, so transition comparisons are exact. Shape names reuse
+<code>ufor.oscillator.Waveform</code>: sine, square, triangle. For phase p and duty d:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>sine:     sin(2*pi*p), ignoring d
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>square:   +1 when p &lt; d, otherwise -1
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>triangle: 2*p/d-1 when p &lt; d, otherwise (1+d-2*p)/(1-d)
+</span></code></pre></div>
+<p>At d=0, only the falling triangle branch is used; at d=1, only the rising
+branch is used. The triangle peak is +1 at p=d for 0&lt;d&lt;1. A square is -1
+exactly at its falling transition. These are Tuney's documented equations.
+They describe single control observations, not band-limited audio generation.</p>
+<p>The state stores an anchor position a, its phase p, current rate r, activation
+start, and last event ordinal. At x &gt;= a, phase is exactly
+<code>(p + r*(x-a)) modulo 1</code>. A <code>rate</code> event first advances to its position using
+the previous rate, then installs the new rate without changing phase or the
+activation start. Profile 1 rate automation is piecewise constant; continuous
+rate ramps need a separately specified integration contract.</p>
+<p><code>ufor.envelfo.LFO</code> is the canonical model, with <code>shape</code> selecting the waveform.
+Initialization and timestamped playback use <code>envelfo.runtime</code>, not an evaluator
+inside uFor. A trigger is delivered as an <code>EnvelfoEvent(action="note_on")</code>.</p>
+<p><code>reset</code> selects which host events reset phase and activation age:</p>
+<table>
+<thead>
+<tr>
+<th>Policy</th>
+<th>Trigger event</th>
+<th>Transport event</th>
+<th>Explicit reset event</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>free</code></td>
+<td>Ignore</td>
+<td>Ignore</td>
+<td>Reset</td>
+</tr>
+<tr>
+<td><code>trigger</code> (default)</td>
+<td>Reset</td>
+<td>Ignore</td>
+<td>Reset</td>
+</tr>
+<tr>
+<td><code>transport</code></td>
+<td>Ignore</td>
+<td>Reset</td>
+<td>Reset</td>
+</tr>
+</tbody>
+</table>
+<p>A reset uses the definition's phase but retains the current rate. Transport
+events denote explicit starts/discontinuities; they are not ordinary host block
+boundaries. Stopping the transport stops advancement of its clock. A free
+source that should keep running needs a continuously advancing host clock.
+<code>control.TempoMap</code> supplies exact beat integration, pause and relocation
+coordinates, and beat-quantization queries. This does not add musical-time
+placement to <code>Composition</code>. A <code>position_driver = "transport"</code> LFO requires a
+beat clock, transport reset, and no onset delay or fade.
+Absolute song-grid alignment is obtained by starting at the designated origin
+and replaying its rate/reset events, not by resetting at the requested seek
+position. Scope and reset policy are independent: joining a shared instrument
+source is not itself a trigger event to that source.</p>
+<p><code>delay</code> and <code>fade_in</code> are nonnegative durations, default zero, measured from
+activation or the latest applicable reset. Phase advances during both. The
+observation is an <code>EnvelfoValue(value, weight, status)</code>; exact phase remains in
+the playback position. With the default center zero and depth one, value is bipolar;
+weight is zero before delay, ramps linearly from zero to one during fade-in,
+then is one. A zero fade makes activation immediate at the delay endpoint.
+Rate changes do not restart delay or fade. A separate envelope can describe
+fade-out when an instrument route combines their controls; this LFO model
+does not add a second LFO stop/tail state machine.</p>
+<h2 id="mapping-and-combination-contract">Mapping and combination contract<a class="headerlink" href="#mapping-and-combination-contract" title="Permanent link">&para;</a></h2>
+<p>The generators output dimensionless values. Instrument/processor routes must
+name their source instance, structured target <code>{name, parameter}</code>, mapping,
+operation, and target domain. The embedded <code>ufor.modulation.Modulation</code>
+collection now implements <a href="../instrument-format/#modulation-routes">typed routes</a>
+for the later instrument/processor bodies. Reusable timeline automation reaches
+an arrangement through its own typed control clip. The composition contract is:</p>
+<ol>
+<li>Resolve one base value, including authored replacement automation.</li>
+<li>Map each source value to an additive amount in the target's units or a
+   dimensionless multiplier. No implicit cents/Hz/dB conversion is allowed.</li>
+<li>Apply source activation weight w <strong>after</strong> mapping: an additive amount a
+   becomes <code>w*a</code>; a multiplier m becomes <code>1+w*(m-1)</code>.</li>
+<li>Compute <code>(base + sum(additive amounts)) * product(multipliers)</code>.</li>
+<li>Check the target's declared domain. Reject an out-of-domain result; clipping
+   requires a separately explicit operation, not a hidden host default.</li>
+</ol>
+<p>Thus an inactive LFO contributes zero to addition and one to multiplication,
+even if its mapping assigns a non-neutral amount to waveform value zero.
+For example, a multiplier mapped to 0.2 at weight 0.5 contributes 0.6, not 0.1.
+With base 10, additive amounts 2 and -1, and multipliers 0.5 and 2, the result
+is 11. Hosts reduce routes in stable source/route-ID order for predictable
+floating-point behavior. List ordering never selects a winning modulation.
+Only one replacement-automation producer is allowed per parameter; mixing
+several requires an explicit upstream operation. Feedback and live modulation
+of envelope segment definitions are outside this profile.</p>
+<h2 id="seeking-and-conformance">Seeking and conformance<a class="headerlink" href="#seeking-and-conformance" title="Permanent link">&para;</a></h2>
+<p>Seek by replaying events from the instance origin, optionally starting with
+a saved state bound to that exact definition and input history. Querying before
+the state's last event is an error; the reference does not guess the previous
+rate, gate, or phase. An observation in the future does not advance the stored
+state. Calls inserted at different block boundaries therefore cannot alter
+later observations. Independent instances and state JSON round trips are
+covered by the tests.</p>
+<p>The portable cases give complete definitions, ordered events, and named
+post-event observations. Rational positions/phases, event
+ordering, and status compare exactly. Floating control values use absolute
+tolerance 1e-12, including transcendental curves and sine. No WAV data or
+48 kHz audio buffers are generated. Valid cases round-trip through TOML; invalid
+scores include negative durations/rates, invalid polarity/phase/duty, and
+invalid loops and random ranges.</p>
+<h2 id="runtime-boundary">Runtime boundary<a class="headerlink" href="#runtime-boundary" title="Permanent link">&para;</a></h2>
+<p>Envelope playback also supports loops, ping-pong traversal, named boundaries,
+finite repeats, and indefinite segments advanced explicitly. Stages define
+event-driven transitions between child generators. Patch composes signal nodes
+and bounded event connections; see <a href="../control-guide/">control choices</a>.</p>
+<p>These definitions do not imply that every host supports every generator or
+assigns it an amplitude-lifetime role. Hosts validate their supported subset
+before output. The <a href="../instrument-format/">instrument format</a> uses the same
+definitions and route evaluator, and pure lifecycle preparation remains separate
+from audio rendering. See <a href="../capabilities/">capabilities</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"..","features":["navigation.indexes","content.code.copy"],"redirect":null,"search":"../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.77dd0ce9.min.js"></script>
+      
+    
+  </body>
+</html>

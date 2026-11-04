@@ -1,0 +1,4298 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="🛸 universal Format: portable definitions for time-based data 🛸">
+      
+      
+      
+        <link rel="canonical" href="https://rec.github.io/ufor/reference/ufor/accidentals/">
+      
+      
+      
+        <link rel="prev" href="../">
+      
+      
+        <link rel="next" href="../arpeggiator/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.73">
+    
+    
+      
+        <title>accidentals - ufor</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ufor" class="md-header__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ufor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              accidentals
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ufor" class="md-nav__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    ufor
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API and ownership map
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../arpeggiator-ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator Envelfo ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../arpeggiator-rhythm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator swing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../arrangement-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Audio arrangement scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../automation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scalar timeline automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../binding-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../broadcast-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Broadcast scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Implemented capabilities
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../composition-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition design
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../composition-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Composition example: rehearsal, drums and piano
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../composition-implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition implementation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../control-evolution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Instrument control evolution
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../control-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Choosing a control representation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../fixture-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Fixture scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../fm-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Graph FM profile
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../instrument-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample instrument format
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  User score libraries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../light-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Light animations, layouts and wiring
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../live-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Portable live-effect graphs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../modulation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Envelfo modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../musical-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Musical definitions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../noise-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  White noise synthesis
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance-binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Performance input bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../port-lyte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lyte integration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../recording-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recording and sequence scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample performance requirements
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sequence-playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sequence selection and playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../slideshow-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Slideshow scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Units
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Editing and validation boundaries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../vl70m-sysex-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  VL70m: an incomplete SysEx description that still supports a librarian
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_33" id="__nav_33_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_33_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_33">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  API Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1" id="__nav_33_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_33_1_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_33_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  ufor
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  accidentals
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  accidentals
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        accidentals
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.CANONICAL" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        CANONICAL
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.ACCIDENTALS" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ACCIDENTALS
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.ACCIDENTAL_CANONICAL" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ACCIDENTAL_CANONICAL
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Accidentals
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Accidentals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals.none" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        none
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals.whole" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        whole
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals.half" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        half
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        AccidentalNames
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AccidentalNames">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.accidentals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        accidentals
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.symbols" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        symbols
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.canonical" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        canonical
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        name
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.flat_sharp_names" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        flat_sharp_names
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.split_note" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        split_note
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator_capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_capture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator_ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arrangement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arrangement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  assets
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audio_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audio_features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_features
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  base
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broadcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  broadcast
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../codec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  codec
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  composition
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  control
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dx7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  dx7
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  encoding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../envelfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../envelfo_random/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo_random
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelope
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  events
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../expression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  expression
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fixture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fm
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../instrument_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  interface
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../library_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library_files
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../light_animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_animation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../light_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_math
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lights/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lights
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../musical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  musical
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../noise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  noise
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../number/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  number
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../oscillator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  oscillator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../performance_binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  performance_binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  preset
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recording/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recording
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recursive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recursive
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  references
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1_46" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../samples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  samples
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1_46" id="__nav_33_1_46_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_33_1_46_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33_1_46">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  samples
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  controls
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/crossfade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  crossfade
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  enums
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/instrument/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  metadata
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  processing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selection
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/variation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  variation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scala/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scala
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scale
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../score/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../score_types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score_types
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  segments
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../selector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selector
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  sequence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../slideshow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  slideshow
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  streams
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../synth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../synth_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  time
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tuning
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tx81z/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tx81z
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vl70/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  vl70
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        accidentals
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.CANONICAL" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        CANONICAL
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.ACCIDENTALS" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ACCIDENTALS
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.ACCIDENTAL_CANONICAL" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ACCIDENTAL_CANONICAL
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        Accidentals
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Accidentals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals.none" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        none
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals.whole" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        whole
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.Accidentals.half" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        half
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        AccidentalNames
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="AccidentalNames">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.accidentals" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        accidentals
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.symbols" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        symbols
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.canonical" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        canonical
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.name" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        name
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.flat_sharp_names" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        flat_sharp_names
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.accidentals.AccidentalNames.split_note" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        split_note
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+
+  <h1>accidentals</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="ufor.accidentals"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="ufor.accidentals.CANONICAL" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">CANONICAL</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'b'</span><span class="p">:</span> <span class="n">FLAT</span><span class="p">,</span> <span class="s1">'#'</span><span class="p">:</span> <span class="n">SHARP</span><span class="p">}</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.CANONICAL" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="ufor.accidentals.ACCIDENTALS" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">ACCIDENTALS</span> <span class="o">=</span> <span class="n">FLAT</span> <span class="o">+</span> <span class="n">SHARP</span> <span class="o">+</span> <span class="n">HALF_FLAT</span> <span class="o">+</span> <span class="n">HALF_SHARP</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.ACCIDENTALS" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="ufor.accidentals.ACCIDENTAL_CANONICAL" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">ACCIDENTAL_CANONICAL</span> <span class="o">=</span> <span class="p">{</span><span class="s1">'#'</span><span class="p">:</span> <span class="n">SHARP</span><span class="p">,</span> <span class="s1">'b'</span><span class="p">:</span> <span class="n">FLAT</span><span class="p">,</span> <span class="n">FLAT</span><span class="p">:</span> <span class="n">FLAT</span><span class="p">,</span> <span class="n">SHARP</span><span class="p">:</span> <span class="n">SHARP</span><span class="p">,</span> <span class="n">HALF_FLAT</span><span class="p">:</span> <span class="n">HALF_FLAT</span><span class="p">,</span> <span class="n">HALF_SHARP</span><span class="p">:</span> <span class="n">HALF_SHARP</span><span class="p">}</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-module-attribute"><code>module-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.ACCIDENTAL_CANONICAL" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.accidentals.Accidentals" class="doc doc-heading">
+            <code>Accidentals</code>
+
+
+<a href="#ufor.accidentals.Accidentals" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><span title="enum.StrEnum">StrEnum</span></code></p>
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/accidentals.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-22">22</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-23">23</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-24">24</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#ufor.accidentals.Accidentals--source--__codelineno-0-31">31</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.accidentals.Accidentals--source--__span-0-19"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-19" name="ufor.accidentals.Accidentals--source--__codelineno-0-19"></a><span class="k">class</span><span class="w"> </span><span class="nc">Accidentals</span><span class="p">(</span><span class="n">StrEnum</span><span class="p">):</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-20"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-20" name="ufor.accidentals.Accidentals--source--__codelineno-0-20"></a>    <span class="c1"># No accidentals are allowed</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-21"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-21" name="ufor.accidentals.Accidentals--source--__codelineno-0-21"></a>    <span class="n">none</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-22"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-22" name="ufor.accidentals.Accidentals--source--__codelineno-0-22"></a>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-23"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-23" name="ufor.accidentals.Accidentals--source--__codelineno-0-23"></a>    <span class="c1"># Standard accidentals are allowed, with just # and -</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-24"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-24" name="ufor.accidentals.Accidentals--source--__codelineno-0-24"></a>    <span class="n">whole</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-25"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-25" name="ufor.accidentals.Accidentals--source--__codelineno-0-25"></a>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-26"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-26" name="ufor.accidentals.Accidentals--source--__codelineno-0-26"></a>    <span class="c1"># Extended accidentals are allowed:</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-27"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-27" name="ufor.accidentals.Accidentals--source--__codelineno-0-27"></a>    <span class="c1"># + means up one step</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-28"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-28" name="ufor.accidentals.Accidentals--source--__codelineno-0-28"></a>    <span class="c1"># # means up two steps</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-29"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-29" name="ufor.accidentals.Accidentals--source--__codelineno-0-29"></a>    <span class="c1"># - means down one step</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-30"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-30" name="ufor.accidentals.Accidentals--source--__codelineno-0-30"></a>    <span class="c1"># b means down two steps</span>
+</span><span id="ufor.accidentals.Accidentals--source--__span-0-31"><a id="ufor.accidentals.Accidentals--source--__codelineno-0-31" name="ufor.accidentals.Accidentals--source--__codelineno-0-31"></a>    <span class="n">half</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.accidentals.Accidentals.none" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">none</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.Accidentals.none" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.accidentals.Accidentals.whole" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">whole</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.Accidentals.whole" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.accidentals.Accidentals.half" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">half</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.Accidentals.half" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.accidentals.AccidentalNames" class="doc doc-heading">
+            <code>AccidentalNames</code>
+
+
+<a href="#ufor.accidentals.AccidentalNames" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/accidentals.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-35">35</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-36">36</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-37">37</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-62">62</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-63">63</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-71">71</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-72">72</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames--source--__codelineno-0-85">85</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.accidentals.AccidentalNames--source--__span-0-34"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-34" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-34"></a><span class="k">class</span><span class="w"> </span><span class="nc">AccidentalNames</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-35"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-35" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-35"></a>    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">accidentals</span><span class="p">:</span> <span class="n">Accidentals</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-36"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-36" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-36"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span> <span class="o">=</span> <span class="n">accidentals</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-37"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-37" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-37"></a>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-38"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-38" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-38"></a>    <span class="nd">@property</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-39"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-39" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-39"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">symbols</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-40"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-40" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-40"></a>        <span class="k">return</span> <span class="p">{</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-41"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-41" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-41"></a>            <span class="n">Accidentals</span><span class="o">.</span><span class="n">none</span><span class="p">:</span> <span class="s1">''</span><span class="p">,</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-42"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-42" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-42"></a>            <span class="n">Accidentals</span><span class="o">.</span><span class="n">whole</span><span class="p">:</span> <span class="n">FLAT</span> <span class="o">+</span> <span class="n">SHARP</span><span class="p">,</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-43"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-43" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-43"></a>            <span class="n">Accidentals</span><span class="o">.</span><span class="n">half</span><span class="p">:</span> <span class="n">ACCIDENTALS</span><span class="p">,</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-44"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-44" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-44"></a>        <span class="p">}[</span><span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span><span class="p">]</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-45"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-45" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-45"></a>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-46"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-46" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-46"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">canonical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-47"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-47" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-47"></a>        <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">CANONICAL</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-48"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-48" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-48"></a>            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-49"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-49" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-49"></a>        <span class="k">return</span> <span class="n">s</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-50"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-50" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-50"></a>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-51"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-51" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-51"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">use_sharp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-52"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-52" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-52"></a>        <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-53"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-53" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-53"></a>            <span class="k">case</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">none</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-54"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-54" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-54"></a>                <span class="k">return</span> <span class="n">note</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-55"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-55" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-55"></a>            <span class="k">case</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">whole</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-56"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-56" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-56"></a>                <span class="n">accidental</span> <span class="o">=</span> <span class="n">SHARP</span> <span class="k">if</span> <span class="n">use_sharp</span> <span class="k">else</span> <span class="n">FLAT</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-57"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-57" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-57"></a>                <span class="k">return</span> <span class="n">note</span> <span class="o">+</span> <span class="n">accidental</span> <span class="o">*</span> <span class="n">offset</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-58"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-58" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-58"></a>            <span class="k">case</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">half</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-59"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-59" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-59"></a>                <span class="n">large</span> <span class="o">=</span> <span class="n">SHARP</span> <span class="k">if</span> <span class="n">use_sharp</span> <span class="k">else</span> <span class="n">FLAT</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-60"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-60" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-60"></a>                <span class="n">small</span> <span class="o">=</span> <span class="n">HALF_SHARP</span> <span class="k">if</span> <span class="n">use_sharp</span> <span class="k">else</span> <span class="n">HALF_FLAT</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-61"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-61" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-61"></a>                <span class="k">return</span> <span class="n">note</span> <span class="o">+</span> <span class="n">large</span> <span class="o">*</span> <span class="p">(</span><span class="n">offset</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">small</span> <span class="o">*</span> <span class="p">(</span><span class="n">offset</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-62"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-62" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-62"></a>        <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Unknown accidentals </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-63"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-63" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-63"></a>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-64"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-64" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-64"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">flat_sharp_names</span><span class="p">(</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-65"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-65" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-65"></a>        <span class="bp">self</span><span class="p">,</span> <span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">next_note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-66"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-66" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-66"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-67"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-67" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-67"></a>        <span class="n">flat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">next_note</span><span class="p">,</span> <span class="n">interval</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-68"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-68" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-68"></a>        <span class="n">sharp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">note</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-69"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-69" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-69"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span> <span class="o">==</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">half</span> <span class="ow">and</span> <span class="n">offset</span> <span class="o">&gt;</span> <span class="n">interval</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-70"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-70" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-70"></a>            <span class="k">return</span> <span class="n">sharp</span><span class="p">,</span> <span class="n">flat</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-71"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-71" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-71"></a>        <span class="k">return</span> <span class="n">flat</span><span class="p">,</span> <span class="n">sharp</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-72"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-72" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-72"></a>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-73"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-73" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-73"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">split_note</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-74"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-74" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-74"></a>        <span class="k">if</span> <span class="n">s</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-75"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-75" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-75"></a>            <span class="n">note</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-76"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-76" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-76"></a>            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-77"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-77" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-77"></a>            <span class="k">while</span> <span class="p">(</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-78"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-78" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-78"></a>                <span class="n">s</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-79"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-79" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-79"></a>                <span class="ow">and</span> <span class="p">(</span><span class="n">accidental</span> <span class="o">:=</span> <span class="n">ACCIDENTAL_CANONICAL</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-80"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-80" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-80"></a>                <span class="ow">and</span> <span class="n">accidental</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-81"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-81" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-81"></a>            <span class="p">):</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-82"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-82" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-82"></a>                <span class="n">note</span> <span class="o">+=</span> <span class="n">accidental</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-83"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-83" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-83"></a>                <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-84"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-84" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-84"></a>            <span class="k">return</span> <span class="n">note</span><span class="p">,</span> <span class="n">s</span>
+</span><span id="ufor.accidentals.AccidentalNames--source--__span-0-85"><a id="ufor.accidentals.AccidentalNames--source--__codelineno-0-85" name="ufor.accidentals.AccidentalNames--source--__codelineno-0-85"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Bad number </span><span class="si">{</span><span class="n">s</span><span class="si">=}</span><span class="s1">'</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.accidentals.AccidentalNames.accidentals" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">accidentals</span> <span class="o">=</span> <span class="n">accidentals</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.accidentals.AccidentalNames.accidentals" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.accidentals.AccidentalNames.symbols" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">symbols</span><span class="p">:</span> <span class="nb">str</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-property"><code>property</code></small>
+  </span>
+
+<a href="#ufor.accidentals.AccidentalNames.symbols" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.accidentals.AccidentalNames.canonical" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">canonical</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
+
+<a href="#ufor.accidentals.AccidentalNames.canonical" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/accidentals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-49">49</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.accidentals.AccidentalNames.canonical--source--__span-0-46"><a id="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-46" name="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-46"></a><span class="k">def</span><span class="w"> </span><span class="nf">canonical</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.canonical--source--__span-0-47"><a id="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-47" name="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-47"></a>    <span class="k">for</span> <span class="n">k</span><span class="p">,</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">CANONICAL</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+</span><span id="ufor.accidentals.AccidentalNames.canonical--source--__span-0-48"><a id="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-48" name="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-48"></a>        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames.canonical--source--__span-0-49"><a id="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-49" name="ufor.accidentals.AccidentalNames.canonical--source--__codelineno-0-49"></a>    <span class="k">return</span> <span class="n">s</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.accidentals.AccidentalNames.name" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">name</span><span class="p">(</span><span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">use_sharp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span></code>
+
+<a href="#ufor.accidentals.AccidentalNames.name" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/accidentals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-52">52</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-53">53</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-54">54</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.name--source--__codelineno-0-62">62</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-51"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-51" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-51"></a><span class="k">def</span><span class="w"> </span><span class="nf">name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">use_sharp</span><span class="p">:</span> <span class="nb">bool</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-52"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-52" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-52"></a>    <span class="k">match</span> <span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-53"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-53" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-53"></a>        <span class="k">case</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">none</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-54"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-54" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-54"></a>            <span class="k">return</span> <span class="n">note</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-55"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-55" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-55"></a>        <span class="k">case</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">whole</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-56"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-56" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-56"></a>            <span class="n">accidental</span> <span class="o">=</span> <span class="n">SHARP</span> <span class="k">if</span> <span class="n">use_sharp</span> <span class="k">else</span> <span class="n">FLAT</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-57"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-57" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-57"></a>            <span class="k">return</span> <span class="n">note</span> <span class="o">+</span> <span class="n">accidental</span> <span class="o">*</span> <span class="n">offset</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-58"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-58" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-58"></a>        <span class="k">case</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">half</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-59"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-59" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-59"></a>            <span class="n">large</span> <span class="o">=</span> <span class="n">SHARP</span> <span class="k">if</span> <span class="n">use_sharp</span> <span class="k">else</span> <span class="n">FLAT</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-60"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-60" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-60"></a>            <span class="n">small</span> <span class="o">=</span> <span class="n">HALF_SHARP</span> <span class="k">if</span> <span class="n">use_sharp</span> <span class="k">else</span> <span class="n">HALF_FLAT</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-61"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-61" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-61"></a>            <span class="k">return</span> <span class="n">note</span> <span class="o">+</span> <span class="n">large</span> <span class="o">*</span> <span class="p">(</span><span class="n">offset</span> <span class="o">//</span> <span class="mi">2</span><span class="p">)</span> <span class="o">+</span> <span class="n">small</span> <span class="o">*</span> <span class="p">(</span><span class="n">offset</span> <span class="o">%</span> <span class="mi">2</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames.name--source--__span-0-62"><a id="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-62" name="ufor.accidentals.AccidentalNames.name--source--__codelineno-0-62"></a>    <span class="k">raise</span> <span class="ne">AssertionError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Unknown accidentals </span><span class="si">{</span><span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span><span class="si">}</span><span class="s1">'</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.accidentals.AccidentalNames.flat_sharp_names" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">flat_sharp_names</span><span class="p">(</span><span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">next_note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span></code>
+
+<a href="#ufor.accidentals.AccidentalNames.flat_sharp_names" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/accidentals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-64">64</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-67">67</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-68">68</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-69">69</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-70">70</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-71">71</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-64"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-64" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-64"></a><span class="k">def</span><span class="w"> </span><span class="nf">flat_sharp_names</span><span class="p">(</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-65"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-65" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-65"></a>    <span class="bp">self</span><span class="p">,</span> <span class="n">note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">next_note</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">interval</span><span class="p">:</span> <span class="nb">int</span><span class="p">,</span> <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-66"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-66" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-66"></a><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-67"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-67" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-67"></a>    <span class="n">flat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">next_note</span><span class="p">,</span> <span class="n">interval</span> <span class="o">-</span> <span class="n">offset</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-68"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-68" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-68"></a>    <span class="n">sharp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">(</span><span class="n">note</span><span class="p">,</span> <span class="n">offset</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-69"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-69" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-69"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">accidentals</span> <span class="o">==</span> <span class="n">Accidentals</span><span class="o">.</span><span class="n">half</span> <span class="ow">and</span> <span class="n">offset</span> <span class="o">&gt;</span> <span class="n">interval</span> <span class="o">//</span> <span class="mi">2</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-70"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-70" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-70"></a>        <span class="k">return</span> <span class="n">sharp</span><span class="p">,</span> <span class="n">flat</span>
+</span><span id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__span-0-71"><a id="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-71" name="ufor.accidentals.AccidentalNames.flat_sharp_names--source--__codelineno-0-71"></a>    <span class="k">return</span> <span class="n">flat</span><span class="p">,</span> <span class="n">sharp</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.accidentals.AccidentalNames.split_note" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">split_note</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]</span></code>
+
+<a href="#ufor.accidentals.AccidentalNames.split_note" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/accidentals.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-73">73</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-74">74</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-75">75</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-76">76</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-77">77</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-78">78</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-79">79</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-80">80</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-81">81</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-82">82</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-83">83</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-84">84</a></span>
+<span class="normal"><a href="#ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-85">85</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-73"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-73" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-73"></a><span class="k">def</span><span class="w"> </span><span class="nf">split_note</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">names</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">str</span><span class="p">]:</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-74"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-74" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-74"></a>    <span class="k">if</span> <span class="n">s</span> <span class="ow">and</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="ow">in</span> <span class="n">names</span><span class="p">:</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-75"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-75" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-75"></a>        <span class="n">note</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-76"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-76" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-76"></a>        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-77"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-77" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-77"></a>        <span class="k">while</span> <span class="p">(</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-78"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-78" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-78"></a>            <span class="n">s</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-79"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-79" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-79"></a>            <span class="ow">and</span> <span class="p">(</span><span class="n">accidental</span> <span class="o">:=</span> <span class="n">ACCIDENTAL_CANONICAL</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">s</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-80"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-80" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-80"></a>            <span class="ow">and</span> <span class="n">accidental</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">symbols</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-81"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-81" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-81"></a>        <span class="p">):</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-82"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-82" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-82"></a>            <span class="n">note</span> <span class="o">+=</span> <span class="n">accidental</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-83"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-83" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-83"></a>            <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-84"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-84" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-84"></a>        <span class="k">return</span> <span class="n">note</span><span class="p">,</span> <span class="n">s</span>
+</span><span id="ufor.accidentals.AccidentalNames.split_note--source--__span-0-85"><a id="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-85" name="ufor.accidentals.AccidentalNames.split_note--source--__codelineno-0-85"></a>    <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="sa">f</span><span class="s1">'Bad number </span><span class="si">{</span><span class="n">s</span><span class="si">=}</span><span class="s1">'</span><span class="p">)</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["navigation.indexes","content.code.copy"],"redirect":null,"search":"../../../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.77dd0ce9.min.js"></script>
+      
+    
+  </body>
+</html>

@@ -1,0 +1,4909 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="🛸 universal Format: portable definitions for time-based data 🛸">
+      
+      
+      
+        <link rel="canonical" href="https://rec.github.io/ufor/reference/ufor/performance_binding/">
+      
+      
+      
+        <link rel="prev" href="../oscillator/">
+      
+      
+        <link rel="next" href="../playback/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../../../assets/images/favicon.png">
+      <meta name="generator" content="zensical-0.0.73">
+    
+    
+      
+        <title>performance_binding - ufor</title>
+      
+    
+    
+      
+        
+      
+      <link rel="stylesheet" href="../../../assets/stylesheets/modern/main.4ab2de0c.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Inter:300,300i,400,400i,500,500i,700,700i%7CJetBrains+Mono:400,400i,700,700i&amp;display=fallback">
+        <style>:root{--md-text-font:"Inter";--md-code-font:"JetBrains Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("../../..",location),__md_scope.pathname.endsWith("/")||(__md_scope=new URL(__md_scope.pathname+"/",location)),__md_hash=e=>[...e].reduce(((e,t)=>(e<<5)-e+t.charCodeAt(0)),0),__md_get=(e,t=localStorage,_=__md_scope)=>JSON.parse(t.getItem(_.pathname+"."+e)),__md_set=(e,t,_=localStorage,a=__md_scope)=>{try{_.setItem(a.pathname+"."+e,JSON.stringify(t))}catch(e){}},document.documentElement.setAttribute("data-platform",navigator.platform)</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer" aria-hidden="true"></label>
+    <div data-md-component="skip">
+      <a href="#__skip" class="md-skip">
+        Skip to content
+      </a>
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../.." title="ufor" class="md-header__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-menu" viewBox="0 0 24 24"><path d="M4 5h16M4 12h16M4 19h16"/></svg>
+      <span class="md-visually-hidden">Navigation</span>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            ufor
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              performance_binding
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-search" viewBox="0 0 24 24"><path d="m21 21-4.34-4.34"/><circle cx="11" cy="11" r="8"/></svg>
+          <span class="md-visually-hidden">Search</span>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog" aria-label="Search">
+  <button type="button" class="md-search__button">
+    Search
+  </button>
+</div>
+      
+    
+    <div class="md-header__source">
+      
+    </div>
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../.." title="ufor" class="md-nav__button md-logo" aria-label="ufor" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" class="lucide lucide-book-open" viewBox="0 0 24 24"><path d="M12 5v16M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/></svg>
+
+    </a>
+    ufor
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../.." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../api-map/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API and ownership map
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../arpeggiator-ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator Envelfo ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../arpeggiator-rhythm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Arpeggiator swing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../arrangement-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Audio arrangement scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../automation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Scalar timeline automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../binding-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../broadcast-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Broadcast scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../capabilities/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Implemented capabilities
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../composition-design/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition design
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../composition-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Composition example: rehearsal, drums and piano
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../composition-implementation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Score composition implementation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../control-evolution/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Instrument control evolution
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../control-guide/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Choosing a control representation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../fixture-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Fixture scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../fm-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Graph FM profile
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../instrument-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample instrument format
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  User score libraries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../light-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Light animations, layouts and wiring
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../live-effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Portable live-effect graphs
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../modulation-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Envelfo modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../musical-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Musical definitions
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../noise-synthesis/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  White noise synthesis
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../performance-binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Performance input bindings
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../port-lyte/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lyte integration
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../recording-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Recording and sequence scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sample-performance/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sample performance requirements
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../sequence-playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Sequence selection and playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../slideshow-format/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Slideshow scores
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../units/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Units
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../validation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  Editing and validation boundaries
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../vl70m-sysex-example/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  VL70m: an incomplete SysEx description that still supports a librarian
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33" checked>
+        
+          
+          <label class="md-nav__link" for="__nav_33" id="__nav_33_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  API Reference
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        
+          <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_33_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_33">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  API Reference
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1" checked>
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  ufor
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1" id="__nav_33_1_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_33_1_label" aria-expanded="true">
+            <label class="md-nav__title" for="__nav_33_1">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  ufor
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../accidentals/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  accidentals
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator_capture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_capture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arpeggiator_ports/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arpeggiator_ports
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../arrangement/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  arrangement
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../assets/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  assets
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audio_effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../audio_features/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  audio_features
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../automation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  automation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../base/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  base
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../binding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  binding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../broadcast/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  broadcast
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../codec/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  codec
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../composition/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  composition
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../control/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  control
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../dx7/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  dx7
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../effects/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  effects
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../encoding/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  encoding
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../envelfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../envelfo_random/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelfo_random
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../envelope/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  envelope
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../events/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  events
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../expression/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  expression
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fixture/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fixture
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../fm/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  fm
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../instrument_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../interface/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  interface
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lfo/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lfo
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../library_files/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  library_files
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../light_animation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_animation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../light_math/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  light_math
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../lights/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  lights
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../modulation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  modulation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../musical/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  musical
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../noise/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  noise
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../number/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  number
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../oscillator/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  oscillator
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  performance_binding
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="././" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  performance_binding
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        performance_binding
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        MidiController
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MidiController">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.number" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        number
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        control
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.minimum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        minimum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.maximum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        maximum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.ordered_range" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ordered_range
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        MidiPitchBend
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MidiPitchBend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        control
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.minimum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        minimum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.center" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        center
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.maximum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        maximum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.ordered_range" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ordered_range
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        MidiPerformanceInput
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MidiPerformanceInput">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        channels
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.part" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        part
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.repeated_key_release" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        repeated_key_release
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        tuning
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.controllers" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        controllers
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.pitch_bend" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        pitch_bend
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        distinct_sources
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PerformanceInputBinding
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PerformanceInputBinding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding.instrument" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        instrument
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding.midi" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        midi
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        distinct_channels
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceBindingScore" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PerformanceBindingScore
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PerformanceBindingScore">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceBindingScore.kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        kind
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceBindingScore.body" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        body
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../preset/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  preset
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recording/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recording
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../recursive/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  recursive
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../references/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  references
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    
+    
+      
+        
+          
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_33_1_46" >
+        
+          
+          <div class="md-nav__link md-nav__container">
+            <a href="../samples/" class="md-nav__link ">
+              
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  samples
+
+    
+  </span>
+  
+  
+
+            </a>
+            
+              
+              <label class="md-nav__link " for="__nav_33_1_46" id="__nav_33_1_46_label" tabindex="0">
+                <span class="md-nav__icon md-icon"></span>
+              </label>
+            
+          </div>
+        
+        
+          <nav class="md-nav" data-md-level="3" aria-labelledby="__nav_33_1_46_label" aria-expanded="false">
+            <label class="md-nav__title" for="__nav_33_1_46">
+              <span class="md-nav__icon md-icon"></span>
+              
+  
+  samples
+
+            </label>
+            <ul class="md-nav__list" data-md-scrollfix>
+              
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/controls/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  controls
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/crossfade/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  crossfade
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/enums/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  enums
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/instrument/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  instrument
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/metadata/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  metadata
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/playback/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  playback
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  processing
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/selection/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selection
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../samples/variation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  variation
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scala/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scala
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../scale/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  scale
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../score/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../score_types/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  score_types
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../segments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  segments
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../selector/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  selector
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../sequence/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  sequence
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../slideshow/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  slideshow
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../streams/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  streams
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../synth/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../synth_trace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  synth_trace
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../time/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  time
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tuning
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../tx81z/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  tx81z
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+                
+                  
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../vl70/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+  vl70
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+                
+              
+            </ul>
+          </nav>
+        
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  
+                    
+                    
+                    
+                    
+                      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+                      <div class="md-sidebar-button__wrapper">
+                        <label class="md-sidebar-button" for="__toc"></label>
+                      </div>
+                    
+                  
+                  <div class="md-sidebar__inner">
+                    
+
+
+<nav class="md-nav md-nav--secondary" aria-label="On this page">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      On this page
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        performance_binding
+      </span>
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        MidiController
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MidiController">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.number" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        number
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        control
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.minimum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        minimum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.maximum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        maximum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiController.ordered_range" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ordered_range
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        MidiPitchBend
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MidiPitchBend">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.control" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        control
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.minimum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        minimum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.center" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        center
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.maximum" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        maximum
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPitchBend.ordered_range" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        ordered_range
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        MidiPerformanceInput
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="MidiPerformanceInput">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        channels
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.part" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        part
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.repeated_key_release" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        repeated_key_release
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.tuning" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        tuning
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.controllers" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        controllers
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.pitch_bend" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        pitch_bend
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        distinct_sources
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PerformanceInputBinding
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PerformanceInputBinding">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding.instrument" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        instrument
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding.midi" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        midi
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        distinct_channels
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceBindingScore" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        PerformanceBindingScore
+      </span>
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="PerformanceBindingScore">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceBindingScore.kind" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        kind
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ufor.performance_binding.PerformanceBindingScore.body" class="md-nav__link">
+    <span class="md-ellipsis">
+      <span class="md-typeset">
+        body
+      </span>
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                <a id="__skip" tabindex="-1"></a>
+                
+                  
+
+
+  <h1>performance_binding</h1>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="ufor.performance_binding"></a>
+    <div class="doc doc-contents first">
+
+        <p>Protocol inputs for transport-neutral performance events.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.performance_binding.MidiController" class="doc doc-heading">
+            <code>MidiController</code>
+
+
+<a href="#ufor.performance_binding.MidiController" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Model (ufor.base.Model)" href="../base/#ufor.base.Model">Model</a></code></p>
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-12">12</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-13">13</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-14">14</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-15">15</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-16">16</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-17">17</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController--source--__codelineno-0-22">22</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.MidiController--source--__span-0-12"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-12" name="ufor.performance_binding.MidiController--source--__codelineno-0-12"></a><span class="k">class</span><span class="w"> </span><span class="nc">MidiController</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-13"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-13" name="ufor.performance_binding.MidiController--source--__codelineno-0-13"></a>    <span class="n">number</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">127</span><span class="p">)]</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-14"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-14" name="ufor.performance_binding.MidiController--source--__codelineno-0-14"></a>    <span class="n">control</span><span class="p">:</span> <span class="n">Identifier</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-15"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-15" name="ufor.performance_binding.MidiController--source--__codelineno-0-15"></a>    <span class="n">minimum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-16"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-16" name="ufor.performance_binding.MidiController--source--__codelineno-0-16"></a>    <span class="n">maximum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-17"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-17" name="ufor.performance_binding.MidiController--source--__codelineno-0-17"></a>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-18"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-18" name="ufor.performance_binding.MidiController--source--__codelineno-0-18"></a>    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-19"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-19" name="ufor.performance_binding.MidiController--source--__codelineno-0-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">ordered_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-20"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-20" name="ufor.performance_binding.MidiController--source--__codelineno-0-20"></a>        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-21"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-21" name="ufor.performance_binding.MidiController--source--__codelineno-0-21"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'MIDI controller output range must increase'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiController--source--__span-0-22"><a id="ufor.performance_binding.MidiController--source--__codelineno-0-22" name="ufor.performance_binding.MidiController--source--__codelineno-0-22"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiController.number" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">number</span><span class="p">:</span> <span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">127</span><span class="p">)]</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiController.number" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiController.control" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">control</span><span class="p">:</span> <span class="n">Identifier</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiController.control" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiController.minimum" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">minimum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">0.0</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiController.minimum" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiController.maximum" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">maximum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">1.0</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiController.maximum" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.performance_binding.MidiController.ordered_range" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">ordered_range</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Self</span></code>
+
+<a href="#ufor.performance_binding.MidiController.ordered_range" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-18">18</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-19">19</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-20">20</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-21">21</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-22">22</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.MidiController.ordered_range--source--__span-0-18"><a id="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-18" name="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-18"></a><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiController.ordered_range--source--__span-0-19"><a id="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-19" name="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-19"></a><span class="k">def</span><span class="w"> </span><span class="nf">ordered_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiController.ordered_range--source--__span-0-20"><a id="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-20" name="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-20"></a>    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiController.ordered_range--source--__span-0-21"><a id="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-21" name="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-21"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'MIDI controller output range must increase'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiController.ordered_range--source--__span-0-22"><a id="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-22" name="ufor.performance_binding.MidiController.ordered_range--source--__codelineno-0-22"></a>    <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.performance_binding.MidiPitchBend" class="doc doc-heading">
+            <code>MidiPitchBend</code>
+
+
+<a href="#ufor.performance_binding.MidiPitchBend" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Model (ufor.base.Model)" href="../base/#ufor.base.Model">Model</a></code></p>
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-25">25</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-26">26</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-27">27</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-28">28</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-29">29</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-30">30</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend--source--__codelineno-0-35">35</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-25"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-25" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-25"></a><span class="k">class</span><span class="w"> </span><span class="nc">MidiPitchBend</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-26"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-26" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-26"></a>    <span class="n">control</span><span class="p">:</span> <span class="n">Identifier</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-27"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-27" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-27"></a>    <span class="n">minimum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-28"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-28" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-28"></a>    <span class="n">center</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">0.0</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-29"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-29" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-29"></a>    <span class="n">maximum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">1.0</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-30"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-30" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-30"></a>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-31"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-31" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-31"></a>    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-32"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-32" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-32"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">ordered_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-33"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-33" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-33"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-34"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-34" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-34"></a>            <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'MIDI pitch-bend minimum &lt; center &lt; maximum required'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPitchBend--source--__span-0-35"><a id="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-35" name="ufor.performance_binding.MidiPitchBend--source--__codelineno-0-35"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPitchBend.control" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">control</span><span class="p">:</span> <span class="n">Identifier</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPitchBend.control" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPitchBend.minimum" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">minimum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="o">-</span><span class="mf">1.0</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPitchBend.minimum" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPitchBend.center" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">center</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">0.0</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPitchBend.center" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPitchBend.maximum" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">maximum</span><span class="p">:</span> <span class="n">Bipolar</span> <span class="o">=</span> <span class="mf">1.0</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPitchBend.maximum" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.performance_binding.MidiPitchBend.ordered_range" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">ordered_range</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Self</span></code>
+
+<a href="#ufor.performance_binding.MidiPitchBend.ordered_range" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-31">31</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-32">32</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-33">33</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-34">34</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-35">35</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__span-0-31"><a id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-31" name="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-31"></a><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__span-0-32"><a id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-32" name="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-32"></a><span class="k">def</span><span class="w"> </span><span class="nf">ordered_range</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__span-0-33"><a id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-33" name="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-33"></a>    <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">minimum</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">center</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">maximum</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__span-0-34"><a id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-34" name="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-34"></a>        <span class="k">raise</span> <span class="ne">ValueError</span><span class="p">(</span><span class="s1">'MIDI pitch-bend minimum &lt; center &lt; maximum required'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__span-0-35"><a id="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-35" name="ufor.performance_binding.MidiPitchBend.ordered_range--source--__codelineno-0-35"></a>    <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.performance_binding.MidiPerformanceInput" class="doc doc-heading">
+            <code>MidiPerformanceInput</code>
+
+
+<a href="#ufor.performance_binding.MidiPerformanceInput" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Model (ufor.base.Model)" href="../base/#ufor.base.Model">Model</a></code></p>
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-38">38</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-39">39</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-40">40</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-41">41</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-42">42</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-43">43</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-44">44</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-45">45</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-46">46</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-47">47</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-52">52</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-38"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-38" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-38"></a><span class="k">class</span><span class="w"> </span><span class="nc">MidiPerformanceInput</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-39"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-39" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-39"></a>    <span class="n">channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">16</span><span class="p">)]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-40"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-40" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-40"></a>        <span class="n">min_length</span><span class="o">=</span><span class="mi">1</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-41"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-41" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-41"></a>    <span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-42"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-42" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-42"></a>    <span class="n">part</span><span class="p">:</span> <span class="n">Identifier</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-43"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-43" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-43"></a>    <span class="n">repeated_key_release</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'oldest'</span><span class="p">,</span> <span class="s1">'newest'</span><span class="p">]</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-44"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-44" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-44"></a>    <span class="n">tuning</span><span class="p">:</span> <span class="n">ScoreReference</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-45"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-45" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-45"></a>    <span class="n">controllers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MidiController</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-46"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-46" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-46"></a>    <span class="n">pitch_bend</span><span class="p">:</span> <span class="n">MidiPitchBend</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-47"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-47" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-47"></a>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-48"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-48" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-48"></a>    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-49"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-49" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-49"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">distinct_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-50"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-50" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-50"></a>        <span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">,</span> <span class="s1">'MIDI channel'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-51"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-51" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-51"></a>        <span class="n">unique</span><span class="p">((</span><span class="n">c</span><span class="o">.</span><span class="n">number</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">controllers</span><span class="p">),</span> <span class="s1">'MIDI controller'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput--source--__span-0-52"><a id="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-52" name="ufor.performance_binding.MidiPerformanceInput--source--__codelineno-0-52"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.channels" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">channels</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">Annotated</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span> <span class="n">Field</span><span class="p">(</span><span class="n">strict</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">ge</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">le</span><span class="o">=</span><span class="mi">16</span><span class="p">)]]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.channels" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.part" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">part</span><span class="p">:</span> <span class="n">Identifier</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.part" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.repeated_key_release" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">repeated_key_release</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'oldest'</span><span class="p">,</span> <span class="s1">'newest'</span><span class="p">]</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.repeated_key_release" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.tuning" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">tuning</span><span class="p">:</span> <span class="n">ScoreReference</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.tuning" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.controllers" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">controllers</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MidiController</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">default_factory</span><span class="o">=</span><span class="nb">list</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.controllers" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.pitch_bend" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">pitch_bend</span><span class="p">:</span> <span class="n">MidiPitchBend</span> <span class="o">|</span> <span class="kc">None</span> <span class="o">=</span> <span class="kc">None</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.pitch_bend" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.performance_binding.MidiPerformanceInput.distinct_sources" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">distinct_sources</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Self</span></code>
+
+<a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-48">48</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-49">49</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-50">50</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-51">51</a></span>
+<span class="normal"><a href="#ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-52">52</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__span-0-48"><a id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-48" name="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-48"></a><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__span-0-49"><a id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-49" name="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-49"></a><span class="k">def</span><span class="w"> </span><span class="nf">distinct_sources</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__span-0-50"><a id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-50" name="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-50"></a>    <span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">channels</span><span class="p">,</span> <span class="s1">'MIDI channel'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__span-0-51"><a id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-51" name="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-51"></a>    <span class="n">unique</span><span class="p">((</span><span class="n">c</span><span class="o">.</span><span class="n">number</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">controllers</span><span class="p">),</span> <span class="s1">'MIDI controller'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__span-0-52"><a id="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-52" name="ufor.performance_binding.MidiPerformanceInput.distinct_sources--source--__codelineno-0-52"></a>    <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.performance_binding.PerformanceInputBinding" class="doc doc-heading">
+            <code>PerformanceInputBinding</code>
+
+
+<a href="#ufor.performance_binding.PerformanceInputBinding" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Model (ufor.base.Model)" href="../base/#ufor.base.Model">Model</a></code></p>
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-55">55</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-56">56</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-57">57</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-58">58</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-62">62</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-55"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-55" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-55"></a><span class="k">class</span><span class="w"> </span><span class="nc">PerformanceInputBinding</span><span class="p">(</span><span class="n">Model</span><span class="p">):</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-56"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-56" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-56"></a>    <span class="n">instrument</span><span class="p">:</span> <span class="n">ScoreReference</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-57"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-57" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-57"></a>    <span class="n">midi</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MidiPerformanceInput</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-58"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-58" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-58"></a>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-59"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-59" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-59"></a>    <span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-60"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-60" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-60"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">distinct_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-61"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-61" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-61"></a>        <span class="n">unique</span><span class="p">((</span><span class="n">c</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">channels</span><span class="p">),</span> <span class="s1">'MIDI channel'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding--source--__span-0-62"><a id="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-62" name="ufor.performance_binding.PerformanceInputBinding--source--__codelineno-0-62"></a>        <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.PerformanceInputBinding.instrument" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">instrument</span><span class="p">:</span> <span class="n">ScoreReference</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.PerformanceInputBinding.instrument" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.PerformanceInputBinding.midi" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">midi</span><span class="p">:</span> <span class="nb">list</span><span class="p">[</span><span class="n">MidiPerformanceInput</span><span class="p">]</span> <span class="o">=</span> <span class="n">Field</span><span class="p">(</span><span class="n">min_length</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.PerformanceInputBinding.midi" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="ufor.performance_binding.PerformanceInputBinding.distinct_channels" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">distinct_channels</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="n">Self</span></code>
+
+<a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+              <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-59">59</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-60">60</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-61">61</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-62">62</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__span-0-59"><a id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-59" name="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-59"></a><span class="nd">@model_validator</span><span class="p">(</span><span class="n">mode</span><span class="o">=</span><span class="s1">'after'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__span-0-60"><a id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-60" name="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-60"></a><span class="k">def</span><span class="w"> </span><span class="nf">distinct_channels</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Self</span><span class="p">:</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__span-0-61"><a id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-61" name="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-61"></a>    <span class="n">unique</span><span class="p">((</span><span class="n">c</span> <span class="k">for</span> <span class="n">m</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">midi</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">m</span><span class="o">.</span><span class="n">channels</span><span class="p">),</span> <span class="s1">'MIDI channel'</span><span class="p">)</span>
+</span><span id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__span-0-62"><a id="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-62" name="ufor.performance_binding.PerformanceInputBinding.distinct_channels--source--__codelineno-0-62"></a>    <span class="k">return</span> <span class="bp">self</span>
+</span></code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="ufor.performance_binding.PerformanceBindingScore" class="doc doc-heading">
+            <code>PerformanceBindingScore</code>
+
+
+<a href="#ufor.performance_binding.PerformanceBindingScore" class="headerlink" title="Permanent link">&para;</a></h2>
+
+
+    <div class="doc doc-contents ">
+            <p class="doc doc-class-bases">
+              Bases: <code><a class="autorefs autorefs-internal" title="Score (ufor.score.Score)" href="../score/#ufor.score.Score">Score</a></code></p>
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>ufor/performance_binding.py</code></summary>
+                <div class="language-python highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"><a href="#ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-65">65</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-66">66</a></span>
+<span class="normal"><a href="#ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-67">67</a></span></pre></div></td><td class="code"><div><pre><span></span><code><span id="ufor.performance_binding.PerformanceBindingScore--source--__span-0-65"><a id="ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-65" name="ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-65"></a><span class="k">class</span><span class="w"> </span><span class="nc">PerformanceBindingScore</span><span class="p">(</span><span class="n">Score</span><span class="p">):</span>
+</span><span id="ufor.performance_binding.PerformanceBindingScore--source--__span-0-66"><a id="ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-66" name="ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-66"></a>    <span class="n">kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'performance_binding'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'performance_binding'</span>
+</span><span id="ufor.performance_binding.PerformanceBindingScore--source--__span-0-67"><a id="ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-67" name="ufor.performance_binding.PerformanceBindingScore--source--__codelineno-0-67"></a>    <span class="n">body</span><span class="p">:</span> <span class="n">PerformanceInputBinding</span>
+</span></code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.PerformanceBindingScore.kind" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">kind</span><span class="p">:</span> <span class="n">Literal</span><span class="p">[</span><span class="s1">'performance_binding'</span><span class="p">]</span> <span class="o">=</span> <span class="s1">'performance_binding'</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-class-attribute"><code>class-attribute</code></small>
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.PerformanceBindingScore.kind" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-attribute">
+
+
+
+<h3 id="ufor.performance_binding.PerformanceBindingScore.body" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">body</span><span class="p">:</span> <span class="n">PerformanceInputBinding</span></code>
+
+  <span class="doc doc-labels">
+      <small class="doc doc-label doc-label-instance-attribute"><code>instance-attribute</code></small>
+  </span>
+
+<a href="#ufor.performance_binding.PerformanceBindingScore.body" class="headerlink" title="Permanent link">&para;</a></h3>
+
+
+    <div class="doc doc-contents ">
+
+    </div>
+
+</div>
+
+
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://zensical.org/" target="_blank" rel="noopener">
+      Zensical
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog" role="status" aria-atomic="true">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      
+      
+        
+        
+      <script id="__config" type="application/json">{"annotate":null,"base":"../../..","features":["navigation.indexes","content.code.copy"],"redirect":null,"search":"../../../assets/javascripts/workers/search.c47bb847.min.js","tags":null,"translations":{"clipboard.copied":"Copied to clipboard","clipboard.copy":"Copy to clipboard","clipboard.error":"Could not copy to clipboard","search.result.more.one":"1 more on this page","search.result.more.other":"# more on this page","search.result.none":"No matching documents","search.result.one":"1 matching document","search.result.other":"# matching documents","search.result.placeholder":"Type to start searching","search.result.term.missing":"Missing","select.version":"Select version"},"version":null}</script>
+    
+    
+      <script src="../../../assets/javascripts/bundle.77dd0ce9.min.js"></script>
+      
+    
+  </body>
+</html>
