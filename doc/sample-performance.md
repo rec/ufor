@@ -458,7 +458,18 @@ trimmed playback boundary. The duration is measured in playback time, not
 source frames, so pitch changes do not change the requested fade time. It is
 independent of the amplitude envelope and does not begin merely because a note
 is released. An early release or envelope completion can end the voice before
-the fade is reached. Loop and repeated-playback interactions are not yet defined.
+the fade is reached.
+
+The fade occurs once at final exhaustion, not at each loop or whole-sample
+repeat. Remaining distance includes all finite repeats, mirrored turns and
+committed crossfades. An indefinite loop has no predicted exhaustion until its
+release policy allows it to exit. At each output frame before onset, divide
+remaining source distance by current playback speed; start the fade when that
+time is no greater than the authored duration. Latch that frame and run the
+linear gain from one to zero over the authored duration. Subsequent pitch
+changes do not retime it: faster playback may exhaust the source early, while
+slower playback ends when the fade reaches zero. The fade multiplies final
+voice output after filters, independently of envelope and retirement gains.
 
 ## Release And Sustain Samples
 

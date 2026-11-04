@@ -81,7 +81,7 @@ def test_end_fade_round_trips_through_toml() -> None:
 
 
 @pytest.mark.parametrize('repetition', ['loop', 'play_count'])
-def test_end_fade_rejects_undefined_repetition(repetition: str) -> None:
+def test_end_fade_with_repetition_round_trips(repetition: str) -> None:
     raw = fixture()
     raw['body']['slots'][0]['playback']['end_fade_seconds'] = 0.25
     if repetition == 'loop':
@@ -94,8 +94,8 @@ def test_end_fade_rejects_undefined_repetition(repetition: str) -> None:
             {'mode': 'one_shot', 'play_count': 2}
         )
 
-    with pytest.raises(ValidationError, match='end fade requires unlooped'):
-        SampleInstrumentScore.model_validate(raw)
+    document = SampleInstrumentScore.model_validate(raw)
+    assert parse_score(score_toml(document)) == document
 
 
 def test_instrument_score_tags_use_the_library_contract() -> None:
