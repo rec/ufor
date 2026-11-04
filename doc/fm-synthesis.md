@@ -69,3 +69,11 @@ feedback, operator envelope/release state, and the usual controls and filters.
 Yamaha DX7 and TX81Z templates preserve dedicated patch bytes and envelope
 semantics instead of being converted implicitly to this graph. See
 [Yamaha voice templates](sample-performance.md#yamaha-synth-voice-templates).
+
+DX7 topology uses a `DX7Edge` for `DX7Algorithm.feedback`, with an explicit
+source and destination in visible operator numbering. Ordinary feedback loops
+have equal endpoints. Algorithm 4 returns operator 4 to operator 6; algorithm 6
+returns operator 5 to operator 6. These delayed edges remain separate from the
+feed-forward `edges` list. This replaces the former single-operator integer;
+lossless VCED and packed voice bytes are unchanged. Feedback strength and delay
+arithmetic remain renderer responsibilities.

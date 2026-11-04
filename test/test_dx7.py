@@ -1,7 +1,7 @@
 import pytest
 from pydantic import ValidationError
 
-from ufor.dx7 import DX7FrequencyMode, DX7Voice, dx7_algorithm, parse_dx7
+from ufor.dx7 import DX7Edge, DX7FrequencyMode, DX7Voice, dx7_algorithm, parse_dx7
 
 
 def message(format: int, payload: bytes) -> bytes:
@@ -93,10 +93,10 @@ def test_dx7_decodes_algorithm_routing_in_visible_operator_order() -> None:
         (4, 3),
     ]
     assert first.carriers == [1, 3]
-    assert first.feedback == 6
+    assert first.feedback == DX7Edge(source=6, destination=6)
     assert last.edges == []
     assert last.carriers == [1, 2, 3, 4, 5, 6]
-    assert last.feedback == 6
+    assert last.feedback == DX7Edge(source=6, destination=6)
 
 
 def test_dx7_algorithm_23_keeps_operator_2_as_a_carrier() -> None:
@@ -107,7 +107,7 @@ def test_dx7_algorithm_23_keeps_operator_2_as_a_carrier() -> None:
         (6, 5),
     ]
     assert algorithm.carriers == [1, 2, 4, 5]
-    assert algorithm.feedback == 6
+    assert algorithm.feedback == DX7Edge(source=6, destination=6)
 
 
 def test_dx7_voice_exposes_its_algorithm_routing() -> None:
@@ -159,3 +159,13 @@ def test_dx7_reports_invalid_decoded_parameters_without_losing_raw_voice() -> No
     assert 'operator 6 has invalid output_level' in (
         DX7Voice(data=bytes(payload)).parameter_diagnostic or ''
     )
+
+
+@pytest.mark.parametrize('number,source', [(4, 4), (6, 5)])
+def test_dx7_multi_operator_feedback_returns_to_operator_six(
+    number: int, source: int
+) -> None:
+    algorithm = dx7_algorithm(number)
+    assert algorithm.feedback == DX7Edge(source=source, destination=6)
+    assert DX7Edge(source=6, destination=5) in algorithm.edges
+    assert algorithm.model_validate_json(algorithm.model_dump_json()) == algorithm
