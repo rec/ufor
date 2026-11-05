@@ -19,6 +19,25 @@ def test_effect_graph_conformance() -> None:
     )
 
 
+def test_tap_retiming_prepares_an_explicit_positive_frame_duration() -> None:
+    definition = audio_effects.TapDelay.model_validate(
+        {
+            'name': 'echo',
+            'delay_seconds': '10 ms',
+            'maximum_delay_seconds': '1 s',
+            'retime_fade_frames': '128 frames',
+        }
+    )
+    assert definition.retime_fade_frames == 128
+    with pytest.raises(ValidationError):
+        audio_effects.TapDelay(
+            name='echo',
+            delay_seconds=0.01,
+            maximum_delay_seconds=1,
+            retime_fade_frames=0,
+        )
+
+
 def test_effect_generators_share_voice_binding_and_route_contracts() -> None:
     value = DATA['graph'] | {
         'envelfos': {'motion': {'kind': 'lfo', 'rate': 1, 'scope': 'voice'}},

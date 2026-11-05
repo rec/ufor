@@ -29,6 +29,7 @@ TAIL_RETIREMENT_FADE_FRAMES = 64
 DECAYING_STATE_FLOOR = 1e-30
 FILTER_TAIL_THRESHOLD = 1e-12
 FREEZE_CROSSFADE_FRAMES = 64
+DELAY_RETIME_FADE_FRAMES = 64
 
 
 class AttachmentScope(StrEnum):
@@ -109,13 +110,16 @@ class SoftClip(Model):
 
 
 class TapDelay(Model):
-    """One integer-frame delayed read with bounded feedback and no hidden tail."""
+    """Fractional fixed taps with bounded, continuous retiming crossfades."""
 
     kind: Literal['tap_delay'] = 'tap_delay'
     name: Identifier
     delay_seconds: PositiveSeconds
     maximum_delay_seconds: PositiveSeconds
     feedback: float = Field(default=0.0, ge=0, lt=1)
+    retime_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=DELAY_RETIME_FADE_FRAMES, ge=1, strict=True
+    )
     mix: UnitInterval = 1.0
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
@@ -133,7 +137,7 @@ class TapDelay(Model):
 
 
 class ModulatedDelay(Model):
-    """One bounded moving integer-frame read for chorus and flanger sounds."""
+    """One bounded, linearly interpolated moving read for chorus and flanger."""
 
     kind: Literal['modulated_delay'] = 'modulated_delay'
     name: Identifier
