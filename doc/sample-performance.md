@@ -544,14 +544,26 @@ settings retain their dedicated regression tests.
 
 ## Yamaha Synth Voice Templates
 
-Synth instruments can use `yamaha = "dx7"` or `yamaha = "tx81z"` templates.
+Synth instruments can use `yamaha = "dx7"`, `yamaha = "tx81z"` or
+`yamaha = "wt11"` templates.
 These are dedicated Yamaha profiles, separate from the general `fm` graph.
 The `patch` field contains the lossless voice payload encoded as hexadecimal:
-155-byte VCED or 128-byte packed voice data for DX7, or 93-byte VCED for TX81Z.
+155-byte VCED or 128-byte packed voice data for DX7, or 93-byte VCED for TX81Z/WT11.
 TX81Z also requires an explicit `additional` field containing its 23-byte ACED
 payload in hexadecimal. Pairing is never inferred from neighboring messages.
-Python templates retain the existing DX7Voice/TX81ZVoice/TX81ZAdditional objects;
-JSON and TOML serialization use the hexadecimal fields.
+WT11 requires both `additional` (23-byte ACED) and `additional2` (10-byte ACED2)
+explicitly. Its Python template retains the distinct WT11 buffer models, including
+the pitch envelope and aftertouch assignment data. Python templates retain raw
+buffer objects; JSON and TOML serialization use the hexadecimal fields.
+`conformance/wt11-instrument.json` demonstrates this portable schema.
+
+`YamahaWT11Voice` adds the normalized `yamaha.aftertouch` target with unit
+`ratio`, default zero and domain inside 0 through 1. It also admits the existing
+`yamaha.portamento` target with unit `ratio` and default one. Its starts carry
+unquantized trigger velocity through the shared lifecycle preparer, including
+release-triggered templates. It requires ordinary channel routes and cannot
+join TX81Z-specific LFO or DAC groups. This defines transport and preparation
+semantics; WT11 audio rendering and hardware equivalence remain consumer work.
 
 Structural admission preserves parameter bytes even when they are outside a
 playable profile. The rendering consumer must reject unsupported or malformed

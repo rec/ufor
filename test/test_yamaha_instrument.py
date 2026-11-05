@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 from test_synth import fixture
@@ -5,11 +8,35 @@ from test_synth import fixture
 from ufor.codec import parse_score, score_schema, score_toml
 from ufor.dx7 import DX7ControllerAssignment, DX7Performance
 from ufor.events import Release, Trigger
-from ufor.synth import SynthInstrumentScore, YamahaDX7Voice, YamahaTX81ZVoice
+from ufor.synth import (
+    SynthInstrumentScore,
+    YamahaDX7Voice,
+    YamahaTX81ZVoice,
+    YamahaWT11Voice,
+)
 from ufor.synth_trace import SynthTrace, VoiceStart, prepare
 
 
-@pytest.mark.parametrize('kind,size', [('dx7', 155), ('dx7', 128), ('tx81z', 93)])
+def test_wt11_instrument_conformance_preserves_all_three_buffers() -> None:
+    raw = json.loads(Path('conformance/wt11-instrument.json').read_text())
+    score = SynthInstrumentScore.model_validate(raw)
+    assert parse_score(score_toml(score)) == score
+    assert SynthInstrumentScore.model_validate_json(score.model_dump_json()) == score
+    voice = score.body.voices[0]
+    assert isinstance(voice, YamahaWT11Voice)
+    assert voice.patch.parameter_diagnostic is None
+    assert voice.additional.parameter_diagnostic is None
+    assert voice.additional2.parameter_diagnostic is None
+    assert voice.additional2.aftertouch.pitch_bias == 50
+    schema = score_schema()['$defs']['YamahaWT11Voice']
+    for name in ('patch', 'additional', 'additional2'):
+        assert schema['properties'][name]['type'] == 'string'
+        assert name in schema['required']
+
+
+@pytest.mark.parametrize(
+    'kind,size', [('dx7', 155), ('dx7', 128), ('tx81z', 93), ('wt11', 93)]
+)
 def test_yamaha_patches_and_release_velocity_survive_portable_round_trips(
     kind: str, size: int
 ) -> None:
@@ -23,8 +50,10 @@ def test_yamaha_patches_and_release_velocity_survive_portable_round_trips(
         'yamaha': kind,
         'patch': payload.hex(),
     }
-    if kind == 'tx81z':
+    if kind in ('tx81z', 'wt11'):
         template['additional'] = bytes(range(23)).hex()
+        if kind == 'wt11':
+            template['additional2'] = bytes(range(10)).hex()
     else:
         template['performance'] = {
             'pitch_bend_range': 12,
@@ -40,7 +69,12 @@ def test_yamaha_patches_and_release_velocity_survive_portable_round_trips(
     assert parse_score(score_toml(score)) == score
     assert SynthInstrumentScore.model_validate_json(score.model_dump_json()) == score
     assert isinstance(
-        score.body.voices[0], YamahaDX7Voice if kind == 'dx7' else YamahaTX81ZVoice
+        score.body.voices[0],
+        YamahaDX7Voice
+        if kind == 'dx7'
+        else YamahaTX81ZVoice
+        if kind == 'tx81z'
+        else YamahaWT11Voice,
     )
     assert score.body.voices[0].patch.data == payload
     assert (
@@ -73,6 +107,11 @@ def test_yamaha_patches_and_release_velocity_survive_portable_round_trips(
             a.settings.performance == DX7Performance(**template['performance'])
             for a in starts
         )
+    if kind == 'wt11':
+        for start in starts:
+            assert isinstance(start.settings, YamahaWT11Voice)
+            assert start.settings.additional.data == bytes(range(23))
+            assert start.settings.additional2.data == bytes(range(10))
 
 
 def test_dx7_performance_defaults_leave_controller_assignments_disabled() -> None:
@@ -113,9 +152,10 @@ def test_tx81z_template_requires_explicit_additional_buffer() -> None:
         )
 
 
-@pytest.mark.parametrize('kind', ['dx7', 'tx81z'])
+@pytest.mark.parametrize('kind', ['dx7', 'tx81z', 'wt11'])
 @pytest.mark.parametrize(
-    'controller', ['pitch_bend', 'modulation_wheel', 'breath', 'foot', 'portamento']
+    'controller',
+    ['pitch_bend', 'modulation_wheel', 'breath', 'foot', 'portamento', 'aftertouch'],
 )
 def test_yamaha_controller_targets_round_trip_with_bounded_domains(
     kind: str, controller: str
@@ -141,10 +181,14 @@ def test_yamaha_controller_targets_round_trip_with_bounded_domains(
             ]
         },
     }
-    if kind == 'tx81z':
+    if kind in ('tx81z', 'wt11'):
         template['additional'] = bytes(23).hex()
+    if kind == 'wt11':
+        template['additional2'] = bytes(10).hex()
     raw['body']['voices'] = [template]
-    if kind == 'dx7' and controller == 'portamento':
+    if (kind == 'dx7' and controller == 'portamento') or (
+        kind != 'wt11' and controller == 'aftertouch'
+    ):
         with pytest.raises(ValidationError):
             SynthInstrumentScore.model_validate(raw)
         return
@@ -165,4 +209,47 @@ def test_yamaha_controller_targets_round_trip_with_bounded_domains(
         parameter[field] = original
     parameter['target']['parameter'] = 'unknown_controller'
     with pytest.raises(ValidationError):
+        SynthInstrumentScore.model_validate(raw)
+
+
+@pytest.mark.parametrize('missing', ['patch', 'additional', 'additional2'])
+def test_wt11_requires_all_three_explicit_edit_buffers(missing: str) -> None:
+    previous = fixture()['body']['voices'][0]
+    data = {
+        'name': 'voice',
+        'mapping': previous['mapping'],
+        'channels': previous['channels'],
+        'patch': bytes(93).hex(),
+        'additional': bytes(23).hex(),
+        'additional2': bytes(10).hex(),
+    }
+    del data[missing]
+    with pytest.raises(ValidationError, match=missing):
+        YamahaWT11Voice.model_validate(data)
+
+
+@pytest.mark.parametrize('group', ['tx81z_lfos', 'tx81z_outputs'])
+def test_wt11_templates_cannot_join_tx81z_specific_groups(group: str) -> None:
+    raw = fixture()
+    previous = raw['body']['voices'][0]
+    raw['body']['voices'] = [
+        {
+            'name': 'voice',
+            'mapping': previous['mapping'],
+            'channels': previous['channels'],
+            'yamaha': 'wt11',
+            'patch': bytes(93).hex(),
+            'additional': bytes(23).hex(),
+            'additional2': bytes(10).hex(),
+        }
+    ]
+    if group == 'tx81z_lfos':
+        raw['body'][group] = [
+            {'name': 'clock', 'first': 'voice', 'routes': {'voice': 'first'}}
+        ]
+    else:
+        raw['body'][group] = [
+            {'name': 'dac', 'voices': ['voice'], 'channels': previous['channels']}
+        ]
+    with pytest.raises(ValidationError, match='require existing TX81Z templates'):
         SynthInstrumentScore.model_validate(raw)

@@ -15535,6 +15535,9 @@
         },
         {
           "$ref": "#/$defs/YamahaTX81ZVoice"
+        },
+        {
+          "$ref": "#/$defs/YamahaWT11Voice"
         }
       ]
     },
@@ -17359,6 +17362,214 @@
         "additional"
       ],
       "title": "YamahaTX81ZVoice",
+      "type": "object"
+    },
+    "YamahaWT11Voice": {
+      "additionalProperties": false,
+      "description": "WT11 VCED, ACED and ACED2, retaining its distinct pitch and bias data.",
+      "properties": {
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "envelfos": {
+          "additionalProperties": {
+            "discriminator": {
+              "mapping": {
+                "envelope": "#/$defs/Envelope",
+                "lfo": "#/$defs/LFO",
+                "patch": "#/$defs/Patch",
+                "reference": "#/$defs/EnveLFOReference",
+                "sample_hold": "#/$defs/SampleHold",
+                "stages": "#/$defs/Stages"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/LFO"
+              },
+              {
+                "$ref": "#/$defs/Envelope"
+              },
+              {
+                "$ref": "#/$defs/Stages"
+              },
+              {
+                "$ref": "#/$defs/SampleHold"
+              },
+              {
+                "$ref": "#/$defs/Patch"
+              },
+              {
+                "$ref": "#/$defs/EnveLFOReference"
+              }
+            ]
+          },
+          "title": "Envelfos",
+          "type": "object"
+        },
+        "modulation": {
+          "$ref": "#/$defs/Modulation",
+          "default": {
+            "parameters": [],
+            "sources": [],
+            "routes": []
+          }
+        },
+        "bindings": {
+          "items": {
+            "discriminator": {
+              "mapping": {
+                "control": "#/$defs/ufor__samples__processing__ControlBinding",
+                "envelfo": "#/$defs/GeneratorBinding",
+                "key": "#/$defs/EventBinding",
+                "velocity": "#/$defs/EventBinding"
+              },
+              "propertyName": "kind"
+            },
+            "oneOf": [
+              {
+                "$ref": "#/$defs/EventBinding"
+              },
+              {
+                "$ref": "#/$defs/ufor__samples__processing__ControlBinding"
+              },
+              {
+                "$ref": "#/$defs/GeneratorBinding"
+              }
+            ]
+          },
+          "title": "Bindings",
+          "type": "array"
+        },
+        "event_connections": {
+          "items": {
+            "$ref": "#/$defs/EnvelfoEventConnection"
+          },
+          "title": "Event Connections",
+          "type": "array"
+        },
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "mapping": {
+          "$ref": "#/$defs/Mapping"
+        },
+        "channels": {
+          "items": {
+            "$ref": "#/$defs/ChannelRoute"
+          },
+          "minItems": 1,
+          "title": "Channels",
+          "type": "array"
+        },
+        "frequency_offset_hz": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "title": "Frequency Offset Hz"
+        },
+        "minimum_hold_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": "0",
+          "title": "Minimum Hold Seconds"
+        },
+        "trigger": {
+          "$ref": "#/$defs/TriggerKind",
+          "default": "start"
+        },
+        "choke_group": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Choke Group"
+        },
+        "chokes": {
+          "items": {
+            "$ref": "#/$defs/Choke"
+          },
+          "title": "Chokes",
+          "type": "array"
+        },
+        "articulations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Articulations",
+          "type": "array"
+        },
+        "yamaha": {
+          "const": "wt11",
+          "default": "wt11",
+          "title": "Yamaha",
+          "type": "string"
+        },
+        "patch": {
+          "type": "string"
+        },
+        "additional": {
+          "type": "string"
+        },
+        "additional2": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "mapping",
+        "channels",
+        "patch",
+        "additional",
+        "additional2"
+      ],
+      "title": "YamahaWT11Voice",
       "type": "object"
     },
     "ufor__arpeggiator__Transition": {

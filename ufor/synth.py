@@ -6,7 +6,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, field_serializer, field_validator, model_validator
 from reccy.configuration import units
 
-from . import base, control, dx7, modulation, tx81z
+from . import base, control, dx7, modulation, tx81z, wt11
 from .base import Identifier, Model, unique
 from .envelfo import Envelope
 from .events import ControlChange, PerformanceEvent, Trigger
@@ -219,7 +219,66 @@ class YamahaTX81ZVoice(YamahaVoiceTemplate):
         return value.data.hex()
 
 
-type SynthSource = SynthVoice | FMVoice | NoiseVoice | YamahaDX7Voice | YamahaTX81ZVoice
+class YamahaWT11Voice(YamahaVoiceTemplate):
+    """WT11 VCED, ACED and ACED2, retaining its distinct pitch and bias data."""
+
+    yamaha: Literal['wt11'] = 'wt11'
+    patch: wt11.WT11Voice
+    additional: wt11.WT11Additional
+    additional2: wt11.WT11Additional2
+
+    def parameter_definition(
+        self, target: modulation.Target
+    ) -> tuple[modulation.Unit, float]:
+        if target.name == 'yamaha' and target.parameter in ('aftertouch', 'portamento'):
+            return (
+                modulation.Unit.ratio,
+                1.0 if target.parameter == 'portamento' else 0.0,
+            )
+        return super().parameter_definition(target)
+
+    @field_validator('patch', mode='before', json_schema_input_type=str)
+    @classmethod
+    def decode_patch(cls, value: object) -> object:
+        return (
+            wt11.WT11Voice(data=bytes.fromhex(value))
+            if isinstance(value, str)
+            else value
+        )
+
+    @field_validator('additional', mode='before', json_schema_input_type=str)
+    @classmethod
+    def decode_additional(cls, value: object) -> object:
+        return (
+            wt11.WT11Additional(data=bytes.fromhex(value))
+            if isinstance(value, str)
+            else value
+        )
+
+    @field_validator('additional2', mode='before', json_schema_input_type=str)
+    @classmethod
+    def decode_additional2(cls, value: object) -> object:
+        return (
+            wt11.WT11Additional2(data=bytes.fromhex(value))
+            if isinstance(value, str)
+            else value
+        )
+
+    @field_serializer('patch', 'additional', 'additional2', when_used='json')
+    def encode_patch(
+        self, value: wt11.WT11Voice | wt11.WT11Additional | wt11.WT11Additional2
+    ) -> str:
+        return value.data.hex()
+
+
+type SynthSource = (
+    SynthVoice
+    | FMVoice
+    | NoiseVoice
+    | YamahaDX7Voice
+    | YamahaTX81ZVoice
+    | YamahaWT11Voice
+)
 
 
 class TX81ZOutput(Model):

@@ -119,7 +119,7 @@ complete voice envelope and other shared sound settings, explicit mono-to-output
 channel routes, and the same trigger/choke/articulation eligibility vocabulary as
 sample slots. `FMVoice` instead carries a graph of operators, and `NoiseVoice`
 carries a white-noise source; see [FM](fm-synthesis.md) and [noise](noise-synthesis.md).
-`YamahaDX7Voice` and `YamahaTX81ZVoice` retain dedicated Yamaha patch data and
+`YamahaDX7Voice`, `YamahaTX81ZVoice` and `YamahaWT11Voice` retain dedicated Yamaha patch data and
 envelope semantics; see [Yamaha templates](sample-performance.md#yamaha-synth-voice-templates).
 The synth score has no assets, slices, sample loops, sample traversal,
 processor graph, buffer API, or host MIDI binding.

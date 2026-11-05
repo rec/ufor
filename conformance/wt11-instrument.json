@@ -1,0 +1,35 @@
+{
+  "format": "recs",
+  "version": 4,
+  "name": "wt11-instrument",
+  "title": "WT11 voice with explicit edit buffers",
+  "kind": "synth_instrument",
+  "timebases": [{"name": "output", "kind": "physical", "rate": {"numerator": 48000, "denominator": 1}}],
+  "body": {
+    "voices": [{
+      "name": "voice",
+      "yamaha": "wt11",
+      "mapping": {"lowest_key": 0, "highest_key": 127, "reference_pitch_hz": 440},
+      "channels": [{"input": "mono", "output": "left", "gain": 1}, {"input": "mono", "output": "right", "gain": 1}],
+      "patch": "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000320020202020202020202020000000323232",
+      "additional": "0000000000000000000000000000000000000000000000",
+      "additional2": "00003200000000000000",
+      "modulation": {
+        "parameters": [{
+          "target": {"name": "yamaha", "parameter": "aftertouch"},
+          "unit": "ratio", "scope": "voice", "minimum": 0, "maximum": 1, "default": 0
+        }]
+      }
+    }]
+  },
+  "inputs": [{
+    "name": "performance",
+    "stream": {"family": "event", "timebase": "output", "kinds": ["trigger", "release", "control_change"]},
+    "binding": {"performance": true}
+  }],
+  "outputs": [{
+    "name": "audio",
+    "stream": {"family": "sampled", "quantity": "audio_amplitude", "unit": "full_scale", "timebase": "output", "channels": ["left", "right"]},
+    "binding": {"audio": true}
+  }]
+}

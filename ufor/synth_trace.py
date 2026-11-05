@@ -42,8 +42,7 @@ from .synth import (
     SynthInstrument,
     SynthSource,
     SynthVoice,
-    YamahaDX7Voice,
-    YamahaTX81ZVoice,
+    YamahaVoiceTemplate,
 )
 
 
@@ -59,7 +58,7 @@ class VoiceStart(LifecycleVoiceStart):
 
     @model_validator(mode='after')
     def source_matches_settings(self) -> Self:
-        if isinstance(self.settings, (YamahaDX7Voice, YamahaTX81ZVoice)) != (
+        if isinstance(self.settings, YamahaVoiceTemplate) != (
             self.velocity is not None
         ):
             raise ValueError(
@@ -285,7 +284,7 @@ def prepare(
                     channels=template.channels,
                     settings=template,
                     velocity=velocity
-                    if isinstance(template, (YamahaDX7Voice, YamahaTX81ZVoice))
+                    if isinstance(template, YamahaVoiceTemplate)
                     else None,
                     noise_key=stream_key(seed, voice_id)
                     if isinstance(template, NoiseVoice)
