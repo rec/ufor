@@ -667,3 +667,34 @@ not claim support for PMEM banks, performance effects or micro-tuning playback.
 The layouts and selector meanings come from Yamaha's
 [TX81Z owner's manual](https://usa.yamaha.com/files/download/other_assets/9/316769/TX81ZE.pdf),
 printed pages 40, 69 and 73.
+
+### WT11 voice edit-buffer inspection
+
+`ufor.wt11.parse_wt11` partitions raw dumps without losing unsupported messages,
+malformed messages or opaque bytes. `WT11Entry.voice`, `.additional` and
+`.additional2` expose structurally valid VCED (93 bytes), ACED (23 bytes) and
+ACED2 (10 bytes) respectively. ACED2 uses format identifier `LM  8023AE`, byte
+count 20 including the identifier, and a 28-byte complete message. Framing and
+checksum diagnostics are separate from decoded parameter diagnostics.
+
+`WT11Voice` and `WT11Additional` reuse the existing operator parameter models
+with the WT11 manual's OP4, OP2, OP3, OP1 wire order. TX81Z retains its distinct
+OP4, OP3, OP2, OP1 order. `WT11Voice.pitch_envelope` decodes three rates at bytes
+87–89 and three levels at 90–92, all 0 through 99; level 50 is the pitch center.
+The WT11 breath pitch-bias byte 75 permits 0 through 100, centered at 50.
+`WT11Additional2.aftertouch` decodes pitch, amplitude, pitch bias and EG bias
+from bytes 0–3. Pitch bias permits 0 through 100, centered at 50; the other
+assignments permit 0 through 99. Reserved bytes remain in `.data`.
+
+For example, the complete ACED2 message
+`f043007e00144c4d20203830323341450000320000000000000022f7`
+has neutral pitch bias 50, zero other assignments and zero reserved bytes.
+Its checksum includes the ten-byte format identifier. Invalid seven-bit
+parameter values remain inspectable raw buffers with `parameter_diagnostic`;
+they do not become validated parameter views.
+
+These definitions follow the
+[WT11 owner's manual](https://data.yamaha.com/files/download/other_assets/2/333982/WT11E.PDF),
+printed Add-2 and Add-5. Performance messages, packed banks, audible pitch-envelope
+timing and controller execution are not implemented by this voice-buffer parser.
+It does not turn WT11 patches into TX81Z instrument templates.
