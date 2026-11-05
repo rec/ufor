@@ -19,6 +19,45 @@ def test_effect_graph_conformance() -> None:
     )
 
 
+def test_effect_generators_share_voice_binding_and_route_contracts() -> None:
+    value = DATA['graph'] | {
+        'envelfos': {'motion': {'kind': 'lfo', 'rate': 1, 'scope': 'voice'}},
+        'bindings': [{'name': 'motion', 'kind': 'envelfo', 'reference': 'motion'}],
+        'modulation': {
+            'sources': [
+                {'name': 'motion', 'scope': 'voice', 'minimum': -1, 'maximum': 1}
+            ],
+            'parameters': [
+                {
+                    'target': {'name': 'trim', 'parameter': 'gain_db'},
+                    'scope': 'voice',
+                    'unit': 'db',
+                    'default': DATA['graph']['processors'][0]['gain_db'],
+                    'minimum': -12,
+                    'maximum': 12,
+                }
+            ],
+            'routes': [
+                {
+                    'name': 'motion',
+                    'source': 'motion',
+                    'target': {'name': 'trim', 'parameter': 'gain_db'},
+                    'unit': 'db',
+                    'operation': 'add',
+                    'points': [{'input': -1, 'amount': -3}, {'input': 1, 'amount': 3}],
+                }
+            ],
+        },
+    }
+    graph = audio_effects.EffectGraph.model_validate(value)
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    value['bindings'] = [{'name': 'motion', 'kind': 'envelfo', 'reference': 'missing'}]
+    with pytest.raises(ValidationError, match='Unknown local envelfo'):
+        audio_effects.EffectGraph.model_validate(value)
+
+
 def test_effect_action_batch_conformance() -> None:
     graph = audio_effects.EffectGraph.model_validate(DATA['graph'])
     batch = audio_effects.ActionBatch.model_validate(DATA['batch'])

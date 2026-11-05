@@ -8,6 +8,7 @@ from typing import Annotated, Literal, Self
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
 from reccy.configuration import units
 
+from . import modulation
 from .base import (
     FiniteScalar,
     Frame,
@@ -21,7 +22,7 @@ from .base import (
     unique,
 )
 from .oscillator import Waveform
-from .samples.processing import ResonantFilter
+from .samples.processing import GeneratorBinding, ModulationSettings, ResonantFilter
 
 BYPASS_FADE_FRAMES = 64
 TAIL_RETIREMENT_FADE_FRAMES = 64
@@ -227,7 +228,7 @@ Processor = Annotated[
 ]
 
 
-class EffectGraph(Model):
+class EffectGraph(ModulationSettings):
     scope: AttachmentScope
     owner: Identifier | None = None
     inputs: list[GraphInput] = Field(min_length=1)
@@ -251,6 +252,37 @@ class EffectGraph(Model):
 
     @model_validator(mode='after')
     def valid_graph(self) -> Self:
+        if any(not isinstance(b, GeneratorBinding) for b in self.bindings):
+            raise ValueError('Effect modulation requires Envelfo bindings')
+        if any(g.scope != 'voice' for g in self.envelfos.values()):
+            raise ValueError('Effect generators use voice scope for one graph instance')
+        if any(p.scope != 'voice' for p in self.modulation.parameters):
+            raise ValueError('Effect parameters belong to one graph instance')
+        processors = {p.name: p for p in self.processors}
+        for parameter in self.modulation.parameters:
+            processor = processors[parameter.target.name]
+            for value in (parameter.minimum, parameter.maximum):
+                validate_parameter(processor, parameter.target.parameter, value)
+        domains = {
+            (p.target.name, p.target.parameter): (p.minimum, p.maximum)
+            for p in self.modulation.parameters
+        }
+        for processor in self.processors:
+            if isinstance(processor, ModulatedDelay):
+                base = domains.get(
+                    (processor.name, 'base_delay_seconds'),
+                    (processor.base_delay_seconds,) * 2,
+                )
+                depth = domains.get(
+                    (processor.name, 'depth_seconds'), (processor.depth_seconds,) * 2
+                )
+                if (
+                    base[0] <= depth[1]
+                    or base[1] + depth[1] > processor.maximum_delay_seconds
+                ):
+                    raise ValueError(
+                        'modulation domains exceed the prepared delay span'
+                    )
         if (self.scope in (AttachmentScope.voice, AttachmentScope.master)) != (
             self.owner is None
         ):
@@ -324,6 +356,34 @@ class EffectGraph(Model):
             }
             layouts[name] = processor_channels(processor, port_layouts)
         return self
+
+    def parameter_definition(
+        self, target: modulation.Target
+    ) -> tuple[modulation.Unit, float]:
+        processor = next((p for p in self.processors if p.name == target.name), None)
+        if processor is None:
+            raise ValueError(f'Unknown processor {target.name}')
+        name = target.parameter
+        if isinstance(processor, Filter):
+            for definition in processor.filters:
+                if name == f'{definition.name}-cutoff_hz':
+                    return modulation.Unit.hz, definition.cutoff_hz
+                if name == f'{definition.name}-q':
+                    return modulation.Unit.ratio, definition.q
+        value = getattr(processor, name, None)
+        if not isinstance(value, (int, float)):
+            raise ValueError(f'Unknown effect parameter {target.name}.{name}')
+        validate_parameter(processor, name, value)
+        unit = (
+            modulation.Unit.db
+            if name == 'gain_db'
+            else modulation.Unit.seconds
+            if name.endswith('_seconds')
+            else modulation.Unit.hz
+            if name.endswith('_hz')
+            else modulation.Unit.ratio
+        )
+        return unit, float(value)
 
     def order(self) -> list[Identifier]:
         dependencies = {p.name: set() for p in self.processors}

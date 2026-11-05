@@ -212,9 +212,9 @@ Binding = Annotated[
 ]
 
 
-class SoundSettings(Model):
-    processing: Processing = Processing()
-    envelope: Envelope | None = None
+class ModulationSettings(Model):
+    """Shared generator bindings and routes for voices and effect graphs."""
+
     envelfos: dict[Identifier, Generator] = Field(default_factory=dict)
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
@@ -282,11 +282,6 @@ class SoundSettings(Model):
                 )
             ):
                 raise ValueError('Envelfo event destination has no matching cue')
-        if self.envelope is not None and (
-            self.envelope.scope != control.Scope.voice
-            or self.envelope.polarity != control.Polarity.unipolar
-        ):
-            raise ValueError('Amplitude envelope must be unipolar and voice scoped')
         patch_release_timings: dict[tuple[str, str], ReleaseTiming] = {}
         for binding in self.bindings:
             source = sources[binding.name]
@@ -396,6 +391,24 @@ class SoundSettings(Model):
                 raise ValueError(
                     'Parameter unit and default must match the bound setting'
                 )
+        return self
+
+    def parameter_definition(self, target: Target) -> tuple[Unit, float]:
+        raise ValueError(f'Unknown modulation target {target.name}.{target.parameter}')
+
+
+class SoundSettings(ModulationSettings):
+    processing: Processing = Processing()
+    envelope: Envelope | None = None
+
+    @model_validator(mode='after')
+    def sound_parameters(self) -> Self:
+        if self.envelope is not None and (
+            self.envelope.scope != control.Scope.voice
+            or self.envelope.polarity != control.Polarity.unipolar
+        ):
+            raise ValueError('Amplitude envelope must be unipolar and voice scoped')
+        for parameter in self.modulation.parameters:
             if parameter.target.parameter == 'amplitude' and parameter.minimum < 0:
                 raise ValueError('Amplitude requires a nonnegative parameter domain')
             if (
