@@ -668,7 +668,7 @@ The layouts and selector meanings come from Yamaha's
 [TX81Z owner's manual](https://usa.yamaha.com/files/download/other_assets/9/316769/TX81ZE.pdf),
 printed pages 40, 69 and 73.
 
-### WT11 voice edit-buffer inspection
+### WT11 edit-buffer inspection
 
 `ufor.wt11.parse_wt11` partitions raw dumps without losing unsupported messages,
 malformed messages or opaque bytes. `WT11Entry.voice`, `.additional` and
@@ -693,8 +693,28 @@ Its checksum includes the ten-byte format identifier. Invalid seven-bit
 parameter values remain inspectable raw buffers with `parameter_diagnostic`;
 they do not become validated parameter views.
 
+`WT11Entry.performance` recognizes PCED (`LM  8976PE`, byte count 120) and
+retains its 110 parameter bytes. `WT11Performance.instruments` decodes eight
+twelve-byte instrument allocations using the shared allocation parameter model,
+with WT11's full eight-bit voice-number field (0 through 255). Those numbers
+remain wire references, not resolved library templates. The ten-character
+performance name is available as `.title`. Raw micro-tuning and effect-selector
+fields remain inspectable even though the WT11 manual marks them ignored or
+regarded as off. Assign mode at byte 97 retains its 0/1 normal/alternate values.
+
+`WT11Entry.performance2` recognizes PCED2 (`LM  8073PE`, byte count 43) and
+retains 33 bytes, separately from the identifier. The complete message is 51
+bytes. `.settings` exposes DSP selection at byte 16 (0 through 10), balance at
+17 (0 through 99), time at 20 (0 through 36) and LFO control at 23 (0/1/2 for
+breath/lip/off). The eight two-byte instrument records occupy bytes 0–15;
+each first byte is reserved and each second byte is documented as fixed to
+one for DSP enable. A different enable value produces `parameter_diagnostic`
+without discarding the raw buffer. All other reserved bytes are preserved.
+These offsets describe PCED2, not the separate packed PMEM2 layout.
+
 These definitions follow the
 [WT11 owner's manual](https://data.yamaha.com/files/download/other_assets/2/333982/WT11E.PDF),
-printed Add-2 and Add-5. Performance messages, packed banks, audible pitch-envelope
-timing and controller execution are not implemented by this voice-buffer parser.
-It does not turn WT11 patches into TX81Z instrument templates.
+printed Add-2, Add-3, Add-5 and Add-6. Packed banks, performance allocation,
+DSP playback, audible pitch-envelope timing and controller execution are not
+implemented by this parser. It does not turn WT11 patches into TX81Z instrument
+templates.
