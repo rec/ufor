@@ -115,7 +115,7 @@ def test_wt11_rejects_invalid_additional_buffer_shapes(data: bytes) -> None:
         wt11.WT11Additional2(data=data)
 
 
-def test_wt11_keeps_packed_banks_opaque_until_supported() -> None:
+def test_wt11_keeps_unknown_bulk_byte_counts_opaque() -> None:
     raw = message(bytes([4, 0, 1]), bytes(1))
     entry = wt11.parse_wt11(raw)[0]
     assert entry.data == raw

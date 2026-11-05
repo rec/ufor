@@ -245,6 +245,243 @@ class WT11PerformanceSettings(Model):
     lfo_control: int = Field(ge=0, le=2, strict=True)
 
 
+class WT11VoiceMemory(Model):
+    """One packed VMEM voice, retaining its unused bytes and reserved bits."""
+
+    data: bytes = Field(strict=True, min_length=128, max_length=128)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if any(x >= 128 for x in value):
+            raise ValueError('WT11 VMEM requires seven-bit bytes')
+        return value
+
+    @cached_property
+    def voice(self) -> WT11Voice:
+        data = bytearray(93)
+        for index in range(4):
+            packed = self.data[index * 10 : index * 10 + 10]
+            start = index * 13
+            data[start : start + 13] = bytes(
+                [
+                    packed[0] & 31,
+                    packed[1] & 31,
+                    packed[2] & 31,
+                    packed[3] & 15,
+                    packed[4] & 15,
+                    packed[5],
+                    (packed[9] >> 3) & 3,
+                    (packed[6] >> 3) & 7,
+                    (packed[6] >> 6) & 1,
+                    packed[6] & 7,
+                    packed[7],
+                    packed[8] & 63,
+                    packed[9] & 7,
+                ]
+            )
+        data[52:63] = bytes(
+            [
+                self.data[40] & 7,
+                (self.data[40] >> 3) & 7,
+                *self.data[41:45],
+                self.data[40] >> 6,
+                self.data[45] & 3,
+                (self.data[45] >> 4) & 7,
+                (self.data[45] >> 2) & 3,
+                self.data[46] & 63,
+            ]
+        )
+        data[63:71] = bytes(
+            [
+                (self.data[48] >> 3) & 1,
+                self.data[47] & 15,
+                self.data[48] & 1,
+                self.data[49],
+                self.data[50],
+                (self.data[48] >> 2) & 1,
+                (self.data[48] >> 1) & 1,
+                (self.data[48] >> 4) & 1,
+            ]
+        )
+        data[71:77] = self.data[51:57]
+        data[77:87] = self.data[57:67]
+        data[87:93] = self.data[67:73]
+        return WT11Voice(data=bytes(data))
+
+    @cached_property
+    def additional(self) -> WT11Additional:
+        data = bytearray(23)
+        for index in range(4):
+            first, second = self.data[73 + index * 2 : 75 + index * 2]
+            data[index * 5 : index * 5 + 5] = bytes(
+                [
+                    (first >> 3) & 1,
+                    first & 7,
+                    second & 15,
+                    (second >> 4) & 7,
+                    (first >> 4) & 3,
+                ]
+            )
+        data[20] = self.data[81] & 7
+        data[21:23] = self.data[82:84]
+        return WT11Additional(data=bytes(data))
+
+    @cached_property
+    def additional2(self) -> WT11Additional2:
+        bias = self.data[86]
+        if bias > 100:
+            raise ValueError(
+                'WT11 packed aftertouch pitch bias is outside 0 through 100'
+            )
+        return WT11Additional2(
+            data=bytes(
+                [
+                    self.data[84],
+                    self.data[85],
+                    bias + 50 if bias <= 50 else bias - 51,
+                    self.data[87],
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                ]
+            )
+        )
+
+
+class WT11PerformanceMemory(Model):
+    """One packed PMEM allocation with an unpacked PCED view."""
+
+    data: bytes = Field(strict=True, min_length=76, max_length=76)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if any(x >= 128 for x in value):
+            raise ValueError('WT11 PMEM requires seven-bit bytes')
+        return value
+
+    @cached_property
+    def performance(self) -> WT11Performance:
+        data = bytearray(110)
+        for index in range(8):
+            packed = self.data[index * 8 : index * 8 + 8]
+            data[index * 12 : index * 12 + 12] = bytes(
+                [
+                    packed[0] & 15,
+                    (packed[0] >> 4) & 1,
+                    packed[1],
+                    packed[2] & 31,
+                    packed[3],
+                    packed[4],
+                    packed[5] & 15,
+                    packed[6] & 63,
+                    packed[7],
+                    (packed[0] >> 5) & 3,
+                    (packed[2] >> 5) & 3,
+                    packed[6] >> 6,
+                ]
+            )
+        data[96:100] = bytes(
+            [
+                self.data[64] & 15,
+                self.data[65] & 1,
+                ((self.data[64] >> 4) & 3) * 4 + ((self.data[65] >> 1) & 3),
+                (self.data[65] >> 3) & 15,
+            ]
+        )
+        data[100:110] = self.data[66:76]
+        return WT11Performance(data=bytes(data))
+
+
+class WT11PerformanceMemory2(Model):
+    """One PMEM2 record; unlike PCED2, its DSP enables can be off."""
+
+    data: bytes = Field(strict=True, min_length=25, max_length=25)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if any(x >= 128 for x in value):
+            raise ValueError('WT11 PMEM2 requires seven-bit bytes')
+        return value
+
+    @cached_property
+    def dsp_enables(self) -> list[bool]:
+        return [bool(x & 64) for x in self.data[:8]]
+
+    @cached_property
+    def settings(self) -> WT11PerformanceSettings:
+        return WT11PerformanceSettings(
+            dsp_select=self.data[8],
+            balance=self.data[9],
+            time=self.data[12],
+            lfo_control=self.data[15],
+        )
+
+
+class WT11VoiceBank(Model):
+    """Thirty-two packed voices, excluding SysEx framing."""
+
+    data: bytes = Field(strict=True, min_length=4096, max_length=4096)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if any(x >= 128 for x in value):
+            raise ValueError('WT11 VMEM bank requires seven-bit bytes')
+        return value
+
+    @cached_property
+    def voices(self) -> list[WT11VoiceMemory]:
+        return [
+            WT11VoiceMemory(data=self.data[i : i + 128]) for i in range(0, 4096, 128)
+        ]
+
+
+class WT11PerformanceBank(Model):
+    """Thirty-two PMEM records, excluding the ten-byte format identifier."""
+
+    data: bytes = Field(strict=True, min_length=2432, max_length=2432)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if any(x >= 128 for x in value):
+            raise ValueError('WT11 PMEM bank requires seven-bit bytes')
+        return value
+
+    @cached_property
+    def performances(self) -> list[WT11PerformanceMemory]:
+        return [
+            WT11PerformanceMemory(data=self.data[i : i + 76])
+            for i in range(0, 2432, 76)
+        ]
+
+
+class WT11PerformanceBank2(Model):
+    """Thirty-two PMEM2 records, excluding the ten-byte format identifier."""
+
+    data: bytes = Field(strict=True, min_length=800, max_length=800)
+
+    @field_validator('data')
+    @classmethod
+    def valid_data(cls, value: bytes) -> bytes:
+        if any(x >= 128 for x in value):
+            raise ValueError('WT11 PMEM2 bank requires seven-bit bytes')
+        return value
+
+    @cached_property
+    def performances(self) -> list[WT11PerformanceMemory2]:
+        return [
+            WT11PerformanceMemory2(data=self.data[i : i + 25])
+            for i in range(0, 800, 25)
+        ]
+
+
 class WT11Entry(Model):
     """One edit-buffer message or opaque span at its original byte offset."""
 
@@ -253,20 +490,19 @@ class WT11Entry(Model):
 
     @cached_property
     def diagnostic(self) -> str | None:
-        if self.data[3:6] not in (bytes([0x7E, 0, 20]), bytes([0x7E, 0, 43])):
-            diagnostic = tx81z.TX81ZEntry(offset=self.offset, data=self.data).diagnostic
-            if diagnostic is not None:
-                return diagnostic.replace('TX81Z', 'WT11')
-            return None
-        if self.data[:2] != bytes([0xF0, 0x43]) or self.data[-1] != 0xF7:
+        if (
+            len(self.data) < 8
+            or self.data[:2] != bytes([0xF0, 0x43])
+            or self.data[-1] != 0xF7
+        ):
             return 'missing WT11 SysEx framing or Yamaha identifier'
         if self.data[2] > 15 or any(x >= 128 for x in self.data[1:-1]):
             return 'unsupported WT11 bulk header or non-seven-bit data'
-        size, identifier = (
-            (28, b'LM  8023AE') if self.data[5] == 20 else (51, b'LM  8073PE')
-        )
-        if len(self.data) != size or self.data[6:16] != identifier:
-            return 'unsupported WT11 ACED2 or PCED2 message'
+        if (layout := _BULK_LAYOUTS.get(self.data[3:6])) is None:
+            return 'unsupported WT11 bulk format or byte count'
+        size, identifier = layout
+        if len(self.data) != size or (identifier and self.data[6:16] != identifier):
+            return 'unsupported WT11 message length or identifier'
         if self.data[-2] != -sum(self.data[6:-2]) % 128:
             return 'invalid WT11 checksum'
         return None
@@ -283,7 +519,7 @@ class WT11Entry(Model):
     def additional(self) -> WT11Additional | None:
         return (
             WT11Additional(data=self.data[16:-2])
-            if self.diagnostic is None and self.data[6:16] == b'LM  8976AE'
+            if self.diagnostic is None and self.data[3:6] == bytes([0x7E, 0, 33])
             else None
         )
 
@@ -291,7 +527,7 @@ class WT11Entry(Model):
     def additional2(self) -> WT11Additional2 | None:
         return (
             WT11Additional2(data=self.data[16:-2])
-            if self.diagnostic is None and self.data[6:16] == b'LM  8023AE'
+            if self.diagnostic is None and self.data[3:6] == bytes([0x7E, 0, 20])
             else None
         )
 
@@ -299,7 +535,7 @@ class WT11Entry(Model):
     def performance(self) -> WT11Performance | None:
         return (
             WT11Performance(data=self.data[16:-2])
-            if self.diagnostic is None and self.data[6:16] == b'LM  8976PE'
+            if self.diagnostic is None and self.data[3:6] == bytes([0x7E, 0, 120])
             else None
         )
 
@@ -307,7 +543,31 @@ class WT11Entry(Model):
     def performance2(self) -> WT11Performance2 | None:
         return (
             WT11Performance2(data=self.data[16:-2])
-            if self.diagnostic is None and self.data[6:16] == b'LM  8073PE'
+            if self.diagnostic is None and self.data[3:6] == bytes([0x7E, 0, 43])
+            else None
+        )
+
+    @cached_property
+    def voice_bank(self) -> WT11VoiceBank | None:
+        return (
+            WT11VoiceBank(data=self.data[6:-2])
+            if self.diagnostic is None and self.data[3] == 4
+            else None
+        )
+
+    @cached_property
+    def performance_bank(self) -> WT11PerformanceBank | None:
+        return (
+            WT11PerformanceBank(data=self.data[16:-2])
+            if self.diagnostic is None and self.data[3:6] == bytes([0x7E, 19, 10])
+            else None
+        )
+
+    @cached_property
+    def performance_bank2(self) -> WT11PerformanceBank2 | None:
+        return (
+            WT11PerformanceBank2(data=self.data[16:-2])
+            if self.diagnostic is None and self.data[3:6] == bytes([0x7E, 6, 42])
             else None
         )
 
@@ -315,3 +575,15 @@ class WT11Entry(Model):
 def parse_wt11(data: bytes) -> list[WT11Entry]:
     """Partition edit-buffer dumps without losing malformed or unsupported bytes."""
     return [WT11Entry(offset=x.offset, data=x.data) for x in tx81z.parse_tx81z(data)]
+
+
+_BULK_LAYOUTS = {
+    bytes([3, 0, 93]): (101, b''),
+    bytes([0x7E, 0, 33]): (41, b'LM  8976AE'),
+    bytes([0x7E, 0, 20]): (28, b'LM  8023AE'),
+    bytes([0x7E, 0, 120]): (128, b'LM  8976PE'),
+    bytes([0x7E, 0, 43]): (51, b'LM  8073PE'),
+    bytes([4, 32, 0]): (4104, b''),
+    bytes([0x7E, 19, 10]): (2450, b'LM  8976PM'),
+    bytes([0x7E, 6, 42]): (818, b'LM  8073PM'),
+}

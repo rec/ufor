@@ -714,7 +714,39 @@ These offsets describe PCED2, not the separate packed PMEM2 layout.
 
 These definitions follow the
 [WT11 owner's manual](https://data.yamaha.com/files/download/other_assets/2/333982/WT11E.PDF),
-printed Add-2, Add-3, Add-5 and Add-6. Packed banks, performance allocation,
-DSP playback, audible pitch-envelope timing and controller execution are not
-implemented by this parser. It does not turn WT11 patches into TX81Z instrument
-templates.
+printed Add-2, Add-3, Add-5 and Add-6. Performance allocation, DSP playback,
+audible pitch-envelope timing and controller execution are not implemented by
+this parser. It does not turn WT11 patches into TX81Z instrument templates.
+
+### WT11 packed-bank inspection
+
+The same parser recognizes three 32-record bank formats from the manual's
+printed Add-3, Add-6 and Add-7:
+
+| Entry accessor | Format and byte count | Raw bank bytes | Record view |
+| --- | --- | --- | --- |
+| `.voice_bank` | format 4, byte count 4096, no identifier | 4096 | 32 `WT11VoiceMemory` records of 128 bytes |
+| `.performance_bank` | `LM  8976PM`, byte count 2442 | 2432 | 32 `WT11PerformanceMemory` records of 76 bytes |
+| `.performance_bank2` | `LM  8073PM`, byte count 810 | 800 | 32 `WT11PerformanceMemory2` records of 25 bytes |
+
+The ten-byte identifiers count toward the bulk byte count and checksum but are
+excluded from the bank `.data`. Bank `.voices` or `.performances` lists preserve
+wire order. Each record retains its original `.data`, including unused bytes
+and reserved bits. Malformed bank framing, length, identifier or checksum
+produces an opaque entry with a diagnostic and no decoded bank accessor.
+
+`WT11VoiceMemory.voice`, `.additional` and `.additional2` unpack the named
+parameters into the existing WT11 edit-buffer models. Unused VMEM bytes are not
+invented as edit-buffer fields. Packed aftertouch pitch bias is centered at
+zero: packed 0–50 becomes edit-buffer 50–100; packed 51–100 becomes edit-buffer
+0–49. A packed bias above 100 remains in the raw record and raises a value
+error when requesting the converted ACED2 view. Other out-of-range parameters
+remain visible through the edit-buffer model's parameter diagnostics.
+
+`WT11PerformanceMemory.performance` unpacks allocation bitfields, including
+voice-number MSB, output assignment, LFO selection and micro-tune flag, into a
+PCED view. `WT11PerformanceMemory2.settings` reads DSP selection, balance, time
+and LFO control at packed offsets 8, 9, 12 and 15. Its `.dsp_enables` list
+decodes bit 6 of bytes 0–7; both off and on are supported by this packed layout.
+It is not converted into PCED2's fixed-on enables. Normalized parameter views
+do not replace the raw records and do not provide a bank export or playback API.
