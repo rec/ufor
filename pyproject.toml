@@ -13,7 +13,14 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = ["pytest", "pytest-xdist", "ruff", "ty", "pyupgrade"]
+dev = [
+    "pytest",
+    "pytest-xdist",
+    "ruff",
+    "ty",
+    "pyupgrade",
+    "pytest-regressions>=2.11.0",
+]
 
 [build-system]
 requires = ["hatchling"]
