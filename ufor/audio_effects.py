@@ -30,6 +30,7 @@ DECAYING_STATE_FLOOR = 1e-30
 FILTER_TAIL_THRESHOLD = 1e-12
 FREEZE_CROSSFADE_FRAMES = 64
 DELAY_RETIME_FADE_FRAMES = 64
+WAVESHAPER_LATENCY_FRAMES = 48
 
 
 def default_grain_duration(data: dict[str, object]) -> float:
@@ -106,10 +107,15 @@ class Gain(Model):
     )
 
 
-class SoftClip(Model):
-    kind: Literal['soft_clip'] = 'soft_clip'
+class Waveshaper(Model):
+    """Four-times oversampled hard/soft curves with zero-preserving bias."""
+
+    kind: Literal['waveshaper'] = 'waveshaper'
     name: Identifier
+    curve: Literal['hard', 'soft'] = 'soft'
     drive: Positive = 1.0
+    bias: FiniteScalar = 0.0
+    output_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
     mix: UnitInterval = 1.0
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
@@ -287,7 +293,7 @@ class Granulator(Model):
 
 Processor = Annotated[
     Gain
-    | SoftClip
+    | Waveshaper
     | Compressor
     | Reverb
     | TapDelay
@@ -463,6 +469,21 @@ class EffectGraph(ModulationSettings):
                 dependencies[connection.processor].add(connection.source.processor)
         return stable_order(self.processors, dependencies)
 
+    def latencies(self) -> dict[str, int]:
+        """Output latency per processor after aligning all of its input ports."""
+        processors = {p.name: p for p in self.processors}
+        connections = {(c.processor, c.port): c.source for c in self.connections}
+        result: dict[str, int] = {}
+        for name in self.order():
+            processor = processors[name]
+            result[name] = max(
+                0
+                if isinstance(s := connections[(name, p)], InputSource)
+                else result[s.processor]
+                for p in processor_ports(processor)
+            ) + (WAVESHAPER_LATENCY_FRAMES if isinstance(processor, Waveshaper) else 0)
+        return result
+
     def output_channels(self) -> list[Identifier]:
         inputs = {i.name: i for i in self.inputs}
         processors = {p.name: p for p in self.processors}
@@ -506,6 +527,7 @@ class ParameterAction(Model):
             'threshold_db': 'decibel',
             'knee_db': 'decibel',
             'makeup_db': 'decibel',
+            'output_gain_db': 'decibel',
             'ratio': 'dimensionless',
             'attack_seconds': 'second',
             'release_seconds': 'second',
@@ -669,10 +691,13 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         return
     if isinstance(processor, Gain) and parameter == 'gain_db':
         return
-    if isinstance(processor, SoftClip) and parameter == 'drive':
-        if value <= 0:
-            raise ValueError('drive must be positive')
-        return
+    if isinstance(processor, Waveshaper):
+        if parameter == 'drive':
+            if value <= 0:
+                raise ValueError('drive must be positive')
+            return
+        if parameter in {'bias', 'output_gain_db'}:
+            return
     if isinstance(processor, Compressor):
         if parameter in {'threshold_db', 'makeup_db'}:
             return

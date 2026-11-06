@@ -7,7 +7,7 @@ connections, and one public output. These are embedded models, not a root score
 kind accepted by the common codec. Hosts attach graphs to their owners explicitly.
 
 Every processor has a stable local ID. Audio input ports are fixed by processor
-type and are distinct from scalar modulation. Gain, soft clip, resonant filter,
+type and are distinct from scalar modulation. Gain, waveshaper, resonant filter,
 delay, and granulator processors have `input`; multiplication has equal-layout `carrier`
 and `modulator` ports. Compression has `input` and `detector`, whose layouts may
 differ. Connections may fan out, but a port has one source and
@@ -54,10 +54,40 @@ continuously without that crossfade. Parameter actions
 are checked against the prepared bounds; decoding or allocating a larger delay
 buffer during processing is not part of this contract.
 
-Soft clip is stateless and has neither latency nor a tail. For finite input `x`
-and positive `drive` `d`, its wet output is `tanh(d*x) / tanh(d)`. It does not
-oversample, normalize blocks, or claim analogue emulation. `drive` is a positive
-automatable parameter; mix and bypass follow the common processor rules.
+### Oversampled waveshaper
+
+`Waveshaper` replaces `SoftClip` and its `soft_clip` discriminator, without an
+alias. Its `curve` is `hard` (clamp to [-1, 1]) or `soft` (tanh). At each
+oversample, apply `f(drive*x + bias) - f(bias)`. Positive drive and finite bias
+are automatable. Subtracting the bias point preserves zero input at zero while
+allowing asymmetric distortion. Apply `10 ** (output_gain_db / 20)` to the wet
+output after downsampling; a non-finite represented gain is an error.
+
+Upsample twice by two, apply the curve at four times the input rate, and
+downsample twice by two. Each of the four FIRs uses the same 65-tap normalized
+half-band coefficients. For tap `n` in 0..64, ideal response is 0.5 at n=32,
+zero at other even n, and `sin(pi*(n-32)/2)/(pi*(n-32))` at odd n. Multiply by
+the Blackman window `0.42 - 0.5*cos(2*pi*n/64) + 0.08*cos(4*pi*n/64)`, then
+normalize the coefficient sum to one. An upsampler inserts a zero after each
+sample and multiplies filtered output by two. A downsampler filters every
+sample and retains even-indexed outputs. All clocks start at phase zero.
+
+The resulting audio latency is exactly 48 input frames, independent of sample
+rate. Delay the dry path by 48 frames too, including while bypassed. Retain four
+65-frame histories, their write positions, and a 48-frame dry history per
+channel. After its input ends, the processor drains for 96 frames, the finite
+support of the FIR cascade. The fixed resource bounds and latency do not change
+with curve, drive, bias, output gain, mix or bypass. FIR state stays warm while
+bypassed. This mathematical profile does not claim analogue emulation.
+
+`EffectGraph.latencies()` reports each processor's output latency. Align all
+incoming audio and end markers to the greatest upstream latency before running
+each processor. Delay its resolved controls by that upstream latency too. For a
+Waveshaper, additionally delay drive/bias by 24 frames to the nonlinear stage and
+mix/bypass/output gain by 48 frames to the output stage. Resolve one control row
+per input frame and hold drive/bias through its four oversamples. Initialize
+control histories to authored values, with bypass enabled. Snapshots retain all
+audio, control and end-marker compensation state.
 
 ### Compressor and ducker
 

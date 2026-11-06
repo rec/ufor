@@ -313,9 +313,37 @@ def test_grain_duration_cap_is_explicit_and_bounds_actions_and_routes() -> None:
     audio_effects.EffectGraph.model_validate(raw)
 
 
-def test_soft_clip_requires_positive_drive() -> None:
+def test_waveshaper_requires_positive_drive() -> None:
     with pytest.raises(ValidationError, match='greater than 0'):
-        audio_effects.SoftClip(name='clip', drive=0)
+        audio_effects.Waveshaper(name='clip', drive=0)
+
+
+def test_waveshaper_profiles_report_aligned_graph_latency() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/waveshaper.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    assert graph.latencies() == data['latencies']
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    for parameter, value in [
+        ('bias', -0.5),
+        ('output_gain_db', '6 dB'),
+        ('drive', 4.0),
+    ]:
+        audio_effects.validate_action(
+            graph,
+            audio_effects.ParameterAction(
+                tick=0,
+                ordinal=0,
+                processor='clip',
+                parameter=parameter,
+                value=value,
+            ),
+        )
+    with pytest.raises(ValidationError, match='Input should be'):
+        audio_effects.Waveshaper(name='clip', curve='fold')
 
 
 def test_tap_delay_has_bounded_feedback_and_automation() -> None:
