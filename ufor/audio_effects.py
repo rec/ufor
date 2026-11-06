@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
 from math import cos, pi, sqrt
-from typing import Annotated, Literal, Self
+from typing import Annotated, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
 from reccy.configuration import units
@@ -30,6 +30,13 @@ DECAYING_STATE_FLOOR = 1e-30
 FILTER_TAIL_THRESHOLD = 1e-12
 FREEZE_CROSSFADE_FRAMES = 64
 DELAY_RETIME_FADE_FRAMES = 64
+
+
+def default_grain_duration(data: dict[str, object]) -> float:
+    """Reserve the larger of the authored output duration and input history."""
+    return max(
+        cast(float, data['duration_seconds']), cast(float, data['history_seconds'])
+    )
 
 
 class AttachmentScope(StrEnum):
@@ -250,6 +257,9 @@ class Granulator(Model):
     playback_ratio: Positive = 1.0
     position_jitter_seconds: Seconds = 0.0
     history_seconds: PositiveSeconds
+    maximum_duration_seconds: PositiveSeconds = Field(
+        default_factory=default_grain_duration
+    )
     maximum_grains: int = Field(ge=1, strict=True)
     mix: UnitInterval = 1.0
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
@@ -261,6 +271,8 @@ class Granulator(Model):
 
     @model_validator(mode='after')
     def retained_history(self) -> Self:
+        if self.duration_seconds > self.maximum_duration_seconds:
+            raise ValueError('granulator duration exceeds its prepared maximum')
         required = (
             self.lookback_seconds
             + self.position_jitter_seconds
@@ -718,7 +730,13 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
                 raise ValueError('feedback must be in [0, 1)')
             return
     if isinstance(processor, Granulator):
-        if parameter in {'duration_seconds', 'density_hz', 'playback_ratio'}:
+        if parameter == 'duration_seconds':
+            if not 0 < value <= processor.maximum_duration_seconds:
+                raise ValueError(
+                    'grain duration must remain inside its prepared maximum'
+                )
+            return
+        if parameter in {'density_hz', 'playback_ratio'}:
             if value <= 0:
                 raise ValueError(f'{parameter} must be positive')
             return

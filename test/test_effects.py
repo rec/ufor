@@ -259,6 +259,60 @@ def test_granulator_requires_its_read_history() -> None:
         )
 
 
+def test_grain_duration_cap_is_explicit_and_bounds_actions_and_routes() -> None:
+    example = audio_effects.Granulator.model_validate_json(
+        (Path(__file__).parents[1] / 'conformance/grain-cap.json').read_text()
+    )
+    assert example.maximum_duration_seconds == 0.08
+    grain = audio_effects.Granulator(
+        name='cloud',
+        duration_seconds=0.04,
+        density_hz=50,
+        playback_ratio=0.25,
+        history_seconds=0.02,
+        maximum_grains=4,
+    )
+    assert grain.maximum_duration_seconds == 0.04
+    assert grain.model_dump()['maximum_duration_seconds'] == 0.04
+    with pytest.raises(ValidationError, match='prepared maximum'):
+        audio_effects.Granulator.model_validate(
+            grain.model_dump() | {'maximum_duration_seconds': 0.03}
+        )
+    with pytest.raises(ValueError, match='prepared maximum'):
+        audio_effects.validate_parameter(grain, 'duration_seconds', 0.06)
+    larger = audio_effects.Granulator.model_validate(
+        grain.model_dump() | {'maximum_duration_seconds': '80 ms'}
+    )
+    audio_effects.validate_parameter(larger, 'duration_seconds', 0.06)
+    raw = DATA['graph'] | {
+        'processors': [grain.model_dump()],
+        'connections': [
+            {
+                'processor': 'cloud',
+                'port': 'input',
+                'source': {'kind': 'input', 'input': 'main'},
+            }
+        ],
+        'output': {'kind': 'processor', 'processor': 'cloud'},
+        'modulation': {
+            'parameters': [
+                {
+                    'target': {'name': 'cloud', 'parameter': 'duration_seconds'},
+                    'scope': 'voice',
+                    'unit': 'seconds',
+                    'minimum': 0.01,
+                    'maximum': 0.06,
+                    'default': 0.04,
+                }
+            ],
+        },
+    }
+    with pytest.raises(ValidationError, match='prepared maximum'):
+        audio_effects.EffectGraph.model_validate(raw)
+    raw['processors'] = [larger.model_dump()]
+    audio_effects.EffectGraph.model_validate(raw)
+
+
 def test_soft_clip_requires_positive_drive() -> None:
     with pytest.raises(ValidationError, match='greater than 0'):
         audio_effects.SoftClip(name='clip', drive=0)

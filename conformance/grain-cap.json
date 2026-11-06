@@ -1,0 +1,11 @@
+{
+  "kind": "granulator",
+  "name": "cloud",
+  "duration_seconds": 0.02,
+  "maximum_duration_seconds": 0.08,
+  "density_hz": 50,
+  "lookback_seconds": 0.005,
+  "playback_ratio": 0.25,
+  "history_seconds": 0.03,
+  "maximum_grains": 4
+}

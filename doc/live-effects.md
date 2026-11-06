@@ -151,6 +151,17 @@ are all below `tail_threshold`. Stop ends the graph at its exact frame.
 Snapshots retain those buffers, write positions, read-head fades and damping
 memories. The mono graph and 48 kHz geometry are in `conformance/reverb.json`.
 
+The granulator declares `maximum_duration_seconds`, the fixed output-grain
+storage bound. It defaults to the larger of `duration_seconds` and
+`history_seconds` and is serialized as a concrete value. The authored duration,
+duration actions and the entire duration-modulation domain must remain positive
+and at or below this maximum. Raise it explicitly for longer future grains.
+Input history and output-grain storage are independent: slow playback can create
+an output grain longer than its retained source span. Each native slot reserves
+`max(2, round(maximum_duration_seconds * sample_rate))` frames, with ties to even.
+The cap is fixed after preparation. Unavailable source footprints still skip
+launches under the existing rule; the storage cap does not enlarge input history.
+
 The initial granulator uses a periodic Hann window
 `0.5 - 0.5*cos(2*pi*i/N)` for frame `i` of an `N`-frame grain. A grain requires at
 least two frames. Duration, playback ratio, source position, and gain are latched
