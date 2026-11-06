@@ -24,7 +24,8 @@ must expand all graph and stream references before checking cycles.
 
 ## Processor profile
 
-All processors preserve the primary input layout in this profile. Multiplication
+Reverb maps mono or named stereo input to named stereo output. Other processors
+preserve the primary input layout in this profile. Multiplication
 requires identical carrier and modulator layouts and multiplies corresponding
 samples. Wet/dry uses the designated dry input and linear interpolation:
 
@@ -91,6 +92,64 @@ scalar is snapshot state. Ending the detector feeds silence and permits gain
 recovery; ending the primary input ends this processor's output immediately.
 It retains no audio and has no tail. The language-neutral graph and static-knee
 examples are in `conformance/compressor.json`.
+
+### Eight-line algorithmic reverb
+
+`Reverb` is a fixed eight-line feedback delay network. Its input is either one
+mono channel or named `left`/`right` stereo; its output is always `left`/`right`.
+Mono dry audio maps to both outputs with gain `1/sqrt(2)` per channel. Stereo dry
+passes through unchanged. The same mapped stereo signal feeds the wet network.
+The profile adds no algorithmic latency: its predelay and network echoes are
+intentional wet timing, while the dry path stays at its authored frame.
+
+The controls are `predelay_seconds` (default zero), `decay_seconds` (default two),
+`damping_hz` (default 6000), and the common `mix` (default 0.25). Predelay must stay
+within `maximum_predelay_seconds` (default 0.25); that maximum may be zero.
+Predelay uses linear fractional reads including zero-frame delay, with continuous
+fixed-tap retiming over `retime_fade_frames` (default 64) and the same bounded
+read-head weighting rule as `TapDelay`. Its prepared input history includes the
+current frame and the older interpolation neighbor. The maximum, retiming length,
+network geometry, tail threshold and state floor are fixed preparation settings.
+
+The eight line lengths in seconds are 0.0297, 0.0371, 0.0411, 0.0437, 0.0531,
+0.0617, 0.0713 and 0.0797. `reverb_delay_frames(sample_rate)` rounds these to the
+nearest frame with ties to even, retaining at least one frame per line. Each
+line is a scalar delay initialized to zero. At frame `n`, read all eight delayed
+values `r[i]` before writing their replacements. Wet stereo output uses these
+reads with coefficients:
+
+```text
+left[i]  = (-1)^(i mod 2) / sqrt(8)
+right[i] = (-1)^popcount(i) / sqrt(8)
+```
+
+For the feedback path, update each one-pole damping memory before writing:
+
+```text
+a = exp(-2*pi*damping_hz/sample_rate)
+d[i] = (1-a)*r[i] + a*d_previous[i]
+h[i] = d[i] - sum(d)/4
+g[i] = 10^(-3*line_frames[i]/(sample_rate*decay_seconds))
+```
+
+The Householder feedback matrix is `I - J/4`, where every entry of `J` is one.
+Inject predelayed stereo `pL`, `pR` and write:
+
+```text
+input_left[i]  = (-1)^floor(i/4) / sqrt(8)
+input_right[i] = (-1)^(floor(i/2) mod 2) / sqrt(8)
+line_write[i] = input_left[i]*pL + input_right[i]*pR + g[i]*h[i]
+```
+
+The input columns and output rows are orthonormal. `decay_seconds` is the nominal
+undamped T60; damping shortens high-frequency decay. Coefficients must be
+representable with `0 <= a < 1` and `0 <= g[i] < 1`; unsupported floating-point
+extremes fail explicitly. Apply the declared `state_floor` to decaying line and
+damping state. Bypass keeps processing the wet network. An ended input feeds
+silence; drain occurs when predelay history, line histories and damping memories
+are all below `tail_threshold`. Stop ends the graph at its exact frame.
+Snapshots retain those buffers, write positions, read-head fades and damping
+memories. The mono graph and 48 kHz geometry are in `conformance/reverb.json`.
 
 The initial granulator uses a periodic Hann window
 `0.5 - 0.5*cos(2*pi*i/N)` for frame `i` of an `N`-frame grain. A grain requires at

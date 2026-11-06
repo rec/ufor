@@ -1,0 +1,15 @@
+{
+  "sample_rate": 48000,
+  "delay_frames": [1426, 1781, 1973, 2098, 2549, 2962, 3422, 3826],
+  "graph": {
+    "scope": "host",
+    "owner": "bus",
+    "inputs": [{"name": "main", "channels": ["mono"], "source": {"kind": "main"}}],
+    "processors": [{"kind": "reverb", "name": "room", "predelay_seconds": 0.0125, "maximum_predelay_seconds": 0.25, "decay_seconds": 2, "damping_hz": 6000}],
+    "connections": [{"processor": "room", "port": "input", "source": {"kind": "input", "input": "main"}}],
+    "output": {"kind": "processor", "processor": "room"},
+    "maximum_block_frames": 1024
+  },
+  "output_channels": ["left", "right"],
+  "mono_dry_gains": [0.7071067811865476, 0.7071067811865476]
+}

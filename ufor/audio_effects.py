@@ -128,6 +128,34 @@ class Compressor(Model):
     )
 
 
+class Reverb(Model):
+    """Eight-line feedback-delay-network profile with named stereo output."""
+
+    kind: Literal['reverb'] = 'reverb'
+    name: Identifier
+    predelay_seconds: Seconds = 0.0
+    maximum_predelay_seconds: Seconds = 0.25
+    decay_seconds: PositiveSeconds = 2.0
+    damping_hz: Frequency = 6000.0
+    retime_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=DELAY_RETIME_FADE_FRAMES, ge=1, strict=True
+    )
+    mix: UnitInterval = 0.25
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def bounded_predelay(self) -> Self:
+        if self.predelay_seconds > self.maximum_predelay_seconds:
+            raise ValueError('reverb predelay exceeds its prepared maximum')
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('reverb state_floor must be below tail_threshold')
+        return self
+
+
 class TapDelay(Model):
     """Fractional fixed taps with bounded, continuous retiming crossfades."""
 
@@ -249,6 +277,7 @@ Processor = Annotated[
     Gain
     | SoftClip
     | Compressor
+    | Reverb
     | TapDelay
     | ModulatedDelay
     | Filter
@@ -468,6 +497,9 @@ class ParameterAction(Model):
             'ratio': 'dimensionless',
             'attack_seconds': 'second',
             'release_seconds': 'second',
+            'predelay_seconds': 'second',
+            'decay_seconds': 'second',
+            'damping_hz': 'hertz',
             'delay_seconds': 'second',
             'base_delay_seconds': 'second',
             'depth_seconds': 'second',
@@ -575,6 +607,13 @@ def processor_ports(processor: Processor) -> set[str]:
 def processor_channels(
     processor: Processor, port_layouts: dict[str, list[str]]
 ) -> list[str]:
+    if isinstance(processor, Reverb):
+        if len(port_layouts['input']) != 1 and port_layouts['input'] != [
+            'left',
+            'right',
+        ]:
+            raise ValueError('reverb requires mono or named left/right stereo input')
+        return ['left', 'right']
     if isinstance(processor, Multiply):
         if port_layouts['carrier'] != port_layouts['modulator']:
             raise ValueError('multiply inputs require matching channel layouts')
@@ -633,6 +672,17 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
             if value < 0:
                 raise ValueError('compressor knee and times must be nonnegative')
             return
+    if isinstance(processor, Reverb):
+        if parameter == 'predelay_seconds':
+            if not 0 <= value <= processor.maximum_predelay_seconds:
+                raise ValueError(
+                    'reverb predelay must remain inside its prepared maximum'
+                )
+            return
+        if parameter in {'decay_seconds', 'damping_hz'}:
+            if value <= 0:
+                raise ValueError('reverb decay and damping must be positive')
+            return
     if isinstance(processor, TapDelay):
         if parameter == 'delay_seconds':
             if not 0 < value <= processor.maximum_delay_seconds:
@@ -685,6 +735,13 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
     raise ValueError(f'unsupported parameter {processor.name}.{parameter}')
 
 
+def reverb_delay_frames(sample_rate: int) -> list[int]:
+    """Round the fixed eight-line geometry, retaining at least one frame per line."""
+    if sample_rate <= 0:
+        raise ValueError('reverb sample rate must be positive')
+    return [max(1, round(t * sample_rate)) for t in REVERB_DELAYS_SECONDS]
+
+
 def grain_window(index: int, frames: int) -> float:
     """Periodic Hann grain window sampled at index in [0, frames)."""
     if frames < 2 or not 0 <= index < frames:
@@ -731,3 +788,6 @@ def _ancestors(name: str, dependencies: dict[str, set[str]]) -> set[str]:
                 result.add(dependency)
                 pending.append(dependency)
     return result
+
+
+REVERB_DELAYS_SECONDS = [0.0297, 0.0371, 0.0411, 0.0437, 0.0531, 0.0617, 0.0713, 0.0797]

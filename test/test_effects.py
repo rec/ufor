@@ -57,6 +57,54 @@ def test_effect_graph_conformance() -> None:
     )
 
 
+def test_reverb_declares_stereo_output_and_a_bounded_predelay() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/reverb.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    assert graph.output_channels() == data['output_channels']
+    assert (
+        audio_effects.reverb_delay_frames(data['sample_rate']) == data['delay_frames']
+    )
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    room = graph.processors[0]
+    for parameter, value in (
+        ('predelay_seconds', 0.3),
+        ('decay_seconds', 0),
+        ('damping_hz', 0),
+    ):
+        with pytest.raises(ValueError):
+            audio_effects.validate_parameter(room, parameter, value)
+    for channels in (['left', 'right'], ['mono']):
+        raw = graph.model_dump()
+        raw['inputs'][0]['channels'] = channels
+        assert audio_effects.EffectGraph.model_validate(raw).output_channels() == [
+            'left',
+            'right',
+        ]
+    raw['inputs'][0]['channels'] = ['a', 'b']
+    with pytest.raises(ValidationError, match='mono or named'):
+        audio_effects.EffectGraph.model_validate(raw)
+    with pytest.raises(ValidationError, match='prepared maximum'):
+        audio_effects.Reverb(
+            name='room', predelay_seconds=0.5, maximum_predelay_seconds=0.25
+        )
+    assert (
+        audio_effects.ParameterAction.model_validate(
+            {
+                'tick': 0,
+                'ordinal': 0,
+                'processor': 'room',
+                'parameter': 'predelay_seconds',
+                'value': '20 ms',
+            }
+        ).value
+        == 0.02
+    )
+
+
 def test_tap_retiming_prepares_an_explicit_positive_frame_duration() -> None:
     definition = audio_effects.TapDelay.model_validate(
         {
