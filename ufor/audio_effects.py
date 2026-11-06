@@ -109,6 +109,25 @@ class SoftClip(Model):
     )
 
 
+class Compressor(Model):
+    """Linked peak, feed-forward compression with an explicit detector port."""
+
+    kind: Literal['compressor'] = 'compressor'
+    name: Identifier
+    threshold_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -18.0
+    ratio: FiniteScalar = Field(default=4.0, ge=1)
+    knee_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=6.0, ge=0
+    )
+    attack_seconds: Seconds = 0.01
+    release_seconds: Seconds = 0.1
+    makeup_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
 class TapDelay(Model):
     """Fractional fixed taps with bounded, continuous retiming crossfades."""
 
@@ -227,7 +246,14 @@ class Granulator(Model):
 
 
 Processor = Annotated[
-    Gain | SoftClip | TapDelay | ModulatedDelay | Filter | Multiply | Granulator,
+    Gain
+    | SoftClip
+    | Compressor
+    | TapDelay
+    | ModulatedDelay
+    | Filter
+    | Multiply
+    | Granulator,
     Field(discriminator='kind'),
 ]
 
@@ -380,7 +406,7 @@ class EffectGraph(ModulationSettings):
         validate_parameter(processor, name, value)
         unit = (
             modulation.Unit.db
-            if name == 'gain_db'
+            if name.endswith('_db')
             else modulation.Unit.seconds
             if name.endswith('_seconds')
             else modulation.Unit.hz
@@ -436,6 +462,12 @@ class ParameterAction(Model):
             return value
         unit = {
             'gain_db': 'decibel',
+            'threshold_db': 'decibel',
+            'knee_db': 'decibel',
+            'makeup_db': 'decibel',
+            'ratio': 'dimensionless',
+            'attack_seconds': 'second',
+            'release_seconds': 'second',
             'delay_seconds': 'second',
             'base_delay_seconds': 'second',
             'depth_seconds': 'second',
@@ -535,6 +567,8 @@ def validate_batch(graph: EffectGraph, batch: ActionBatch) -> None:
 
 
 def processor_ports(processor: Processor) -> set[str]:
+    if isinstance(processor, Compressor):
+        return {'input', 'detector'}
     return {'carrier', 'modulator'} if isinstance(processor, Multiply) else {'input'}
 
 
@@ -588,6 +622,17 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         if value <= 0:
             raise ValueError('drive must be positive')
         return
+    if isinstance(processor, Compressor):
+        if parameter in {'threshold_db', 'makeup_db'}:
+            return
+        if parameter == 'ratio':
+            if value < 1:
+                raise ValueError('compressor ratio must be at least one')
+            return
+        if parameter in {'knee_db', 'attack_seconds', 'release_seconds'}:
+            if value < 0:
+                raise ValueError('compressor knee and times must be nonnegative')
+            return
     if isinstance(processor, TapDelay):
         if parameter == 'delay_seconds':
             if not 0 < value <= processor.maximum_delay_seconds:

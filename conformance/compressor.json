@@ -1,0 +1,24 @@
+{
+  "graph": {
+    "scope": "host",
+    "owner": "bus",
+    "inputs": [
+      {"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}},
+      {"name": "side", "channels": ["mono"], "source": {"kind": "host", "stream": "sidechain"}}
+    ],
+    "processors": [{"kind": "compressor", "name": "duck", "threshold_db": -12, "ratio": 4, "knee_db": 6, "attack_seconds": 0.01, "release_seconds": 0.1}],
+    "connections": [
+      {"processor": "duck", "port": "input", "source": {"kind": "input", "input": "main"}},
+      {"processor": "duck", "port": "detector", "source": {"kind": "input", "input": "side"}}
+    ],
+    "output": {"kind": "processor", "processor": "duck"},
+    "maximum_block_frames": 1024
+  },
+  "soft_knee": [
+    {"relative_level_db": -4, "gain_reduction_db": 0},
+    {"relative_level_db": -3, "gain_reduction_db": 0},
+    {"relative_level_db": 0, "gain_reduction_db": -0.5625},
+    {"relative_level_db": 3, "gain_reduction_db": -2.25},
+    {"relative_level_db": 12, "gain_reduction_db": -9}
+  ]
+}

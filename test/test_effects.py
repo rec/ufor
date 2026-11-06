@@ -9,6 +9,44 @@ from ufor import audio_effects
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+def test_compressor_accepts_independent_detector_layout_and_parameter_units() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/compressor.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    assert graph.output_channels() == ['left', 'right']
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    compressor = audio_effects.Compressor.model_validate(
+        {'name': 'duck', 'threshold_db': '-12 dB', 'attack_seconds': '10 ms'}
+    )
+    assert compressor.threshold_db == -12
+    assert compressor.attack_seconds == 0.01
+    action = audio_effects.ParameterAction.model_validate(
+        {
+            'tick': 0,
+            'ordinal': 0,
+            'processor': 'duck',
+            'parameter': 'release_seconds',
+            'value': '200 ms',
+        }
+    )
+    assert action.value == 0.2
+    audio_effects.validate_action(graph, action)
+    for parameter, value in (
+        ('ratio', 0.5),
+        ('knee_db', -1),
+        ('attack_seconds', -0.1),
+        ('release_seconds', -0.1),
+    ):
+        with pytest.raises(ValueError):
+            audio_effects.validate_action(
+                graph,
+                action.model_copy(update={'parameter': parameter, 'value': value}),
+            )
+
+
 def test_effect_graph_conformance() -> None:
     graph = audio_effects.EffectGraph.model_validate(DATA['graph'])
 

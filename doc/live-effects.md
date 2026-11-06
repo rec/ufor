@@ -9,7 +9,8 @@ kind accepted by the common codec. Hosts attach graphs to their owners explicitl
 Every processor has a stable local ID. Audio input ports are fixed by processor
 type and are distinct from scalar modulation. Gain, soft clip, resonant filter,
 delay, and granulator processors have `input`; multiplication has equal-layout `carrier`
-and `modulator` ports. Connections may fan out, but a port has one source and
+and `modulator` ports. Compression has `input` and `detector`, whose layouts may
+differ. Connections may fan out, but a port has one source and
 implicit mixing is forbidden. Preparation validates all references, layouts,
 required ports, whole-program cycles, and reachability before establishing a
 canonical topological order. A producer executes once per span even when its
@@ -43,7 +44,12 @@ serialized settings, not fixed constants that a host may silently substitute.
 `maximum_delay_seconds`, and feedback in [0, 1). `ModulatedDelay` adds
 `base_delay_seconds`, `depth_seconds`, `rate_hz`, waveform, and optional per-channel
 phase offsets. Its whole delay span must remain positive and within the prepared
-maximum. Delay realizations use bounded integer-frame reads. Parameter actions
+maximum. Delay realizations use bounded linear-interpolated reads, with an
+effective minimum of one output frame. Fixed taps use continuous retiming
+crossfades over `retime_fade_frames` (default 64); already-retiring reads finish
+on their existing deadlines, while a new destination takes the remaining gain.
+Preparation reserves `retime_fade_frames + 1` read heads. Modulated reads move
+continuously without that crossfade. Parameter actions
 are checked against the prepared bounds; decoding or allocating a larger delay
 buffer during processing is not part of this contract.
 
@@ -51,6 +57,40 @@ Soft clip is stateless and has neither latency nor a tail. For finite input `x`
 and positive `drive` `d`, its wet output is `tanh(d*x) / tanh(d)`. It does not
 oversample, normalize blocks, or claim analogue emulation. `drive` is a positive
 automatable parameter; mix and bypass follow the common processor rules.
+
+### Compressor and ducker
+
+`Compressor` is a feed-forward, linked peak profile with no look-ahead or added
+latency. The `input` port is the dry/output layout. `detector` may have any
+nonempty declared layout; its peak at each frame is `max(abs(channel))`. Connect
+the main signal to both ports for ordinary compression, or use an external
+detector for ducking. It does not mix the detector into the output.
+
+Let `x = 20*log10(peak) - threshold_db`, `r = ratio >= 1`, and `k = knee_db >= 0`.
+For nonzero peaks the target gain reduction in decibels is:
+
+```text
+x <= -k/2:  0
+x >=  k/2:  (1/r - 1) * x
+otherwise: (1/r - 1) * (x + k/2)^2 / (2*k)
+```
+
+With `k == 0`, use zero below or at threshold and the above-threshold expression
+above it. A zero detector peak targets zero reduction. Starting from zero
+reduction, update `g = target + exp(-1/(sample_rate*time)) * (g - target)` before
+rendering the frame. Use `attack_seconds` when the target is more negative than
+the current gain and `release_seconds` otherwise. A zero time means an immediate
+update. Times are one-pole time constants, not completion durations.
+
+Multiply every input channel by `10^((g + makeup_db)/20)` before the common
+wet/dry interpolation. Defaults are threshold -18 dB, ratio 4, knee 6 dB, attack
+10 ms, release 100 ms, and makeup 0 dB. All six parameters are automatable and
+can be shared-generator targets. Makeup is explicit; there is no automatic
+normalization. Bypass continues advancing detection and reduction. The reduction
+scalar is snapshot state. Ending the detector feeds silence and permits gain
+recovery; ending the primary input ends this processor's output immediately.
+It retains no audio and has no tail. The language-neutral graph and static-knee
+examples are in `conformance/compressor.json`.
 
 The initial granulator uses a periodic Hann window
 `0.5 - 0.5*cos(2*pi*i/N)` for frame `i` of an `N`-frame grain. A grain requires at
