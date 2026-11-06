@@ -122,6 +122,31 @@ class Waveshaper(Model):
     )
 
 
+class Phaser(Model):
+    """Six identical all-pass stages with an external bipolar sweep control."""
+
+    kind: Literal['phaser'] = 'phaser'
+    name: Identifier
+    center_hz: Frequency = 800.0
+    depth_cents: Annotated[FiniteScalar, units.unit_validator('musical_cent')] = Field(
+        default=2400.0, ge=0
+    )
+    sweep: FiniteScalar = Field(default=0.0, ge=-1, le=1)
+    feedback: FiniteScalar = Field(default=0.0, ge=-0.95, le=0.95)
+    mix: UnitInterval = 0.5
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def decaying_state(self) -> Self:
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('phaser state_floor must be below tail_threshold')
+        return self
+
+
 class Compressor(Model):
     """Linked peak, feed-forward compression with an explicit detector port."""
 
@@ -294,6 +319,7 @@ class Granulator(Model):
 Processor = Annotated[
     Gain
     | Waveshaper
+    | Phaser
     | Compressor
     | Reverb
     | TapDelay
@@ -454,6 +480,8 @@ class EffectGraph(ModulationSettings):
         unit = (
             modulation.Unit.db
             if name.endswith('_db')
+            else modulation.Unit.cents
+            if name.endswith('_cents')
             else modulation.Unit.seconds
             if name.endswith('_seconds')
             else modulation.Unit.hz
@@ -534,6 +562,8 @@ class ParameterAction(Model):
             'predelay_seconds': 'second',
             'decay_seconds': 'second',
             'damping_hz': 'hertz',
+            'center_hz': 'hertz',
+            'depth_cents': 'musical_cent',
             'delay_seconds': 'second',
             'base_delay_seconds': 'second',
             'depth_seconds': 'second',
@@ -697,6 +727,23 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
                 raise ValueError('drive must be positive')
             return
         if parameter in {'bias', 'output_gain_db'}:
+            return
+    if isinstance(processor, Phaser):
+        if parameter == 'center_hz':
+            if value <= 0:
+                raise ValueError('phaser center must be positive')
+            return
+        if parameter == 'depth_cents':
+            if value < 0:
+                raise ValueError('phaser depth must be nonnegative')
+            return
+        if parameter == 'sweep':
+            if not -1 <= value <= 1:
+                raise ValueError('phaser sweep must be in [-1, 1]')
+            return
+        if parameter == 'feedback':
+            if not -0.95 <= value <= 0.95:
+                raise ValueError('phaser feedback must be in [-0.95, 0.95]')
             return
     if isinstance(processor, Compressor):
         if parameter in {'threshold_db', 'makeup_db'}:

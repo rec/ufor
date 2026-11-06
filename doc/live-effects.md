@@ -89,6 +89,39 @@ per input frame and hold drive/bias through its four oversamples. Initialize
 control histories to authored values, with bypass enabled. Snapshots retain all
 audio, control and end-marker compensation state.
 
+### Shared-sweep phaser
+
+`Phaser` retains its input layout and runs six identical first-order all-pass
+stages. Its instantaneous frequency is
+`center_hz * 2 ** (depth_cents * sweep / 1200)`. The nonnegative depth uses the
+existing musical-cents unit, accepting values such as `"2 octaves"`; sweep is
+in [-1, 1]. Center, depth, sweep, feedback and mix are automatable. Bind sweep
+to a shared enveLFO or Patch output for motion; no additional LFO clock is
+created inside the processor. The default sweep of zero is static.
+
+At each frame, compute `g = tan(pi * frequency / sample_rate)` and
+`a = (g-1)/(g+1)`. Evaluate the frequency in log2 space to avoid an overflowing
+intermediate exponent. Resolved frequency must be positive and below Nyquist,
+and the represented coefficient must satisfy -1 < a < 1; otherwise fail
+explicitly. For each channel, start with
+`x = input + feedback * previous_wet`. Set `b = sqrt((1-a)*(1+a))`.
+Each of the six stages computes `y = a*x + b*memory`, then
+`memory = b*x-a*memory`, using its old memory in both expressions, and passes y
+to the next stage. This normalized lattice preserves the stage energy balance
+even when a changes every frame. At fixed a, its transfer function is
+`(a + z**-1)/(1 + a*z**-1)`.
+Store the final y as previous_wet for the next input frame. Feedback is bounded
+to [-0.95, 0.95] and always has a one-frame delay.
+
+Mix follows the common linear dry/wet rule, default 0.5; bypass keeps all stage
+and feedback state warm. Values below `state_floor` become zero in stage and
+feedback memories. After input end, drain until every retained value is below
+`tail_threshold`. State floor must be below that threshold. The profile adds
+no algorithmic latency: its phase response and internal feedback delay are
+intentional DSP behavior. Reserve six stage memories and one feedback value
+per channel. Snapshots retain those values and the common controls, lifecycle
+and upstream compensation state.
+
 ### Compressor and ducker
 
 `Compressor` is a feed-forward, linked peak profile with no look-ahead or added

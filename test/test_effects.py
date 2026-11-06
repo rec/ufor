@@ -4,9 +4,47 @@ from pathlib import Path
 import pytest
 from pydantic import ValidationError
 
-from ufor import audio_effects
+from ufor import audio_effects, modulation
 
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
+
+
+def test_phaser_sweep_uses_cents_and_bounded_feedback() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/phaser.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    processor = graph.processors[0]
+    assert isinstance(processor, audio_effects.Phaser)
+    assert processor.depth_cents == 2400
+    assert graph.latencies()['motion'] == data['latency_frames']
+    assert graph.parameter_definition(
+        modulation.Target(name='motion', parameter='depth_cents')
+    ) == (modulation.Unit.cents, 2400)
+    for name, sweep in [('negative', -1), ('zero', 0), ('positive', 1)]:
+        assert (
+            processor.center_hz * 2 ** (processor.depth_cents * sweep / 1200)
+            == data['swept_frequency_hz'][name]
+        )
+    for parameter, value in [('center_hz', '1 kHz'), ('depth_cents', '1 octave')]:
+        action = audio_effects.ParameterAction(
+            tick=0, ordinal=0, processor='motion', parameter=parameter, value=value
+        )
+        audio_effects.validate_action(graph, action)
+    for parameter, value in [
+        ('center_hz', 0),
+        ('depth_cents', -1),
+        ('sweep', 1.01),
+        ('feedback', 0.951),
+        ('feedback', -0.951),
+    ]:
+        with pytest.raises(ValueError):
+            audio_effects.validate_parameter(processor, parameter, value)
+    with pytest.raises(ValidationError, match='state_floor'):
+        audio_effects.Phaser(name='motion', state_floor=1e-6)
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
 
 
 def test_compressor_accepts_independent_detector_layout_and_parameter_units() -> None:

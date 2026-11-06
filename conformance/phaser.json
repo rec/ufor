@@ -1,0 +1,14 @@
+{
+  "graph": {
+    "scope": "master",
+    "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+    "processors": [{"kind": "phaser", "name": "motion", "center_hz": "800 Hz", "depth_cents": "2 octaves", "feedback": 0.5}],
+    "connections": [{"processor": "motion", "port": "input", "source": {"kind": "input", "input": "main"}}],
+    "output": {"kind": "processor", "processor": "motion"},
+    "maximum_block_frames": 48000
+  },
+  "stages": 6,
+  "latency_frames": 0,
+  "feedback_delay_frames": 1,
+  "swept_frequency_hz": {"negative": 200, "zero": 800, "positive": 3200}
+}
