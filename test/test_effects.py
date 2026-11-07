@@ -11,6 +11,36 @@ from ufor.samples.processing import ModulationSettings
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+def test_tap_delay_damping_is_prepared_explicitly_and_accepts_frequency_controls() -> (
+    None
+):
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/feedback-damping.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data)
+    processor = graph.processors[0]
+    assert isinstance(processor, audio_effects.TapDelay)
+    assert processor.damping_hz == 1000
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    action = audio_effects.ParameterAction(
+        tick=0,
+        ordinal=0,
+        processor='echo',
+        parameter='damping_hz',
+        value='2 kHz',
+        duration_frames=64,
+    )
+    assert action.value == 2000
+    audio_effects.validate_action(graph, action)
+    with pytest.raises(ValueError, match='must be positive'):
+        audio_effects.validate_parameter(processor, 'damping_hz', 0)
+    disabled = processor.model_copy(update={'damping_hz': None})
+    with pytest.raises(ValueError, match='not prepared'):
+        audio_effects.validate_parameter(disabled, 'damping_hz', 2000)
+
+
 @pytest.mark.parametrize('channels', [['centre'], ['left', 'right']])
 def test_multitap_expands_named_taps_into_portable_stereo_routing(
     channels: list[str],

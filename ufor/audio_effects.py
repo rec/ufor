@@ -343,6 +343,7 @@ class TapDelay(Model):
     delay_seconds: PositiveSeconds
     maximum_delay_seconds: PositiveSeconds
     feedback: float = Field(default=0.0, ge=0, lt=1)
+    damping_hz: Frequency | None = None
     retime_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=DELAY_RETIME_FADE_FRAMES, ge=1, strict=True
     )
@@ -1161,6 +1162,12 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
                 raise ValueError('reverb decay and damping must be positive')
             return
     if isinstance(processor, TapDelay):
+        if parameter == 'damping_hz':
+            if processor.damping_hz is None:
+                raise ValueError('tap delay damping is not prepared')
+            if value <= 0:
+                raise ValueError('tap delay damping must be positive')
+            return
         if parameter == 'delay_seconds':
             if not 0 < value <= processor.maximum_delay_seconds:
                 raise ValueError('delay_seconds must be within the prepared maximum')

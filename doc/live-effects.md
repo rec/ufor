@@ -454,6 +454,30 @@ modulation, actions or routing. It uses the standard scope/owner and prepared
 block limits, without another DSP or snapshot type. The conformance authoring
 example is `conformance/multitap.json`.
 
+## Optional feedback damping
+
+`TapDelay.damping_hz` defaults to `None`, selecting the existing undamped loop.
+A positive frequency prepares one initially zero normalized all-pass memory per
+input channel. It is a one-pole low-pass with unity DC gain and zero gain at
+Nyquist: `g=tan(pi*cutoff/rate)`, `a=(g-1)/(g+1)`, `b=sqrt((1-a)*(1+a))`;
+using old memory `s`, `allpass=a*x+b*s`, `s_next=b*x-a*s`,
+`filtered=(x+allpass)/2`.
+
+Each frame reads and mixes its existing delay heads, filters that delayed value,
+multiplies the filtered value by feedback gain, and adds it to the new input
+before writing history. The audible delayed read remains unfiltered, so later
+repeats become progressively darker. Damping adds no algorithmic latency and
+does not change interpolation or retiming. Bypass keeps the complete loop warm.
+
+Prepared damping accepts positive cutoff actions and modulation. Cutoff must
+remain strictly below Nyquist with a representable coefficient in (-1, 1);
+renderers reject unsupported values without clamping. Disabled damping cannot
+be enabled by an action: it requires preparing another definition. State below
+`state_floor` becomes zero; after input end both delay history and damping
+memories must fall below `tail_threshold` before retirement. Snapshots retain
+damping memory and its enabled/disabled preparation identity. The conformance
+example is `conformance/feedback-damping.json`.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native

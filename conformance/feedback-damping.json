@@ -1,0 +1,9 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["mono"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "tap_delay", "name": "echo", "delay_seconds": "10 ms", "maximum_delay_seconds": "100 ms", "feedback": 0.5, "damping_hz": "1 kHz"}],
+  "connections": [{"processor": "echo", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "echo"},
+  "maximum_block_frames": 256,
+  "modulation": {"parameters": [{"target": {"name": "echo", "parameter": "damping_hz"}, "scope": "voice", "unit": "hz", "default": 1000, "minimum": 100, "maximum": 5000}]}
+}
