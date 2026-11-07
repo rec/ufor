@@ -147,6 +147,36 @@ class Phaser(Model):
         return self
 
 
+class MixerInput(Model):
+    name: Identifier
+    gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
+    muted: StrictBool = False
+    solo: StrictBool = False
+
+
+class Mixer(Model):
+    """Explicit named inputs, with continuously retimed mute/solo fades."""
+
+    kind: Literal['mixer'] = 'mixer'
+    name: Identifier
+    inputs: list[MixerInput] = Field(min_length=1)
+    switch_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=64, ge=1, strict=True
+    )
+
+    @model_validator(mode='after')
+    def unique_inputs(self) -> Self:
+        unique((i.name for i in self.inputs), 'mixer input')
+        return self
+
+
+class Crossfader(Model):
+    kind: Literal['crossfader'] = 'crossfader'
+    name: Identifier
+    law: Literal['linear', 'equal_power']
+    position: UnitInterval = 0.5
+
+
 class ChannelMatrix(Model):
     """Always-applied named-channel routing with explicit linear coefficients."""
 
@@ -362,6 +392,8 @@ Processor = Annotated[
     | Phaser
     | Highpass
     | ChannelMatrix
+    | Mixer
+    | Crossfader
     | Compressor
     | Reverb
     | TapDelay
@@ -509,6 +541,10 @@ class EffectGraph(ModulationSettings):
         if processor is None:
             raise ValueError(f'Unknown processor {target.name}')
         name = target.parameter
+        if isinstance(processor, Mixer):
+            for definition in processor.inputs:
+                if name == f'{definition.name}-gain_db':
+                    return modulation.Unit.db, definition.gain_db
         if isinstance(processor, Filter):
             for definition in processor.filters:
                 if name == f'{definition.name}-cutoff_hz':
@@ -614,10 +650,11 @@ class ParameterAction(Model):
             'rate_hz': 'hertz',
             'density_hz': 'hertz',
             'mix': 'dimensionless',
+            'position': 'dimensionless',
             'drive': 'dimensionless',
             'feedback': 'dimensionless',
             'playback_ratio': 'dimensionless',
-        }.get(parameter)
+        }.get(parameter.rsplit('-', 1)[-1])
         if unit is None:
             return value
         return dict(value) | {
@@ -694,6 +731,18 @@ def validate_action(graph: EffectGraph, action: EffectAction) -> None:
             )
         if isinstance(action, ParameterAction):
             validate_parameter(processor, action.parameter, action.value)
+            if (
+                isinstance(processor, Mixer)
+                and action.parameter.rsplit('-', 1)[-1] in {'muted', 'solo'}
+                and action.duration_frames
+            ):
+                raise ValueError(
+                    'mixer selectors are immediate requests with internal fades'
+                )
+        elif isinstance(action, BypassAction) and isinstance(
+            processor, (Mixer, Crossfader)
+        ):
+            raise ValueError('mixers and crossfaders have no bypass')
         elif isinstance(action, FreezeAction) and not isinstance(processor, Granulator):
             raise ValueError('freeze actions require a granulator')
     elif isinstance(action, InputEndAction) and action.input not in {
@@ -710,6 +759,10 @@ def validate_batch(graph: EffectGraph, batch: ActionBatch) -> None:
 
 
 def processor_ports(processor: Processor) -> set[str]:
+    if isinstance(processor, Mixer):
+        return {i.name for i in processor.inputs}
+    if isinstance(processor, Crossfader):
+        return {'first', 'second'}
     if isinstance(processor, Compressor):
         return {'input', 'detector'}
     return {'carrier', 'modulator'} if isinstance(processor, Multiply) else {'input'}
@@ -777,6 +830,18 @@ def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
 def processor_channels(
     processor: Processor, port_layouts: dict[str, list[str]]
 ) -> list[str]:
+    if isinstance(processor, (Mixer, Crossfader)):
+        ports = (
+            [i.name for i in processor.inputs]
+            if isinstance(processor, Mixer)
+            else ['first', 'second']
+        )
+        layout = port_layouts[ports[0]]
+        if any(port_layouts[p] != layout for p in ports[1:]):
+            raise ValueError(
+                'mixer and crossfader inputs require matching named layouts'
+            )
+        return layout
     if isinstance(processor, ChannelMatrix):
         if port_layouts['input'] != processor.input_channels:
             raise ValueError('matrix input channel layout must match its source')
@@ -827,6 +892,19 @@ def stable_order(
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
     if isinstance(processor, ChannelMatrix):
         raise ValueError('routing matrices have no parameters')
+    if isinstance(processor, Mixer):
+        for definition in processor.inputs:
+            if parameter == f'{definition.name}-gain_db':
+                return
+            if parameter in {f'{definition.name}-muted', f'{definition.name}-solo'}:
+                if value not in (0, 1):
+                    raise ValueError('mixer selectors must be zero or one')
+                return
+        raise ValueError(f'unknown mixer parameter {parameter}')
+    if isinstance(processor, Crossfader):
+        if parameter != 'position' or not 0 <= value <= 1:
+            raise ValueError('crossfader position must be in [0, 1]')
+        return
     if parameter == 'mix':
         if not 0 <= value <= 1:
             raise ValueError('mix must be in [0, 1]')

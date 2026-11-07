@@ -320,6 +320,39 @@ side; `width_matrix` scales side by width in [0, 2], leaving mid unchanged;
 Swap, unnormalized sum/difference and arbitrary channel mapping use explicit
 coefficient rows, as illustrated in `conformance/channel-matrix.json`.
 
+## Named mixers and crossfaders
+
+`Mixer` declares its ordered input ports through `MixerInput` entries. Every
+port has a unique name, a decibel gain, mute and solo selectors. All input
+layouts must match exactly. No wet/dry or bypass control is added. Inputs are
+summed with compensated accumulation, without normalization or clipping.
+
+If any input is soloed, only soloed inputs are eligible. Mute still silences a
+soloed input. Initial gate gains are the authored eligibility values, without
+startup fades. Selector changes target eligible gates at one and others at
+zero. A changed target starts a linear amplitude fade from the current gate
+over `switch_fade_frames` (default 64). The request frame uses the old gain;
+the target is reached after that many frames. Another changed target retimes
+continuously from the current value; duplicate selectors do not restart a fade.
+
+Parameter names are `<port>-gain_db`, `<port>-muted` and `<port>-solo`. Gains
+accept ordinary ramps and generator routes. Selector actions use exactly zero
+or one with zero `duration_frames`; the mixer supplies their internal fades.
+Selectors are not continuous modulation targets. Ending an input makes it zero
+without changing gain/mute/solo selection. The mixer ends only after every
+aligned input ends; no implicit reweighting occurs.
+
+`Crossfader` has named `first` and `second` ports with identical layouts and an
+automatable position in [0, 1]. Its law is required explicitly. Linear weights
+are `1-position, position`; equal-power weights are cosine/sine of
+`pi*position/2`. Endpoint weights are exactly zero/one. Equal-power center
+can boost correlated inputs. There is no additional wet/dry or bypass control,
+normalization or clipping. It ends after both aligned inputs end.
+
+Both profiles preserve input channels and add zero algorithmic latency. All
+authored ports determine fixed prepared storage. Audio, controls and input-end
+markers retain shared upstream latency compensation; stop is immediate.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native

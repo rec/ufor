@@ -1,0 +1,26 @@
+{
+  "graph": {
+    "scope": "master",
+    "inputs": [
+      {"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}},
+      {"name": "b", "channels": ["left", "right"], "source": {"kind": "host", "stream": "b"}},
+      {"name": "c", "channels": ["left", "right"], "source": {"kind": "host", "stream": "c"}}
+    ],
+    "processors": [{"kind": "mixer", "name": "sum", "inputs": [{"name": "a"}, {"name": "b", "gain_db": "-6 dB"}, {"name": "c", "muted": true}]}],
+    "connections": [
+      {"processor": "sum", "port": "a", "source": {"kind": "input", "input": "main"}},
+      {"processor": "sum", "port": "b", "source": {"kind": "input", "input": "b"}},
+      {"processor": "sum", "port": "c", "source": {"kind": "input", "input": "c"}}
+    ],
+    "output": {"kind": "processor", "processor": "sum"},
+    "maximum_block_frames": 997
+  },
+  "switch_fade_frames": 64,
+  "initial_gate_targets": [1, 1, 0],
+  "solo_b_targets": [0, 1, 0],
+  "muted_solo_b_targets": [0, 0, 0],
+  "crossfade_weights": {
+    "linear_center": [0.5, 0.5],
+    "equal_power_center": [0.7071067811865476, 0.7071067811865476]
+  }
+}

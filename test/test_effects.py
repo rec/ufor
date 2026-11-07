@@ -10,6 +10,60 @@ from ufor import audio_effects, modulation
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+def test_mixer_named_ports_selectors_and_gain_units() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/mixer.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    processor = graph.processors[0]
+    assert isinstance(processor, audio_effects.Mixer)
+    assert processor.switch_fade_frames == data['switch_fade_frames']
+    assert audio_effects.processor_ports(processor) == {'a', 'b', 'c'}
+    assert graph.output_channels() == ['left', 'right']
+    action = audio_effects.ParameterAction(
+        tick=0,
+        ordinal=0,
+        processor='sum',
+        parameter='b-gain_db',
+        value='-3 dB',
+        duration_frames=128,
+    )
+    assert action.value == -3
+    audio_effects.validate_action(graph, action)
+    selector = audio_effects.ParameterAction(
+        tick=0, ordinal=0, processor='sum', parameter='b-solo', value=1
+    )
+    audio_effects.validate_action(graph, selector)
+    with pytest.raises(ValueError, match='immediate requests'):
+        audio_effects.validate_action(
+            graph, selector.model_copy(update={'duration_frames': 64})
+        )
+    with pytest.raises(ValueError, match='zero or one'):
+        audio_effects.validate_action(graph, selector.model_copy(update={'value': 0.5}))
+    with pytest.raises(ValueError, match='no bypass'):
+        audio_effects.validate_action(
+            graph,
+            audio_effects.BypassAction(
+                tick=0, ordinal=0, processor='sum', bypassed=True
+            ),
+        )
+    raw = graph.model_dump()
+    raw['inputs'][1]['channels'].reverse()
+    with pytest.raises(ValidationError, match='matching named layouts'):
+        audio_effects.EffectGraph.model_validate(raw)
+
+
+def test_crossfader_laws_require_an_explicit_choice() -> None:
+    for law in ('linear', 'equal_power'):
+        processor = audio_effects.Crossfader(name='fade', law=law)
+        assert audio_effects.processor_ports(processor) == {'first', 'second'}
+        audio_effects.validate_parameter(processor, 'position', 1)
+        with pytest.raises(ValueError, match='position'):
+            audio_effects.validate_parameter(processor, 'position', 1.1)
+    with pytest.raises(ValidationError, match='Field required'):
+        audio_effects.Crossfader(name='fade')
+
+
 def test_channel_matrix_layout_and_always_applied_routing() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/channel-matrix.json').read_text()
