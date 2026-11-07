@@ -1,0 +1,9 @@
+{
+  "name": "echo",
+  "taps": [
+    {"name": "first", "delay_seconds": "10 ms", "maximum_delay_seconds": "50 ms", "gain_db": "-3 dB", "pan": -1},
+    {"name": "last", "delay_seconds": "20 ms", "maximum_delay_seconds": "80 ms", "gain_db": "-9 dB", "pan": 1}
+  ],
+  "channels": ["left", "right"],
+  "latencies": {"echo-dry": 0, "echo-tap-first": 0, "echo-pan-first": 0, "echo-tap-last": 0, "echo-pan-last": 0, "echo": 0}
+}

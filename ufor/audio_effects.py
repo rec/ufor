@@ -319,6 +319,22 @@ class Reverb(Model):
         return self
 
 
+class DelayTap(Model):
+    """Named authoring settings expanded by multitap_graph into ordinary nodes."""
+
+    name: Identifier
+    delay_seconds: PositiveSeconds
+    maximum_delay_seconds: PositiveSeconds
+    gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -6.0
+    pan: FiniteScalar = Field(default=0.0, ge=-1, le=1)
+
+    @model_validator(mode='after')
+    def bounded_delay(self) -> Self:
+        if self.delay_seconds > self.maximum_delay_seconds:
+            raise ValueError('tap exceeds its prepared maximum delay')
+        return self
+
+
 class TapDelay(Model):
     """Fractional fixed taps with bounded, continuous retiming crossfades."""
 
@@ -905,6 +921,85 @@ def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
         input_channels=source,
         output_channels=target,
         coefficients=[[1 / sqrt(2), 1 / sqrt(2)], [1 / sqrt(2), -1 / sqrt(2)]],
+    )
+
+
+def multitap_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    taps: list[DelayTap],
+    maximum_block_frames: int,
+    dry_gain_db: float = 0.0,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Compose bounded, independently retimed taps with static stereo placement."""
+    if not taps:
+        raise ValueError('multitap requires at least one tap')
+    unique((t.name for t in taps), 'tap name')
+    if len(input.channels) != 1 and input.channels != ['left', 'right']:
+        raise ValueError('multitap requires mono or named left/right stereo input')
+    source = InputSource(input=input.name)
+    dry = (
+        pan_matrix(f'{name}-dry', 0).model_copy(
+            update={'input_channels': input.channels}
+        )
+        if len(input.channels) == 1
+        else balance_matrix(f'{name}-dry', 0)
+    )
+    processors: list[Processor] = [dry]
+    connections = [
+        Connection(processor=dry.name, port='input', source=source),
+        Connection(
+            processor=name, port='dry', source=ProcessorSource(processor=dry.name)
+        ),
+    ]
+    for tap in taps:
+        delay = TapDelay(
+            name=f'{name}-tap-{tap.name}',
+            delay_seconds=tap.delay_seconds,
+            maximum_delay_seconds=tap.maximum_delay_seconds,
+        )
+        placement = (
+            pan_matrix(f'{name}-pan-{tap.name}', tap.pan).model_copy(
+                update={'input_channels': input.channels}
+            )
+            if len(input.channels) == 1
+            else balance_matrix(f'{name}-pan-{tap.name}', tap.pan)
+        )
+        processors.extend([delay, placement])
+        connections.extend(
+            [
+                Connection(processor=delay.name, port='input', source=source),
+                Connection(
+                    processor=placement.name,
+                    port='input',
+                    source=ProcessorSource(processor=delay.name),
+                ),
+                Connection(
+                    processor=name,
+                    port=f'tap-{tap.name}',
+                    source=ProcessorSource(processor=placement.name),
+                ),
+            ]
+        )
+    processors.append(
+        Mixer(
+            name=name,
+            inputs=[
+                MixerInput(name='dry', gain_db=dry_gain_db),
+                *[MixerInput(name=f'tap-{t.name}', gain_db=t.gain_db) for t in taps],
+            ],
+        )
+    )
+    return EffectGraph(
+        scope=scope,
+        owner=owner,
+        inputs=[input],
+        processors=processors,
+        connections=connections,
+        output=ProcessorSource(processor=name),
+        maximum_block_frames=maximum_block_frames,
     )
 
 

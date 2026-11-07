@@ -11,6 +11,89 @@ from ufor.samples.processing import ModulationSettings
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+@pytest.mark.parametrize('channels', [['centre'], ['left', 'right']])
+def test_multitap_expands_named_taps_into_portable_stereo_routing(
+    channels: list[str],
+) -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/multitap.json').read_text()
+    )
+    graph = audio_effects.multitap_graph(
+        data['name'],
+        audio_effects.AttachmentScope.master,
+        audio_effects.GraphInput(
+            name='main', channels=channels, source=audio_effects.MainStream()
+        ),
+        [audio_effects.DelayTap.model_validate(t) for t in data['taps']],
+        256,
+    )
+    assert graph.output_channels() == data['channels']
+    assert graph.latencies() == data['latencies']
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    processors = {p.name: p for p in graph.processors}
+    first = processors['echo-tap-first']
+    assert isinstance(first, audio_effects.TapDelay)
+    assert (first.delay_seconds, first.maximum_delay_seconds, first.feedback) == (
+        0.01,
+        0.05,
+        0,
+    )
+    placement = processors['echo-pan-first']
+    assert isinstance(placement, audio_effects.ChannelMatrix)
+    assert placement.input_channels == channels
+    assert placement.coefficients == (
+        [[1], [0]] if len(channels) == 1 else [[1, 0], [0, 0]]
+    )
+    mixer = processors['echo']
+    assert isinstance(mixer, audio_effects.Mixer)
+    assert [(i.name, i.gain_db) for i in mixer.inputs] == [
+        ('dry', 0),
+        ('tap-first', -3),
+        ('tap-last', -9),
+    ]
+    for processor, parameter, value in [
+        ('echo-tap-first', 'delay_seconds', '30 ms'),
+        ('echo', 'tap-first-gain_db', '-6 dB'),
+    ]:
+        audio_effects.validate_action(
+            graph,
+            audio_effects.ParameterAction(
+                tick=0, ordinal=0, processor=processor, parameter=parameter, value=value
+            ),
+        )
+
+
+def test_multitap_requires_unique_bounded_taps_and_a_supported_layout() -> None:
+    source = audio_effects.GraphInput(
+        name='main', channels=['mono'], source=audio_effects.MainStream()
+    )
+    tap = audio_effects.DelayTap(
+        name='one', delay_seconds=0.01, maximum_delay_seconds=0.02
+    )
+    with pytest.raises(ValueError, match='at least one tap'):
+        audio_effects.multitap_graph(
+            'echo', audio_effects.AttachmentScope.master, source, [], 256
+        )
+    with pytest.raises(ValueError, match='duplicate tap name'):
+        audio_effects.multitap_graph(
+            'echo', audio_effects.AttachmentScope.master, source, [tap, tap], 256
+        )
+    with pytest.raises(ValueError, match='mono or named'):
+        audio_effects.multitap_graph(
+            'echo',
+            audio_effects.AttachmentScope.master,
+            source.model_copy(update={'channels': ['a', 'b', 'c']}),
+            [tap],
+            256,
+        )
+    with pytest.raises(ValidationError, match='prepared maximum'):
+        audio_effects.DelayTap(
+            name='one', delay_seconds=0.03, maximum_delay_seconds=0.02
+        )
+
+
 @pytest.mark.parametrize('kind', ['gate', 'expander'])
 def test_gate_and_expander_have_explicit_detectors_and_no_latency(kind: str) -> None:
     data = json.loads(

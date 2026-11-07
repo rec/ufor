@@ -428,6 +428,32 @@ expander ratio accept actions and modulation. Hold counts use integer frames;
 JSON/native snapshots retain gain, gate state and elapsed hold in addition
 to shared graph state. The conformance example is `conformance/gate-expander.json`.
 
+## Multitap authoring composition
+
+`multitap_graph` accepts named `DelayTap` definitions and expands them into
+ordinary `TapDelay`, `ChannelMatrix` and `Mixer` processors. Each tap declares a
+positive delay and maximum delay, gain in dB (default -6), and static pan/balance
+in [-1, 1] (default center). Tap names are unique and at least one is required.
+The input is mono with any declared name, or named left/right stereo; output is
+named left/right stereo. Mono uses equal-power panning, including a centered
+dry path. Stereo uses attenuation-only balance and preserves centered dry.
+Dry gain defaults to 0 dB. There is no implicit clipping or normalization.
+
+For graph name `echo` and tap `first`, node IDs are `echo-tap-first` for the
+delay and `echo-pan-first` for placement. `echo-dry` places the dry input;
+`echo` is the mixer with ports `dry` and `tap-first` (and one such port per tap).
+Delay retiming targets `echo-tap-first.delay_seconds`; gain targets
+`echo.tap-first-gain_db`. Mixer mute/solo and gain ramps retain their ordinary
+contracts. Placement is static. Each tap has zero feedback and independent
+bounded delay/retiming storage. Musical delay adds no algorithmic latency, so
+the dry path is not compensated to the echo time. The mixer ends after every
+input tail has drained.
+
+The emitted graph is the portable definition and can be extended with ordinary
+modulation, actions or routing. It uses the standard scope/owner and prepared
+block limits, without another DSP or snapshot type. The conformance authoring
+example is `conformance/multitap.json`.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native
