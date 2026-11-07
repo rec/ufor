@@ -282,6 +282,21 @@ bits to `[0, 1)` and linearly map that value to `[-1, 1)`. The counter advances
 for every scheduled launch, including launches skipped for unavailable history
 or a full grain pool.
 
+## One-pole highpass and DC removal
+
+`Highpass` preserves its input layout, defaults to 20 Hz, and has unity gain at
+Nyquist. It has zero initial state and zero algorithmic latency. Cutoff must
+remain positive and strictly below Nyquist, including resolved automation.
+There is no implicit clamp. `cutoff_hz` uses hertz and accepts generator routes.
+
+Let `g = tan(pi*cutoff_hz/sample_rate)`, `a = (g-1)/(g+1)` and
+`b = sqrt((1-a)*(1+a))`. For each channel and frame, use the old memory `s`:
+`allpass = a*x+b*s`, `s_new = b*x-a*s`, `highpass = (x-allpass)/2`.
+This normalized lattice retains an energy balance under cutoff modulation.
+At fixed cutoff its response is `(1-a)/2*(1-z^-1)/(1+a*z^-1)`.
+Retained state below `state_floor` becomes zero; after input end, drain until
+all channel memories are below `tail_threshold`. Bypass keeps state warm.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native

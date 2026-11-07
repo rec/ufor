@@ -1,0 +1,15 @@
+{
+  "graph": {
+    "scope": "master",
+    "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+    "processors": [{"kind": "highpass", "name": "dc", "cutoff_hz": "20 Hz"}],
+    "connections": [{"processor": "dc", "port": "input", "source": {"kind": "input", "input": "main"}}],
+    "output": {"kind": "processor", "processor": "dc"},
+    "maximum_block_frames": 1000
+  },
+  "sample_rate": 48000,
+  "cutoff_gain_squared": 0.5,
+  "dc_gain": 0,
+  "nyquist_gain": 1,
+  "latency_frames": 0
+}

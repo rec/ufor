@@ -401,6 +401,28 @@ def test_tap_delay_has_bounded_feedback_and_automation() -> None:
         )
 
 
+def test_highpass_units_layout_and_parameter_contract() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/highpass.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    assert graph.output_channels() == ['left', 'right']
+    assert graph.latencies() == {'dc': data['latency_frames']}
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    action = audio_effects.ParameterAction(
+        tick=0, ordinal=0, processor='dc', parameter='cutoff_hz', value='5 Hz'
+    )
+    audio_effects.validate_action(graph, action)
+    assert action.value == 5
+    assert audio_effects.Highpass(name='dc').cutoff_hz == 20
+    with pytest.raises(ValueError, match='positive'):
+        audio_effects.validate_parameter(graph.processors[0], 'cutoff_hz', 0)
+    with pytest.raises(ValidationError, match='state_floor'):
+        audio_effects.Highpass(name='dc', state_floor=1e-6)
+
+
 def test_modulated_delay_bounds_chorus_and_flanger_reads() -> None:
     delay = audio_effects.ModulatedDelay(
         name='movement',

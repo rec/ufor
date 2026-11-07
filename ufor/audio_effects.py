@@ -147,6 +147,26 @@ class Phaser(Model):
         return self
 
 
+class Highpass(Model):
+    """One-pole highpass and DC removal, normalized at Nyquist."""
+
+    kind: Literal['highpass'] = 'highpass'
+    name: Identifier
+    cutoff_hz: Frequency = 20.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def decaying_state(self) -> Self:
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('highpass state_floor must be below tail_threshold')
+        return self
+
+
 class Compressor(Model):
     """Linked peak, feed-forward compression with an explicit detector port."""
 
@@ -320,6 +340,7 @@ Processor = Annotated[
     Gain
     | Waveshaper
     | Phaser
+    | Highpass
     | Compressor
     | Reverb
     | TapDelay
@@ -563,6 +584,7 @@ class ParameterAction(Model):
             'decay_seconds': 'second',
             'damping_hz': 'hertz',
             'center_hz': 'hertz',
+            'cutoff_hz': 'hertz',
             'depth_cents': 'musical_cent',
             'delay_seconds': 'second',
             'base_delay_seconds': 'second',
@@ -720,6 +742,10 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
             raise ValueError('mix must be in [0, 1]')
         return
     if isinstance(processor, Gain) and parameter == 'gain_db':
+        return
+    if isinstance(processor, Highpass) and parameter == 'cutoff_hz':
+        if value <= 0:
+            raise ValueError('highpass cutoff must be positive')
         return
     if isinstance(processor, Waveshaper):
         if parameter == 'drive':
