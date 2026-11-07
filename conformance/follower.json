@@ -1,0 +1,27 @@
+{
+  "graph": {
+    "scope": "master",
+    "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+    "processors": [
+      {"kind": "gain", "name": "output"},
+      {"kind": "follower", "name": "level", "attack_seconds": "10 ms", "release_seconds": "100 ms"},
+      {"kind": "waveshaper", "name": "detector_shape", "mix": 0}
+    ],
+    "connections": [
+      {"processor": "output", "port": "input", "source": {"kind": "input", "input": "main"}},
+      {"processor": "level", "port": "input", "source": {"kind": "processor", "processor": "detector_shape"}},
+      {"processor": "detector_shape", "port": "input", "source": {"kind": "input", "input": "main"}}
+    ],
+    "output": {"kind": "processor", "processor": "output"},
+    "maximum_block_frames": 256,
+    "bindings": [{"kind": "follower", "name": "amplitude", "processor": "level"}],
+    "modulation": {
+      "sources": [{"name": "amplitude", "scope": "voice", "minimum": 0, "maximum": 2}],
+      "parameters": [{"target": {"name": "output", "parameter": "gain_db"}, "scope": "voice", "unit": "db", "minimum": -60, "maximum": 0, "default": 0}],
+      "routes": [{"name": "follow", "source": "amplitude", "target": {"name": "output", "parameter": "gain_db"}, "operation": "add", "unit": "db", "points": [{"input": 0, "amount": -60}, {"input": 2, "amount": 0}]}]
+    }
+  },
+  "order": ["detector_shape", "level", "output"],
+  "latencies": {"detector_shape": 48, "level": 48, "output": 48},
+  "channels": ["left", "right"]
+}

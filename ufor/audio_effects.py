@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
 from math import cos, pi, sin, sqrt
-from typing import Annotated, Literal, Self, cast
+from typing import Annotated, ClassVar, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
 from reccy.configuration import units
@@ -22,7 +22,12 @@ from .base import (
     unique,
 )
 from .oscillator import Waveform
-from .samples.processing import GeneratorBinding, ModulationSettings, ResonantFilter
+from .samples.processing import (
+    FollowerBinding,
+    GeneratorBinding,
+    ModulationSettings,
+    ResonantFilter,
+)
 
 BYPASS_FADE_FRAMES = 64
 TAIL_RETIREMENT_FADE_FRAMES = 64
@@ -144,6 +149,23 @@ class Phaser(Model):
     def decaying_state(self) -> Self:
         if self.state_floor >= self.tail_threshold:
             raise ValueError('phaser state_floor must be below tail_threshold')
+        return self
+
+
+class Follower(Model):
+    """Linked peak analysis with frame-invariant attack/release smoothing."""
+
+    kind: Literal['follower'] = 'follower'
+    name: Identifier
+    attack_seconds: Seconds = 0.01
+    release_seconds: Seconds = 0.1
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def decaying_state(self) -> Self:
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('follower state_floor must be below tail_threshold')
         return self
 
 
@@ -394,6 +416,7 @@ Processor = Annotated[
     | ChannelMatrix
     | Mixer
     | Crossfader
+    | Follower
     | Compressor
     | Reverb
     | TapDelay
@@ -406,6 +429,8 @@ Processor = Annotated[
 
 
 class EffectGraph(ModulationSettings):
+    follower_bindings: ClassVar[bool] = True
+
     scope: AttachmentScope
     owner: Identifier | None = None
     inputs: list[GraphInput] = Field(min_length=1)
@@ -429,13 +454,21 @@ class EffectGraph(ModulationSettings):
 
     @model_validator(mode='after')
     def valid_graph(self) -> Self:
-        if any(not isinstance(b, GeneratorBinding) for b in self.bindings):
-            raise ValueError('Effect modulation requires Envelfo bindings')
+        if any(
+            not isinstance(b, (GeneratorBinding, FollowerBinding))
+            for b in self.bindings
+        ):
+            raise ValueError('Effect modulation requires Envelfo or follower bindings')
         if any(g.scope != 'voice' for g in self.envelfos.values()):
             raise ValueError('Effect generators use voice scope for one graph instance')
         if any(p.scope != 'voice' for p in self.modulation.parameters):
             raise ValueError('Effect parameters belong to one graph instance')
         processors = {p.name: p for p in self.processors}
+        for binding in self.bindings:
+            if isinstance(binding, FollowerBinding) and not isinstance(
+                processors.get(binding.processor), Follower
+            ):
+                raise ValueError('Follower binding requires a follower processor')
         for parameter in self.modulation.parameters:
             processor = processors[parameter.target.name]
             for value in (parameter.minimum, parameter.maximum):
@@ -478,7 +511,6 @@ class EffectGraph(ModulationSettings):
         main_count = sum(isinstance(i.source, MainStream) for i in self.inputs)
         if main_count != 1:
             raise ValueError('effect graph requires exactly one main input')
-        dependencies: dict[str, set[str]] = {name: set() for name in processors}
         connections: dict[tuple[str, str], Connection] = {}
         for connection in self.connections:
             if connection.processor not in processors:
@@ -497,7 +529,10 @@ class EffectGraph(ModulationSettings):
                     raise ValueError(
                         f'unknown source processor {connection.source.processor}'
                     )
-                dependencies[connection.processor].add(connection.source.processor)
+                if isinstance(processors[connection.source.processor], Follower):
+                    raise ValueError(
+                        'Follower analysis cannot be connected to an audio port'
+                    )
             connections[(connection.processor, connection.port)] = connection
         for processor in self.processors:
             missing = processor_ports(processor) - {
@@ -508,6 +543,7 @@ class EffectGraph(ModulationSettings):
                     f'processor {processor.name} has unconnected ports: '
                     f'{sorted(missing)}'
                 )
+        dependencies = self.dependencies()
         try:
             tuple(TopologicalSorter(dependencies).static_order())
         except CycleError as error:
@@ -521,6 +557,8 @@ class EffectGraph(ModulationSettings):
                 raise ValueError(
                     f'unknown graph output processor {self.output.processor}'
                 )
+            if isinstance(processors[self.output.processor], Follower):
+                raise ValueError('Follower analysis cannot be the graph audio output')
             used = _ancestors(self.output.processor, dependencies)
         if used != processors.keys():
             raise ValueError('every processor must contribute to the graph output')
@@ -568,26 +606,32 @@ class EffectGraph(ModulationSettings):
         )
         return unit, float(value)
 
-    def order(self) -> list[Identifier]:
+    def dependencies(self) -> dict[str, set[str]]:
         dependencies = {p.name: set() for p in self.processors}
         for connection in self.connections:
             if isinstance(connection.source, ProcessorSource):
                 dependencies[connection.processor].add(connection.source.processor)
-        return stable_order(self.processors, dependencies)
+        followers = {
+            b.name: b.processor for b in self.bindings if isinstance(b, FollowerBinding)
+        }
+        for route in self.modulation.routes:
+            if route.source in followers:
+                dependencies[route.target.name].add(followers[route.source])
+        return dependencies
+
+    def order(self) -> list[Identifier]:
+        return stable_order(self.processors, self.dependencies())
 
     def latencies(self) -> dict[str, int]:
         """Output latency per processor after aligning all of its input ports."""
         processors = {p.name: p for p in self.processors}
-        connections = {(c.processor, c.port): c.source for c in self.connections}
+        dependencies = self.dependencies()
         result: dict[str, int] = {}
         for name in self.order():
             processor = processors[name]
-            result[name] = max(
-                0
-                if isinstance(s := connections[(name, p)], InputSource)
-                else result[s.processor]
-                for p in processor_ports(processor)
-            ) + (WAVESHAPER_LATENCY_FRAMES if isinstance(processor, Waveshaper) else 0)
+            result[name] = max((result[d] for d in dependencies[name]), default=0) + (
+                WAVESHAPER_LATENCY_FRAMES if isinstance(processor, Waveshaper) else 0
+            )
         return result
 
     def output_channels(self) -> list[Identifier]:
@@ -740,9 +784,9 @@ def validate_action(graph: EffectGraph, action: EffectAction) -> None:
                     'mixer selectors are immediate requests with internal fades'
                 )
         elif isinstance(action, BypassAction) and isinstance(
-            processor, (Mixer, Crossfader)
+            processor, (Mixer, Crossfader, Follower)
         ):
-            raise ValueError('mixers and crossfaders have no bypass')
+            raise ValueError('mixers, crossfaders and followers have no bypass')
         elif isinstance(action, FreezeAction) and not isinstance(processor, Granulator):
             raise ValueError('freeze actions require a granulator')
     elif isinstance(action, InputEndAction) and action.input not in {
@@ -830,6 +874,8 @@ def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
 def processor_channels(
     processor: Processor, port_layouts: dict[str, list[str]]
 ) -> list[str]:
+    if isinstance(processor, Follower):
+        return ['level']
     if isinstance(processor, (Mixer, Crossfader)):
         ports = (
             [i.name for i in processor.inputs]
@@ -904,6 +950,10 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
     if isinstance(processor, Crossfader):
         if parameter != 'position' or not 0 <= value <= 1:
             raise ValueError('crossfader position must be in [0, 1]')
+        return
+    if isinstance(processor, Follower):
+        if parameter not in {'attack_seconds', 'release_seconds'} or value < 0:
+            raise ValueError('follower attack/release must be nonnegative')
         return
     if parameter == 'mix':
         if not 0 <= value <= 1:

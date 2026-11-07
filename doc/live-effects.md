@@ -353,6 +353,44 @@ Both profiles preserve input channels and add zero algorithmic latency. All
 authored ports determine fixed prepared storage. Audio, controls and input-end
 markers retain shared upstream latency compensation; stop is immediate.
 
+## Audio-derived envelope followers
+
+`Follower` is an analysis processor with one `input` audio port. It has no
+audio output, wet/dry or bypass control. A dedicated binding
+`{kind: "follower", name: "amplitude", processor: "level"}` exposes its
+linear-amplitude observation to effect modulation. Follower bindings are
+rejected in synth/sample modulation settings. A follower cannot feed an audio
+port or be the graph's audio output. Every follower must contribute through a
+control route to the graph output, directly or through other processors.
+
+For each frame, peak is the maximum absolute input sample across channels.
+Initially level is zero. Select `attack_seconds` when peak exceeds level,
+otherwise `release_seconds`. Defaults are 0.01 and 0.1 seconds respectively;
+both accept nonnegative ramps and modulation. With a zero duration, level
+becomes peak immediately. Otherwise update
+`level += (peak-level) * (1-exp(-1/(sample_rate*seconds)))`.
+The newly updated level is available to downstream control routes in that
+same frame. Retained level below `state_floor` (default 1e-30) becomes zero.
+Input end supplies zero peak; release continues until level is below
+`tail_threshold` (default 1e-12), then level becomes zero and analysis ends.
+State floor must be strictly below tail threshold. Stop is immediate.
+
+The source uses voice scope for one graph instance, with minimum zero and an
+explicit authored maximum. Output is raw amplitude, without normalization or
+clamping; it can exceed one. Observations beyond the authored source domain
+fail under the ordinary modulation contract. Route mapping remains explicit.
+
+Follower routes add directed processor dependencies. Self-dependencies and
+combined audio/control cycles are rejected. Preparation orders each analysis
+before its consumers. A consumer's arrival latency is the maximum of all its
+audio and control-source latencies; earlier paths are delayed to match it.
+Authored parameter actions and generator observations use that same arrival
+time. Processor-specific internal control compensation still applies, such as
+the oversampled Waveshaper's drive/bias and output-gain delays. Alignment and
+follower level are retained in snapshots. End markers follow the aligned
+dependencies, so a consumer ends only after its required paths have ended and
+its own tail has drained. The conformance example is `conformance/follower.json`.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native

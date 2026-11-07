@@ -5892,7 +5892,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -5905,6 +5906,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -9177,7 +9181,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -9190,6 +9195,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -13110,7 +13118,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -13123,6 +13132,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -13277,7 +13289,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -13290,6 +13303,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -14654,7 +14670,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -14667,6 +14684,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -15643,7 +15663,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -15656,6 +15677,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -17039,7 +17063,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -17052,6 +17077,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -17242,7 +17270,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -17255,6 +17284,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -17444,7 +17476,8 @@
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding"
+                "velocity": "#/$defs/EventBinding",
+                "follower": "#/$defs/FollowerBinding"
               },
               "propertyName": "kind"
             },
@@ -17457,6 +17490,9 @@
               },
               {
                 "$ref": "#/$defs/GeneratorBinding"
+              },
+              {
+                "$ref": "#/$defs/FollowerBinding"
               }
             ]
           },
@@ -17788,6 +17824,31 @@
         "incoming"
       ],
       "title": "Transition",
+      "type": "object"
+    },
+    "FollowerBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "follower",
+          "default": "follower",
+          "title": "Kind",
+          "type": "string"
+        },
+        "processor": {
+          "title": "Processor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "processor"
+      ],
+      "title": "FollowerBinding",
       "type": "object"
     }
   },

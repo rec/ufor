@@ -3,7 +3,7 @@
 from enum import StrEnum, auto
 from fractions import Fraction
 from math import cos, pi, sin
-from typing import Annotated, Literal, Self
+from typing import Annotated, ClassVar, Literal, Self
 
 from pydantic import Field, StrictBool, model_validator
 from reccy.configuration import units
@@ -194,6 +194,12 @@ class GeneratorBinding(Model):
     release_timing: ReleaseTiming = ReleaseTiming.event
 
 
+class FollowerBinding(Model):
+    name: Identifier
+    kind: Literal['follower'] = 'follower'
+    processor: Identifier
+
+
 class EnvelfoEventConnection(Model):
     source: Identifier
     port: str = Field(min_length=1)
@@ -208,7 +214,8 @@ class EnvelfoEventConnection(Model):
 
 
 Binding = Annotated[
-    EventBinding | ControlBinding | GeneratorBinding, Field(discriminator='kind')
+    EventBinding | ControlBinding | GeneratorBinding | FollowerBinding,
+    Field(discriminator='kind'),
 ]
 
 
@@ -219,6 +226,7 @@ class ModulationSettings(Model):
     modulation: Modulation = Modulation()
     bindings: list[Binding] = Field(default_factory=list)
     event_connections: list[EnvelfoEventConnection] = Field(default_factory=list)
+    follower_bindings: ClassVar[bool] = False
 
     @model_validator(mode='after')
     def local_references(self) -> Self:
@@ -285,7 +293,14 @@ class ModulationSettings(Model):
         patch_release_timings: dict[tuple[str, str], ReleaseTiming] = {}
         for binding in self.bindings:
             source = sources[binding.name]
-            if isinstance(binding, EventBinding):
+            if isinstance(binding, FollowerBinding):
+                if not self.follower_bindings:
+                    raise ValueError('Follower bindings require an effect graph')
+                if source.scope != 'voice' or source.minimum != 0:
+                    raise ValueError(
+                        'Follower sources require voice scope and minimum zero'
+                    )
+            elif isinstance(binding, EventBinding):
                 if source.scope != 'voice':
                     raise ValueError(
                         'NoteKey and velocity bindings require voice scope'

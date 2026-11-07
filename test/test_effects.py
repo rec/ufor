@@ -6,8 +6,75 @@ import pytest
 from pydantic import ValidationError
 
 from ufor import audio_effects, modulation
+from ufor.samples.processing import ModulationSettings
 
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
+
+
+def test_follower_control_dependencies_order_and_align_audio() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/follower.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    assert graph.order() == data['order']
+    assert graph.latencies() == data['latencies']
+    assert graph.output_channels() == data['channels']
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    audio_effects.validate_action(
+        graph,
+        audio_effects.ParameterAction(
+            tick=0,
+            ordinal=0,
+            processor='level',
+            parameter='attack_seconds',
+            value='0 ms',
+        ),
+    )
+    with pytest.raises(ValueError, match='no bypass'):
+        audio_effects.validate_action(
+            graph,
+            audio_effects.BypassAction(
+                tick=0, ordinal=0, processor='level', bypassed=True
+            ),
+        )
+    raw = graph.model_dump()
+    raw['connections'][1]['source'] = {'kind': 'processor', 'processor': 'output'}
+    with pytest.raises(ValidationError, match='cycle'):
+        audio_effects.EffectGraph.model_validate(raw)
+
+
+def test_follower_analysis_is_effect_only_and_cannot_feed_audio() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/follower.json').read_text()
+    )
+    raw = data['graph']
+    with pytest.raises(ValidationError, match='require an effect graph'):
+        ModulationSettings.model_validate(
+            {n: raw[n] for n in ['bindings', 'modulation']}
+        )
+    raw['output'] = {'kind': 'processor', 'processor': 'level'}
+    with pytest.raises(ValidationError, match='audio output'):
+        audio_effects.EffectGraph.model_validate(raw)
+    raw['output'] = {'kind': 'processor', 'processor': 'output'}
+    raw['connections'][0]['source'] = {'kind': 'processor', 'processor': 'level'}
+    with pytest.raises(ValidationError, match='audio port'):
+        audio_effects.EffectGraph.model_validate(raw)
+
+
+def test_follower_binding_requires_a_valid_analysis_source() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/follower.json').read_text()
+    )
+    raw = data['graph']
+    raw['bindings'][0]['processor'] = 'missing'
+    with pytest.raises(ValidationError, match='requires a follower processor'):
+        audio_effects.EffectGraph.model_validate(raw)
+    raw['bindings'][0]['processor'] = 'level'
+    raw['modulation']['sources'][0]['minimum'] = -1
+    with pytest.raises(ValidationError, match='minimum zero'):
+        audio_effects.EffectGraph.model_validate(raw)
 
 
 def test_mixer_named_ports_selectors_and_gain_units() -> None:
