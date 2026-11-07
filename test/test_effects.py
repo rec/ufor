@@ -1,4 +1,5 @@
 import json
+from math import fsum, sqrt
 from pathlib import Path
 
 import pytest
@@ -7,6 +8,72 @@ from pydantic import ValidationError
 from ufor import audio_effects, modulation
 
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
+
+
+def test_channel_matrix_layout_and_always_applied_routing() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/channel-matrix.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data['graph'])
+    assert graph.output_channels() == ['left', 'right', 'mono']
+    assert graph.latencies() == {'route': 0}
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    for action in [
+        audio_effects.BypassAction(tick=0, ordinal=0, processor='route', bypassed=True),
+        audio_effects.ParameterAction(
+            tick=0, ordinal=0, processor='route', parameter='mix', value=0
+        ),
+    ]:
+        with pytest.raises(ValueError, match='routing matrices'):
+            audio_effects.validate_action(graph, action)
+    for vector in data['vectors']:
+        result = [
+            fsum(a * b for a, b in zip(r, vector['input'], strict=True))
+            for r in vector['coefficients']
+        ]
+        assert result == vector['output']
+    with pytest.raises(ValidationError, match='rows/columns'):
+        audio_effects.ChannelMatrix(
+            name='bad',
+            input_channels=['mono'],
+            output_channels=['left', 'right'],
+            coefficients=[[1]],
+        )
+    raw = graph.model_dump()
+    raw['inputs'][0]['channels'].reverse()
+    with pytest.raises(ValidationError, match='layout must match'):
+        audio_effects.EffectGraph.model_validate(raw)
+
+
+def test_static_routing_presets_have_explicit_gain_laws() -> None:
+    assert audio_effects.polarity_matrix('flip', ['mono']).coefficients == [[-1]]
+    assert audio_effects.pan_matrix('pan', -1).coefficients == [[1], [0]]
+    assert audio_effects.pan_matrix('pan', 1).coefficients == [[0], [1]]
+    assert [
+        r[0] for r in audio_effects.pan_matrix('pan', 0).coefficients
+    ] == pytest.approx([1 / sqrt(2), 1 / sqrt(2)])
+    assert audio_effects.balance_matrix('balance', 0).coefficients == [[1, 0], [0, 1]]
+    assert audio_effects.balance_matrix('balance', 1).coefficients == [[0, 0], [0, 1]]
+    assert audio_effects.width_matrix('width', 0).coefficients == [
+        [0.5, 0.5],
+        [0.5, 0.5],
+    ]
+    assert audio_effects.width_matrix('width', 2).coefficients == [
+        [1.5, -0.5],
+        [-0.5, 1.5],
+    ]
+    encode = audio_effects.mid_side_matrix('encode')
+    decode = audio_effects.mid_side_matrix('decode', decode=True)
+    assert encode.output_channels == decode.input_channels == ['mid', 'side']
+    for i in range(2):
+        for j in range(2):
+            assert fsum(
+                decode.coefficients[i][k] * encode.coefficients[k][j] for k in range(2)
+            ) == pytest.approx(float(i == j))
+    with pytest.raises(ValueError, match='width'):
+        audio_effects.width_matrix('width', 2.1)
 
 
 def test_phaser_sweep_uses_cents_and_bounded_feedback() -> None:

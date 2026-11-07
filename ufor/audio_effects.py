@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from math import cos, pi, sqrt
+from math import cos, pi, sin, sqrt
 from typing import Annotated, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
@@ -144,6 +144,26 @@ class Phaser(Model):
     def decaying_state(self) -> Self:
         if self.state_floor >= self.tail_threshold:
             raise ValueError('phaser state_floor must be below tail_threshold')
+        return self
+
+
+class ChannelMatrix(Model):
+    """Always-applied named-channel routing with explicit linear coefficients."""
+
+    kind: Literal['matrix'] = 'matrix'
+    name: Identifier
+    input_channels: list[Identifier] = Field(min_length=1)
+    output_channels: list[Identifier] = Field(min_length=1)
+    coefficients: list[list[FiniteScalar]] = Field(min_length=1)
+
+    @model_validator(mode='after')
+    def matrix_shape(self) -> Self:
+        unique(self.input_channels, 'matrix input channel')
+        unique(self.output_channels, 'matrix output channel')
+        if len(self.coefficients) != len(self.output_channels) or any(
+            len(r) != len(self.input_channels) for r in self.coefficients
+        ):
+            raise ValueError('matrix rows/columns must match output/input channels')
         return self
 
 
@@ -341,6 +361,7 @@ Processor = Annotated[
     | Waveshaper
     | Phaser
     | Highpass
+    | ChannelMatrix
     | Compressor
     | Reverb
     | TapDelay
@@ -667,6 +688,10 @@ def validate_action(graph: EffectGraph, action: EffectAction) -> None:
         if action.processor not in processors:
             raise ValueError(f'unknown processor {action.processor}')
         processor = processors[action.processor]
+        if isinstance(processor, ChannelMatrix):
+            raise ValueError(
+                'routing matrices have no parameter, bypass or freeze actions'
+            )
         if isinstance(action, ParameterAction):
             validate_parameter(processor, action.parameter, action.value)
         elif isinstance(action, FreezeAction) and not isinstance(processor, Granulator):
@@ -690,9 +715,72 @@ def processor_ports(processor: Processor) -> set[str]:
     return {'carrier', 'modulator'} if isinstance(processor, Multiply) else {'input'}
 
 
+def polarity_matrix(name: Identifier, channels: list[Identifier]) -> ChannelMatrix:
+    return ChannelMatrix(
+        name=name,
+        input_channels=channels,
+        output_channels=channels,
+        coefficients=[
+            [-1.0 if i == j else 0.0 for j in range(len(channels))]
+            for i in range(len(channels))
+        ],
+    )
+
+
+def pan_matrix(name: Identifier, pan: float) -> ChannelMatrix:
+    if not -1 <= pan <= 1:
+        raise ValueError('pan must be in [-1, 1]')
+    angle = (pan + 1) * pi / 4
+    return ChannelMatrix(
+        name=name,
+        input_channels=['mono'],
+        output_channels=['left', 'right'],
+        coefficients=[[cos(angle) if pan != 1 else 0.0], [sin(angle)]],
+    )
+
+
+def balance_matrix(name: Identifier, balance: float) -> ChannelMatrix:
+    if not -1 <= balance <= 1:
+        raise ValueError('balance must be in [-1, 1]')
+    return ChannelMatrix(
+        name=name,
+        input_channels=['left', 'right'],
+        output_channels=['left', 'right'],
+        coefficients=[[1 - max(0, balance), 0], [0, 1 + min(0, balance)]],
+    )
+
+
+def width_matrix(name: Identifier, width: float) -> ChannelMatrix:
+    if not 0 <= width <= 2:
+        raise ValueError('width must be in [0, 2]')
+    same, cross = (1 + width) / 2, (1 - width) / 2
+    return ChannelMatrix(
+        name=name,
+        input_channels=['left', 'right'],
+        output_channels=['left', 'right'],
+        coefficients=[[same, cross], [cross, same]],
+    )
+
+
+def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
+    source, target = ['left', 'right'], ['mid', 'side']
+    if decode:
+        source, target = target, source
+    return ChannelMatrix(
+        name=name,
+        input_channels=source,
+        output_channels=target,
+        coefficients=[[1 / sqrt(2), 1 / sqrt(2)], [1 / sqrt(2), -1 / sqrt(2)]],
+    )
+
+
 def processor_channels(
     processor: Processor, port_layouts: dict[str, list[str]]
 ) -> list[str]:
+    if isinstance(processor, ChannelMatrix):
+        if port_layouts['input'] != processor.input_channels:
+            raise ValueError('matrix input channel layout must match its source')
+        return processor.output_channels
     if isinstance(processor, Reverb):
         if len(port_layouts['input']) != 1 and port_layouts['input'] != [
             'left',
@@ -737,6 +825,8 @@ def stable_order(
 
 
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
+    if isinstance(processor, ChannelMatrix):
+        raise ValueError('routing matrices have no parameters')
     if parameter == 'mix':
         if not 0 <= value <= 1:
             raise ValueError('mix must be in [0, 1]')

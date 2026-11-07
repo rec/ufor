@@ -297,6 +297,29 @@ At fixed cutoff its response is `(1-a)/2*(1-z^-1)/(1+a*z^-1)`.
 Retained state below `state_floor` becomes zero; after input end, drain until
 all channel memories are below `tail_threshold`. Bypass keeps state warm.
 
+## Always-applied channel routing
+
+`ChannelMatrix` declares ordered `input_channels`, `output_channels`, and one
+coefficient row per output channel. Every row has one coefficient per input.
+The input layout must match its source exactly; channel names are unique within
+each layout. Coefficients are finite linear gains. There is no implicit
+normalization, clipping, wet/dry control, bypass or coefficient automation.
+Parameter, bypass and freeze actions are rejected for routing matrices.
+
+An output sample is the compensated sum of its coefficient/input products,
+matching scalar `fsum` behavior under cancellation. Non-finite products or
+unrepresentable sums fail explicitly. Storage is fixed by the authored matrix.
+The routing is stateless, has zero added latency and ends with its input.
+
+The Python preset functions produce ordinary `ChannelMatrix` definitions:
+`polarity_matrix` negates each declared channel; `pan_matrix` maps named `mono`
+to `left/right` using cosine/sine equal-power gains for pan in [-1, 1];
+`balance_matrix` attenuates the opposite stereo side without boosting either
+side; `width_matrix` scales side by width in [0, 2], leaving mid unchanged;
+`mid_side_matrix` encodes or decodes with `(L+R)/sqrt(2)` and `(L-R)/sqrt(2)`.
+Swap, unnormalized sum/difference and arbitrary channel mapping use explicit
+coefficient rows, as illustrated in `conformance/channel-matrix.json`.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native
