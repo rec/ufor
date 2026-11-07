@@ -239,6 +239,39 @@ class Highpass(Model):
         return self
 
 
+class Gate(Model):
+    """Linked peak gate with hysteresis, frame-ceiled hold and no look-ahead."""
+
+    kind: Literal['gate'] = 'gate'
+    name: Identifier
+    threshold_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -40.0
+    hysteresis_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=6.0, ge=0
+    )
+    hold_seconds: Seconds = 0.01
+    attack_seconds: Seconds = 0.001
+    release_seconds: Seconds = 0.05
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
+class Expander(Model):
+    """Linked peak, hard-knee downward expansion without look-ahead."""
+
+    kind: Literal['expander'] = 'expander'
+    name: Identifier
+    threshold_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -40.0
+    ratio: FiniteScalar = Field(default=2.0, ge=1)
+    attack_seconds: Seconds = 0.001
+    release_seconds: Seconds = 0.05
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
 class Compressor(Model):
     """Linked peak, feed-forward compression with an explicit detector port."""
 
@@ -418,6 +451,8 @@ Processor = Annotated[
     | Crossfader
     | Follower
     | Compressor
+    | Gate
+    | Expander
     | Reverb
     | TapDelay
     | ModulatedDelay
@@ -675,12 +710,14 @@ class ParameterAction(Model):
         unit = {
             'gain_db': 'decibel',
             'threshold_db': 'decibel',
+            'hysteresis_db': 'decibel',
             'knee_db': 'decibel',
             'makeup_db': 'decibel',
             'output_gain_db': 'decibel',
             'ratio': 'dimensionless',
             'attack_seconds': 'second',
             'release_seconds': 'second',
+            'hold_seconds': 'second',
             'predelay_seconds': 'second',
             'decay_seconds': 'second',
             'damping_hz': 'hertz',
@@ -807,7 +844,7 @@ def processor_ports(processor: Processor) -> set[str]:
         return {i.name for i in processor.inputs}
     if isinstance(processor, Crossfader):
         return {'first', 'second'}
-    if isinstance(processor, Compressor):
+    if isinstance(processor, (Compressor, Gate, Expander)):
         return {'input', 'detector'}
     return {'carrier', 'modulator'} if isinstance(processor, Multiply) else {'input'}
 
@@ -951,6 +988,23 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         if parameter != 'position' or not 0 <= value <= 1:
             raise ValueError('crossfader position must be in [0, 1]')
         return
+    if isinstance(processor, (Gate, Expander)):
+        if parameter == 'threshold_db':
+            return
+        if (
+            parameter in {'attack_seconds', 'release_seconds'}
+            or isinstance(processor, Gate)
+            and parameter in {'hysteresis_db', 'hold_seconds'}
+        ):
+            if value < 0:
+                raise ValueError(
+                    'gate/expander times and hysteresis must be nonnegative'
+                )
+            return
+        if isinstance(processor, Expander) and parameter == 'ratio':
+            if value < 1:
+                raise ValueError('expander ratio must be at least one')
+            return
     if isinstance(processor, Follower):
         if parameter not in {'attack_seconds', 'release_seconds'} or value < 0:
             raise ValueError('follower attack/release must be nonnegative')

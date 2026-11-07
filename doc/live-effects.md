@@ -391,6 +391,43 @@ follower level are retained in snapshots. End markers follow the aligned
 dependencies, so a consumer ends only after its required paths have ended and
 its own tail has drained. The conformance example is `conformance/follower.json`.
 
+## Zero-look-ahead gate and downward expander
+
+`Gate` and `Expander` have explicit `input` and `detector` audio ports.
+Their detector is the maximum absolute sample across detector channels. The
+detector may use the program source or a separate sidechain, with any declared
+channel width. One gain applies to all program channels; the program's named
+layout is preserved. Both add zero algorithmic latency and use common mix,
+warm bypass, upstream compensation and immediate-stop rules. Ending the
+detector supplies silence without ending the program. Neither stores audio:
+an ended, aligned program has no independent dynamics tail.
+
+Defaults are threshold -40 dB, attack 0.001 seconds and release 0.05 seconds.
+The gate additionally defaults to 6 dB hysteresis and 0.01 seconds hold. It
+starts closed at zero gain. It opens at or above threshold. While open, it
+counts consecutive frames strictly below threshold minus hysteresis. Hold is
+`ceil(hold_seconds*sample_rate)` frames: that many low frames remain open,
+then the next low frame closes it. Zero hold closes on the first low frame.
+Returning to or above the closing threshold resets elapsed hold. The count
+is compared against the current hold setting every frame, so shortening an
+active hold can close the gate immediately; lengthening it extends the wait.
+Reopening requires reaching the opening threshold. Target gain is one when
+open and zero when closed.
+
+The expander starts at unity gain and defaults to a 2:1 ratio. It has a hard
+knee. With detector level `L` dB below threshold `T`, target gain is
+`10**(((ratio-1)*(L-T))/20)`. At or above threshold it is one. Ratio one is
+unity, including at silence; otherwise silence targets zero gain. Negative
+infinite attenuation is permitted to underflow to zero. Gain never exceeds one.
+
+Both smooth linear gain toward its target using attack when target gain is
+higher and release otherwise: `gain += (target-gain)*(1-exp(-1/(rate*seconds)))`.
+Zero time applies the target immediately. The updated gain multiplies that
+frame's program audio. Threshold, attack/release, gate hysteresis/hold and
+expander ratio accept actions and modulation. Hold counts use integer frames;
+JSON/native snapshots retain gain, gate state and elapsed hold in addition
+to shared graph state. The conformance example is `conformance/gate-expander.json`.
+
 ## Failure and real-time boundary
 
 Preparation and submission reject detectable errors outside processing. Native

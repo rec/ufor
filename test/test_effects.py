@@ -11,6 +11,58 @@ from ufor.samples.processing import ModulationSettings
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+@pytest.mark.parametrize('kind', ['gate', 'expander'])
+def test_gate_and_expander_have_explicit_detectors_and_no_latency(kind: str) -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/gate-expander.json').read_text()
+    )
+    raw = data['graph']
+    if kind == 'expander':
+        raw['processors'] = [data['expander']]
+    graph = audio_effects.EffectGraph.model_validate(raw)
+    processor = graph.processors[0]
+    assert audio_effects.processor_ports(processor) == {'input', 'detector'}
+    assert graph.output_channels() == data['channels']
+    assert graph.latencies() == {'dynamics': data['latency_frames']}
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    action = audio_effects.ParameterAction(
+        tick=0,
+        ordinal=0,
+        processor='dynamics',
+        parameter='attack_seconds',
+        value='2 ms',
+        duration_frames=64,
+    )
+    assert action.value == 0.002
+    audio_effects.validate_action(graph, action)
+    with pytest.raises(ValueError, match='nonnegative'):
+        audio_effects.validate_parameter(processor, 'release_seconds', -0.1)
+    if kind == 'gate':
+        action = audio_effects.ParameterAction(
+            tick=0,
+            ordinal=0,
+            processor='dynamics',
+            parameter='hysteresis_db',
+            value='3 dB',
+        )
+        audio_effects.validate_action(graph, action)
+        action = audio_effects.ParameterAction(
+            tick=0,
+            ordinal=0,
+            processor='dynamics',
+            parameter='hold_seconds',
+            value='0.5 ms',
+        )
+        assert action.value == 0.0005
+        audio_effects.validate_action(graph, action)
+    else:
+        audio_effects.validate_parameter(processor, 'ratio', 1)
+        with pytest.raises(ValueError, match='at least one'):
+            audio_effects.validate_parameter(processor, 'ratio', 0.99)
+
+
 def test_follower_control_dependencies_order_and_align_audio() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/follower.json').read_text()

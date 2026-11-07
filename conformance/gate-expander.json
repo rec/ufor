@@ -1,0 +1,19 @@
+{
+  "graph": {
+    "scope": "master",
+    "inputs": [
+      {"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}},
+      {"name": "detector", "channels": ["mono"], "source": {"kind": "host", "stream": "sidechain"}}
+    ],
+    "processors": [{"kind": "gate", "name": "dynamics", "hold_seconds": "10 ms", "hysteresis_db": "6 dB"}],
+    "connections": [
+      {"processor": "dynamics", "port": "input", "source": {"kind": "input", "input": "main"}},
+      {"processor": "dynamics", "port": "detector", "source": {"kind": "input", "input": "detector"}}
+    ],
+    "output": {"kind": "processor", "processor": "dynamics"},
+    "maximum_block_frames": 256
+  },
+  "expander": {"kind": "expander", "name": "dynamics", "threshold_db": "-40 dB", "ratio": 2},
+  "channels": ["left", "right"],
+  "latency_frames": 0
+}
