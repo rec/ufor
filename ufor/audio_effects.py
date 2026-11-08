@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from math import cos, pi, sin, sqrt
+from math import cos, fsum, pi, sin, sqrt
 from typing import Annotated, ClassVar, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
@@ -335,10 +335,9 @@ class DelayTap(Model):
         return self
 
 
-class TapDelay(Model):
-    """Fractional fixed taps with bounded, continuous retiming crossfades."""
+class DelaySettings(Model):
+    """Shared bounded fixed-delay settings."""
 
-    kind: Literal['tap_delay'] = 'tap_delay'
     name: Identifier
     delay_seconds: PositiveSeconds
     maximum_delay_seconds: PositiveSeconds
@@ -360,6 +359,28 @@ class TapDelay(Model):
             raise ValueError('tap delay exceeds its prepared maximum delay')
         if self.state_floor >= self.tail_threshold:
             raise ValueError('tap delay state_floor must be below tail_threshold')
+        return self
+
+
+class TapDelay(DelaySettings):
+    """Fractional fixed taps with independent channel feedback."""
+
+    kind: Literal['tap_delay'] = 'tap_delay'
+
+
+class MatrixDelay(DelaySettings):
+    """Fixed taps with static cross-channel feedback, rows as destinations."""
+
+    kind: Literal['matrix_delay'] = 'matrix_delay'
+    feedback_matrix: list[list[FiniteScalar]] = Field(min_length=1)
+
+    @model_validator(mode='after')
+    def bounded_feedback_matrix(self) -> Self:
+        size = len(self.feedback_matrix)
+        if any(len(r) != size for r in self.feedback_matrix):
+            raise ValueError('delay feedback matrix must be square')
+        if any(fsum(abs(v) for v in r) > 1 for r in self.feedback_matrix):
+            raise ValueError('delay feedback matrix absolute row sums exceed one')
         return self
 
 
@@ -472,6 +493,7 @@ Processor = Annotated[
     | Expander
     | Reverb
     | TapDelay
+    | MatrixDelay
     | ModulatedDelay
     | Filter
     | Multiply
@@ -1007,6 +1029,10 @@ def multitap_graph(
 def processor_channels(
     processor: Processor, port_layouts: dict[str, list[str]]
 ) -> list[str]:
+    if isinstance(processor, MatrixDelay) and len(processor.feedback_matrix) != len(
+        port_layouts['input']
+    ):
+        raise ValueError('delay feedback matrix must match its input channel count')
     if isinstance(processor, Follower):
         return ['level']
     if isinstance(processor, (Mixer, Crossfader)):
@@ -1161,7 +1187,7 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
             if value <= 0:
                 raise ValueError('reverb decay and damping must be positive')
             return
-    if isinstance(processor, TapDelay):
+    if isinstance(processor, (TapDelay, MatrixDelay)):
         if parameter == 'damping_hz':
             if processor.damping_hz is None:
                 raise ValueError('tap delay damping is not prepared')

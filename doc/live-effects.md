@@ -490,3 +490,24 @@ the discarded block after failure follows the host block boundary.
 State trimming is not a complete defense against subnormal operands or results.
 Native implementations must benchmark tiny inputs and long decays on each target
 before choosing a scoped thread-local floating-point mode.
+
+### Matrix feedback delay
+
+`MatrixDelay` uses the same bounded fixed-delay settings and controls as
+`TapDelay`, with one delay time shared by all channels. It preserves its input's
+named channel layout. Its required static `feedback_matrix` is square and must
+match that channel count. Rows are destinations and columns are sources; signed
+finite coefficients are accepted unchanged, and each row's absolute sum must be
+at most one. The separate `feedback` gain remains in `[0, 1)`.
+
+For every frame, read all delayed channels, optionally low-pass them using the
+shared damping profile, multiply that vector by the feedback matrix, then apply
+`feedback` and add the current input before writing the history. The audible wet
+read remains unfiltered. All channel writes use the same pre-write vector, so
+cross-feedback has no channel-order dependency. For stereo, `[[0, 1], [1, 0]]`
+swaps feedback channels and makes successive echoes alternate sides when the
+initial input occupies one side. An identity matrix has TapDelay semantics.
+Coefficients are static and have no automation target; delay time, damping,
+feedback, mix and bypass retain their existing controls and tail rules.
+
+`conformance/matrix-delay.json` provides a damped stereo ping-pong definition.

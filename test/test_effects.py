@@ -11,6 +11,61 @@ from ufor.samples.processing import ModulationSettings
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+def test_matrix_delay_preserves_layout_and_exposes_shared_delay_controls() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/matrix-delay.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data)
+    assert graph.output_channels() == ['left', 'right']
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    for parameter, value in [
+        ('delay_seconds', '20 ms'),
+        ('feedback', 0.7),
+        ('damping_hz', '2 kHz'),
+    ]:
+        audio_effects.validate_action(
+            graph,
+            audio_effects.ParameterAction(
+                tick=0, ordinal=0, processor='echo', parameter=parameter, value=value
+            ),
+        )
+    data['inputs'][0]['channels'] = ['mono']
+    with pytest.raises(ValueError, match='input channel count'):
+        audio_effects.EffectGraph.model_validate(data)
+
+
+@pytest.mark.parametrize(
+    'matrix', [[], [[1, 0]], [[1.1]], [[0.6, -0.5], [0, 0]], [[float('nan')]]]
+)
+def test_matrix_delay_rejects_unbounded_or_malformed_feedback(
+    matrix: list[list[float]],
+) -> None:
+    with pytest.raises(ValueError):
+        audio_effects.MatrixDelay(
+            name='echo',
+            delay_seconds=0.01,
+            maximum_delay_seconds=0.1,
+            feedback_matrix=matrix,
+        )
+
+
+def test_matrix_delay_accepts_signed_contractive_rows_without_normalization() -> None:
+    matrix = [[0.25, -0.75], [-1, 0]]
+    delay = audio_effects.MatrixDelay(
+        name='echo',
+        delay_seconds=0.01,
+        maximum_delay_seconds=0.1,
+        feedback_matrix=matrix,
+    )
+    assert delay.feedback_matrix == matrix
+    with pytest.raises(ValueError, match='feedback'):
+        audio_effects.validate_parameter(delay, 'feedback', 1)
+    with pytest.raises(ValueError, match='not prepared'):
+        audio_effects.validate_parameter(delay, 'damping_hz', 1000)
+
+
 def test_tap_delay_damping_is_prepared_explicitly_and_accepts_frequency_controls() -> (
     None
 ):

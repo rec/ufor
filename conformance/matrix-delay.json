@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "matrix_delay", "name": "echo", "delay_seconds": "10 ms", "maximum_delay_seconds": "100 ms", "feedback": 0.5, "feedback_matrix": [[0, 1], [1, 0]], "damping_hz": "1 kHz"}],
+  "connections": [{"processor": "echo", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "echo"},
+  "maximum_block_frames": 256
+}
