@@ -1,0 +1,26 @@
+{
+  "scope": "master",
+  "timebases": [{"name": "ir", "rate": {"numerator": 48000}}],
+  "assets": [{
+    "name": "room",
+    "location": {"kind": "relative_file", "path": "impulses/matrix.wav"},
+    "encoding": "wav",
+    "content": {},
+    "audio": {"timebase": "ir", "channels": ["ll", "lr", "rl", "rr"], "frames": 48000}
+  }],
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [{
+    "kind": "convolution", "name": "room",
+    "input_channels": ["left", "right"], "output_channels": ["left", "right"],
+    "partition_frames": 256,
+    "kernels": [
+      {"input_channel": "left", "output_channel": "left", "asset": "room", "channel": "ll"},
+      {"input_channel": "left", "output_channel": "right", "asset": "room", "channel": "lr"},
+      {"input_channel": "right", "output_channel": "left", "asset": "room", "channel": "rl"},
+      {"input_channel": "right", "output_channel": "right", "asset": "room", "channel": "rr"}
+    ]
+  }],
+  "connections": [{"processor": "room", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "room"},
+  "maximum_block_frames": 256
+}

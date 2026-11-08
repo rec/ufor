@@ -576,3 +576,46 @@ profiles. Musical resonance delay adds no graph-alignment latency.
 `conformance/resonant-delay.json` is the portable stereo example. The model follows
 Smith's [fractional-delay discussion](https://www.dsprelated.com/freebooks/pasp/Delay_Line_Signal_Interpolation.html)
 and [loop-filter phase compensation](https://www.dsprelated.com/freebooks/pasp/Loop_Filter_Identification.html).
+
+### Matrix convolution
+
+`Convolution` is always wet. It declares named `input_channels` and
+`output_channels`, and one `ConvolutionKernel` per authored input/output pair.
+Each kernel explicitly identifies an input channel, output channel, graph-local
+asset ID and IR channel name. There is no inferred mono/stereo routing and no
+internal mix, bypass, IR normalization or trimming. Existing matrices and
+Mixer/Crossfader processors provide dry mapping and warm wet/dry switching.
+
+`partition_frames` is a positive power of two, default 256. Uniform partitions
+use a transform length twice that value, and declare exactly one partition of
+algorithmic latency. Callback lengths need not match partitions. Existing graph
+alignment applies that latency to parallel audio and dependent controls; it
+composes with other processor latencies. Impulses are fixed at preparation;
+changing an impulse requires a newly prepared graph.
+
+Effect graphs now own local `timebases` and `assets` registries using the
+existing Timebase and AudioAsset definitions. Kernel references must name declared
+channels and finite, nonempty audio assets. Acquisition, provider execution,
+decoding and any sample-rate conversion belong to callers. Effect preparation
+accepts decoded arrays keyed by referenced asset ID, validates the declared
+extent/channel layout and matching render rate, owns immutable data and
+fingerprints decoded content for snapshot identity. No source is fetched or
+loaded by the format model or callback.
+
+The mathematical result is y[o,n]=sum(i,k) h[o,i,k]*x[i,n-k], delayed by one
+partition. Missing input/output pairs contribute zero. All supplied FIR samples
+retain their amplitudes and declared extent, including trailing zeros. After
+input end, the complete FIR tail is drained; no amplitude-threshold truncation is
+part of this finite profile. The longest referenced kernel determines the tail.
+A kernel of length L with one partition B finishes at exclusive output frame
+T+L+B-1 for an input ending at exclusive frame T.
+
+Snapshots must retain partial input/output blocks, overlap, spectrum history and
+partition clocks, and bind to the decoded IR content and fixed routing. The
+native implementation uses shared RealFFT/RustFFT plans and caller-owned scratch
+created during preparation. FFT numerical comparisons use an explicit tolerance
+rather than promising bit-identical transforms across implementations.
+
+`conformance/convolution.json` is a four-kernel stereo matrix. Its encoded-file
+content identity is unspecified; it is a declaration for a caller-supplied fixture,
+not an instruction to read a file or download an impulse.

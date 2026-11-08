@@ -9,6 +9,7 @@ from pydantic import Field, StrictBool, TypeAdapter, model_validator
 from reccy.configuration import units
 
 from . import modulation
+from .assets import is_finite_audio_source
 from .base import (
     FiniteScalar,
     Frame,
@@ -22,12 +23,14 @@ from .base import (
     unique,
 )
 from .oscillator import Waveform
+from .samples.instrument import AudioAsset
 from .samples.processing import (
     FollowerBinding,
     GeneratorBinding,
     ModulationSettings,
     ResonantFilter,
 )
+from .time import Timebase
 
 BYPASS_FADE_FRAMES = 64
 TAIL_RETIREMENT_FADE_FRAMES = 64
@@ -216,6 +219,46 @@ class ChannelMatrix(Model):
             len(r) != len(self.input_channels) for r in self.coefficients
         ):
             raise ValueError('matrix rows/columns must match output/input channels')
+        return self
+
+
+class ConvolutionKernel(Model):
+    input_channel: Identifier
+    output_channel: Identifier
+    asset: Identifier
+    channel: Identifier
+
+
+class Convolution(Model):
+    """Always-wet named matrix FIR with uniform partition latency."""
+
+    kind: Literal['convolution'] = 'convolution'
+    name: Identifier
+    input_channels: list[Identifier] = Field(min_length=1)
+    output_channels: list[Identifier] = Field(min_length=1)
+    kernels: list[ConvolutionKernel] = Field(min_length=1)
+    partition_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=256, ge=1, strict=True
+    )
+
+    @model_validator(mode='after')
+    def named_kernels(self) -> Self:
+        unique(self.input_channels, 'convolution input channel')
+        unique(self.output_channels, 'convolution output channel')
+        unique(
+            ((k.input_channel, k.output_channel) for k in self.kernels),
+            'convolution channel pair',
+        )
+        if self.partition_frames & (self.partition_frames - 1):
+            raise ValueError('convolution partition_frames must be a power of two')
+        if any(
+            k.input_channel not in self.input_channels
+            or k.output_channel not in self.output_channels
+            for k in self.kernels
+        ):
+            raise ValueError(
+                'convolution kernels require declared input/output channels'
+            )
         return self
 
 
@@ -517,6 +560,7 @@ Processor = Annotated[
     | Phaser
     | Highpass
     | ChannelMatrix
+    | Convolution
     | Mixer
     | Crossfader
     | Follower
@@ -544,6 +588,8 @@ class EffectGraph(ModulationSettings):
     processors: list[Processor] = Field(min_length=1)
     connections: list[Connection] = Field(min_length=1)
     output: AudioSource
+    timebases: list[Timebase] = Field(default_factory=list)
+    assets: list[AudioAsset] = Field(default_factory=list)
     maximum_block_frames: Annotated[int, units.unit_validator('frame')] = Field(
         ge=1, strict=True
     )
@@ -561,6 +607,28 @@ class EffectGraph(ModulationSettings):
 
     @model_validator(mode='after')
     def valid_graph(self) -> Self:
+        unique((t.name for t in self.timebases), 'effect timebase ID')
+        unique((a.name for a in self.assets), 'effect asset ID')
+        clocks = {t.name for t in self.timebases}
+        assets = {a.name: a for a in self.assets}
+        if any(a.audio.timebase not in clocks for a in self.assets):
+            raise ValueError('effect asset requires a declared local timebase')
+        for processor in self.processors:
+            if isinstance(processor, Convolution):
+                for kernel in processor.kernels:
+                    if kernel.asset not in assets:
+                        raise ValueError(f'unknown convolution asset {kernel.asset}')
+                    asset = assets[kernel.asset]
+                    if (
+                        not is_finite_audio_source(asset.location)
+                        or asset.audio.frames is None
+                        or asset.audio.frames <= 0
+                    ):
+                        raise ValueError(
+                            'convolution requires finite nonempty impulse assets'
+                        )
+                    if kernel.channel not in asset.audio.channels:
+                        raise ValueError(f'unknown impulse channel {kernel.channel}')
         if any(
             not isinstance(b, (GeneratorBinding, FollowerBinding))
             for b in self.bindings
@@ -736,9 +804,9 @@ class EffectGraph(ModulationSettings):
         result: dict[str, int] = {}
         for name in self.order():
             processor = processors[name]
-            result[name] = max((result[d] for d in dependencies[name]), default=0) + (
-                WAVESHAPER_LATENCY_FRAMES if isinstance(processor, Waveshaper) else 0
-            )
+            result[name] = max(
+                (result[d] for d in dependencies[name]), default=0
+            ) + processor_latency(processor)
         return result
 
     def output_channels(self) -> list[Identifier]:
@@ -881,6 +949,10 @@ def validate_action(graph: EffectGraph, action: EffectAction) -> None:
         if isinstance(processor, ChannelMatrix):
             raise ValueError(
                 'routing matrices have no parameter, bypass or freeze actions'
+            )
+        if isinstance(processor, Convolution):
+            raise ValueError(
+                'convolution is always wet; control mix through routing nodes'
             )
         if isinstance(action, ParameterAction):
             validate_parameter(processor, action.parameter, action.value)
@@ -1124,6 +1196,10 @@ def processor_channels(
                 'mixer and crossfader inputs require matching named layouts'
             )
         return layout
+    if isinstance(processor, Convolution):
+        if port_layouts['input'] != processor.input_channels:
+            raise ValueError('convolution input layout must match its source')
+        return processor.output_channels
     if isinstance(processor, ChannelMatrix):
         if port_layouts['input'] != processor.input_channels:
             raise ValueError('matrix input channel layout must match its source')
@@ -1171,7 +1247,17 @@ def stable_order(
     return result
 
 
+def processor_latency(processor: Processor) -> int:
+    if isinstance(processor, Waveshaper):
+        return WAVESHAPER_LATENCY_FRAMES
+    if isinstance(processor, Convolution):
+        return processor.partition_frames
+    return 0
+
+
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
+    if isinstance(processor, Convolution):
+        raise ValueError('convolution is always wet; control mix through routing nodes')
     if isinstance(processor, ChannelMatrix):
         raise ValueError('routing matrices have no parameters')
     if isinstance(processor, Mixer):
