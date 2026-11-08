@@ -116,11 +116,11 @@ class Gain(Model):
 
 
 class Waveshaper(Model):
-    """Four-times oversampled hard/soft curves with zero-preserving bias."""
+    """Four-times oversampled hard/soft/fold curves with zero-preserving bias."""
 
     kind: Literal['waveshaper'] = 'waveshaper'
     name: Identifier
-    curve: Literal['hard', 'soft'] = 'soft'
+    curve: Literal['hard', 'soft', 'fold'] = 'soft'
     drive: Positive = 1.0
     bias: FiniteScalar = 0.0
     output_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0

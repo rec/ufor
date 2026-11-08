@@ -57,7 +57,10 @@ buffer during processing is not part of this contract.
 ### Oversampled waveshaper
 
 `Waveshaper` replaces `SoftClip` and its `soft_clip` discriminator, without an
-alias. Its `curve` is `hard` (clamp to [-1, 1]) or `soft` (tanh). At each
+alias. Its `curve` is `hard` (clamp to [-1, 1]), `soft` (tanh), or `fold`
+(symmetric triangle folding). For `fold`, let r=(x+1) modulo 4 in [0,4);
+then f(x)=1-abs(r-2). The curve is unchanged on [-1,1], reflects repeatedly
+beyond those boundaries, and has period four and range [-1,1]. At each
 oversample, apply `f(drive*x + bias) - f(bias)`. Positive drive and finite bias
 are automatable. Subtracting the bias point preserves zero input at zero while
 allowing asymmetric distortion. Apply `10 ** (output_gain_db / 20)` to the wet

@@ -5,16 +5,18 @@
     "processors": [
       {"kind": "waveshaper", "name": "clip", "curve": "hard", "drive": 2, "bias": 0.25, "output_gain_db": "-3 dB"},
       {"kind": "waveshaper", "name": "saturate", "curve": "soft", "drive": 3, "bias": -0.125},
+      {"kind": "waveshaper", "name": "fold", "curve": "fold", "drive": 4, "bias": 0.25},
       {"kind": "multiply", "name": "modulate"}
     ],
     "connections": [
       {"processor": "clip", "port": "input", "source": {"kind": "input", "input": "main"}},
       {"processor": "saturate", "port": "input", "source": {"kind": "processor", "processor": "clip"}},
-      {"processor": "modulate", "port": "carrier", "source": {"kind": "processor", "processor": "saturate"}},
+      {"processor": "fold", "port": "input", "source": {"kind": "processor", "processor": "saturate"}},
+      {"processor": "modulate", "port": "carrier", "source": {"kind": "processor", "processor": "fold"}},
       {"processor": "modulate", "port": "modulator", "source": {"kind": "input", "input": "main"}}
     ],
     "output": {"kind": "processor", "processor": "modulate"},
     "maximum_block_frames": 48000
   },
-  "latencies": {"clip": 48, "saturate": 96, "modulate": 96}
+  "latencies": {"clip": 48, "saturate": 96, "fold": 144, "modulate": 144}
 }

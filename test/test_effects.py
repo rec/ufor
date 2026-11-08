@@ -912,7 +912,7 @@ def test_waveshaper_profiles_report_aligned_graph_latency() -> None:
             ),
         )
     with pytest.raises(ValidationError, match='Input should be'):
-        audio_effects.Waveshaper(name='clip', curve='fold')
+        audio_effects.Waveshaper(name='clip', curve='unknown')
 
 
 def test_tap_delay_has_bounded_feedback_and_automation() -> None:
