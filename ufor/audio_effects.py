@@ -386,6 +386,28 @@ class MatrixDelay(DelaySettings):
         return self
 
 
+class ResonantDelay(Model):
+    """Fixed-tuning, input-excited resonator with nominal undamped T60."""
+
+    kind: Literal['resonant_delay'] = 'resonant_delay'
+    name: Identifier
+    frequency_hz: Frequency
+    damping_hz: Frequency = 6000.0
+    decay_seconds: PositiveSeconds = 1.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def bounded_state_floor(self) -> Self:
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('resonant delay state_floor must be below tail_threshold')
+        return self
+
+
 class ModulatedDelay(Model):
     """One bounded, linearly interpolated moving read for chorus and flanger."""
 
@@ -504,6 +526,7 @@ Processor = Annotated[
     | Reverb
     | TapDelay
     | MatrixDelay
+    | ResonantDelay
     | ModulatedDelay
     | Filter
     | Multiply
@@ -1230,6 +1253,10 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
             if value < 0:
                 raise ValueError('compressor knee and times must be nonnegative')
             return
+    if isinstance(processor, ResonantDelay) and parameter == 'decay_seconds':
+        if value <= 0:
+            raise ValueError('resonant decay must be positive')
+        return
     if isinstance(processor, Reverb):
         if parameter == 'predelay_seconds':
             if not 0 <= value <= processor.maximum_predelay_seconds:

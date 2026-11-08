@@ -537,3 +537,42 @@ or clipping. `conformance/modulated-multitap.json` gives named mono-input recipe
 two wet voices for doubling, four for ensemble, and one wet voice alongside the
 dry signal for ADT. Their phases, rates and placement decorrelate the reads;
 they are authored recipes rather than additional DSP processor kinds.
+
+### Karplus-style resonant delay
+
+`ResonantDelay` is an input-excited feedback resonator preserving each named
+channel independently. It declares fixed `frequency_hz` and `damping_hz`, nominal
+`decay_seconds` (default 1), ordinary mix/bypass and existing tail/state floors.
+Frequency and damping have no action or modulation targets. Decay, mix and bypass
+remain dynamic. At preparation, frequency must be positive and no greater than
+one quarter of the output sample rate; damping must be positive and below
+Nyquist, with representable filter coefficients.
+
+For sample rate Fs and w=2*pi*frequency/Fs, the normalized one-pole low-pass has
+phase lag phi=atan2(tan(w/2), tan(pi*damping/Fs)). Choose integer delay
+N=floor((2*pi-phi)/w-0.5) and residual phase theta=2*pi-phi-N*w. The first-order
+tuning all-pass A(z)=(a+z^-1)/(1+a*z^-1) uses
+q=tan(theta/2)/tan(w/2), a=(1-q)/(1+q). Thus the open loop's phase lag at the
+authored frequency is one full cycle, including damping. This defines the tuning
+target; a short, strongly damped response need not have a spectral peak exactly
+at that frequency. The quarter-rate bound keeps the residual delay around half
+to one-and-a-half samples, away from zero-delay pole/zero cancellation.
+
+Read the integer delay, apply the tuning all-pass for the audible wet signal,
+low-pass that signal, multiply by g=exp(-3*ln(10)/(frequency*decay_seconds)), and
+add the current input before writing history. Decay is nominal before damping;
+damping can shorten audible decay further. There is no gain compensation or
+saturation in the loop. Gains that round to one are rejected rather than clamped.
+Very short representable decays may produce zero scalar feedback.
+
+Authored fixed tuning determines history capacity; no retiming heads or internal
+excitation generator are needed. Preparation rejects unrepresentable tuning,
+capacity and decay coefficients, including declared decay modulation domains.
+Snapshot replay retains history, write index and both normalized filter memories.
+Input-end retirement checks the history and both memories against the tail
+threshold. Wet/dry, warm bypass and callback failure/recovery follow the existing
+profiles. Musical resonance delay adds no graph-alignment latency.
+
+`conformance/resonant-delay.json` is the portable stereo example. The model follows
+Smith's [fractional-delay discussion](https://www.dsprelated.com/freebooks/pasp/Delay_Line_Signal_Interpolation.html)
+and [loop-filter phase compensation](https://www.dsprelated.com/freebooks/pasp/Loop_Filter_Identification.html).

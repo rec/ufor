@@ -1,0 +1,9 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "resonant_delay", "name": "string", "frequency_hz": "440 Hz", "damping_hz": "6 kHz", "decay_seconds": "1 s"}],
+  "connections": [{"processor": "string", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "string"},
+  "maximum_block_frames": 256,
+  "modulation": {"parameters": [{"target": {"name": "string", "parameter": "decay_seconds"}, "scope": "voice", "unit": "seconds", "default": 1, "minimum": 0.1, "maximum": 3}]}
+}

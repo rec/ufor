@@ -11,6 +11,38 @@ from ufor.samples.processing import ModulationSettings
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/effects.json').read_text())
 
 
+def test_resonant_delay_exposes_nominal_decay_and_preserves_fixed_tuning() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/resonant-delay.json').read_text()
+    )
+    graph = audio_effects.EffectGraph.model_validate(data)
+    assert graph.output_channels() == ['left', 'right']
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    audio_effects.validate_action(
+        graph,
+        audio_effects.ParameterAction(
+            tick=0,
+            ordinal=0,
+            processor='string',
+            parameter='decay_seconds',
+            value='2 s',
+            duration_frames=64,
+        ),
+    )
+    for parameter, value in [
+        ('frequency_hz', 220),
+        ('damping_hz', 3000),
+        ('feedback', 0.9),
+        ('decay_seconds', 0),
+    ]:
+        with pytest.raises(ValueError):
+            audio_effects.validate_parameter(graph.processors[0], parameter, value)
+    with pytest.raises(ValueError, match='state_floor'):
+        audio_effects.ResonantDelay(name='string', frequency_hz=440, state_floor=1e-6)
+
+
 def test_matrix_delay_preserves_layout_and_exposes_shared_delay_controls() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/matrix-delay.json').read_text()
