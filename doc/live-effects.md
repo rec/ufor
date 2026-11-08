@@ -511,3 +511,29 @@ Coefficients are static and have no automation target; delay time, damping,
 feedback, mix and bypass retain their existing controls and tail rules.
 
 `conformance/matrix-delay.json` provides a damped stereo ping-pong definition.
+
+### Doubling, ensemble and ADT composition
+
+`modulated_multitap_graph` takes authored `ModulatedTap` voices and returns an
+ordinary effect graph using ModulatedDelay, ChannelMatrix and Mixer nodes. Each
+voice holds an existing `ModulatedDelay` in `delay`, plus `gain_db` and `pan`.
+The delay's name identifies the voice. All of its bounded timing, waveform,
+per-channel phase, feedback, mix and tail settings remain explicit. The helper
+uses the same mono equal-power pan, stereo attenuation-only balance, dry mapping,
+layout restrictions and dry-gain convention as `multitap_graph`.
+
+For graph `ensemble` and voice `one`, the delay node is `ensemble-tap-one`, its
+placement node is `ensemble-pan-one`, and the mixer input is `tap-one`.
+The mixer is named `ensemble`. Delay base/depth/rate/feedback and mixer gain,
+mute/solo remain ordinary graph targets. Standard shared enveLFO bindings can
+replace periodic motion by setting internal depth to zero and routing to the
+voice's base delay; preparation still checks the declared delay span.
+
+The authored voice count and each maximum delay fix storage. Initial phases
+and rates are explicit and deterministic; this profile uses no random drift or
+tape-transport clock. Snapshots and endings use existing processors only.
+Musical delay adds no graph alignment latency. There is no gain normalization
+or clipping. `conformance/modulated-multitap.json` gives named mono-input recipes:
+two wet voices for doubling, four for ensemble, and one wet voice alongside the
+dry signal for ADT. Their phases, rates and placement decorrelate the reads;
+they are authored recipes rather than additional DSP processor kinds.

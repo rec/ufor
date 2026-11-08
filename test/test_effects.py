@@ -36,6 +36,89 @@ def test_matrix_delay_preserves_layout_and_exposes_shared_delay_controls() -> No
         audio_effects.EffectGraph.model_validate(data)
 
 
+@pytest.mark.parametrize('profile', ['doubling', 'ensemble', 'adt'])
+@pytest.mark.parametrize('stereo', [False, True])
+def test_modulated_multitap_preserves_authored_voices_and_stereo_routing(
+    profile: str, stereo: bool
+) -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/modulated-multitap.json').read_text()
+    )
+    recipe = next(p for p in data['profiles'] if p['name'] == profile)
+    taps = [audio_effects.ModulatedTap.model_validate(t) for t in recipe['taps']]
+    if stereo:
+        taps = [
+            t.model_copy(
+                update={
+                    'delay': t.delay.model_copy(
+                        update={
+                            'channel_phase_offsets': t.delay.channel_phase_offsets * 2
+                        }
+                    )
+                }
+            )
+            for t in taps
+        ]
+    graph = audio_effects.modulated_multitap_graph(
+        profile,
+        audio_effects.AttachmentScope.host,
+        audio_effects.GraphInput(
+            name='main',
+            channels=['left', 'right'] if stereo else ['centre'],
+            source=audio_effects.MainStream(),
+        ),
+        taps,
+        256,
+        recipe['dry_gain_db'],
+        owner='host',
+    )
+    assert graph.output_channels() == ['left', 'right']
+    assert graph.owner == 'host'
+    assert (
+        audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
+    )
+    assert all(n == 0 for n in graph.latencies().values())
+    delays = [
+        p for p in graph.processors if isinstance(p, audio_effects.ModulatedDelay)
+    ]
+    assert delays == [
+        t.delay.model_copy(update={'name': f'{profile}-tap-{t.delay.name}'})
+        for t in taps
+    ]
+    assert not any(isinstance(p, audio_effects.TapDelay) for p in graph.processors)
+    for parameter, value in [
+        ('base_delay_seconds', 0.02),
+        ('depth_seconds', 0.001),
+        ('rate_hz', 0.5),
+    ]:
+        audio_effects.validate_action(
+            graph,
+            audio_effects.ParameterAction(
+                tick=0,
+                ordinal=0,
+                processor=f'{profile}-tap-one',
+                parameter=parameter,
+                value=value,
+            ),
+        )
+
+
+def test_modulated_multitap_rejects_empty_and_duplicate_voice_names() -> None:
+    source = audio_effects.GraphInput(
+        name='main', channels=['mono'], source=audio_effects.MainStream()
+    )
+    voice = audio_effects.ModulatedTap(
+        delay=audio_effects.ModulatedDelay(
+            name='one', base_delay_seconds=0.02, maximum_delay_seconds=0.05, rate_hz=0.5
+        )
+    )
+    for taps in [[], [voice, voice]]:
+        with pytest.raises(ValueError, match='at least one|duplicate tap name'):
+            audio_effects.modulated_multitap_graph(
+                'ensemble', audio_effects.AttachmentScope.master, source, taps, 256
+            )
+
+
 @pytest.mark.parametrize(
     'matrix',
     [

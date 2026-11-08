@@ -416,6 +416,14 @@ class ModulatedDelay(Model):
         return self
 
 
+class ModulatedTap(Model):
+    """A modulated-delay voice and its static stereo placement."""
+
+    delay: ModulatedDelay
+    gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -6.0
+    pan: FiniteScalar = Field(default=0.0, ge=-1, le=1)
+
+
 class Filter(Model):
     kind: Literal['filter'] = 'filter'
     name: Identifier
@@ -1025,6 +1033,50 @@ def multitap_graph(
         connections=connections,
         output=ProcessorSource(processor=name),
         maximum_block_frames=maximum_block_frames,
+    )
+
+
+def modulated_multitap_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    taps: list[ModulatedTap],
+    maximum_block_frames: int,
+    dry_gain_db: float = 0.0,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Compose authored doubling, ensemble and ADT voices from existing nodes."""
+    graph = multitap_graph(
+        name,
+        scope,
+        input,
+        [
+            DelayTap(
+                name=t.delay.name,
+                delay_seconds=t.delay.base_delay_seconds,
+                maximum_delay_seconds=t.delay.maximum_delay_seconds,
+                gain_db=t.gain_db,
+                pan=t.pan,
+            )
+            for t in taps
+        ],
+        maximum_block_frames,
+        dry_gain_db,
+        owner,
+    )
+    delays = {
+        f'{name}-tap-{t.delay.name}': t.delay.model_copy(
+            update={'name': f'{name}-tap-{t.delay.name}'}
+        )
+        for t in taps
+    }
+    return EffectGraph.model_validate(
+        {
+            **graph.model_dump(),
+            'processors': [
+                delays.get(p.name, p).model_dump() for p in graph.processors
+            ],
+        }
     )
 
 

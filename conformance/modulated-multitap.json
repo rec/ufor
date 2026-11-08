@@ -1,0 +1,29 @@
+{
+  "profiles": [
+    {
+      "name": "doubling",
+      "dry_gain_db": 0,
+      "taps": [
+        {"delay": {"name": "one", "base_delay_seconds": "12 ms", "depth_seconds": "0.8 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.41 Hz", "channel_phase_offsets": [0]}, "gain_db": "-9 dB", "pan": -0.8},
+        {"delay": {"name": "two", "base_delay_seconds": "18 ms", "depth_seconds": "1.2 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.67 Hz", "channel_phase_offsets": [0.37]}, "gain_db": "-9 dB", "pan": 0.8}
+      ]
+    },
+    {
+      "name": "ensemble",
+      "dry_gain_db": -3,
+      "taps": [
+        {"delay": {"name": "one", "base_delay_seconds": "15 ms", "depth_seconds": "2 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.37 Hz", "channel_phase_offsets": [0.05]}, "gain_db": "-12 dB", "pan": -1},
+        {"delay": {"name": "two", "base_delay_seconds": "19 ms", "depth_seconds": "2.5 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.53 Hz", "channel_phase_offsets": [0.27]}, "gain_db": "-12 dB", "pan": -0.35},
+        {"delay": {"name": "three", "base_delay_seconds": "23 ms", "depth_seconds": "3 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.71 Hz", "channel_phase_offsets": [0.51]}, "gain_db": "-12 dB", "pan": 0.35},
+        {"delay": {"name": "four", "base_delay_seconds": "27 ms", "depth_seconds": "1.8 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.89 Hz", "channel_phase_offsets": [0.78]}, "gain_db": "-12 dB", "pan": 1}
+      ]
+    },
+    {
+      "name": "adt",
+      "dry_gain_db": -3,
+      "taps": [
+        {"delay": {"name": "one", "base_delay_seconds": "23 ms", "depth_seconds": "3 ms", "maximum_delay_seconds": "50 ms", "rate_hz": "0.31 Hz", "channel_phase_offsets": [0.23]}, "gain_db": "-6 dB", "pan": 0.5}
+      ]
+    }
+  ]
+}
