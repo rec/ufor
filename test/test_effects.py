@@ -37,7 +37,15 @@ def test_matrix_delay_preserves_layout_and_exposes_shared_delay_controls() -> No
 
 
 @pytest.mark.parametrize(
-    'matrix', [[], [[1, 0]], [[1.1]], [[0.6, -0.5], [0, 0]], [[float('nan')]]]
+    'matrix',
+    [
+        [],
+        [[1, 0]],
+        [[1.1]],
+        [[0.6, -0.5], [0, 0]],
+        [[float('nan')]],
+        [[1e308, 1e308], [0, 0]],
+    ],
 )
 def test_matrix_delay_rejects_unbounded_or_malformed_feedback(
     matrix: list[list[float]],

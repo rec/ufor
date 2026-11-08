@@ -372,7 +372,9 @@ class MatrixDelay(DelaySettings):
     """Fixed taps with static cross-channel feedback, rows as destinations."""
 
     kind: Literal['matrix_delay'] = 'matrix_delay'
-    feedback_matrix: list[list[FiniteScalar]] = Field(min_length=1)
+    feedback_matrix: list[list[Annotated[FiniteScalar, Field(ge=-1, le=1)]]] = Field(
+        min_length=1
+    )
 
     @model_validator(mode='after')
     def bounded_feedback_matrix(self) -> Self:
