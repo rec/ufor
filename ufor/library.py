@@ -1,6 +1,6 @@
 """In-memory score library resolution. Reading files is an explicit host boundary."""
 
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from enum import StrEnum, auto
 from pathlib import PurePosixPath
 
@@ -102,7 +102,7 @@ class Library:
     def composition(
         self,
         selector: str | ScoreSelector,
-        parameters: dict[str, float | str] | None = None,
+        parameters: Mapping[str, float | str] | None = None,
     ) -> Composition:
         return Composition(self.resolve(selector).key, self.records, parameters)
 

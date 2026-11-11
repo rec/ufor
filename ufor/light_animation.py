@@ -1,5 +1,6 @@
 """Component-independent light scores and exact composition semantics."""
 
+from collections.abc import Mapping
 from fractions import Fraction
 from typing import Annotated, Literal, Self
 
@@ -277,8 +278,8 @@ def sources(operation: object) -> list[OutputSelection]:
     return []
 
 
-def configured_operation(operation: Model, parameters: dict[str, float]) -> Model:
-    return type(operation).model_validate(operation.model_dump() | parameters)
+def configured_operation(operation: Model, parameters: Mapping[str, float]) -> Model:
+    return type(operation).model_validate(operation.model_dump() | dict(parameters))
 
 
 def control_value(control: Control, at: Fraction) -> modulation.SourceValue:
@@ -298,7 +299,7 @@ def control_value(control: Control, at: Fraction) -> modulation.SourceValue:
 
 
 def operation_at(
-    animation: Animation, at: Fraction, parameters: dict[str, float] | None = None
+    animation: Animation, at: Fraction, parameters: Mapping[str, float] | None = None
 ) -> Model:
     """Evaluate controls with the shared modulation rules, then validate settings."""
     base = [

@@ -1,5 +1,6 @@
 """Resolve supplied scores into independent parts, without I/O or audio."""
 
+from collections.abc import Mapping
 from fractions import Fraction
 from typing import Self
 
@@ -82,7 +83,7 @@ class Composition:
         self,
         root: str,
         scores: dict[str, ScoreRecord],
-        parameters: dict[str, float | str] | None = None,
+        parameters: Mapping[str, float | str] | None = None,
     ) -> None:
         self.scores = {
             k: ScoreRecord.model_validate(v.model_dump()) for k, v in scores.items()
@@ -520,7 +521,7 @@ class Composition:
             self._check_definitions(child, stack + [identity], pins)
 
     def _instantiate(
-        self, identity: str, path: str, values: dict[str, float | str]
+        self, identity: str, path: str, values: Mapping[str, float | str]
     ) -> None:
         score = self.scores[identity].score
         if not isinstance(score, InterfaceScore):

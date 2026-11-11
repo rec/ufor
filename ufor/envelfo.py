@@ -1,5 +1,6 @@
 """Portable definitions for reusable control envelfos."""
 
+from collections.abc import Mapping
 from enum import StrEnum, auto
 from fractions import Fraction
 from functools import cached_property
@@ -860,7 +861,7 @@ class EnvelfoScore(Score):
 
 def instantiate_envelfo(
     score: EnvelfoScore,
-    parameters: dict[str, float | str] | None = None,
+    parameters: Mapping[str, float | str] | None = None,
     scope: control.Scope = control.Scope.voice,
     clock: control.Clock = control.Clock.seconds,
     origin: EnvelfoOrigin | None = None,
