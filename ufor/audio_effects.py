@@ -25,6 +25,7 @@ from .base import (
 from .oscillator import Waveform
 from .samples.instrument import AudioAsset
 from .samples.processing import (
+    FilterResponse,
     FollowerBinding,
     GeneratorBinding,
     ModulationSettings,
@@ -124,6 +125,21 @@ class Waveshaper(Model):
     drive: Positive = 1.0
     bias: FiniteScalar = 0.0
     output_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
+class Bitcrusher(Model):
+    """Signed quantization with an integer, capture-latched sample hold."""
+
+    kind: Literal['bitcrusher'] = 'bitcrusher'
+    name: Identifier
+    bits: int = Field(default=8, ge=1, le=24, strict=True)
+    hold_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=1, ge=1, le=65536, strict=True
+    )
     mix: UnitInterval = 1.0
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
@@ -557,6 +573,7 @@ class Granulator(Model):
 Processor = Annotated[
     Gain
     | Waveshaper
+    | Bitcrusher
     | Phaser
     | Highpass
     | ChannelMatrix
@@ -873,6 +890,8 @@ class ParameterAction(Model):
             'mix': 'dimensionless',
             'position': 'dimensionless',
             'drive': 'dimensionless',
+            'bits': 'dimensionless',
+            'hold_frames': 'frame',
             'feedback': 'dimensionless',
             'playback_ratio': 'dimensionless',
         }.get(parameter.rsplit('-', 1)[-1])
@@ -956,6 +975,12 @@ def validate_action(graph: EffectGraph, action: EffectAction) -> None:
             )
         if isinstance(action, ParameterAction):
             validate_parameter(processor, action.parameter, action.value)
+            if (
+                isinstance(processor, Bitcrusher)
+                and action.parameter in {'bits', 'hold_frames'}
+                and action.duration_frames
+            ):
+                raise ValueError('bitcrusher integer controls do not accept ramps')
             if (
                 isinstance(processor, Mixer)
                 and action.parameter.rsplit('-', 1)[-1] in {'muted', 'solo'}
@@ -1049,6 +1074,58 @@ def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
         input_channels=source,
         output_channels=target,
         coefficients=[[1 / sqrt(2), 1 / sqrt(2)], [1 / sqrt(2), -1 / sqrt(2)]],
+    )
+
+
+def coloration_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    profile: Literal['tape', 'tube'],
+    maximum_block_frames: int,
+    drive: float = 2.0,
+    output_gain_db: float = 0.0,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Compose explicit coloration, without hardware or hysteresis emulation."""
+    if profile not in {'tape', 'tube'}:
+        raise ValueError('coloration profile must be tape or tube')
+    processors: list[Processor] = [
+        Highpass(name=f'{name}-dc', cutoff_hz=20),
+        Waveshaper(
+            name=f'{name}-drive',
+            drive=drive,
+            bias=0.0 if profile == 'tape' else 0.25,
+            output_gain_db=output_gain_db,
+        ),
+        Filter(
+            name=f'{name}-tone',
+            filters=[
+                ResonantFilter(
+                    name='low',
+                    response=FilterResponse.lowpass,
+                    cutoff_hz=8000 if profile == 'tape' else 12000,
+                )
+            ],
+        ),
+    ]
+    return EffectGraph(
+        scope=scope,
+        owner=owner,
+        inputs=[input],
+        processors=processors,
+        connections=[
+            Connection(
+                processor=p.name,
+                port='input',
+                source=InputSource(input=input.name)
+                if i == 0
+                else ProcessorSource(processor=processors[i - 1].name),
+            )
+            for i, p in enumerate(processors)
+        ],
+        output=ProcessorSource(processor=processors[-1].name),
+        maximum_block_frames=maximum_block_frames,
     )
 
 
@@ -1310,6 +1387,14 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
                 raise ValueError('drive must be positive')
             return
         if parameter in {'bias', 'output_gain_db'}:
+            return
+    if isinstance(processor, Bitcrusher):
+        maximum = {'bits': 24, 'hold_frames': 65536}.get(parameter)
+        if maximum is not None:
+            if not 1 <= value <= maximum or value != int(value):
+                raise ValueError(
+                    f'bitcrusher {parameter} must be an integer in [1, {maximum}]'
+                )
             return
     if isinstance(processor, Phaser):
         if parameter == 'center_hz':

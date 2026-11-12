@@ -622,3 +622,34 @@ rather than promising bit-identical transforms across implementations.
 `conformance/convolution.json` is a four-kernel stereo matrix. Its encoded-file
 content identity is unspecified; it is a declaration for a caller-supplied fixture,
 not an instruction to read a file or download an impulse.
+
+### Tape/tube coloration compositions
+
+`coloration_graph` creates three serial nodes: `{name}-dc` (20 Hz Highpass),
+`{name}-drive` (4x soft Waveshaper), and `{name}-tone` (one two-pole lowpass
+with Q=1/sqrt(2), filter name `low`). Profile `tape` uses bias zero and 8 kHz
+cutoff; `tube` uses bias 0.25 and 12 kHz cutoff. Both default to drive 2 and
+output gain 0 dB. These are mathematical coloration profiles, without hardware
+equivalence, hysteresis, automatic level normalization or an additional clock.
+The ordinary node controls, warm bypass, tails and snapshots apply. The graph
+has 48 frames of latency and preserves input channel names. Existing filter
+preparation rejects cutoff frequencies outside the render rate's usable range.
+
+### Bitcrusher and integer sample hold
+
+`Bitcrusher` preserves channels and adds no latency. It captures the first
+input frame, hard-clips each channel to [-1,1], and quantizes at step
+`2^(1-bits)`, rounding nearest with ties away from zero. Clamp the result to
+[-1,1-step]. Thus one bit produces -1 or 0. Bits are integer 1..24, default 8.
+There is no dither, oversampling or implicit gain normalization.
+
+Hold the captured value for `hold_frames` output frames (integer 1..65536,
+default 1). Bits and hold length are latched together at each capture; changing
+them during a hold affects the next capture. Integer-control actions are
+immediate requests and reject ramps. Their modulation domain is dimensionless
+integer counts; generated values must be whole numbers in range on every frame.
+`hold_frames` declarations/actions also accept authored frame units. Mix and
+bypass retain ordinary ramps and warm processing. On input end, finish the
+current hold without capturing a new frame, then emit zero and retire. Stop is
+immediate. Snapshots retain the held channels and remaining frame count, bounded
+by 65535 after a rendered frame. `conformance/bitcrusher.json` provides an example.

@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["mono"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "bitcrusher", "name": "crush", "bits": 8, "hold_frames": "17 frames"}],
+  "connections": [{"processor": "crush", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "crush"},
+  "maximum_block_frames": 997
+}
