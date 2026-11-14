@@ -1138,6 +1138,57 @@ def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
     )
 
 
+def deesser_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    maximum_block_frames: int,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Compose broadband reduction driven by a 6 kHz band-pass detector."""
+    detector = Filter(
+        name=f'{name}-detector',
+        filters=[
+            ResonantFilter(
+                name='band', response=FilterResponse.bandpass, cutoff_hz=6000, q=1
+            )
+        ],
+    )
+    compressor = Compressor(
+        name=f'{name}-compressor',
+        threshold_db=-24,
+        ratio=4,
+        knee_db=6,
+        attack_seconds=0.001,
+        release_seconds=0.05,
+    )
+    return EffectGraph(
+        scope=scope,
+        owner=owner,
+        inputs=[input],
+        processors=[detector, compressor],
+        connections=[
+            Connection(
+                processor=detector.name,
+                port='input',
+                source=InputSource(input=input.name),
+            ),
+            Connection(
+                processor=compressor.name,
+                port='input',
+                source=InputSource(input=input.name),
+            ),
+            Connection(
+                processor=compressor.name,
+                port='detector',
+                source=ProcessorSource(processor=detector.name),
+            ),
+        ],
+        output=ProcessorSource(processor=compressor.name),
+        maximum_block_frames=maximum_block_frames,
+    )
+
+
 def enhancer_graph(
     name: Identifier,
     scope: AttachmentScope,

@@ -1,0 +1,18 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [
+    {"kind": "filter", "name": "ess-detector", "filters": [
+      {"name": "band", "response": "bandpass", "cutoff_hz": "6 kHz", "q": 1}
+    ]},
+    {"kind": "compressor", "name": "ess-compressor", "threshold_db": "-24 dB",
+     "ratio": 4, "knee_db": "6 dB", "attack_seconds": "1 ms", "release_seconds": "50 ms"}
+  ],
+  "connections": [
+    {"processor": "ess-detector", "port": "input", "source": {"kind": "input", "input": "main"}},
+    {"processor": "ess-compressor", "port": "input", "source": {"kind": "input", "input": "main"}},
+    {"processor": "ess-compressor", "port": "detector", "source": {"kind": "processor", "processor": "ess-detector"}}
+  ],
+  "output": {"kind": "processor", "processor": "ess-compressor"},
+  "maximum_block_frames": 997
+}

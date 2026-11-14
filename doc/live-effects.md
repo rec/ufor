@@ -236,6 +236,31 @@ recovery; ending the primary input ends this processor's output immediately.
 It retains no audio and has no tail. The language-neutral graph and static-knee
 examples are in `conformance/compressor.json`.
 
+### Broadband de-esser composition
+
+`deesser_graph(name, scope, input, maximum_block_frames, owner=None)` creates
+two ordinary processors. `<name>-detector` is a single normalized two-pole
+band-pass filter (`band`) centered at 6 kHz with Q 1. `<name>-compressor`
+receives the original signal at its input and the filtered signal at its
+detector. The detector never enters the audio output. Defaults are threshold
+-24 dB, ratio 4, knee 6 dB, attack 1 ms, release 50 ms, makeup 0 dB and mix 1.
+The greatest absolute detector-channel sample controls one gain across all
+signal channels. The composition adds no latency and preserves named channels.
+
+This is level-based broadband attenuation, not speech classification or
+split-band processing. Strong non-vocal energy in the detector band also
+reduces the whole signal. There is no separate maximum-reduction cap. Existing
+parameter actions and modulation routes target `band-cutoff_hz` and `band-q`
+on the detector and ordinary compressor parameters on the compressor. Cutoff
+uses the existing sample-rate-dependent filter bounds without silent clamping.
+Use compressor mix or warm bypass for the complete effect; bypassing only the
+detector would instead feed the unfiltered signal to gain detection.
+
+Input end silences the signal path immediately. Filter state may continue
+draining internally; it cannot generate an output tail through the compressor.
+Snapshots and errors use the constituent processors' existing contracts.
+`conformance/de-esser.json` contains the default composition.
+
 ### Eight-line algorithmic reverb
 
 `Reverb` is a fixed eight-line feedback delay network. Its input is either one
