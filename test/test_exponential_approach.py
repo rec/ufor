@@ -6,7 +6,38 @@ import pytest
 from ufor.approach import ExponentialApproach
 from ufor.envelfo import Envelope
 from ufor.envelope import Curve, curve_at
+from ufor.modulation import Target, Unit
+from ufor.samples.processing import SoundSettings
 from ufor.segments import Segment
+
+
+@pytest.mark.parametrize('seconds', [0, 0.00001, 0.1])
+def test_positive_time_floor_preserves_zero_time(seconds: float) -> None:
+    stage = ExponentialApproach(
+        asymptote=0,
+        time_constant=seconds,
+        minimum_time_constant=0.001,
+        threshold=0.0001,
+        transition_to=0,
+        transition_seconds=0.05,
+    )
+    parts = stage.resolve(1)
+    if seconds:
+        assert float(parts[0].duration) == pytest.approx(
+            max(seconds, 0.001) * log(10000), abs=5e-10
+        )
+    else:
+        assert parts == [Segment(duration=Fraction(1, 20), to=0)]
+    settings = SoundSettings(
+        envelope=Envelope(
+            initial=1,
+            segments=[Segment(duration=0, to=1)],
+            release=[stage],
+        )
+    )
+    assert settings.parameter_definition(
+        Target(name='envelope', parameter='release-0-time_constant')
+    ) == (Unit.seconds, seconds)
 
 
 @pytest.mark.parametrize('initial', [1.0, 0.1, 0.0001, 0.00001, 0.0])

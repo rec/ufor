@@ -18,6 +18,7 @@ class ExponentialApproach(Model):
     transition_to: FiniteScalar
     transition_seconds: Seconds
     minimum_transition_distance: FiniteScalar = Field(default=0, ge=0)
+    minimum_time_constant: Seconds = 0
 
     @model_validator(mode='after')
     def reachable_threshold(self) -> Self:
@@ -32,7 +33,7 @@ class ExponentialApproach(Model):
         result: list[Segment] = []
         if self.time_constant and (initial - self.threshold) * distance > 0:
             curve = log(distance / (initial - self.asymptote))
-            seconds = -self.time_constant * curve
+            seconds = -max(self.time_constant, self.minimum_time_constant) * curve
             result.append(
                 Segment(
                     duration=Fraction(round(seconds * 1_000_000_000), 1_000_000_000),

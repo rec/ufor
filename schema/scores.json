@@ -5701,6 +5701,21 @@
           "minimum": 0,
           "title": "Minimum Transition Distance",
           "type": "number"
+        },
+        "minimum_time_constant": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "default": 0,
+          "title": "Minimum Time Constant"
         }
       },
       "required": [

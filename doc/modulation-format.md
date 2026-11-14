@@ -65,14 +65,18 @@ implicitly the OR of every key in the instrument.
 One-shot, seconds-clock Envelope lists may also contain an
 `exponential_approach` stage. Its fields are `asymptote`, `threshold`,
 `time_constant` (seconds), `transition_to`, `transition_seconds` (seconds) and
-`minimum_transition_distance` (default zero). Threshold must differ from the
+`minimum_transition_distance` (default zero). `minimum_time_constant` defaults
+to zero and floors positive time constants only; zero still skips the approach.
+The time constant can be latched through an envelope `PHASE-INDEX-time_constant`
+parameter in seconds, using the existing key/velocity parameter rules.
+Threshold must differ from the
 asymptote. All declared levels obey the enclosing envelope's polarity bounds.
 Captured envelopes reject markers, looping, indefinite holds and nesting in
 Stages; these have no specified captured-duration traversal contract yet.
 
 At phase entry, capture the incoming level. For a reachable crossing, resolve
 an ordinary Segment with `curve=log((threshold-asymptote)/(initial-asymptote))`
-and `duration=-time_constant*curve`, followed by a linear terminal transition.
+and `duration=-max(time_constant,minimum_time_constant)*curve`, followed by a linear terminal transition.
 Starting at or beyond the threshold skips the approach. Zero time likewise
 starts the terminal transition directly from the captured value.
 

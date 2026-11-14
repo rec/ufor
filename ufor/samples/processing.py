@@ -9,6 +9,7 @@ from pydantic import Field, StrictBool, model_validator
 from reccy.configuration import units
 
 from .. import control, envelfo, modulation
+from ..approach import ExponentialApproach
 from ..base import (
     FiniteScalar,
     Frequency,
@@ -532,6 +533,10 @@ def parameter_definition(
             ('release', definition.release),
         ):
             for index, segment in enumerate(segments):
+                if target.parameter == f'{phase}-{index}-time_constant' and isinstance(
+                    segment, ExponentialApproach
+                ):
+                    return modulation.Unit.seconds, float(segment.time_constant)
                 if target.parameter == f'{phase}-{index}-duration':
                     if not isinstance(segment, Segment):
                         raise ValueError(
