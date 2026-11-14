@@ -28,6 +28,26 @@ Defaults for floors, tail thresholds and bypass fades match existing processors.
 
 ## Graph contract
 
+### Transient shaper
+
+`TransientShaper` uses the maximum absolute input sample across all named
+channels to feed two existing peak-follower laws. Fast attack/release are
+1 ms / 10 ms; slow attack/release are 10 ms / 100 ms. Both start at zero and
+flush levels below 1e-30 to zero. Define
+`contrast = (fast-slow) / max(fast, slow, 1e-12)` and apply
+`gain_db = attack_gain_db*max(contrast,0) + sustain_gain_db*max(-contrast,0)`.
+Multiply every input channel by `10^(gain_db/20)`. Attack/sustain controls each
+range from -24 through +24 dB with neutral zero defaults; mix defaults to one.
+Detector times and normalization floor are fixed for this profile. It shapes
+rising and decaying sound; a steady level returns to unity gain. There is no
+output ceiling, automatic normalization, extra gain smoother or look-ahead.
+
+Attack gain, sustain gain and mix accept ramps and scoped controls. Bypass
+uses the existing warm fade contract. There is zero intrinsic latency; ordinary
+upstream compensation applies to its controls. Input end retires immediately
+and clears both follower levels because those levels generate no audio tail.
+Stop is immediate. Snapshots retain two nonnegative finite follower levels.
+
 ### Sample-peak limiter
 
 `Limiter` links all named channels using their maximum absolute input sample.

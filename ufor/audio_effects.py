@@ -131,6 +131,23 @@ class Waveshaper(Model):
     )
 
 
+class TransientShaper(Model):
+    """Linked fast/slow peak contrast with bounded attack and sustain gains."""
+
+    kind: Literal['transient_shaper'] = 'transient_shaper'
+    name: Identifier
+    attack_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=0.0, ge=-24, le=24
+    )
+    sustain_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=0.0, ge=-24, le=24
+    )
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
 class Limiter(Model):
     """Linked sample-peak ceiling with fixed prepared look-ahead."""
 
@@ -614,6 +631,7 @@ Processor = Annotated[
     | Bitcrusher
     | OctaveDivider
     | Limiter
+    | TransientShaper
     | Phaser
     | Highpass
     | ChannelMatrix
@@ -912,6 +930,8 @@ class ParameterAction(Model):
             'makeup_db': 'decibel',
             'output_gain_db': 'decibel',
             'ceiling_db': 'decibel',
+            'attack_gain_db': 'decibel',
+            'sustain_gain_db': 'decibel',
             'ratio': 'dimensionless',
             'attack_seconds': 'second',
             'release_seconds': 'second',
@@ -1473,6 +1493,9 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         return
     if isinstance(processor, Gain) and parameter == 'gain_db':
         return
+    if isinstance(processor, TransientShaper):
+        if parameter in {'attack_gain_db', 'sustain_gain_db'} and -24 <= value <= 24:
+            return
     if isinstance(processor, Limiter):
         if parameter == 'ceiling_db' and value <= 0:
             return

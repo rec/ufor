@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "transient_shaper", "name": "shape", "attack_gain_db": "6 dB", "sustain_gain_db": "-3 dB"}],
+  "connections": [{"processor": "shape", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "shape"},
+  "maximum_block_frames": 997
+}
