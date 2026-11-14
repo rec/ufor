@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from math import cos, fsum, pi, sin, sqrt
+from math import cos, fsum, log10, pi, sin, sqrt
 from typing import Annotated, ClassVar, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
@@ -117,11 +117,11 @@ class Gain(Model):
 
 
 class Waveshaper(Model):
-    """Four-times oversampled hard/soft/fold curves with zero-preserving bias."""
+    """Four-times oversampled nonlinear curves with zero-preserving bias."""
 
     kind: Literal['waveshaper'] = 'waveshaper'
     name: Identifier
-    curve: Literal['hard', 'soft', 'fold'] = 'soft'
+    curve: Literal['hard', 'soft', 'fold', 'half_wave', 'full_wave'] = 'soft'
     drive: Positive = 1.0
     bias: FiniteScalar = 0.0
     output_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
@@ -129,6 +129,28 @@ class Waveshaper(Model):
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
     )
+
+
+class OctaveDivider(Model):
+    """Per-channel Schmitt-trigger octave-down square with a peak envelope."""
+
+    kind: Literal['octave_divider'] = 'octave_divider'
+    name: Identifier
+    threshold: Positive = 0.01
+    attack_seconds: Seconds = 0.001
+    release_seconds: Seconds = 0.05
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def decaying_state(self) -> Self:
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('octave divider state_floor must be below tail_threshold')
+        return self
 
 
 class Bitcrusher(Model):
@@ -574,6 +596,7 @@ Processor = Annotated[
     Gain
     | Waveshaper
     | Bitcrusher
+    | OctaveDivider
     | Phaser
     | Highpass
     | ChannelMatrix
@@ -1077,6 +1100,57 @@ def mid_side_matrix(name: Identifier, decode: bool = False) -> ChannelMatrix:
     )
 
 
+def enhancer_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    maximum_block_frames: int,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Compose a high-band exciter with explicit unity dry and quarter wet gain."""
+    high = Highpass(name=f'{name}-high', cutoff_hz=2000)
+    drive = Waveshaper(name=f'{name}-drive', drive=2, bias=0.25)
+    dc = Highpass(name=f'{name}-dc', cutoff_hz=20)
+    mix = Mixer(
+        name=f'{name}-mix',
+        inputs=[
+            MixerInput(name='dry'),
+            MixerInput(name='wet', gain_db=20 * log10(0.25)),
+        ],
+    )
+    return EffectGraph(
+        scope=scope,
+        owner=owner,
+        inputs=[input],
+        processors=[high, drive, dc, mix],
+        connections=[
+            Connection(
+                processor=high.name, port='input', source=InputSource(input=input.name)
+            ),
+            Connection(
+                processor=drive.name,
+                port='input',
+                source=ProcessorSource(processor=high.name),
+            ),
+            Connection(
+                processor=dc.name,
+                port='input',
+                source=ProcessorSource(processor=drive.name),
+            ),
+            Connection(
+                processor=mix.name, port='dry', source=InputSource(input=input.name)
+            ),
+            Connection(
+                processor=mix.name,
+                port='wet',
+                source=ProcessorSource(processor=dc.name),
+            ),
+        ],
+        output=ProcessorSource(processor=mix.name),
+        maximum_block_frames=maximum_block_frames,
+    )
+
+
 def coloration_graph(
     name: Identifier,
     scope: AttachmentScope,
@@ -1377,6 +1451,11 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         return
     if isinstance(processor, Gain) and parameter == 'gain_db':
         return
+    if isinstance(processor, OctaveDivider):
+        if parameter == 'threshold' and value > 0:
+            return
+        if parameter in {'attack_seconds', 'release_seconds'} and value >= 0:
+            return
     if isinstance(processor, Highpass) and parameter == 'cutoff_hz':
         if value <= 0:
             raise ValueError('highpass cutoff must be positive')

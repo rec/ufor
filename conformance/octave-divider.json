@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["mono"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "octave_divider", "name": "octave", "threshold": 0.01, "attack_seconds": "1 ms", "release_seconds": "50 ms"}],
+  "connections": [{"processor": "octave", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "octave"},
+  "maximum_block_frames": 997
+}

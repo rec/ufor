@@ -1,5 +1,33 @@
 # Portable live-effect graphs
 
+## Rectification, enhancement and octave division
+
+Waveshaper additionally accepts `half_wave` (`max(x, 0)`) and `full_wave`
+(`abs(x)`). Both retain the 4x/48-frame profile and the zero-preserving formula
+`f(drive*x + bias) - f(bias)`. Their DC is intentional; a separate Highpass
+can remove it.
+
+`enhancer_graph` composes a 2 kHz Highpass, soft Waveshaper (drive 2, bias 0.25),
+and 20 Hz Highpass. A Mixer adds this branch at amplitude 0.25 to unity dry.
+Graph alignment delays dry by 48 frames. Gains are explicit; there is no
+automatic normalization or hardware model.
+
+`OctaveDivider` preserves channels independently. Initially silent and unarmed,
+each detector arms at input <= -threshold and toggles polarity at the next
+input >= threshold, then disarms. The first toggle produces positive output.
+Output is a square wave multiplied by that channel's peak envelope, using the
+same exponential attack/release law as Follower. Defaults are threshold 0.01,
+attack 1 ms, release 50 ms, mix 1. All three detector/envelope controls and mix
+accept ordinary ramps and scoped modulation; threshold stays strictly positive
+and times nonnegative. No pitch estimation or chord/noise tracking is promised.
+Envelope values below state_floor become zero and reset detector phase. Bypass
+keeps processing warm. Input end supplies zeros and drains when all envelopes
+are below tail_threshold; stop is immediate. Tail retirement clears detector
+state. The processor has no added latency and needs constant state per channel.
+Defaults for floors, tail thresholds and bypass fades match existing processors.
+
+## Graph contract
+
 `ufor.audio_effects` defines fixed acyclic processor graphs for offline and live audio effects.
 enge owns their numerical realization. A graph belongs to a voice, instrument,
 master, or host attachment and has named audio inputs, processor nodes, explicit
