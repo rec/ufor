@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from math import cos, fsum, log10, pi, sin, sqrt
+from math import ceil, cos, fsum, log10, pi, sin, sqrt
 from typing import Annotated, ClassVar, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
@@ -125,6 +125,22 @@ class Waveshaper(Model):
     drive: Positive = 1.0
     bias: FiniteScalar = 0.0
     output_gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
+class Limiter(Model):
+    """Linked sample-peak ceiling with fixed prepared look-ahead."""
+
+    kind: Literal['limiter'] = 'limiter'
+    name: Identifier
+    ceiling_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=-1.0, le=0
+    )
+    lookahead_seconds: PositiveSeconds = 0.005
+    release_seconds: Seconds = 0.05
     mix: UnitInterval = 1.0
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
@@ -597,6 +613,7 @@ Processor = Annotated[
     | Waveshaper
     | Bitcrusher
     | OctaveDivider
+    | Limiter
     | Phaser
     | Highpass
     | ChannelMatrix
@@ -837,7 +854,7 @@ class EffectGraph(ModulationSettings):
     def order(self) -> list[Identifier]:
         return stable_order(self.processors, self.dependencies())
 
-    def latencies(self) -> dict[str, int]:
+    def latencies(self, sample_rate: int) -> dict[str, int]:
         """Output latency per processor after aligning all of its input ports."""
         processors = {p.name: p for p in self.processors}
         dependencies = self.dependencies()
@@ -846,7 +863,7 @@ class EffectGraph(ModulationSettings):
             processor = processors[name]
             result[name] = max(
                 (result[d] for d in dependencies[name]), default=0
-            ) + processor_latency(processor)
+            ) + processor_latency(processor, sample_rate)
         return result
 
     def output_channels(self) -> list[Identifier]:
@@ -894,6 +911,7 @@ class ParameterAction(Model):
             'knee_db': 'decibel',
             'makeup_db': 'decibel',
             'output_gain_db': 'decibel',
+            'ceiling_db': 'decibel',
             'ratio': 'dimensionless',
             'attack_seconds': 'second',
             'release_seconds': 'second',
@@ -1398,7 +1416,11 @@ def stable_order(
     return result
 
 
-def processor_latency(processor: Processor) -> int:
+def processor_latency(processor: Processor, sample_rate: int) -> int:
+    if sample_rate <= 0:
+        raise ValueError('effect sample rate must be positive')
+    if isinstance(processor, Limiter):
+        return ceil(processor.lookahead_seconds * sample_rate)
     if isinstance(processor, Waveshaper):
         return WAVESHAPER_LATENCY_FRAMES
     if isinstance(processor, Convolution):
@@ -1451,6 +1473,11 @@ def validate_parameter(processor: Processor, parameter: str, value: float) -> No
         return
     if isinstance(processor, Gain) and parameter == 'gain_db':
         return
+    if isinstance(processor, Limiter):
+        if parameter == 'ceiling_db' and value <= 0:
+            return
+        if parameter == 'release_seconds' and value >= 0:
+            return
     if isinstance(processor, OctaveDivider):
         if parameter == 'threshold' and value > 0:
             return

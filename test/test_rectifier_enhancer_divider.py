@@ -12,7 +12,7 @@ def test_enhancer_aligns_explicit_dry_and_high_band_branches() -> None:
         ),
         997,
     )
-    assert graph.latencies()['exciter-mix'] == 48
+    assert graph.latencies(48000)['exciter-mix'] == 48
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )

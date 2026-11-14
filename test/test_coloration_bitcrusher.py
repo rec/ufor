@@ -21,7 +21,11 @@ def test_coloration_composes_declared_profiles_with_fixed_latency(
         profile,
         997,
     )
-    assert graph.latencies() == {'color-dc': 0, 'color-drive': 48, 'color-tone': 48}
+    assert graph.latencies(48000) == {
+        'color-dc': 0,
+        'color-drive': 48,
+        'color-tone': 48,
+    }
     drive = graph.processors[1]
     assert isinstance(drive, audio_effects.Waveshaper)
     assert (drive.drive, drive.bias, drive.output_gain_db) == (2, bias, 0)
@@ -57,7 +61,7 @@ def test_bitcrusher_keeps_integer_capture_requests_distinct_from_mix_ramps() -> 
     graph = audio_effects.EffectGraph.model_validate_json(
         (Path(__file__).parents[1] / 'conformance/bitcrusher.json').read_text()
     )
-    assert graph.latencies() == {'crush': 0}
+    assert graph.latencies(48000) == {'crush': 0}
     for parameter, value in [('bits', 1), ('bits', 24), ('hold_frames', 65536)]:
         audio_effects.validate_action(
             graph,

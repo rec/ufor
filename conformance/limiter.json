@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "limiter", "name": "limit", "ceiling_db": "-1 dB", "lookahead_seconds": "5 ms", "release_seconds": "50 ms"}],
+  "connections": [{"processor": "limit", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "limit"},
+  "maximum_block_frames": 997
+}

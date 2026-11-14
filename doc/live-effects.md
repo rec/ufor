@@ -28,6 +28,33 @@ Defaults for floors, tail thresholds and bypass fades match existing processors.
 
 ## Graph contract
 
+### Sample-peak limiter
+
+`Limiter` links all named channels using their maximum absolute input sample.
+Defaults are a -1 dBFS ceiling, 5 ms look-ahead, 50 ms release and mix 1.
+Prepare `L = ceil(lookahead_seconds * sample_rate)` frames of latency, at least
+one. Look-ahead is fixed at preparation; ceiling (at most 0 dBFS), nonnegative
+release and mix accept ramps and scoped modulation. Other gain controls may
+still raise the signal after this node.
+
+At render frame t, use the greatest input peak over the inclusive window
+[t-L, t]. Let C = 10^(ceiling_db/20) and target = min(1, C/window_peak), or 1
+when the window is silent. Release gain toward unity using
+`released = gain + (1-gain)*(1-exp(-1/(sample_rate*release_seconds)))`, or 1
+for zero release. The next gain is min(target, released), so reduction is
+instantaneous. Apply it to input frame t-L with one linked gain, clamping the
+result to [-C, C] to contain floating-point rounding. Initialize gain to one
+and history to zero. This profile limits digital samples, not reconstructed
+intersample peaks. It does not claim transparent attack shaping.
+
+Dry audio is also delayed by L; mix/bypass retain their ordinary laws and do
+not promise a ceiling. Delay ceiling, release and mix/bypass controls by the
+upstream latency plus L so authored changes align with output audio. Bypass
+keeps the detector and history warm. After input end, feed zeros and output
+the final L delayed frames, then retire; stop is immediate. Snapshots retain
+input history, ring position, gain and remaining tail frames. Native storage
+can derive a bounded sliding-maximum queue from that history during restore.
+
 `ufor.audio_effects` defines fixed acyclic processor graphs for offline and live audio effects.
 enge owns their numerical realization. A graph belongs to a voice, instrument,
 master, or host attachment and has named audio inputs, processor nodes, explicit
@@ -111,7 +138,9 @@ support of the FIR cascade. The fixed resource bounds and latency do not change
 with curve, drive, bias, output gain, mix or bypass. FIR state stays warm while
 bypassed. This mathematical profile does not claim analogue emulation.
 
-`EffectGraph.latencies()` reports each processor's output latency. Align all
+`EffectGraph.latencies(sample_rate)` reports each processor's output latency.
+The render rate is explicit because time-based look-ahead changes frame count.
+Align all
 incoming audio and end markers to the greatest upstream latency before running
 each processor. Delay its resolved controls by that upstream latency too. For a
 Waveshaper, additionally delay drive/bias by 24 frames to the nonlinear stage and

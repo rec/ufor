@@ -15,7 +15,7 @@ def definition() -> dict[str, object]:
 def test_convolution_preserves_explicit_matrix_assets_and_partition_latency() -> None:
     graph = audio_effects.EffectGraph.model_validate(definition())
     assert graph.output_channels() == ['left', 'right']
-    assert graph.latencies() == {'room': 256}
+    assert graph.latencies(48000) == {'room': 256}
     assert graph.assets[0].audio.channels == ['ll', 'lr', 'rl', 'rr']
     assert (graph.timebases[0].rate.numerator, graph.timebases[0].rate.denominator) == (
         48000,
@@ -75,7 +75,7 @@ def test_convolution_latency_composes_with_oversampling_and_dry_routing() -> Non
     )
     raw['output'] = {'kind': 'processor', 'processor': 'mix'}
     graph = audio_effects.EffectGraph.model_validate(raw)
-    assert graph.latencies() == {'dry': 0, 'room': 256, 'shape': 304, 'mix': 304}
+    assert graph.latencies(48000) == {'dry': 0, 'room': 256, 'shape': 304, 'mix': 304}
 
 
 @pytest.mark.parametrize('partition', [0, 3, 255, -1, True])

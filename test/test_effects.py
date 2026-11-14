@@ -109,7 +109,7 @@ def test_modulated_multitap_preserves_authored_voices_and_stereo_routing(
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
-    assert all(n == 0 for n in graph.latencies().values())
+    assert all(n == 0 for n in graph.latencies(48000).values())
     delays = [
         p for p in graph.processors if isinstance(p, audio_effects.ModulatedDelay)
     ]
@@ -236,7 +236,7 @@ def test_multitap_expands_named_taps_into_portable_stereo_routing(
         256,
     )
     assert graph.output_channels() == data['channels']
-    assert graph.latencies() == data['latencies']
+    assert graph.latencies(48000) == data['latencies']
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
@@ -314,7 +314,7 @@ def test_gate_and_expander_have_explicit_detectors_and_no_latency(kind: str) -> 
     processor = graph.processors[0]
     assert audio_effects.processor_ports(processor) == {'input', 'detector'}
     assert graph.output_channels() == data['channels']
-    assert graph.latencies() == {'dynamics': data['latency_frames']}
+    assert graph.latencies(48000) == {'dynamics': data['latency_frames']}
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
@@ -360,7 +360,7 @@ def test_follower_control_dependencies_order_and_align_audio() -> None:
     )
     graph = audio_effects.EffectGraph.model_validate(data['graph'])
     assert graph.order() == data['order']
-    assert graph.latencies() == data['latencies']
+    assert graph.latencies(48000) == data['latencies']
     assert graph.output_channels() == data['channels']
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
@@ -480,7 +480,7 @@ def test_channel_matrix_layout_and_always_applied_routing() -> None:
     )
     graph = audio_effects.EffectGraph.model_validate(data['graph'])
     assert graph.output_channels() == ['left', 'right', 'mono']
-    assert graph.latencies() == {'route': 0}
+    assert graph.latencies(48000) == {'route': 0}
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
@@ -548,7 +548,7 @@ def test_phaser_sweep_uses_cents_and_bounded_feedback() -> None:
     processor = graph.processors[0]
     assert isinstance(processor, audio_effects.Phaser)
     assert processor.depth_cents == 2400
-    assert graph.latencies()['motion'] == data['latency_frames']
+    assert graph.latencies(48000)['motion'] == data['latency_frames']
     assert graph.parameter_definition(
         modulation.Target(name='motion', parameter='depth_cents')
     ) == (modulation.Unit.cents, 2400)
@@ -892,7 +892,7 @@ def test_waveshaper_profiles_report_aligned_graph_latency() -> None:
         (Path(__file__).parents[1] / 'conformance/waveshaper.json').read_text()
     )
     graph = audio_effects.EffectGraph.model_validate(data['graph'])
-    assert graph.latencies() == data['latencies']
+    assert graph.latencies(48000) == data['latencies']
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
@@ -938,7 +938,7 @@ def test_highpass_units_layout_and_parameter_contract() -> None:
     )
     graph = audio_effects.EffectGraph.model_validate(data['graph'])
     assert graph.output_channels() == ['left', 'right']
-    assert graph.latencies() == {'dc': data['latency_frames']}
+    assert graph.latencies(48000) == {'dc': data['latency_frames']}
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
