@@ -60,6 +60,34 @@ implicitly the OR of every key in the instrument.
 
 ## Embedded envelope semantics and reusable envelope scores
 
+### Captured exponential approach
+
+One-shot, seconds-clock Envelope lists may also contain an
+`exponential_approach` stage. Its fields are `asymptote`, `threshold`,
+`time_constant` (seconds), `transition_to`, `transition_seconds` (seconds) and
+`minimum_transition_distance` (default zero). Threshold must differ from the
+asymptote. All declared levels obey the enclosing envelope's polarity bounds.
+Captured envelopes reject markers, looping, indefinite holds and nesting in
+Stages; these have no specified captured-duration traversal contract yet.
+
+At phase entry, capture the incoming level. For a reachable crossing, resolve
+an ordinary Segment with `curve=log((threshold-asymptote)/(initial-asymptote))`
+and `duration=-time_constant*curve`, followed by a linear terminal transition.
+Starting at or beyond the threshold skips the approach. Zero time likewise
+starts the terminal transition directly from the captured value.
+
+Terminal speed is `max(abs(start-transition_to), minimum_transition_distance)`
+divided by `transition_seconds`. Zero distance completes immediately; zero
+transition time jumps to the final value. Derived durations round once to the
+nearest nanosecond, with ties to even. The resolved segments are continuation
+state and survive snapshots; render partitions must not resolve them again.
+Note-off captures the current value at its event time before starting release.
+The original authored phase remains in the definition, while the state stores
+its resolved sequence separately. Existing authored Segment timing is unchanged.
+
+After model changes regenerate the published schema with
+`uv run --no-editable python schema/generate.py`.
+
 `Envelope` and `LFO` inherit clock, scope, and position policy from `EnveLFO`.
 Their generator-specific fields are flat, without a `body` wrapper. Patch and
 Stage children inherit clock and scope; child overrides are rejected and inherited

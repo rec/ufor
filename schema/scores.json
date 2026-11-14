@@ -4979,6 +4979,9 @@
               },
               {
                 "$ref": "#/$defs/IndefiniteSegment"
+              },
+              {
+                "$ref": "#/$defs/ExponentialApproach"
               }
             ]
           },
@@ -4994,6 +4997,9 @@
               },
               {
                 "$ref": "#/$defs/IndefiniteSegment"
+              },
+              {
+                "$ref": "#/$defs/ExponentialApproach"
               }
             ]
           },
@@ -5641,6 +5647,72 @@
       "title": "ExpandingRipples",
       "type": "object"
     },
+    "ExponentialApproach": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "exponential_approach",
+          "default": "exponential_approach",
+          "title": "Kind",
+          "type": "string"
+        },
+        "asymptote": {
+          "title": "Asymptote",
+          "type": "number"
+        },
+        "time_constant": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Time Constant"
+        },
+        "threshold": {
+          "title": "Threshold",
+          "type": "number"
+        },
+        "transition_to": {
+          "title": "Transition To",
+          "type": "number"
+        },
+        "transition_seconds": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "number"
+            },
+            {
+              "type": "string"
+            }
+          ],
+          "title": "Transition Seconds"
+        },
+        "minimum_transition_distance": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Minimum Transition Distance",
+          "type": "number"
+        }
+      },
+      "required": [
+        "asymptote",
+        "time_constant",
+        "threshold",
+        "transition_to",
+        "transition_seconds"
+      ],
+      "title": "ExponentialApproach",
+      "type": "object"
+    },
     "ExponentialFade": {
       "additionalProperties": false,
       "properties": {
@@ -5816,30 +5888,6 @@
     "FMVoice": {
       "additionalProperties": false,
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Envelope"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -5891,9 +5939,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -5921,6 +5969,30 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "title": "Name",
@@ -6685,6 +6757,31 @@
         "fixtures"
       ],
       "title": "FixtureShow",
+      "type": "object"
+    },
+    "FollowerBinding": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "kind": {
+          "const": "follower",
+          "default": "follower",
+          "title": "Kind",
+          "type": "string"
+        },
+        "processor": {
+          "title": "Processor",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "processor"
+      ],
+      "title": "FollowerBinding",
       "type": "object"
     },
     "Format": {
@@ -9082,53 +9179,6 @@
     "NoiseVoice": {
       "additionalProperties": false,
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "$ref": "#/$defs/Envelope",
-          "default": {
-            "kind": "envelope",
-            "scope": "voice",
-            "clock": "seconds",
-            "position_driver": "elapsed",
-            "origin": null,
-            "initial": 0.0,
-            "start": "activation",
-            "segments": [
-              {
-                "curve": 0.0,
-                "duration": "0 s",
-                "to": 1.0
-              }
-            ],
-            "release": [
-              {
-                "curve": 0.0,
-                "duration": "0 s",
-                "to": 0.0
-              }
-            ],
-            "polarity": "unipolar",
-            "hold": true,
-            "retrigger": "current",
-            "playback": "once",
-            "markers": [],
-            "loop_start": null,
-            "loop_end": null,
-            "repeat_count": null
-          }
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -9180,9 +9230,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -9210,6 +9260,53 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "kind": "envelope",
+            "scope": "voice",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
+            "initial": 0.0,
+            "start": "activation",
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0 s",
+                "to": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0 s",
+                "to": 0.0
+              }
+            ],
+            "polarity": "unipolar",
+            "hold": true,
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
+          }
         },
         "name": {
           "title": "Name",
@@ -13019,53 +13116,6 @@
     "SampleSettings": {
       "additionalProperties": false,
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "$ref": "#/$defs/Envelope",
-          "default": {
-            "kind": "envelope",
-            "scope": "voice",
-            "clock": "seconds",
-            "position_driver": "elapsed",
-            "origin": null,
-            "initial": 0.0,
-            "start": "activation",
-            "segments": [
-              {
-                "curve": 0.0,
-                "duration": "0 s",
-                "to": 1.0
-              }
-            ],
-            "release": [
-              {
-                "curve": 0.0,
-                "duration": "0 s",
-                "to": 0.0
-              }
-            ],
-            "polarity": "unipolar",
-            "hold": true,
-            "retrigger": "current",
-            "playback": "once",
-            "markers": [],
-            "loop_start": null,
-            "loop_end": null,
-            "repeat_count": null
-          }
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -13117,9 +13167,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -13147,6 +13197,53 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "kind": "envelope",
+            "scope": "voice",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
+            "initial": 0.0,
+            "start": "activation",
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0 s",
+                "to": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0 s",
+                "to": 0.0
+              }
+            ],
+            "polarity": "unipolar",
+            "hold": true,
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
+          }
         },
         "playback": {
           "$ref": "#/$defs/Playback",
@@ -13209,34 +13306,6 @@
     "SampleSlot": {
       "additionalProperties": false,
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Envelope"
-            },
-            {
-              "const": false,
-              "type": "boolean"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -13288,9 +13357,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -13318,6 +13387,34 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "const": false,
+              "type": "boolean"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "title": "Name",
@@ -14594,30 +14691,6 @@
       "additionalProperties": false,
       "description": "One non-nested shared selection and sound-settings layer.",
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Envelope"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -14669,9 +14742,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -14699,6 +14772,30 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "title": "Name",
@@ -15564,53 +15661,6 @@
     "SynthVoice": {
       "additionalProperties": false,
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "$ref": "#/$defs/Envelope",
-          "default": {
-            "kind": "envelope",
-            "scope": "voice",
-            "clock": "seconds",
-            "position_driver": "elapsed",
-            "origin": null,
-            "initial": 0.0,
-            "start": "activation",
-            "segments": [
-              {
-                "curve": 0.0,
-                "duration": "0 s",
-                "to": 1.0
-              }
-            ],
-            "release": [
-              {
-                "curve": 0.0,
-                "duration": "0 s",
-                "to": 0.0
-              }
-            ],
-            "polarity": "unipolar",
-            "hold": true,
-            "retrigger": "current",
-            "playback": "once",
-            "markers": [],
-            "loop_start": null,
-            "loop_end": null,
-            "repeat_count": null
-          }
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -15662,9 +15712,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -15692,6 +15742,53 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "$ref": "#/$defs/Envelope",
+          "default": {
+            "kind": "envelope",
+            "scope": "voice",
+            "clock": "seconds",
+            "position_driver": "elapsed",
+            "origin": null,
+            "initial": 0.0,
+            "start": "activation",
+            "segments": [
+              {
+                "curve": 0.0,
+                "duration": "0 s",
+                "to": 1.0
+              }
+            ],
+            "release": [
+              {
+                "curve": 0.0,
+                "duration": "0 s",
+                "to": 0.0
+              }
+            ],
+            "polarity": "unipolar",
+            "hold": true,
+            "retrigger": "current",
+            "playback": "once",
+            "markers": [],
+            "loop_start": null,
+            "loop_end": null,
+            "repeat_count": null
+          }
         },
         "name": {
           "title": "Name",
@@ -16987,30 +17084,6 @@
       "additionalProperties": false,
       "description": "A lossless Yamaha patch with dedicated rate/level envelope semantics.",
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Envelope"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -17062,9 +17135,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -17092,6 +17165,30 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "title": "Name",
@@ -17194,30 +17291,6 @@
       "additionalProperties": false,
       "description": "Explicitly paired TX81Z VCED and ACED edit buffers.",
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Envelope"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -17269,9 +17342,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -17299,6 +17372,30 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "title": "Name",
@@ -17400,30 +17497,6 @@
       "additionalProperties": false,
       "description": "WT11 VCED, ACED and ACED2, retaining its distinct pitch and bias data.",
       "properties": {
-        "processing": {
-          "$ref": "#/$defs/Processing",
-          "default": {
-            "volume_db": 0.0,
-            "invert_polarity": false,
-            "tuning_cents": 0.0,
-            "pan": 0.0,
-            "stereo_balance": 0.0,
-            "equalizer": [],
-            "filters": [],
-            "filter_order": "before_amplitude"
-          }
-        },
-        "envelope": {
-          "anyOf": [
-            {
-              "$ref": "#/$defs/Envelope"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "default": null
-        },
         "envelfos": {
           "additionalProperties": {
             "discriminator": {
@@ -17475,9 +17548,9 @@
               "mapping": {
                 "control": "#/$defs/ufor__samples__processing__ControlBinding",
                 "envelfo": "#/$defs/GeneratorBinding",
+                "follower": "#/$defs/FollowerBinding",
                 "key": "#/$defs/EventBinding",
-                "velocity": "#/$defs/EventBinding",
-                "follower": "#/$defs/FollowerBinding"
+                "velocity": "#/$defs/EventBinding"
               },
               "propertyName": "kind"
             },
@@ -17505,6 +17578,30 @@
           },
           "title": "Event Connections",
           "type": "array"
+        },
+        "processing": {
+          "$ref": "#/$defs/Processing",
+          "default": {
+            "volume_db": 0.0,
+            "invert_polarity": false,
+            "tuning_cents": 0.0,
+            "pan": 0.0,
+            "stereo_balance": 0.0,
+            "equalizer": [],
+            "filters": [],
+            "filter_order": "before_amplitude"
+          }
+        },
+        "envelope": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Envelope"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "name": {
           "title": "Name",
@@ -17824,31 +17921,6 @@
         "incoming"
       ],
       "title": "Transition",
-      "type": "object"
-    },
-    "FollowerBinding": {
-      "additionalProperties": false,
-      "properties": {
-        "name": {
-          "title": "Name",
-          "type": "string"
-        },
-        "kind": {
-          "const": "follower",
-          "default": "follower",
-          "title": "Kind",
-          "type": "string"
-        },
-        "processor": {
-          "title": "Processor",
-          "type": "string"
-        }
-      },
-      "required": [
-        "name",
-        "processor"
-      ],
-      "title": "FollowerBinding",
       "type": "object"
     }
   },

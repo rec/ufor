@@ -35,6 +35,7 @@ from ..envelfo import (
 )
 from ..lfo import Reset
 from ..modulation import Modulation, Target, Unit
+from ..segments import Segment
 from . import enums
 from .controls import ControlDeclaration
 
@@ -532,7 +533,7 @@ def parameter_definition(
         ):
             for index, segment in enumerate(segments):
                 if target.parameter == f'{phase}-{index}-duration':
-                    if segment.duration is None:
+                    if not isinstance(segment, Segment):
                         raise ValueError(
                             'indefinite segment duration cannot be modulated'
                         )

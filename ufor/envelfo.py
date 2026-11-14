@@ -19,6 +19,7 @@ from pydantic import (
 from reccy.configuration import units
 
 from . import control
+from .approach import ExponentialApproach
 from .base import FiniteScalar, Identifier, Model, UnitInterval, UnitScalar, unique
 from .envelope import Retrigger
 from .interface import ScoreReference
@@ -274,8 +275,12 @@ class Envelope(EnveLFO):
     kind: Literal['envelope'] = 'envelope'
     initial: FiniteScalar | Literal['current'] = 0.0
     start: Literal['activation', 'event'] = 'activation'
-    segments: list[Segment | IndefiniteSegment] = Field(min_length=1)
-    release: list[Segment | IndefiniteSegment] = Field(default_factory=list)
+    segments: list[Segment | IndefiniteSegment | ExponentialApproach] = Field(
+        min_length=1
+    )
+    release: list[Segment | IndefiniteSegment | ExponentialApproach] = Field(
+        default_factory=list
+    )
     polarity: control.Polarity = control.Polarity.unipolar
     hold: bool = True
     retrigger: Retrigger = Retrigger.current
@@ -287,18 +292,41 @@ class Envelope(EnveLFO):
 
     @model_validator(mode='after')
     def levels_match_polarity(self) -> Self:
+        approaches = [
+            s
+            for s in [*self.segments, *self.release]
+            if isinstance(s, ExponentialApproach)
+        ]
+        if approaches and (
+            self.markers
+            or self.playback != PlaybackMode.once
+            or self.clock != control.Clock.seconds
+            or any(
+                isinstance(s, IndefiniteSegment)
+                for s in [*self.segments, *self.release]
+            )
+        ):
+            raise ValueError(
+                'captured envelopes require one-shot playback '
+                'without markers or indefinite holds'
+            )
         levels = [
             *(v for v in [self.initial] if isinstance(v, float)),
             *(s.to for s in [*self.segments, *self.release] if isinstance(s, Segment)),
+            *(
+                v
+                for s in approaches
+                for v in [s.asymptote, s.threshold, s.transition_to]
+            ),
         ]
         if any(not -1 <= value <= 1 for value in levels):
             raise ValueError('envelope levels must be in [-1, 1]')
         if self.polarity == control.Polarity.unipolar and min(levels) < 0:
             raise ValueError('unipolar envelope levels must be in [0, 1]')
         unique((m.name for m in self.markers), 'envelope marker')
-        if any(s.duration is None for s in [*self.segments, *self.release]) and (
-            self.markers or self.playback != PlaybackMode.once
-        ):
+        if any(
+            isinstance(s, IndefiniteSegment) for s in [*self.segments, *self.release]
+        ) and (self.markers or self.playback != PlaybackMode.once):
             raise ValueError(
                 'indefinite envelopes cannot use normalized markers '
                 'or repeated playback'
@@ -369,9 +397,15 @@ class Stages(EnveLFO):
                 raise ValueError('stage LFO rate must be a literal')
             if isinstance(body, Envelope) and body.start == 'event':
                 raise ValueError('stage envelopes start on stage entry')
+            if isinstance(body, Envelope) and any(
+                isinstance(s, ExponentialApproach) for s in body.segments
+            ):
+                raise ValueError('captured envelopes cannot be nested in Stages')
             if isinstance(body, Envelope) and (
                 body.release
-                or not any(s.duration is None or s.duration > 0 for s in body.segments)
+                or not any(
+                    not isinstance(s, Segment) or s.duration > 0 for s in body.segments
+                )
             ):
                 raise ValueError(
                     'stage envelopes need positive duration and no release'
@@ -791,6 +825,7 @@ class EnvelopeState(Model):
     traversals: int = 0
     complete_coordinate: control.Rational | None = None
     segment_index: int = Field(default=0, ge=0)
+    resolved_segments: list[Segment] | None = None
 
 
 class StageState(Model):
