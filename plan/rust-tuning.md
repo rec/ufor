@@ -50,9 +50,10 @@ modules such as `tuning`, `expression`, and `number`, with a small common score
 header module when the tuning envelope is added. Callers import public symbols
 from their defining modules. Do not make a separate crate for each model.
 
-Keep Python sources and packaging in their current locations. Add `Cargo.toml`,
-`Cargo.lock`, crate sources, Rust integration tests, and any necessary CI changes
-only when implementation begins. This planning change adds none of them.
+The root Cargo workspace, lockfile, and initial crate are implemented. Python
+sources and packaging remain in their current locations. See
+[the Rust implementation guide](../doc/rust.md) for the current coverage and
+native verification commands.
 
 The native core must not depend on Python, Pydantic, Pint, NumPy, an audio engine,
 devices, filesystem discovery, or network access. Host applications own those
@@ -220,20 +221,24 @@ introduce another implementation.
 
 ## Implementation sequence
 
+The workspace and bounded numeric/expression evaluator are implemented in
+`crates/ufor-core`, with Rust 2024 / Rust 1.85 as the declared baseline.
+Rust tests consume baseline and approved expression cases, including the
+shared expression budgets. Numeric tests cover cross-cancellation, signed
+bounds, binary floats, and exhaustive small denominator approximations.
+Local verification currently uses macOS and the installed compiler; minimum
+compiler and other platform results remain unverified until release CI runs.
+
 1. Complete the remaining unit-syntax and work-budget details, using the approved
    64-bit numeric policy. Initial inventory and shared cases include integer and
    rational boundaries; Python behavior alignment remains separate work.
-2. Add the workspace and initial crate. Set and test an explicit Rust minimum
-   version, considering the siblings' edition 2024 / Rust 1.85 baseline and the
-   selected dependencies. Commit the lockfile. Keep Python installation independent.
-3. Implement bounded exact-number and expression evaluation, with negative and
-   approximate cases, before exposing tuning constructors.
-4. Implement the four source types and `Tuning`, then denominator approximation
-   and `as_ratios()`. Validate direct construction and deserialization equally.
-5. Add JSON/TOML and tuning-envelope interchange, including agreed unit
+2. Implement the four source types and `Tuning`, using the numeric core's
+   denominator approximation, and add `as_ratios()`. Validate direct construction
+   and deserialization equally.
+3. Add JSON/TOML and tuning-envelope interchange, including agreed unit
    normalization. Test Python-to-Rust and Rust-to-Python round trips through
    tracked fixtures or tracked test tooling, without native Python bindings.
-6. Complete platform checks and documentation. Replace completed plan entries
+4. Complete platform checks and documentation. Replace completed plan entries
    with links to the implementation and its public usage examples.
 
 ## Verification and completion
