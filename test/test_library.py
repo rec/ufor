@@ -1,5 +1,6 @@
 import json
 import shutil
+import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor
 from hashlib import sha256
@@ -531,8 +532,15 @@ def test_hashes_apply_to_exact_selected_file_bytes(tmp_path: Path) -> None:
 def test_symlinks_and_unreadable_roots_do_not_stop_good_roots(tmp_path: Path) -> None:
     config = setup_library(tmp_path)
     save(tmp_path / 'scores/good.toml', oscillator('good'))
-    (tmp_path / 'scores/link.toml').symlink_to(tmp_path / 'scores/good.toml')
-    (tmp_path / 'scores/loop').symlink_to(tmp_path / 'scores', target_is_directory=True)
+    try:
+        (tmp_path / 'scores/link.toml').symlink_to(tmp_path / 'scores/good.toml')
+        (tmp_path / 'scores/loop').symlink_to(
+            tmp_path / 'scores', target_is_directory=True
+        )
+    except OSError as error:
+        if getattr(error, 'winerror', None) == 1314:
+            pytest.skip('Windows symlink creation requires Developer Mode or privilege')
+        raise
     import tomlkit
 
     config.write_text(
@@ -712,3 +720,78 @@ def test_config_with_parent_components_is_excluded(tmp_path: Path) -> None:
     config = tmp_path / 'library.toml'
     config.write_text('[[libraries]]\nname = "local"\nroot = "."\n')
     assert not library_files.read_library(tmp_path / 'nested/../library.toml').entries
+
+
+def test_directory_junction_is_not_traversed(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = setup_library(tmp_path)
+    save(tmp_path / 'scores/good.toml', oscillator('good'))
+    junction = tmp_path / 'scores/junction'
+    save(junction / 'outside.toml', oscillator('outside'))
+
+    def is_junction(path: Path) -> bool:
+        return path == junction
+
+    monkeypatch.setattr(Path, 'is_junction', is_junction)
+    result = library_files.read_library(config)
+    assert [e.name for e in result.find()] == ['good']
+    assert [(d.address, d.code) for d in result.diagnostics] == [
+        ('/junction', 'symlink')
+    ]
+
+
+def test_directory_junction_cannot_be_a_library_root(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    config = setup_library(tmp_path)
+    root = tmp_path / 'scores'
+    before = config.read_bytes()
+
+    def is_junction(path: Path) -> bool:
+        return path == root
+
+    monkeypatch.setattr(Path, 'is_junction', is_junction)
+    result = library_files.read_library(config)
+    assert not result.find()
+    assert result.diagnostics[0].code == 'symlink'
+    with pytest.raises(ValueError, match='junction'):
+        library_files.create_library('linked', root, config)
+    assert config.read_bytes() == before
+
+
+@pytest.mark.skipif(sys.platform != 'win32', reason='Windows directory junctions')
+def test_windows_junction_loop_is_skipped(tmp_path: Path) -> None:
+    config = setup_library(tmp_path)
+    root = tmp_path / 'scores'
+    save(root / 'good.toml', oscillator('good'))
+    junction = root / 'loop'
+    subprocess.run(
+        ['cmd', '/c', 'mklink', '/J', str(junction), str(root)],
+        check=True,
+        capture_output=True,
+    )
+    try:
+        result = library_files.read_library(config)
+        assert [e.name for e in result.find()] == ['good']
+        assert [(d.address, d.code) for d in result.diagnostics] == [
+            ('/loop', 'symlink')
+        ]
+    finally:
+        junction.rmdir()
+
+
+def test_unicode_library_uses_utf8_and_preserves_content_identity(
+    tmp_path: Path,
+) -> None:
+    config = tmp_path / 'bibliothèque.toml'
+    root = tmp_path / 'mélodies'
+    library_files.create_library('été', root, config)
+    score = oscillator('café 🎵')
+    contents = score_toml(score).encode('utf-8')
+    (root / 'été.toml').write_bytes(contents)
+    result = library_files.read_library(config)
+    entry = result.resolve('été:café 🎵')
+    assert entry.score == score
+    assert entry.address == '/été.toml'
+    assert entry.sha256 == sha256(contents).hexdigest()

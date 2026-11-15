@@ -1,0 +1,2 @@
+# Conformance hashes must identify the same bytes on every checkout.
+* text=auto eol=lf

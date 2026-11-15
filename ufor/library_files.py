@@ -55,7 +55,7 @@ def read_library(
             root = path.parent / root
         root = Path(abspath(root))
         try:
-            symlink = root.is_symlink()
+            symlink = root.is_symlink() or root.is_junction()
             directory = root.is_dir()
         except OSError as error:
             diagnostics.append(
@@ -73,7 +73,7 @@ def read_library(
                     library=registration.name,
                     address='/',
                     code='symlink',
-                    message='symlinked library root skipped',
+                    message='symlinked or junction library root skipped',
                 )
             )
             continue
@@ -192,8 +192,8 @@ def create_library(
         registration = LibraryRegistration(name=name, root=str(selected))
         updated = LibraryConfig(libraries=[*config.libraries, registration])
         directory = selected if selected.is_absolute() else path.parent / selected
-        if directory.is_symlink():
-            raise ValueError('library root must not be a symlink')
+        if directory.is_symlink() or directory.is_junction():
+            raise ValueError('library root must not be a symlink or junction')
         directory.mkdir(parents=True, exist_ok=True)
         if 'libraries' not in document:
             document['libraries'] = tomlkit.aot()
@@ -239,8 +239,10 @@ def score_files(
                 return sorted(files, key=lambda p: p.relative_to(root).as_posix())
             file = directory / name
             try:
-                symlink = file.is_symlink()
+                symlink = file.is_symlink() or file.is_junction()
             except OSError as error:
+                if name in folders:
+                    folders.remove(name)
                 diagnostics.append(
                     Diagnostic(
                         library=library,
@@ -251,12 +253,14 @@ def score_files(
                 )
                 continue
             if symlink:
+                if name in folders:
+                    folders.remove(name)
                 diagnostics.append(
                     Diagnostic(
                         library=library,
                         address='/' + file.relative_to(root).as_posix(),
                         code='symlink',
-                        message='symlink skipped',
+                        message='symlink or junction skipped',
                     )
                 )
             elif (

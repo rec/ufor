@@ -7,6 +7,9 @@ on:
 permissions:
   contents: read
 
+env:
+  PYTHONUTF8: "1"
+
 jobs:
   test:
     runs-on: ${{ matrix.os }}
@@ -21,6 +24,6 @@ jobs:
         with:
           python-version: "3.13"
       - name: Install locked dependencies
-        run: uv sync --frozen
+        run: uv sync --frozen --no-editable
       - name: Test parallel default
         run: uv run --no-sync pytest -q

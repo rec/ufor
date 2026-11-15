@@ -67,8 +67,13 @@ The full suite uses parallel workers and work stealing by default. Use
 measured 10-CPU development machine, eight workers and automatic selection both
 completed in about 4.4 seconds, so the automatic default is retained.
 Run one full suite at a time when also verifying safaz or enge.
-The manual [cross-platform workflow](.github/workflows/test.yml) checks the
-parallel default on Linux, Windows, and macOS.
+The release [cross-platform workflow](.github/workflows/test.yml) checks the
+parallel default on Linux, Windows, and macOS with Python 3.13 and a non-editable
+installation. Tests use Python UTF-8 mode (`PYTHONUTF8=1`) for the Unicode
+documentation and fixtures. Git keeps text fixtures at LF line endings so
+content hashes agree across platforms. Library files themselves are explicitly
+read and written as UTF-8 regardless of the system locale. Discovery skips both
+symbolic links and Windows directory junctions.
 
 Extracted from Recs, Tuney and Lyte. MIT licensed.
 

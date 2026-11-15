@@ -32,9 +32,12 @@ replaces the configuration, so interrupted writes leave the previous version
 readable. The lock file remains beside the configuration.
 
 Files are visited in configuration order, then sorted relative address order.
-Only `.toml` and `.py` files are candidates. Symlinks are skipped and reported;
-other files can be assets. The configuration itself is excluded from discovery.
-Library roots must be trusted local directories. Symlinks are skipped during
+Only `.toml` and `.py` files are candidates. Symbolic links and Windows directory
+junctions are skipped and reported with diagnostic code `symlink`; other files
+can be assets. Linked roots are also rejected when creating a registration.
+The configuration itself is excluded from discovery. Configuration and TOML
+score files use UTF-8 on every platform; stored addresses use `/` separators.
+Library roots must be trusted local directories. Links are skipped during
 discovery, but concurrent filesystem changes can replace a checked path before
 it is read; the reader does not provide a security boundary against a process
 that can modify the root.
