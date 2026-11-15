@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from graphlib import CycleError, TopologicalSorter
-from math import ceil, cos, fsum, log10, pi, sin, sqrt
+from math import ceil, cos, fsum, isfinite, log10, pi, sin, sqrt
 from typing import Annotated, ClassVar, Literal, Self, cast
 
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
@@ -405,6 +405,41 @@ class Compressor(Model):
     )
 
 
+class CompressorBand(Model):
+    """Neutral-by-default linked peak compression for one crossover band."""
+
+    threshold_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -18.0
+    ratio: FiniteScalar = Field(default=1.0, ge=1)
+    knee_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=6.0, ge=0
+    )
+    attack_seconds: Seconds = 0.01
+    release_seconds: Seconds = 0.1
+    makeup_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
+
+
+class MultibandCompressor(Model):
+    """Always-wet three-band LR4 crossover with linked peak dynamics per band."""
+
+    kind: Literal['multiband_compressor'] = 'multiband_compressor'
+    name: Identifier
+    lower_crossover_hz: Frequency = 200.0
+    upper_crossover_hz: Frequency = 4000.0
+    low: CompressorBand = Field(default_factory=CompressorBand)
+    mid: CompressorBand = Field(default_factory=CompressorBand)
+    high: CompressorBand = Field(default_factory=CompressorBand)
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def crossover_order(self) -> Self:
+        if self.lower_crossover_hz >= self.upper_crossover_hz:
+            raise ValueError('multiband crossover frequencies must strictly increase')
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('multiband state_floor must be below tail_threshold')
+        return self
+
+
 class Reverb(Model):
     """Eight-line feedback-delay-network profile with named stereo output."""
 
@@ -640,6 +675,7 @@ Processor = Annotated[
     | Crossfader
     | Follower
     | Compressor
+    | MultibandCompressor
     | Gate
     | Expander
     | Reverb
@@ -1026,6 +1062,10 @@ def validate_action(graph: EffectGraph, action: EffectAction) -> None:
         if action.processor not in processors:
             raise ValueError(f'unknown processor {action.processor}')
         processor = processors[action.processor]
+        if isinstance(processor, MultibandCompressor) and not isinstance(
+            action, ParameterAction
+        ):
+            raise ValueError('multiband compression is always wet; use routing nodes')
         if isinstance(processor, ChannelMatrix):
             raise ValueError(
                 'routing matrices have no parameter, bypass or freeze actions'
@@ -1500,6 +1540,21 @@ def processor_latency(processor: Processor, sample_rate: int) -> int:
 
 
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
+    if isinstance(processor, MultibandCompressor):
+        band, separator, control = parameter.partition('-')
+        if (
+            not separator
+            or band not in {'low', 'mid', 'high'}
+            or control not in CompressorBand.model_fields
+        ):
+            raise ValueError('unknown multiband dynamics parameter')
+        if not isfinite(value):
+            raise ValueError('multiband controls must be finite')
+        if control == 'ratio' and value < 1:
+            raise ValueError('compressor ratio must be at least one')
+        if control in {'knee_db', 'attack_seconds', 'release_seconds'} and value < 0:
+            raise ValueError('compressor knee and times must be nonnegative')
+        return
     if isinstance(processor, Convolution):
         raise ValueError('convolution is always wet; control mix through routing nodes')
     if isinstance(processor, ChannelMatrix):

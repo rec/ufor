@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "source": {"kind": "main"}, "channels": ["left", "right"]}],
+  "processors": [{"kind": "multiband_compressor", "name": "bands", "lower_crossover_hz": "200 Hz", "upper_crossover_hz": "4 kHz", "high": {"threshold_db": "-24 dB", "ratio": 4}}],
+  "connections": [{"processor": "bands", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "bands"},
+  "maximum_block_frames": 1024
+}
