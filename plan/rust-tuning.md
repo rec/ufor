@@ -7,6 +7,20 @@ mathematics in this repository. Python and Rust should read the same portable
 definitions and produce equivalent results. This is the first domain of a
 likely full Rust port, not a replacement of the Python package.
 
+The end goal is a uFor library for both Rust and Python that works as closely as
+possible the same in both languages. Corresponding features should share domain
+concepts, document formats, defaults, validation rules, mathematical behavior,
+and failure conditions. Developers moving between languages should be able to
+transfer their understanding and data with minimal surprises.
+
+Each language should also offer facilities suited to its developers: Python's
+Pydantic models and convenient authoring interfaces, and Rust's enums, ownership,
+iterators, and typed `Result` errors. Public APIs should be idiomatic while their
+underlying semantics stay aligned. Language-specific conveniences must preserve
+the portable contract; unavoidable differences should be documented and tested.
+Shared behavior does not require identical syntax, internal representation, or
+implementation strategy.
+
 The first milestone ports these five classes from `ufor/tuning.py`:
 
 | Python definition | Rust responsibility |
