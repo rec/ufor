@@ -1,0 +1,11 @@
+{
+  "processors": [
+    {"kind": "captured_buffer", "name": "reverse", "mode": "reverse", "window_seconds": 0.25},
+    {"kind": "captured_buffer", "name": "scrub", "mode": "scrub", "position": 0.5, "window_seconds": 0.25},
+    {"kind": "captured_buffer", "name": "stutter", "mode": "stutter", "window_seconds": 0.25}
+  ],
+  "actions": [
+    {"kind": "capture", "tick": 12000, "ordinal": 0, "processor": "stutter"},
+    {"kind": "capture_release", "tick": 24000, "ordinal": 0, "processor": "stutter"}
+  ]
+}
