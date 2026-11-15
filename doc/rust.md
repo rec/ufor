@@ -38,9 +38,9 @@ Signed and zero expressions are permitted; `Number::positive` supplies the
 additional pitch constraint.
 
 `limit_denominator` approximates the exact input, including the binary fraction
-of an approximate value. Ties favor the smaller denominator, then the value
-closer to zero. Numeric display uses Rust's formatting and is not a canonical
-cross-language serialization of approximate values.
+of an approximate value. Ties favor the smaller denominator, then the lower
+value when the denominators also tie. Numeric display uses Rust's formatting
+and is not a canonical cross-language serialization of approximate values.
 
 Validated constructors and Serde deserialization reject the same invalid
 definitions. Source fields and evaluated tables are private and immutable;
@@ -99,9 +99,10 @@ The release workflow runs these checks on Linux, Windows, and macOS with the
 minimum compiler and current stable Rust. A local macOS result does not establish
 that those hosted jobs have passed.
 
-Python and Rust consume the same shared baseline cases, unit aliases and document
-values. Python's portable boundary still needs alignment for strict input types,
-the documented expression grammar, checked 64-bit arithmetic, preparation limits,
-and explicit evaluation failures. These are recorded as expected failures in
-the Python conformance runner and remaining work in [the plan](../plan/rust-tuning.md).
-Broader Pint syntax remains a Python authoring facility.
+Python and Rust pass the same shared definition, expression, preparation, unit
+and document cases. Python uses `model_validate` or `model_validate_json` with
+`context={'portable': True}` for strict portable input; the score codec applies
+that context automatically. Ordinary Python construction retains authoring
+coercions and broader Pint syntax. Both languages enforce checked pitch
+arithmetic and preparation limits during evaluation. No tuning expected failures
+remain. Hosted platform qualification is still tracked in [the plan](../plan/rust-tuning.md).

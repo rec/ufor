@@ -20,7 +20,6 @@ class Lookup(BaseModel, frozen=True):
     exact: str | None = None
     approx: float | None = None
     outside: bool = False
-    raises: Literal['OverflowError'] | None = None
     error: Literal['nonpositive-result', 'arithmetic-range'] | None = None
 
 
@@ -102,96 +101,59 @@ def test_preparation_accepts_tables_at_limit(case: PreparationCase) -> None:
 @pytest.mark.parametrize(
     'case', [c for c in PREPARATION if c.rejected], ids=lambda c: c.id
 )
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason='Preparation limits await Python portable-boundary alignment',
-)
 def test_preparation_rejects_tables_over_limit(case: PreparationCase) -> None:
-    try:
+    with pytest.raises(ValueError):
         prepare_table(case)
-    except ValueError:
-        return
-    pytest.fail('Preparation exceeds the approved table-entry limit')
 
 
 @pytest.mark.parametrize('case', PORTABLE_INVALID, ids=lambda c: c.id)
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason='Portable input types and 64-bit bounds await Python alignment',
-)
 def test_portable_input_types_reject_coercion(case: DefinitionCase) -> None:
-    try:
-        MODELS[case.model].model_validate(case.input)
-    except ValueError:
-        return
-    pytest.fail('Portable document input must not use Python authoring coercions')
+    with pytest.raises(ValueError):
+        MODELS[case.model].model_validate(case.input, context={'portable': True})
 
 
 @pytest.mark.parametrize('case', PORTABLE_EXPRESSIONS, ids=lambda c: c.text)
-@pytest.mark.xfail(
-    strict=True,
-    raises=ValueError,
-    reason='Documented grammar awaits Python parser alignment',
-)
 def test_portable_expression_grammar(case: ExpressionCase) -> None:
     check_number(evaluate(case.text), case.exact, case.approx)
 
 
 @pytest.mark.parametrize('text', DATA['approved_contract']['invalid_expressions'])
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason='64-bit expression arithmetic awaits Python alignment',
-)
 def test_portable_expressions_reject_integer_overflow(text: str) -> None:
-    try:
+    with pytest.raises(ValueError):
         evaluate(text)
-    except ValueError:
-        return
-    pytest.fail('Exact expression exceeds the approved 64-bit arithmetic bounds')
 
 
 @pytest.mark.parametrize('case', PORTABLE_ERRORS, ids=lambda c: c.id)
-@pytest.mark.xfail(
-    strict=True,
-    raises=pytest.fail.Exception,
-    reason='Portable evaluation safety awaits Python alignment',
-)
 def test_portable_evaluation_failures_are_explicit(case: DefinitionCase) -> None:
-    definition = MODELS[case.model].model_validate(case.input)
-    assert isinstance(definition, (Computed, Tuning))
+    definition = MODELS[case.model].model_validate(
+        case.input, context={'portable': True}
+    )
+    assert isinstance(definition, (Computed, RatioTable, IntervalPattern, Tuning))
     for lookup in case.lookups:
         assert lookup.error is not None
-        try:
+        message = 'positive' if lookup.error == 'nonpositive-result' else '64-bit'
+        with pytest.raises(ValueError, match=message):
             definition(int(lookup.note))
-        except ValueError:
-            continue
-        except OverflowError:
-            pytest.fail(
-                'Arithmetic failure must use the public validation error boundary'
-            )
-        pytest.fail(f'Expected portable evaluation failure: {lookup.error}')
 
 
 @pytest.mark.parametrize('case', VALID, ids=lambda c: c.id)
 def test_definitions_match_shared_tuning_cases(case: DefinitionCase) -> None:
-    definition = MODELS[case.model].model_validate(case.input)
+    context = {'portable': case.decision is None}
+    definition = MODELS[case.model].model_validate(case.input, context=context)
     if case.normalized is not None:
         assert definition.model_dump(mode='json') == case.normalized
     assert (
-        type(definition).model_validate_json(definition.model_dump_json()) == definition
+        type(definition).model_validate_json(
+            definition.model_dump_json(), context=context
+        )
+        == definition
     )
     tuning = definition.body if isinstance(definition, TuningScore) else definition
     assert isinstance(
         tuning, (Computed, RatioTable, IntervalPattern, FrequencyTable, Tuning)
     )
     for lookup in case.lookups:
-        if lookup.raises == 'OverflowError':
-            with pytest.raises(OverflowError):
-                tuning(int(lookup.note))
-        elif lookup.outside:
+        if lookup.outside:
             with pytest.raises(ValueError, match='outside'):
                 tuning(int(lookup.note))
         else:
@@ -206,7 +168,9 @@ def test_definitions_match_shared_tuning_cases(case: DefinitionCase) -> None:
 @pytest.mark.parametrize('case', INVALID, ids=lambda c: c.id)
 def test_invalid_definitions_are_rejected(case: DefinitionCase) -> None:
     with pytest.raises(ValueError):
-        MODELS[case.model].model_validate(case.input)
+        MODELS[case.model].model_validate(
+            case.input, context={'portable': case.decision is None}
+        )
 
 
 @pytest.mark.parametrize('case', EXPRESSIONS, ids=lambda c: c.text)

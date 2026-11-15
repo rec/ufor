@@ -78,8 +78,9 @@ Python-specific characterization from approved targets. Strict portable input
 types, a finite shared unit syntax, the documented grammar, and safe bounded
 evaluation are approved. The initial numeric policy is now uniformly 64-bit:
 `f64` floating-point values and checked `i64` mathematical integers and rational
-components. Python alignment gaps have explicit expected-failure tests;
-approval of the direction does not mean the implementation already conforms.
+components. Both suites now pass these cases without expected failures. Python
+uses `context={'portable': True}` on Pydantic validation, and the score codec
+applies that context automatically. Ordinary authoring conveniences remain separate.
 
 Use these existing sources as the starting inventory:
 
@@ -130,9 +131,8 @@ Implement the documented grammar directly with a bounded parser. Preserve:
 - Exact division and integer powers; approximate nonintegral powers, matching
   Python's current transition even when the mathematical result is rational.
 - Explicit expression and evaluation limits, including syntax depth, signs and
-  intermediate operations. The current Python limits remain characterization;
-  apply checked 64-bit arithmetic to literals, intermediates and reduced results
-  rather than inheriting Python's 16384-bit exact-number budget.
+  intermediate operations. Both implementations apply checked 64-bit arithmetic
+  to literals, intermediates and reduced results.
 - Rejection of unsupported operators, names, calls, division by zero, undefined
   powers, nonfinite results, and out-of-budget expressions.
 
@@ -140,7 +140,7 @@ Keep expression evaluation separate from positive-pitch validation: signed and
 zero expressions can be valid expressions while being invalid stored ratios or
 frequencies. Approved evaluation rejects nonpositive/nonfinite tuning results and
 exposes deliberate arithmetic errors, including approximation-to-zero, underflow,
-and overflow. Python behavior alignment remains implementation work.
+and overflow. Both implementations enforce these errors.
 
 For approximate results, define explicit per-case absolute/relative tolerances.
 Use exact numerator/denominator comparisons for exact cases. Do not require
@@ -186,7 +186,7 @@ materialize it.
 Use validated constructors and private invariant-bearing fields in Rust.
 Deserialization must go through the same validation. Do not cache evaluated
 tables behind publicly mutable vectors. Python currently permits list edits and
-revalidates on serialization; retain that behavior in Python, while defining Rust
+revalidates on embedding and serialization; retain that behavior in Python, while defining Rust
 edits as construction of a newly validated value. Include edit/reconstruction
 cases so stale cached ratios cannot become a cross-language difference.
 
@@ -204,15 +204,9 @@ derive alone to enforce positivity, bounds, finite floats, or defaults. Normal
 Rust construction must not bypass those checks either. Add JSON/TOML adapters
 without a generic registry for score types that have not yet been ported.
 
-Frequency strings such as `440Hz` and `2kHz` currently normalize through reccy's
-Pint-backed parser; detuning accepts musical-cent quantities. This is a real input
-contract, not an optional display feature. First enumerate the tuning-specific
-spellings and expressions accepted by Python and represent their normalized
-results as shared cases. Decide and document the portable Rust unit syntax before
-implementing that boundary. Do not claim complete authored-input parity if Rust
-only handles canonical numeric expressions. A general Pint replacement is outside
-this milestone; any proposed restriction of Python's accepted syntax requires a
-separate decision. The approved shared syntax supports Hz/hertz, kHz/kilohertz,
+Frequency strings such as `440Hz` and `2kHz` normalize through the same finite
+unit adapter at both portable boundaries. Broader Pint facilities remain Python
+authoring conveniences. The approved shared syntax supports Hz/hertz, kHz/kilohertz,
 mHz/millihertz and MHz/megahertz for frequencies; cent/cents/musical_cent,
 semitone and octave/oct for detuning. Numeric pitch expressions may contain one
 unit factor, including `1 kHz / 3`. Broader Pint syntax remains a Python authoring
@@ -237,13 +231,16 @@ approximations. See [the implementation guide](../doc/rust.md).
 Local verification currently uses macOS and the installed compiler; minimum
 compiler and other platform results remain unverified until release CI runs.
 
-1. Align Python's portable boundary with strict integer/boolean input types,
-   checked 64-bit numeric and source evaluation, the documented grammar, explicit
-   evaluation errors and the 10,000-entry preparation limit. Preserve separately
-   documented authoring conveniences. Review the effect on Scale and oscillator
-   callers before changing shared Python arithmetic. Keep the existing expected
-   failures until those behaviors are implemented.
-2. Obtain native minimum-compiler and three-platform evidence from the configured
+Python alignment is implemented in `ufor/expression.py`, `number.py`, `tuning.py`,
+and the existing score codec. The effects on adjacent domains were reviewed:
+Scala uses the checked parser; Scale naming/intervals, oscillator controls and
+general synth cents calculations retain their existing arithmetic. The shared
+cases and focused regressions cover this boundary. See
+[portable Python validation](../doc/validation.md#portable-python-tuning-input).
+
+Remaining work:
+
+1. Obtain native minimum-compiler and three-platform evidence from the configured
    release workflow. The Rust jobs already cover Rust 1.85 and stable on macOS,
    Windows and Linux; do not claim those results from local macOS checks.
 
@@ -261,8 +258,8 @@ formatting, type checking and pyupgrade whenever Python or shared test data chan
 Exact cases, rejection cases, and interchange results must agree; approximate
 cases must meet their explicit tolerances.
 
-Extend the existing release workflow for macOS, Windows, and Linux to build and
-test Rust as well as the non-editable Python package. Test the declared minimum
+The existing release workflow builds and tests Rust and the non-editable Python
+package on macOS, Windows, and Linux. It tests the declared minimum
 Rust version and a current stable toolchain. Do not trigger workflows on every
 commit. Native local results do not establish hosted results for other systems.
 WebAssembly and additional architectures remain later qualification work.

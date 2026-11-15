@@ -126,6 +126,10 @@ impl Rational {
         if self.denominator <= maximum {
             return Ok(self);
         }
+        // Equal-denominator ties at half-integers use floor, including negatives.
+        if self.numerator < 0 && maximum == 1 && self.denominator == 2 {
+            return Self::new(self.numerator.div_euclid(2), 1);
+        }
         let negative = self.numerator < 0;
         let magnitude = self.numerator.unsigned_abs();
         // Start after the integer term. Since denominator > maximum >= 1,

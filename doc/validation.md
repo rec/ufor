@@ -26,6 +26,46 @@ than cached, so valid edits remain visible.
 Public functions do not promise safe concurrent mutation. Author, validate, then
 evaluate or prepare; maintain runtime state separately from the definition.
 
+## Portable Python tuning input
+
+Use the existing Pydantic validation context for tuning bodies, source definitions
+and tuning score envelopes:
+
+```python
+from ufor.tuning import Tuning
+
+tuning = Tuning.model_validate(
+    {'source': {'kind': 'computed'}, 'root_frequency': '1 kHz / 3'},
+    context={'portable': True},
+)
+```
+
+The same context works with `model_validate_json` and propagates into nested
+sources. It requires actual JSON integer/boolean types, signed 64-bit tuning
+integers and the shared tuning unit subset. `parse_score`, `score_toml` and score
+migration apply it automatically. JSON model dumps alone do not validate portable
+input; validate with the context before serializing authored models.
+
+Ordinary Python construction keeps its integer/boolean coercions and broader
+Pint syntax. These conveniences must normalize to portable values before writing
+a document. Authoring models may represent out-of-range integers, but portable
+validation rejects them and tuning evaluation requires signed 64-bit arguments.
+The schema records the portable integer bounds and table limits.
+
+Tuning sources, `Tuning` and `TuningScore` revalidate existing instances, including
+when embedded in another tuning model. Validation can create new models and
+collections; edit the validated model's own collections, rather than relying on
+identity with the original inputs. Invalid edited tuning lists are rejected on
+embedding as well as serialization. Current table values are checked during
+evaluation, with a 10,000-entry preparation cap. `Computed.as_ratios()` has the
+same materialization cap; a computed note count can otherwise span positive i64.
+
+The checked pitch parser is also used by Scala import/export. Out-of-range exact
+Scala ratios now fail with `ValueError`. Scale naming, interval calculations,
+oscillator phase/duty/gain and general synth cents helpers retain their separate
+Python arithmetic. `Scale.frequency()` propagates the supplied tuning's range
+and arithmetic errors. These domains have not been ported to Rust.
+
 Recursive composition models support direct construction, validation, and schema
 generation from their defining modules. Their model rebuild loads the supported
 score union from `ufor.score_types` only when needed; callers need not import

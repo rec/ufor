@@ -36,7 +36,7 @@ The Python library provides frozen Pydantic models, validation, TOML interchange
 JSON Schema and reference calculations. An explicit library reader loads configured local files; applications supply devices
 and audio rendering. A native [Rust library](doc/rust.md) now implements tuning
 definitions, checked pitch mathematics and tuning-only JSON/TOML documents.
-Shared conformance cases track agreement and remaining Python alignment work.
+Shared conformance cases track agreement between the Python and Rust tuning implementations.
 
 Start with the [musical definitions](doc/musical-format.md),
 [instruments](doc/instrument-format.md), [modulation](doc/modulation-format.md)

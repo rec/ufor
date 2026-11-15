@@ -26,7 +26,7 @@ def migrate_score_v3(value: dict[str, object]) -> ScoreValue:
         if not isinstance(body, dict):
             raise ValueError('version 3 slideshow body must be an object')
         _migrate_assets(body.get('assets'))
-    return TypeAdapter(ScoreValue).validate_python(data)
+    return TypeAdapter(ScoreValue).validate_python(data, context={'portable': True})
 
 
 def parse_score(text: str) -> ScoreValue:
@@ -37,11 +37,13 @@ def parse_score(text: str) -> ScoreValue:
     except RecursionError as error:
         raise ValueError('score document is too deeply nested') from error
     _check_document_budget(data)
-    return TypeAdapter(ScoreValue).validate_python(data)
+    return TypeAdapter(ScoreValue).validate_python(data, context={'portable': True})
 
 
 def score_toml(value: ScoreValue) -> str:
-    validated = TypeAdapter(ScoreValue).validate_python(value.model_dump())
+    validated = TypeAdapter(ScoreValue).validate_python(
+        value.model_dump(), context={'portable': True}
+    )
     data = validated.model_dump(mode='json', exclude_none=True)
     _check_toml_arrays(data)
     return tomlkit.dumps(data)

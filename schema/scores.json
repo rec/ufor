@@ -3412,6 +3412,7 @@
         "denominator_limit": {
           "default": 0,
           "description": "Maximum rational denominator; 0 disables approximation",
+          "maximum": 9223372036854775807,
           "minimum": 0,
           "title": "Denominator Limit",
           "type": "integer"
@@ -3419,6 +3420,7 @@
         "notes_per_octave": {
           "default": 12,
           "exclusiveMinimum": 0,
+          "maximum": 9223372036854775807,
           "title": "Notes Per Octave",
           "type": "integer"
         },
@@ -6826,12 +6828,15 @@
           "items": {
             "type": "string"
           },
+          "maxItems": 10000,
           "minItems": 1,
           "title": "Values",
           "type": "array"
         },
         "first_note": {
           "default": 0,
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
           "title": "First Note",
           "type": "integer"
         }
@@ -7699,6 +7704,7 @@
           "items": {
             "type": "string"
           },
+          "maxItems": 10000,
           "minItems": 1,
           "title": "Intervals",
           "type": "array"
@@ -12047,6 +12053,7 @@
           "items": {
             "type": "string"
           },
+          "maxItems": 10000,
           "minItems": 1,
           "title": "Values",
           "type": "array"
@@ -16406,6 +16413,8 @@
         },
         "root_note": {
           "default": 69,
+          "maximum": 9223372036854775807,
+          "minimum": -9223372036854775808,
           "title": "Root Note",
           "type": "integer"
         },

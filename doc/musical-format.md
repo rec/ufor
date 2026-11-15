@@ -32,10 +32,10 @@ Both implementations limit expressions to 4096 characters and 64 syntax levels,
 scientific exponent magnitude to 4096, and power magnitude to 1024. The Rust
 portable contract uses checked signed 64-bit rational components and finite
 64-bit floats, rejecting overflow in literals and intermediate calculations.
-The current Python evaluator still uses a 16384-bit exact-number budget and
-Python AST syntax; alignment with the portable grammar and 64-bit bounds is
-tracked in [the Rust tuning plan](../plan/rust-tuning.md). See
-[Rust coverage and usage](rust.md) for preparation limits and unit syntax.
+Python implements the same grammar and checked numeric rules, without Python AST
+lexical restrictions. Leading zeroes and token whitespace, including newlines,
+are accepted. See [Rust coverage and usage](rust.md) for preparation limits and
+unit syntax, and [validation boundaries](validation.md) for portable Python input.
 
 In Ufor expressions `100.0` means one hundred. Only the Scala importer
 interprets a decimal-point pitch entry as cents.

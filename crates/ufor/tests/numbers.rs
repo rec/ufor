@@ -34,8 +34,8 @@ fn denominator_approximation_uses_exact_distance_and_ties() {
     for (n, d, limit, expected) in [
         (3, 2, 1, "1"),
         (5, 2, 1, "2"),
-        (-3, 2, 1, "-1"),
-        (-5, 2, 1, "-2"),
+        (-3, 2, 1, "-2"),
+        (-5, 2, 1, "-3"),
         (355, 113, 10, "22/7"),
         (1, 4, 1, "0"),
         (10, 7, 5, "7/5"),
@@ -70,24 +70,25 @@ fn denominator_approximation_matches_small_exhaustive_search() {
     for denominator in 1..40_i64 {
         for numerator in 0..80_i64 {
             for maximum in 1..10_i64 {
-                let mut best = (0_i64, 1_i64);
-                let mut distance = numerator;
-                for q in 1..=maximum {
-                    for p in 0..=(numerator * q / denominator + 1) {
-                        let delta = (numerator * q - p * denominator).abs();
-                        if delta * best.1 < distance * q
-                            || (delta * best.1 == distance * q && (q, p) < (best.1, best.0))
-                        {
-                            best = (p, q);
-                            distance = delta;
+                for sign in [-1, 1] {
+                    let mut best = (0_i64, 1_i64);
+                    let mut distance = numerator;
+                    for q in 1..=maximum {
+                        for magnitude in 0..=(numerator * q / denominator + 1) {
+                            let p = sign * magnitude;
+                            let delta = (sign * numerator * q - p * denominator).abs();
+                            if delta * best.1 < distance * q
+                                || (delta * best.1 == distance * q && (q, p) < (best.1, best.0))
+                            {
+                                best = (p, q);
+                                distance = delta;
+                            }
                         }
                     }
-                }
-                for sign in [-1, 1] {
                     let value = Rational::new(sign * numerator, denominator).unwrap();
                     assert_eq!(
                         value.limit_denominator(maximum).unwrap(),
-                        Rational::new(sign * best.0, best.1).unwrap(),
+                        Rational::new(best.0, best.1).unwrap(),
                         "{value}, limit {maximum}"
                     );
                 }
