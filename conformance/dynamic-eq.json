@@ -1,0 +1,8 @@
+{
+  "scope": "master",
+  "inputs": [{"name": "main", "channels": ["left", "right"], "source": {"kind": "main"}}],
+  "processors": [{"kind": "dynamic_eq", "name": "bell", "center_hz": "1 kHz", "q": 1, "threshold_db": "-24 dB", "ratio": 4, "maximum_cut_db": "12 dB"}],
+  "connections": [{"processor": "bell", "port": "input", "source": {"kind": "input", "input": "main"}}],
+  "output": {"kind": "processor", "processor": "bell"},
+  "maximum_block_frames": 1024
+}

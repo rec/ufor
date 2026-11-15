@@ -440,6 +440,37 @@ class MultibandCompressor(Model):
         return self
 
 
+class DynamicEQ(Model):
+    """One normalized bell band with linked peak-driven downward dynamics."""
+
+    kind: Literal['dynamic_eq'] = 'dynamic_eq'
+    name: Identifier
+    center_hz: Frequency = 1000.0
+    q: Positive = 1.0
+    threshold_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = -18.0
+    ratio: FiniteScalar = Field(default=1.0, ge=1)
+    knee_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=6.0, ge=0
+    )
+    attack_seconds: Seconds = 0.01
+    release_seconds: Seconds = 0.1
+    maximum_cut_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = Field(
+        default=12.0, ge=0
+    )
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+    tail_threshold: Positive = FILTER_TAIL_THRESHOLD
+    state_floor: Positive = DECAYING_STATE_FLOOR
+
+    @model_validator(mode='after')
+    def tail_floor(self) -> Self:
+        if self.state_floor >= self.tail_threshold:
+            raise ValueError('dynamic EQ state_floor must be below tail_threshold')
+        return self
+
+
 class Reverb(Model):
     """Eight-line feedback-delay-network profile with named stereo output."""
 
@@ -676,6 +707,7 @@ Processor = Annotated[
     | Follower
     | Compressor
     | MultibandCompressor
+    | DynamicEQ
     | Gate
     | Expander
     | Reverb
@@ -965,6 +997,7 @@ class ParameterAction(Model):
         unit = {
             'gain_db': 'decibel',
             'threshold_db': 'decibel',
+            'maximum_cut_db': 'decibel',
             'hysteresis_db': 'decibel',
             'knee_db': 'decibel',
             'makeup_db': 'decibel',
@@ -1544,6 +1577,24 @@ def processor_latency(processor: Processor, sample_rate: int) -> int:
 
 
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
+    if isinstance(processor, DynamicEQ):
+        if not isfinite(value):
+            raise ValueError('dynamic EQ controls must be finite')
+        if parameter in {'center_hz', 'q'} and value > 0:
+            return
+        if parameter == 'threshold_db':
+            return
+        if parameter == 'ratio' and value >= 1:
+            return
+        if (
+            parameter
+            in {'knee_db', 'attack_seconds', 'release_seconds', 'maximum_cut_db'}
+            and value >= 0
+        ):
+            return
+        if parameter == 'mix' and 0 <= value <= 1:
+            return
+        raise ValueError('invalid dynamic EQ parameter or value')
     if isinstance(processor, MultibandCompressor):
         band, separator, control = parameter.partition('-')
         if (
