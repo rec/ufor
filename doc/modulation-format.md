@@ -284,6 +284,14 @@ does not add a second LFO stop/tail state machine.
 
 ## Mapping and combination contract
 
+The native [Rust modulation library](rust-modulation.md) implements the shared
+route definitions and scalar mapping/combination contract. Python portable
+validation uses `context={'portable': True}` for the same unit subset, identifier
+repertoire, finite scalar rules and preparation limits. Ordinary Python
+authoring keeps broader Pint facilities. Binding validation reports unresolved
+generator/processor references explicitly; this is not a new generator runtime
+or an enge integration.
+
 The generators output dimensionless values. Instrument/processor routes must
 name their source instance, structured target `{name, parameter}`, mapping,
 operation, and target domain. The embedded `ufor.modulation.Modulation`

@@ -3,7 +3,7 @@
 from fractions import Fraction
 from typing import Annotated, Self
 
-from pydantic import Field, model_validator
+from pydantic import ConfigDict, Field, model_validator
 from reccy.configuration import units
 
 from .. import control
@@ -24,6 +24,8 @@ class ControlDeclaration(Model):
         minimum = -1.0 if self.polarity == Polarity.bipolar else 0.0
         if not minimum <= value <= 1.0:
             raise ValueError(f'{self.polarity} control value must be in [{minimum}, 1]')
+
+    model_config = ConfigDict(revalidate_instances='always')
 
 
 class ControlValueEvent(control.ControlEvent):

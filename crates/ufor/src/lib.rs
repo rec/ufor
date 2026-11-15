@@ -4,9 +4,15 @@
 #![doc = include_str!("../../../doc/rust.md")]
 
 pub mod codec;
+pub mod control;
 pub mod error;
 pub mod expression;
+pub mod identifier;
+mod identifier_ranges;
+pub mod modulation;
 pub mod musical;
 pub mod number;
+pub mod quantity;
+pub mod samples;
 pub mod tuning;
 pub mod units;

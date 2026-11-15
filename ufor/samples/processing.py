@@ -5,10 +5,11 @@ from fractions import Fraction
 from math import cos, pi, sin
 from typing import Annotated, ClassVar, Literal, Self
 
+import pydantic
 from pydantic import Field, StrictBool, model_validator
 from reccy.configuration import units
 
-from .. import control, envelfo, modulation
+from .. import control, envelfo, modulation, modulation_contract
 from ..approach import ExponentialApproach
 from ..base import (
     FiniteScalar,
@@ -169,18 +170,30 @@ class ChannelRoute(Model):
     gain: FiniteScalar
 
 
+def portable_smoothing(value: object, info: pydantic.ValidationInfo) -> object:
+    if info.context and info.context.get('portable'):
+        return modulation_contract.exact_seconds(value)
+    return value
+
+
 class EventBinding(Model):
-    name: Identifier
+    name: modulation_contract.Identifier
     kind: Literal['key', 'velocity']
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 class ControlBinding(Model):
-    name: Identifier
+    name: modulation_contract.Identifier
     kind: Literal['control'] = 'control'
-    control: Identifier
+    control: modulation_contract.Identifier
     smoothing: Annotated[
-        control.Rational, units.unit_validator('second', exact=True)
+        control.Rational,
+        units.unit_validator('second', exact=True),
+        pydantic.BeforeValidator(portable_smoothing),
     ] = Field(default=Fraction(1, 200), ge=0)
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 class ReleaseTiming(StrEnum):
@@ -189,17 +202,21 @@ class ReleaseTiming(StrEnum):
 
 
 class GeneratorBinding(Model):
-    name: Identifier
+    name: modulation_contract.Identifier
     kind: Literal['envelfo'] = 'envelfo'
-    reference: Identifier
-    output: Identifier | None = None
+    reference: modulation_contract.Identifier
+    output: modulation_contract.Identifier | None = None
     release_timing: ReleaseTiming = ReleaseTiming.event
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 class FollowerBinding(Model):
-    name: Identifier
+    name: modulation_contract.Identifier
     kind: Literal['follower'] = 'follower'
-    processor: Identifier
+    processor: modulation_contract.Identifier
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 class EnvelfoEventConnection(Model):
@@ -221,6 +238,41 @@ Binding = Annotated[
 ]
 
 
+def validate_local_bindings(
+    definition: modulation.Modulation,
+    bindings: list[Binding],
+    controls: dict[str, ControlDeclaration],
+) -> list[GeneratorBinding | FollowerBinding]:
+    """Validate available facts and return references requiring external context."""
+    modulation_contract.records(len(bindings) + len(controls))
+    context = {'portable': True}
+    definition = modulation.Modulation.model_validate(definition, context=context)
+    modulation_contract.records(
+        definition.record_count() + len(bindings) + len(controls)
+    )
+    bindings = pydantic.TypeAdapter(list[Binding]).validate_python(
+        bindings, context=context
+    )
+    controls = pydantic.TypeAdapter(
+        dict[modulation_contract.Identifier, ControlDeclaration]
+    ).validate_python(controls, context=context)
+    sources = _binding_sources(definition, bindings)
+    unresolved: list[GeneratorBinding | FollowerBinding] = []
+    for binding in bindings:
+        source = sources[binding.name]
+        if isinstance(binding, ControlBinding):
+            if binding.control not in controls:
+                raise ValueError(f'Unknown control: {binding.control}')
+            _validate_control_source(source, controls[binding.control])
+        elif isinstance(binding, EventBinding):
+            _validate_event_source(source, binding, definition.routes)
+        else:
+            if isinstance(binding, FollowerBinding):
+                _validate_follower_source(source)
+            unresolved.append(binding)
+    return unresolved
+
+
 class ModulationSettings(Model):
     """Shared generator bindings and routes for voices and effect graphs."""
 
@@ -239,10 +291,7 @@ class ModulationSettings(Model):
                 raise ValueError('inline LFO rate cannot reference a public parameter')
             if isinstance(generator, Envelope) and generator.initial == 'current':
                 raise ValueError('current envelope initial requires a parent stage')
-        unique((b.name for b in self.bindings), 'binding ID')
-        sources = {s.name: s for s in self.modulation.sources}
-        if sources.keys() != {b.name for b in self.bindings}:
-            raise ValueError('Each modulation source requires exactly one binding')
+        sources = _binding_sources(self.modulation, self.bindings)
         bindings = {b.name: b for b in self.bindings}
         for connection in self.event_connections:
             source = bindings.get(connection.source)
@@ -298,27 +347,9 @@ class ModulationSettings(Model):
             if isinstance(binding, FollowerBinding):
                 if not self.follower_bindings:
                     raise ValueError('Follower bindings require an effect graph')
-                if source.scope != 'voice' or source.minimum != 0:
-                    raise ValueError(
-                        'Follower sources require voice scope and minimum zero'
-                    )
+                _validate_follower_source(source)
             elif isinstance(binding, EventBinding):
-                if source.scope != 'voice':
-                    raise ValueError(
-                        'NoteKey and velocity bindings require voice scope'
-                    )
-                if binding.kind == 'key':
-                    if any(v != int(v) for v in (source.minimum, source.maximum)):
-                        raise ValueError('NoteKey source bounds must be integers')
-                    if any(
-                        p.input != int(p.input)
-                        for r in self.modulation.routes
-                        if r.source == source.name
-                        for p in r.points
-                    ):
-                        raise ValueError('NoteKey mapping inputs must be integers')
-                elif (source.minimum, source.maximum) != (0, 1):
-                    raise ValueError('Velocity source domain must be [0, 1]')
+                _validate_event_source(source, binding, self.modulation.routes)
             elif isinstance(binding, GeneratorBinding):
                 if binding.reference not in self.envelfos:
                     raise ValueError(
@@ -473,17 +504,9 @@ class SoundSettings(ModulationSettings):
             if isinstance(binding, ControlBinding):
                 if binding.control not in controls:
                     raise ValueError(f'Unknown control: {binding.control}')
-                declared = controls[binding.control]
-                source = sources[binding.name]
-                minimum = -1 if declared.polarity == control.Polarity.bipolar else 0
-                if source.scope == 'voice' or (source.minimum, source.maximum) != (
-                    minimum,
-                    1,
-                ):
-                    raise ValueError(
-                        'ControlDeclaration source must match its declared domain '
-                        'and control scope'
-                    )
+                _validate_control_source(
+                    sources[binding.name], controls[binding.control]
+                )
 
 
 def parameter_definition(
@@ -576,3 +599,47 @@ def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:
         values = [low * minimum, low * maximum, high * minimum, high * maximum]
         low, high = min(values), max(values)
     return low, high
+
+
+def _binding_sources(
+    definition: Modulation, bindings: list[Binding]
+) -> dict[str, modulation.Source]:
+    unique((b.name for b in bindings), 'binding ID')
+    sources = {s.name: s for s in definition.sources}
+    if sources.keys() != {b.name for b in bindings}:
+        raise ValueError('Each modulation source requires exactly one binding')
+    return sources
+
+
+def _validate_control_source(
+    source: modulation.Source, declaration: ControlDeclaration
+) -> None:
+    minimum = -1 if declaration.polarity == control.Polarity.bipolar else 0
+    if source.scope == 'voice' or (source.minimum, source.maximum) != (minimum, 1):
+        raise ValueError(
+            'ControlDeclaration source must match its declared domain and control scope'
+        )
+
+
+def _validate_follower_source(source: modulation.Source) -> None:
+    if source.scope != 'voice' or source.minimum != 0:
+        raise ValueError('Follower sources require voice scope and minimum zero')
+
+
+def _validate_event_source(
+    source: modulation.Source, binding: EventBinding, routes: list[modulation.Route]
+) -> None:
+    if source.scope != 'voice':
+        raise ValueError('NoteKey and velocity bindings require voice scope')
+    if binding.kind == 'key':
+        if not source.minimum.is_integer() or not source.maximum.is_integer():
+            raise ValueError('NoteKey source bounds must be integers')
+        if any(
+            not p.input.is_integer()
+            for r in routes
+            if r.source == source.name
+            for p in r.points
+        ):
+            raise ValueError('NoteKey mapping inputs must be integers')
+    elif (source.minimum, source.maximum) != (0, 1):
+        raise ValueError('Velocity source domain must be [0, 1]')

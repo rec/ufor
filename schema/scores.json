@@ -5206,6 +5206,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -6780,6 +6781,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -6790,6 +6792,7 @@
           "type": "string"
         },
         "processor": {
+          "maxLength": 4096,
           "title": "Processor",
           "type": "string"
         }
@@ -6929,6 +6932,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -6939,12 +6943,14 @@
           "type": "string"
         },
         "reference": {
+          "maxLength": 4096,
           "title": "Reference",
           "type": "string"
         },
         "output": {
           "anyOf": [
             {
+              "maxLength": 4096,
               "type": "string"
             },
             {
@@ -9137,6 +9143,7 @@
           "items": {
             "$ref": "#/$defs/Parameter"
           },
+          "maxItems": 10000,
           "title": "Parameters",
           "type": "array"
         },
@@ -9144,6 +9151,7 @@
           "items": {
             "$ref": "#/$defs/Source"
           },
+          "maxItems": 10000,
           "title": "Sources",
           "type": "array"
         },
@@ -9151,6 +9159,7 @@
           "items": {
             "$ref": "#/$defs/Route"
           },
+          "maxItems": 10000,
           "title": "Routes",
           "type": "array"
         }
@@ -12769,10 +12778,12 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
         "source": {
+          "maxLength": 4096,
           "title": "Source",
           "type": "string"
         },
@@ -12789,6 +12800,7 @@
           "items": {
             "$ref": "#/$defs/Point"
           },
+          "maxItems": 9999,
           "minItems": 1,
           "title": "Points",
           "type": "array"
@@ -14919,6 +14931,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -16001,10 +16014,12 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
         "parameter": {
+          "maxLength": 4096,
           "title": "Parameter",
           "type": "string"
         }
@@ -17867,6 +17882,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -17877,6 +17893,7 @@
           "type": "string"
         },
         "control": {
+          "maxLength": 4096,
           "title": "Control",
           "type": "string"
         },

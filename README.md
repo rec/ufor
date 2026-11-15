@@ -37,6 +37,8 @@ JSON Schema and reference calculations. An explicit library reader loads configu
 and audio rendering. A native [Rust library](doc/rust.md) now implements tuning
 definitions, checked pitch mathematics and tuning-only JSON/TOML documents.
 Shared conformance cases track agreement between the Python and Rust tuning implementations.
+Rust also supports [modulation routing and control declarations](doc/rust-modulation.md),
+with scalar evaluation and a defined local-binding validation boundary.
 
 Start with the [musical definitions](doc/musical-format.md),
 [instruments](doc/instrument-format.md), [modulation](doc/modulation-format.md)

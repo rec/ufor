@@ -2,14 +2,17 @@
 
 from enum import StrEnum, auto
 from itertools import pairwise
-from math import exp, fsum, log, prod
+from math import exp, fsum, log
 from typing import Annotated, Literal, Self, overload
 
+import pydantic
 from pydantic import Field, TypeAdapter, model_validator
 from reccy.configuration import units
 
-from .base import Identifier, Model, UnitScalar, unique
+from . import modulation_contract
+from .base import Model, UnitScalar, unique
 from .control import Scope
+from .modulation_contract import Identifier, Scalar, finite, records
 
 
 class Unit(StrEnum):
@@ -33,14 +36,22 @@ def unit_number(value: float | str, unit: Unit) -> float:
 
 
 @overload
-def unit_fields(value: dict[str, object], fields: list[str]) -> dict[str, object]: ...
+def unit_fields(
+    value: dict[str, object],
+    fields: list[str],
+    info: pydantic.ValidationInfo | None = None,
+) -> dict[str, object]: ...
 
 
 @overload
-def unit_fields(value: object, fields: list[str]) -> object: ...
+def unit_fields(
+    value: object, fields: list[str], info: pydantic.ValidationInfo | None = None
+) -> object: ...
 
 
-def unit_fields(value: object, fields: list[str]) -> object:
+def unit_fields(
+    value: object, fields: list[str], info: pydantic.ValidationInfo | None = None
+) -> object:
     """Normalize numeric fields in the unit declared by their containing object."""
     if not isinstance(value, dict):
         return value
@@ -48,6 +59,12 @@ def unit_fields(value: object, fields: list[str]) -> object:
     unit = UNIT_NAMES.get(declared) if isinstance(declared, str) else None
     if unit is None:
         return value
+    if info is not None and info.context and info.context.get('portable'):
+        return dict(value) | {
+            f: modulation_contract.scalar_quantity(value[f], str(declared))
+            for f in fields
+            if f in value
+        }
     return dict(value) | {
         f: units.magnitude(value[f], unit)
         for f in fields
@@ -70,19 +87,21 @@ class Target(Model):
     name: Identifier
     parameter: Identifier
 
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
+
 
 class Parameter(Model):
     target: Target
     unit: Unit
     scope: Scope
-    minimum: UnitScalar
-    maximum: UnitScalar
-    default: UnitScalar
+    minimum: Annotated[UnitScalar, pydantic.BeforeValidator(modulation_contract.scalar)]
+    maximum: Annotated[UnitScalar, pydantic.BeforeValidator(modulation_contract.scalar)]
+    default: Annotated[UnitScalar, pydantic.BeforeValidator(modulation_contract.scalar)]
 
     @model_validator(mode='before')
     @classmethod
-    def declared_units(cls, value: object) -> object:
-        return unit_fields(value, ['minimum', 'maximum', 'default'])
+    def declared_units(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        return unit_fields(value, ['minimum', 'maximum', 'default'], info)
 
     @model_validator(mode='after')
     def domain(self) -> Self:
@@ -96,12 +115,14 @@ class Parameter(Model):
             raise ValueError('normalized parameters must remain within [-1, 1]')
         return self
 
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
+
 
 class Source(Model):
     name: Identifier
     scope: Literal['instrument', 'part', 'trigger', 'voice']
-    minimum: float
-    maximum: float
+    minimum: Scalar
+    maximum: Scalar
 
     @model_validator(mode='after')
     def ordered_domain(self) -> Self:
@@ -109,10 +130,14 @@ class Source(Model):
             raise ValueError('source maximum must not precede its minimum')
         return self
 
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
+
 
 class Point(Model):
-    input: float
-    amount: UnitScalar
+    input: Scalar
+    amount: Annotated[UnitScalar, pydantic.BeforeValidator(modulation_contract.scalar)]
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 class Route(Model):
@@ -121,20 +146,21 @@ class Route(Model):
     target: Target
     operation: Operation
     unit: Unit
-    points: list[Point] = Field(min_length=1)
+    points: list[Point] = Field(min_length=1, max_length=9999)
     interpolation: Interpolation = Interpolation.linear
 
     @model_validator(mode='before')
     @classmethod
-    def declared_units(cls, value: object) -> object:
+    def declared_units(cls, value: object, info: pydantic.ValidationInfo) -> object:
         if not isinstance(value, dict) or not isinstance(value.get('points'), list):
             return value
+        records(1 + len(value['points']))
         return dict(value) | {
             'points': [
                 {
                     k: v
                     for k, v in unit_fields(
-                        dict(p) | {'unit': value.get('unit')}, ['amount']
+                        dict(p) | {'unit': value.get('unit')}, ['amount'], info
                     ).items()
                     if k != 'unit'
                 }
@@ -154,14 +180,38 @@ class Route(Model):
             raise ValueError('exponential mapping amounts must be positive')
         return self
 
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
+
 
 class Modulation(Model):
-    parameters: list[Parameter] = Field(default_factory=list)
-    sources: list[Source] = Field(default_factory=list)
-    routes: list[Route] = Field(default_factory=list)
+    parameters: list[Parameter] = Field(default_factory=list, max_length=10000)
+    sources: list[Source] = Field(default_factory=list, max_length=10000)
+    routes: list[Route] = Field(default_factory=list, max_length=10000)
+
+    @model_validator(mode='before')
+    @classmethod
+    def preparation_budget(cls, value: object) -> object:
+        if isinstance(value, dict):
+            arrays = [value.get(k, []) for k in ('parameters', 'sources', 'routes')]
+            if all(isinstance(a, (list, tuple)) for a in arrays):
+                count = sum(len(a) for a in arrays)
+                records(count)
+                for route in arrays[2]:
+                    points = (
+                        route.points
+                        if isinstance(route, Route)
+                        else route.get('points', [])
+                        if isinstance(route, dict)
+                        else []
+                    )
+                    if isinstance(points, (list, tuple)):
+                        count += len(points)
+                        records(count)
+        return value
 
     @model_validator(mode='after')
     def references_and_units(self) -> Self:
+        records(self.record_count())
         unique([s.name for s in self.sources], 'source IDs')
         unique([r.name for r in self.routes], 'route IDs')
         parameters = {p.target: p for p in self.parameters}
@@ -187,31 +237,52 @@ class Modulation(Model):
                 raise ValueError(f'route {route.name} points exceed its source domain')
         return self
 
+    def record_count(self) -> int:
+        return (
+            len(self.parameters)
+            + len(self.sources)
+            + sum(1 + len(r.points) for r in self.routes)
+        )
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
+
 
 class SourceValue(Model):
-    value: float
-    weight: float = Field(default=1, ge=0, le=1)
+    value: Scalar
+    weight: Scalar = Field(default=1, ge=0, le=1)
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 class ParameterValue(Model):
     target: Target
-    value: float
+    value: Scalar
+
+    model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
 def map_value(route: Route, value: float) -> float:
     """Clamp outside the knots; a step changes at the knot, not after it."""
+    finite(value)
     if value <= route.points[0].input:
         return route.points[0].amount
     for first, second in pairwise(route.points):
         if value < second.input:
             if route.interpolation == Interpolation.step:
                 return first.amount
-            progress = (value - first.input) / (second.input - first.input)
+            progress = finite(
+                finite(value - first.input) / finite(second.input - first.input)
+            )
             if route.interpolation == Interpolation.exponential:
-                return exp(
-                    (1 - progress) * log(first.amount) + progress * log(second.amount)
+                return finite(
+                    exp(
+                        (1 - progress) * log(first.amount)
+                        + progress * log(second.amount)
+                    )
                 )
-            return first.amount + progress * (second.amount - first.amount)
+            return finite(
+                first.amount + finite(progress * finite(second.amount - first.amount))
+            )
     return route.points[-1].amount
 
 
@@ -221,6 +292,9 @@ def evaluate(
     base_values: list[ParameterValue] | None = None,
 ) -> list[ParameterValue]:
     """Evaluate one resolved instance context without loading generators or devices."""
+    records(modulation.record_count())
+    records(len(values))
+    records(len(base_values or []))
     sources = {s.name: s for s in modulation.sources}
     for name, value in values.items():
         if name not in sources:
@@ -243,7 +317,9 @@ def evaluate(
         source_value = values[route.source]
         amount = map_value(route, source_value.value)
         neutral = 0 if route.operation == Operation.add else 1
-        amount = neutral + source_value.weight * (amount - neutral)
+        amount = finite(
+            neutral + finite(source_value.weight * finite(amount - neutral))
+        )
         contributions[route.target].append((route.operation, amount))
     result: list[ParameterValue] = []
     for target, parameter in parameters.items():
@@ -253,9 +329,15 @@ def evaluate(
                 f'base value for {target.name}.{target.parameter} is outside its domain'
             )
         terms = contributions[target]
-        value = (base + fsum(v for o, v in terms if o == Operation.add)) * prod(
-            v for o, v in terms if o == Operation.multiply
-        )
+        try:
+            added = finite(base + fsum(v for o, v in terms if o == Operation.add))
+        except OverflowError as error:
+            raise ValueError('Scalar sum exceeds the f64 range') from error
+        product = 1.0
+        for operation, amount in terms:
+            if operation == Operation.multiply:
+                product = finite(product * amount)
+        value = finite(added * product)
         if not parameter.minimum <= value <= parameter.maximum:
             raise ValueError(
                 f'modulated {target.name}.{target.parameter} is outside its domain'

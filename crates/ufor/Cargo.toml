@@ -1,7 +1,7 @@
 [package]
 name = "ufor"
 version = "0.1.0"
-description = "Shared uFor definitions and tuning mathematics"
+description = "Shared uFor definitions and reference mathematics"
 edition.workspace = true
 rust-version.workspace = true
 license.workspace = true

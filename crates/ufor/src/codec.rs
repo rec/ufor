@@ -4,6 +4,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::error::Error;
+use crate::modulation::Modulation;
 use crate::musical::TuningScore;
 use crate::tuning::Tuning;
 
@@ -22,6 +23,14 @@ pub fn parse_tuning(text: &str, format: Format) -> Result<Tuning, Error> {
 }
 
 pub fn tuning_text(value: &Tuning, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
+pub fn parse_modulation(text: &str, format: Format) -> Result<Modulation, Error> {
+    serde_json::from_value(read(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
+}
+
+pub fn modulation_text(value: &Modulation, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 

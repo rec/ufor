@@ -6,6 +6,11 @@ tuning-only `TuningScore` envelope in `crates/ufor`. JSON/TOML interchange suppo
 those definitions. Scale, Scala, oscillators, other score kinds, Python bindings,
 WebAssembly, and consumer migrations remain outside this implementation.
 
+The crate also implements [modulation routes, control declarations and binding
+value types](rust-modulation.md), including scalar reference evaluation and
+explicit reporting of unresolved generator/processor references. Full
+instrument/effect preparation and runtime integration remain with consumers.
+
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:
 
