@@ -73,9 +73,11 @@ in the specification and fixtures rather than silently changing either language.
 The initial [contract inventory and decision register](rust-tuning-contract.md)
 is implemented with shared cases in `conformance/tuning.json` and the Python
 runner `test/test_tuning_conformance.py`. It separates baseline cases from
-Python-specific characterization pending decisions. Integer domains, coercion,
-units, parser/numeric boundaries, and evaluation safety remain open; do not start
-Rust implementation by silently choosing those contracts.
+Python-specific characterization from approved targets. Strict portable input
+types, a finite shared unit syntax, the documented grammar, and safe bounded
+evaluation are approved. Integer precision remains open, with a bounded approach
+under consideration. Python alignment gaps have explicit expected-failure tests;
+approval of the direction does not mean the implementation already conforms.
 
 Use these existing sources as the starting inventory:
 
@@ -94,11 +96,10 @@ results need review; do not generate them by blindly treating current output as
 correct. Keep Scala, Scale and oscillator cases outside the first milestone's
 coverage claim even though they share `test/test_pitch.py`.
 
-Record the accepted document input types explicitly. Pydantic sometimes coerces
-values that Serde would reject, including integral floats or booleans in integer
-fields. Characterize those cases and agree on the portable input contract before
-implementing coercion. Do not impose a stricter Rust schema or silently narrow
-Python integers to a machine-sized type and call that parity.
+Use strict portable document integers and booleans. Pydantic coercions remain
+Python authoring conveniences, not required Rust acceptance behavior. Distinguish
+that authoring API from the portable boundary. Integer widths must still be
+agreed explicitly before rejecting currently accepted Python integers.
 
 ## Numbers and expression evaluation
 
@@ -107,14 +108,14 @@ from approximate finite `f64` values. An exact integer is a rational with
 denominator one. Document strings remain authored strings, rather than exposing
 the numeric library's serialization layout as a new wire format.
 
-Python's `Fraction` has arbitrary-precision integers. Use an arbitrary-precision
-rational implementation in Rust, with the existing expression bounds, rather
-than `Ratio<i64>` or `f64` for everything. Candidate dependencies are
-`num-bigint`, `num-rational`, and the traits needed for checked conversions;
-choose their versions and features during implementation. The
-[num-rational documentation](https://docs.rs/num-rational/latest/num_rational/type.BigRational.html)
-defines `BigRational` as `Ratio<BigInt>`. Audit existing sibling Rust tuning
-calculations for later reuse opportunities, but do not migrate them here.
+Python's arbitrary-precision `Fraction` is an implementation fact, not a Rust
+requirement. Reconsider integer widths and exact arithmetic budgets before
+selecting dependencies. The current proposal is signed 64-bit note indices and
+checked 128-bit rational components, with explicit overflow errors; it is not
+yet approved. Preserve exact ratios within the agreed bounds and use `f64` for
+inherently approximate results. Do not introduce arbitrary-precision allocation
+or a hidden floating fallback merely to imitate Python. Audit sibling Rust
+calculations for later reuse, without migrating consumers here.
 
 Implement the documented grammar directly with a bounded parser. Preserve:
 
@@ -123,16 +124,18 @@ Implement the documented grammar directly with a bounded parser. Preserve:
   `8/4/2 = 1`, `2^3^2 = 512`, and `-2^2 = -4`.
 - Exact division and integer powers; approximate nonintegral powers, matching
   Python's current transition even when the mathematical result is rational.
-- The existing 4096-character, 64-level, scientific-exponent 4096, power 1024,
-  and numerator/denominator 16384-bit limits. Define matching boundary cases
-  for syntax depth, signs, and intermediate operations in both implementations.
+- Explicit expression and evaluation limits, including syntax depth, signs and
+  intermediate operations. The current Python limits remain characterization;
+  reconcile arithmetic limits with the chosen fixed-width or precision policy
+  rather than requiring 16384-bit exact numbers by default.
 - Rejection of unsupported operators, names, calls, division by zero, undefined
   powers, nonfinite results, and out-of-budget expressions.
 
 Keep expression evaluation separate from positive-pitch validation: signed and
 zero expressions can be valid expressions while being invalid stored ratios or
-frequencies. Preserve the existing behavior at the point of failure, including
-float-conversion overflow and underflow; review discrepancies explicitly.
+frequencies. Approved evaluation rejects nonpositive/nonfinite tuning results and
+exposes deliberate arithmetic errors, including approximation-to-zero, underflow,
+and overflow. Python behavior alignment remains implementation work.
 
 For approximate results, define explicit per-case absolute/relative tolerances.
 Use exact numerator/denominator comparisons for exact cases. Do not require
@@ -167,12 +170,10 @@ Preserve these details in tests and implementation:
   `root_frequency`. Absolute tables ignore that anchor. Detuning multiplies
   either result by `2^(detune_cents/1200)`; zero detuning preserves exactness.
 
-Python accepts arbitrary-size note integers. Choose an exact Rust argument type
-or document and approve a bounded contract before implementation; do not assume
-`usize`, `i32`, or `i64` defines the portable domain. Convert table offsets to
-indices only after range checks. Evaluation budgets outside the expression
-parser also need explicit decisions if huge note values expose unbounded work;
-new limits must not be slipped into a typing or parser change.
+Choose and approve the Rust integer widths before implementation. Python's
+arbitrary-size domain need not be the portable domain. Convert table offsets to
+indices only after range checks; apply bounded arithmetic to source evaluation
+as well as parsing. New concrete limits must be explicit contract decisions.
 
 Use validated constructors and private invariant-bearing fields in Rust.
 Deserialization must go through the same validation. Do not cache evaluated
@@ -203,7 +204,9 @@ results as shared cases. Decide and document the portable Rust unit syntax befor
 implementing that boundary. Do not claim complete authored-input parity if Rust
 only handles canonical numeric expressions. A general Pint replacement is outside
 this milestone; any proposed restriction of Python's accepted syntax requires a
-separate decision. Rust evaluation itself consumes canonical quantities.
+separate decision. A finite shared tuning-specific syntax is approved; agree its
+exact spellings and grammar before implementing the adapter. Rust evaluation
+itself consumes canonical quantities.
 
 Read/write adapters operate on supplied text or bytes with an explicit UTF-8
 contract, not paths, locale-dependent numbers, or platform-native separators.

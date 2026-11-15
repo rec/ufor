@@ -2,8 +2,9 @@
 
 Characterization for the first stage of [the Rust port](rust-tuning.md), checked
 against the Python implementation and locked dependencies on 2026-11-15. This
-records current behavior; the pending decisions below are recommendations, not
-approved changes. No Rust API or Python behavior changes are implemented here.
+records current behavior alongside four approved directions. Integer precision
+remains open following review of the cost of arbitrary precision. No Rust API or
+Python production behavior changes are implemented here.
 
 ## Evidence and fixture format
 
@@ -17,10 +18,19 @@ tests remain relevant. The new data separates:
   is the final padded length, number of enclosing parentheses, or number of
   leading plus signs, respectively. These operations require no Python syntax
   knowledge in a Rust runner.
-- `python_characterization`: cases associated with an unresolved decision.
-  These check the current Python behavior without requiring Rust to copy it.
+- `python_characterization`: current Python behavior, including differences from
+  approved directions. These do not require Rust to copy it.
   Construction cases name their decision; the expression cases concern the
   parser/number decision. Do not promote them to shared requirements implicitly.
+- `approved_contract`: target cases for strict portable input types, documented
+  expression syntax, and explicit evaluation failures. The runner marks the ten
+  known Python alignment gaps as strict expected failures: an unexpected pass
+  requires updating their status, and unrelated exception types still fail.
+  Error categories describe intended Rust errors; Python alignment must at least
+  expose a deliberate `ValueError` rather than raw arithmetic exceptions.
+  Target tests currently exercise the existing model entrypoints. When a portable
+  document validation boundary is implemented, direct those tests to that boundary
+  rather than requiring authoring constructors to lose their conveniences.
 
 Case model names select standalone source classes, `Tuning`, or `TuningScore`.
 Inputs are ordinary document objects; `normalized` is the complete expected
@@ -106,8 +116,9 @@ results of fractional powers, and intermediate values larger than the final resu
 The current parser uses Python's AST after translating `^` to `**`. This leaks
 Python lexical rules: `01` and a bare newline before `/` are rejected, whereas
 the same newline inside parentheses is accepted. Ordinary token whitespace is
-broader in the written grammar. These are characterization cases pending a choice
-of portable syntax, not grounds to embed Python in Rust.
+broader in the written grammar. The approved target follows that grammar: `01`
+means one, and a newline between tokens is whitespace. Python parser alignment
+is still required; the old outcomes remain characterization evidence.
 
 Expression limits are 4096 input characters, 64 parenthesis levels and AST depth,
 scientific exponent magnitude 4096, power magnitude 1024, and 16384-bit exact
@@ -153,24 +164,63 @@ Pint aliases, prefixes and arithmetic. A general-purpose units library port is
 not implied. More spellings can be characterized once the portable unit boundary
 is chosen; changing locked dependencies can change characterization results.
 
-## Decisions required before Rust implementation
+## Approved directions and remaining precision decision
 
-| Decision | Options and practical effect | Recommendation, not yet approved |
+The user approved the four recommendations other than integer precision.
+
+| Decision | Approved direction | Remaining implementation detail |
 |---|---|---|
-| Integer domain | Arbitrary-size signed integers preserve Python's domain; a fixed-width domain simplifies native APIs but rejects currently valid definitions/arguments, including the beyond-i64 fixture | Preserve arbitrary-size document and mathematical integers; use checked conversions only for actual table indexing |
-| Portable input types | Copy Pydantic coercions, or define strict portable integers/booleans and leave broader coercion as Python authoring convenience | Use strict portable JSON types, while documenting Python's conveniences; confirm whether canonical interchange parity suffices or raw-input acceptance must also match |
-| Units boundary | Reproduce Pint's accepted syntax, or define a shared tuning-specific syntax and keep additional Python unit conveniences language-specific | Agree a finite shared syntax covering Hz/prefixes, exact rational magnitudes and musical intervals; retain broader Python authoring support without claiming identical acceptance |
-| Parser and numeric boundaries | Match AST lexical quirks and float-finiteness checks, or implement the documented grammar and explicitly align Python where it differs | Prefer the documented grammar and explicit portable limits; decide whether large exact results must be representable as f64 and how conservative power admission should be |
-| Evaluation safety and positivity | Preserve zero-producing approximation/underflow and raw overflow, or require positive finite results with bounded work and structured arithmetic failures | Define consistent evaluation budgets and explicit failures for zero/nonfinite frequencies; any Python behavior changes need separate implementation and review |
+| Portable input types | Strict JSON integers and booleans at the portable document boundary; broader Python authoring conveniences may remain separately documented | Add portable validation without silently removing Python authoring conveniences |
+| Units boundary | A finite shared tuning-specific syntax; additional Pint facilities can remain Python-specific | Specify the aliases, prefixes and rational unit-expression grammar; no complete Pint port |
+| Parser and numeric boundaries | Follow the documented grammar and explicit portable limits, with deliberate Python alignment | Numerical bounds follow the unresolved precision policy, rather than automatically preserving 16384-bit arithmetic or float-conversion artifacts |
+| Evaluation safety and positivity | Bound work and reject nonpositive/nonfinite tuning results with explicit arithmetic failures | Apply the agreed limits to source evaluation and materialization too; do not clamp, wrap, or silently lose exactness |
+
+Shared frequency syntax must at least cover the tested `2kHz`, `440 hertz`,
+and `1 kHz / 3`; pitch syntax must cover `1 octave` and `1 semitone`. The exact
+alias list and grammar still need specification before implementing the unit
+adapter. Approval of a finite subset is not approval of an unspecified parser.
+
+### Integer precision: open, with a revised recommendation
+
+Unlimited precision is not a requirement. The original recommendation privileged
+Python compatibility too strongly. Distinguish three separate questions:
+
+- Note indices and counts need practical integer ranges, not arbitrary precision
+  merely because Python permits it.
+- Exact ratios need numerator/denominator capacity to retain musical
+  relationships, not an unlimited frequency range. `(81/80)^100` is about 3.46,
+  but its reduced numerator and denominator each have roughly 190 decimal digits.
+  A small final value does not imply small exact components.
+- Floating-point magnitude is separate from exact precision. `f64` can represent
+  approximately `1e-200` without arbitrary-precision integers. Such extremes can
+  be boundary tests without being supported tuning requirements. See the
+  [Rust f64 reference](https://doc.rust-lang.org/std/primitive.f64.html).
+
+Proposed bounded starting point, **not yet approved**: signed 64-bit note indices
+and checked 128-bit rational components, with `f64` for inherently approximate
+results. Use reduction/cross-cancellation and checked arithmetic; fail explicitly
+when an exact result or intermediate exceeds the agreed capacity. Do not add a
+hidden arbitrary-precision fallback or silently convert exact overflow to float.
+Specify count ranges, denominator-limit ranges, and approximation working
+precision too: converting a binary float into an exact rational can itself
+exceed fixed component sizes.
+
+This trades arbitrary exact expression complexity for predictable storage and
+arithmetic cost. It would reject some currently accepted exact calculations even
+at ordinary musical magnitudes, so it needs explicit overflow cases. Measure
+representative tunings before claiming a performance benefit; preparation is not
+automatically a per-sample audio cost. The beyond-i64 and extreme exact-expression
+cases characterize Python, not a commitment to preserve their domains in Rust.
+Confirm the fixed-width policy before choosing dependencies or the Rust API.
 
 The `1e-12` comparison tolerances are the initial test policy for approximate
 results, not a promise of bitwise identity. Confirm them alongside numeric-boundary
 decisions before native implementations are judged equivalent.
 
-After decisions, move agreed cases out of `python_characterization` where
-appropriate, add omitted boundary cases, and update both specifications and tests
-in the same change. Until then, characterization failures report drift in Python;
-they do not authorize building the Rust implementation around every current quirk.
+Keep current observations and approved targets distinguishable until Python
+alignment is implemented. Then remove the expected-failure markers and update
+the specification in the same change. Do not require Rust to reproduce Python
+quirks merely to satisfy characterization cases.
 
 ## Additional work beyond the prompt
 

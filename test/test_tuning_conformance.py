@@ -21,6 +21,7 @@ class Lookup(BaseModel, frozen=True):
     approx: float | None = None
     outside: bool = False
     raises: Literal['OverflowError'] | None = None
+    error: Literal['nonpositive-result', 'arithmetic-range'] | None = None
 
 
 class DefinitionCase(BaseModel, frozen=True):
@@ -68,6 +69,62 @@ EXPRESSIONS = [
     for c in [*DATA['expressions'], *DATA['python_characterization']['expressions']]
 ]
 BUDGETS = [BudgetCase.model_validate(c) for c in DATA['expression_budgets']]
+PORTABLE_INVALID = [
+    DefinitionCase.model_validate(c) for c in DATA['approved_contract']['invalid']
+]
+PORTABLE_EXPRESSIONS = [
+    ExpressionCase.model_validate(c) for c in DATA['approved_contract']['expressions']
+]
+PORTABLE_ERRORS = [
+    DefinitionCase.model_validate(c)
+    for c in DATA['approved_contract']['evaluation_errors']
+]
+
+
+@pytest.mark.parametrize('case', PORTABLE_INVALID, ids=lambda c: c.id)
+@pytest.mark.xfail(
+    strict=True,
+    raises=pytest.fail.Exception,
+    reason='Portable input boundary awaits Python alignment',
+)
+def test_portable_input_types_reject_coercion(case: DefinitionCase) -> None:
+    try:
+        MODELS[case.model].model_validate(case.input)
+    except ValueError:
+        return
+    pytest.fail('Portable document input must not use Python authoring coercions')
+
+
+@pytest.mark.parametrize('case', PORTABLE_EXPRESSIONS, ids=lambda c: c.text)
+@pytest.mark.xfail(
+    strict=True,
+    raises=ValueError,
+    reason='Documented grammar awaits Python parser alignment',
+)
+def test_portable_expression_grammar(case: ExpressionCase) -> None:
+    check_number(evaluate(case.text), case.exact, case.approx)
+
+
+@pytest.mark.parametrize('case', PORTABLE_ERRORS, ids=lambda c: c.id)
+@pytest.mark.xfail(
+    strict=True,
+    raises=pytest.fail.Exception,
+    reason='Portable evaluation safety awaits Python alignment',
+)
+def test_portable_evaluation_failures_are_explicit(case: DefinitionCase) -> None:
+    definition = MODELS[case.model].model_validate(case.input)
+    assert isinstance(definition, (Computed, Tuning))
+    for lookup in case.lookups:
+        assert lookup.error is not None
+        try:
+            definition(int(lookup.note))
+        except ValueError:
+            continue
+        except OverflowError:
+            pytest.fail(
+                'Arithmetic failure must use the public validation error boundary'
+            )
+        pytest.fail(f'Expected portable evaluation failure: {lookup.error}')
 
 
 @pytest.mark.parametrize('case', VALID, ids=lambda c: c.id)
