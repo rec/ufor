@@ -40,6 +40,7 @@ FILTER_TAIL_THRESHOLD = 1e-12
 FREEZE_CROSSFADE_FRAMES = 64
 DELAY_RETIME_FADE_FRAMES = 64
 WAVESHAPER_LATENCY_FRAMES = 48
+FREQUENCY_SHIFTER_LATENCY_FRAMES = 512
 
 
 def default_grain_duration(data: dict[str, object]) -> float:
@@ -110,6 +111,20 @@ class Gain(Model):
     kind: Literal['gain'] = 'gain'
     name: Identifier
     gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
+    mix: UnitInterval = 1.0
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+
+class FrequencyShifter(Model):
+    """Fixed 1,025-tap Blackman Hilbert FIR with continuous shared phase."""
+
+    kind: Literal['frequency_shifter'] = 'frequency_shifter'
+    name: Identifier
+    shift_hz: Annotated[FiniteScalar, units.unit_validator('hertz')] = Field(
+        default=0.0, ge=-2000, le=2000
+    )
     mix: UnitInterval = 1.0
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
@@ -694,6 +709,7 @@ class Granulator(Model):
 Processor = Annotated[
     Gain
     | Waveshaper
+    | FrequencyShifter
     | Bitcrusher
     | OctaveDivider
     | Limiter
@@ -1013,6 +1029,7 @@ class ParameterAction(Model):
             'decay_seconds': 'second',
             'damping_hz': 'hertz',
             'center_hz': 'hertz',
+            'shift_hz': 'hertz',
             'cutoff_hz': 'hertz',
             'depth_cents': 'musical_cent',
             'delay_seconds': 'second',
@@ -1684,12 +1701,18 @@ def processor_latency(processor: Processor, sample_rate: int) -> int:
         return ceil(processor.lookahead_seconds * sample_rate)
     if isinstance(processor, Waveshaper):
         return WAVESHAPER_LATENCY_FRAMES
+    if isinstance(processor, FrequencyShifter):
+        return FREQUENCY_SHIFTER_LATENCY_FRAMES
     if isinstance(processor, Convolution):
         return processor.partition_frames
     return 0
 
 
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
+    if isinstance(processor, FrequencyShifter) and parameter == 'shift_hz':
+        if not isfinite(value) or not -2000 <= value <= 2000:
+            raise ValueError('frequency shift must be in [-2000, 2000] Hz')
+        return
     if isinstance(processor, DynamicEQ):
         if not isfinite(value):
             raise ValueError('dynamic EQ controls must be finite')

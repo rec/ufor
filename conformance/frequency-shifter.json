@@ -1,0 +1,7 @@
+{
+  "kind": "frequency_shifter",
+  "name": "shift",
+  "shift_hz": -250,
+  "mix": 1,
+  "bypass_fade_frames": 64
+}
