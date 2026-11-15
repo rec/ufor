@@ -1,0 +1,4 @@
+{
+  "tremolo": {"rate_hz": 5, "depth": 0.5, "phase": 0.25},
+  "vibrato": {"rate_hz": 5, "depth_seconds": 0.0005, "base_delay_seconds": 0.005, "maximum_delay_seconds": 0.01, "phase": 0}
+}

@@ -8,7 +8,7 @@ from typing import Annotated, ClassVar, Literal, Self, cast
 from pydantic import Field, StrictBool, TypeAdapter, model_validator
 from reccy.configuration import units
 
-from . import modulation
+from . import control, envelfo, modulation
 from .assets import is_finite_audio_source
 from .base import (
     FiniteScalar,
@@ -1492,6 +1492,119 @@ def modulated_multitap_graph(
     )
 
 
+def tremolo_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    maximum_block_frames: int,
+    rate_hz: float = 5.0,
+    depth: float = 0.5,
+    phase: float = 0.25,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Prepared sine amplitude modulation, from 1-depth to unity."""
+    if not 0 <= depth <= 1:
+        raise ValueError('tremolo depth must be in [0, 1]')
+    silence = ChannelMatrix(
+        name=f'{name}-silence',
+        input_channels=input.channels,
+        output_channels=input.channels,
+        coefficients=[[0.0 for _ in input.channels] for _ in input.channels],
+    )
+    fader = Crossfader(name=name, position=1 - depth / 2, law='linear')
+    graph = EffectGraph(
+        scope=scope,
+        owner=owner,
+        inputs=[input],
+        processors=[silence, fader],
+        connections=[
+            Connection(
+                processor=silence.name,
+                port='input',
+                source=InputSource(input=input.name),
+            ),
+            Connection(
+                processor=fader.name,
+                port='first',
+                source=ProcessorSource(processor=silence.name),
+            ),
+            Connection(
+                processor=fader.name,
+                port='second',
+                source=InputSource(input=input.name),
+            ),
+        ],
+        output=ProcessorSource(processor=fader.name),
+        maximum_block_frames=maximum_block_frames,
+    )
+    return _sine_motion(
+        graph,
+        name,
+        modulation.Target(name=name, parameter='position'),
+        rate_hz,
+        phase,
+        depth / 2,
+        0,
+        1,
+    )
+
+
+def vibrato_graph(
+    name: Identifier,
+    scope: AttachmentScope,
+    input: GraphInput,
+    maximum_block_frames: int,
+    rate_hz: float = 5.0,
+    depth_seconds: float = 0.0005,
+    base_delay_seconds: float = 0.005,
+    maximum_delay_seconds: float = 0.01,
+    phase: float = 0.0,
+    owner: Identifier | None = None,
+) -> EffectGraph:
+    """Prepared shared sine motion of a fully wet fractional delay."""
+    if (
+        not isfinite(depth_seconds)
+        or depth_seconds < 0
+        or not base_delay_seconds > depth_seconds
+        or not base_delay_seconds + depth_seconds <= maximum_delay_seconds
+    ):
+        raise ValueError(
+            'vibrato depth must retain a positive delay inside its maximum'
+        )
+    delay = ModulatedDelay(
+        name=name,
+        base_delay_seconds=base_delay_seconds,
+        maximum_delay_seconds=maximum_delay_seconds,
+        depth_seconds=0,
+        rate_hz=1,
+        feedback=0,
+        mix=1,
+    )
+    graph = EffectGraph(
+        scope=scope,
+        owner=owner,
+        inputs=[input],
+        processors=[delay],
+        connections=[
+            Connection(
+                processor=name, port='input', source=InputSource(input=input.name)
+            )
+        ],
+        output=ProcessorSource(processor=name),
+        maximum_block_frames=maximum_block_frames,
+    )
+    return _sine_motion(
+        graph,
+        name,
+        modulation.Target(name=name, parameter='base_delay_seconds'),
+        rate_hz,
+        phase,
+        depth_seconds,
+        base_delay_seconds - depth_seconds,
+        base_delay_seconds + depth_seconds,
+    )
+
+
 def processor_channels(
     processor: Processor, port_layouts: dict[str, list[str]]
 ) -> list[str]:
@@ -1835,6 +1948,57 @@ def grain_jitter(counter: int) -> float:
     value = ((value ^ (value >> 27)) * 0x94D049BB133111EB) & mask
     value ^= value >> 31
     return 2 * ((value >> 11) / 2**53) - 1
+
+
+def _sine_motion(
+    graph: EffectGraph,
+    name: Identifier,
+    target: modulation.Target,
+    rate_hz: float,
+    phase: float,
+    depth: float,
+    minimum: float,
+    maximum: float,
+) -> EffectGraph:
+    source = f'{name}-motion'
+    unit, default = graph.parameter_definition(target)
+    body = envelfo.LFO(
+        rate=control.rational(str(rate_hz)), phase=control.rational(str(phase))
+    )
+    routes = modulation.Modulation(
+        sources=[modulation.Source(name=source, scope='voice', minimum=-1, maximum=1)],
+        parameters=[
+            modulation.Parameter(
+                target=target,
+                scope=control.Scope.voice,
+                unit=unit,
+                minimum=minimum,
+                maximum=maximum,
+                default=default,
+            )
+        ],
+        routes=[
+            modulation.Route(
+                name=source,
+                source=source,
+                target=target,
+                unit=unit,
+                operation=modulation.Operation.add,
+                points=[
+                    modulation.Point(input=-1, amount=-depth),
+                    modulation.Point(input=1, amount=depth),
+                ],
+            )
+        ],
+    )
+    return EffectGraph.model_validate(
+        graph.model_dump()
+        | {
+            'envelfos': {source: body},
+            'bindings': [GeneratorBinding(name=source, reference=source)],
+            'modulation': routes,
+        }
+    )
 
 
 def _ancestors(name: str, dependencies: dict[str, set[str]]) -> set[str]:
