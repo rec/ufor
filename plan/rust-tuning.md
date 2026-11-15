@@ -70,6 +70,13 @@ in the specification and fixtures rather than silently changing either language.
 
 ## Establish the contract before implementation
 
+The initial [contract inventory and decision register](rust-tuning-contract.md)
+is implemented with shared cases in `conformance/tuning.json` and the Python
+runner `test/test_tuning_conformance.py`. It separates baseline cases from
+Python-specific characterization pending decisions. Integer domains, coercion,
+units, parser/numeric boundaries, and evaluation safety remain open; do not start
+Rust implementation by silently choosing those contracts.
+
 Use these existing sources as the starting inventory:
 
 - `doc/musical-format.md`: expression grammar, source domains and tuning semantics.
@@ -206,9 +213,9 @@ introduce another implementation.
 
 ## Implementation sequence
 
-1. Complete the input/number/unit contract inventory and expand shared fixtures.
-   Resolve integer-domain and unit-syntax decisions before committing to a public
-   Rust API. Leave existing Python behavior unchanged during characterization.
+1. Resolve the decisions in the contract inventory and extend fixtures for the
+   agreed boundaries before committing to a public Rust API. Initial inventory
+   and shared Python cases are present; behavior alignment is separate work.
 2. Add the workspace and initial crate. Set and test an explicit Rust minimum
    version, considering the siblings' edition 2024 / Rust 1.85 baseline and the
    selected dependencies. Commit the lockfile. Keep Python installation independent.

@@ -1,0 +1,103 @@
+{
+  "version": 1,
+  "relative_tolerance": 1e-12,
+  "absolute_tolerance": 1e-12,
+  "valid": [
+    {"id":"computed-defaults","model":"computed","input":{},"normalized":{"kind":"computed","denominator_limit":0,"notes_per_octave":12,"octave_ratio":"2"},"lookups":[{"note":"-12","exact":"1/2"},{"note":"0","exact":"1"},{"note":"12","exact":"2"},{"note":"1","approx":1.0594630943592953}]},
+    {"id":"computed-nonoctave","model":"computed","input":{"notes_per_octave":2,"octave_ratio":"9"},"lookups":[{"note":"-2","exact":"1/9"},{"note":"1","approx":3.0},{"note":"2","exact":"9"}]},
+    {"id":"computed-approximation","model":"computed","input":{"denominator_limit":5},"lookups":[{"note":"4","exact":"5/4"},{"note":"16","exact":"5/2"}]},
+    {"id":"approximation-lower-tie","model":"computed","input":{"notes_per_octave":1,"octave_ratio":"3/2","denominator_limit":1},"lookups":[{"note":"1","exact":"1"}]},
+    {"id":"approximation-upper-tie","model":"computed","input":{"notes_per_octave":1,"octave_ratio":"5/2","denominator_limit":1},"lookups":[{"note":"1","exact":"2"}]},
+    {"id":"computed-as-ratios","model":"computed","input":{"notes_per_octave":2,"octave_ratio":"9","denominator_limit":5},"as_ratios":{"kind":"ratios","values":["1","3"],"repeat_ratio":"9","name":"","description":""}},
+    {"id":"finite-ratios","model":"ratios","input":{"values":["3/2","1","5/4"],"name":"été","description":"Nonascending ratios"},"normalized":{"kind":"ratios","values":["3/2","1","5/4"],"repeat_ratio":null,"name":"été","description":"Nonascending ratios"},"lookups":[{"note":"-1","outside":true},{"note":"0","exact":"3/2"},{"note":"2","exact":"5/4"},{"note":"3","outside":true}]},
+    {"id":"repeating-ratios","model":"ratios","input":{"values":["1","5/4","3/2"],"repeat_ratio":"2"},"lookups":[{"note":"-4","exact":"3/8"},{"note":"-3","exact":"1/2"},{"note":"-1","exact":"3/4"},{"note":"0","exact":"1"},{"note":"4","exact":"5/2"}]},
+    {"id":"finite-intervals","model":"intervals","input":{"intervals":["5/4","6/5"],"repeat":false},"lookups":[{"note":"-1","outside":true},{"note":"0","exact":"1"},{"note":"1","exact":"5/4"},{"note":"2","exact":"3/2"},{"note":"3","outside":true}]},
+    {"id":"repeating-intervals-default","model":"intervals","input":{"intervals":["5/4","6/5","4/3"]},"normalized":{"kind":"intervals","intervals":["5/4","6/5","4/3"],"repeat":true},"lookups":[{"note":"-3","exact":"1/2"},{"note":"-1","exact":"3/4"},{"note":"0","exact":"1"},{"note":"4","exact":"5/2"}]},
+    {"id":"approximate-intervals","model":"intervals","input":{"intervals":["2^(1/12)"]},"lookups":[{"note":"-12","approx":0.5},{"note":"12","approx":2.0}]},
+    {"id":"finite-frequencies","model":"frequencies","input":{"values":["440/3","220"],"first_note":-2},"lookups":[{"note":"-3","outside":true},{"note":"-2","exact":"440/3"},{"note":"-1","exact":"220"},{"note":"0","outside":true}]},
+    {"id":"frequency-defaults","model":"frequencies","input":{"values":[" 440/3 "]},"normalized":{"kind":"frequencies","values":[" 440/3 "],"first_note":0},"lookups":[{"note":"0","exact":"440/3"}]},
+    {"id":"tuning-defaults","model":"tuning","input":{"source":{"kind":"computed"}},"normalized":{"source":{"kind":"computed","denominator_limit":0,"notes_per_octave":12,"octave_ratio":"2"},"root_note":69,"root_frequency":"440","detune_cents":0.0},"lookups":[{"note":"57","exact":"220"},{"note":"69","exact":"440"},{"note":"81","exact":"880"}]},
+    {"id":"relative-anchor","model":"tuning","input":{"source":{"kind":"ratios","values":["1","5/4"],"repeat_ratio":"2"},"root_note":0,"root_frequency":"440/3"},"lookups":[{"note":"-1","exact":"275/3"},{"note":"1","exact":"550/3"}]},
+    {"id":"absolute-ignores-anchor","model":"tuning","input":{"source":{"kind":"frequencies","values":["440"],"first_note":69},"root_note":0,"root_frequency":"100"},"lookups":[{"note":"69","exact":"440"},{"note":"0","outside":true}]},
+    {"id":"absolute-detune","model":"tuning","input":{"source":{"kind":"frequencies","values":["440"],"first_note":69},"root_frequency":"100","detune_cents":1200},"lookups":[{"note":"69","approx":880.0}]},
+    {"id":"relative-negative-detune","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":-1200},"lookups":[{"note":"69","approx":220.0}]},
+    {"id":"tuning-document","model":"score","input":{"kind":"tuning","name":"just","title":"Just 🎵","tags":["#just","#just"],"body":{"source":{"kind":"ratios","values":["1"," 5/4 "],"repeat_ratio":"2"},"root_frequency":"440/3"}},"normalized":{"format":"recs","version":4,"kind":"tuning","name":"just","title":"Just 🎵","tags":["#just"],"body":{"source":{"kind":"ratios","values":["1"," 5/4 "],"repeat_ratio":"2","name":"","description":""},"root_note":69,"root_frequency":"440/3","detune_cents":0.0}},"lookups":[{"note":"70","exact":"550/3"}]}
+  ],
+  "invalid": [
+    {"id":"missing-source","model":"tuning","input":{}},
+    {"id":"missing-discriminator","model":"tuning","input":{"source":{}}},
+    {"id":"unknown-discriminator","model":"tuning","input":{"source":{"kind":"equal"}}},
+    {"id":"source-extra-field","model":"computed","input":{"steps":12}},
+    {"id":"tuning-extra-field","model":"tuning","input":{"source":{"kind":"computed"},"root_frequncy":"440"}},
+    {"id":"zero-steps","model":"computed","input":{"notes_per_octave":0}},
+    {"id":"negative-denominator-limit","model":"computed","input":{"denominator_limit":-1}},
+    {"id":"zero-period","model":"computed","input":{"octave_ratio":"0"}},
+    {"id":"negative-period","model":"computed","input":{"octave_ratio":"-2"}},
+    {"id":"empty-ratios","model":"ratios","input":{"values":[]}},
+    {"id":"zero-ratio","model":"ratios","input":{"values":["0"]}},
+    {"id":"negative-ratio","model":"ratios","input":{"values":["-1"]}},
+    {"id":"zero-repeat","model":"ratios","input":{"values":["1"],"repeat_ratio":"0"}},
+    {"id":"empty-intervals","model":"intervals","input":{"intervals":[]}},
+    {"id":"zero-interval","model":"intervals","input":{"intervals":["0"]}},
+    {"id":"empty-frequencies","model":"frequencies","input":{"values":[]}},
+    {"id":"zero-frequency","model":"frequencies","input":{"values":["0"]}},
+    {"id":"wrong-frequency-dimension","model":"frequencies","input":{"values":["1 second"]}},
+    {"id":"zero-anchor-even-if-unused","model":"tuning","input":{"source":{"kind":"frequencies","values":["440"]},"root_frequency":"0"}},
+    {"id":"wrong-detune-dimension","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1Hz"}},
+    {"id":"detune-boolean","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":true}},
+    {"id":"missing-document-name","model":"score","input":{"kind":"tuning","title":"Tuning","body":{"source":{"kind":"computed"}}}},
+    {"id":"empty-document-title","model":"score","input":{"kind":"tuning","name":"tuning","title":"","body":{"source":{"kind":"computed"}}}},
+    {"id":"boolean-version","model":"score","input":{"kind":"tuning","name":"tuning","title":"Tuning","version":true,"body":{"source":{"kind":"computed"}}}},
+    {"id":"floating-version","model":"score","input":{"kind":"tuning","name":"tuning","title":"Tuning","version":4.0,"body":{"source":{"kind":"computed"}}}},
+    {"id":"unsupported-version","model":"score","input":{"kind":"tuning","name":"tuning","title":"Tuning","version":3,"body":{"source":{"kind":"computed"}}}}
+  ],
+  "expressions": [
+    {"text":"0","exact":"0"},
+    {"text":"-3/2","exact":"-3/2"},
+    {"text":"+1.25e-2","exact":"1/80"},
+    {"text":"2^-3^2","exact":"1/512"},
+    {"text":"(-2)^3","exact":"-8"},
+    {"text":"0^0","exact":"1"},
+    {"text":"4^(1/2)","approx":2.0},
+    {"text":"1e-400","exact":"1e-400"},
+    {"text":"2^1024/2^1024","exact":"1"}
+  ],
+  "invalid_expressions": ["", "1 2", "2^-1025", "0^-1", "1e4097", "1e309", "2^1024", "(-1)^(1/3)"],
+  "expression_budgets": [
+    {"id":"length-at-limit","operation":"pad_right","text":"1","count":4096,"exact":"1"},
+    {"id":"length-over-limit","operation":"pad_right","text":"1","count":4097,"rejected":true},
+    {"id":"parentheses-at-limit","operation":"parentheses","text":"1","count":64,"exact":"1"},
+    {"id":"parentheses-over-limit","operation":"parentheses","text":"1","count":65,"rejected":true},
+    {"id":"syntax-depth-at-limit","operation":"unary_plus","text":"1","count":64,"exact":"1"},
+    {"id":"syntax-depth-over-limit","operation":"unary_plus","text":"1","count":65,"rejected":true}
+  ],
+  "python_characterization": {
+    "valid": [
+      {"id":"boolean-integer","decision":"input-types","model":"computed","input":{"notes_per_octave":true},"normalized":{"kind":"computed","denominator_limit":0,"notes_per_octave":1,"octave_ratio":"2"}},
+      {"id":"integral-float","decision":"input-types","model":"computed","input":{"notes_per_octave":12.0},"normalized":{"kind":"computed","denominator_limit":0,"notes_per_octave":12,"octave_ratio":"2"}},
+      {"id":"integer-string","decision":"input-types","model":"computed","input":{"denominator_limit":"5"},"normalized":{"kind":"computed","denominator_limit":5,"notes_per_octave":12,"octave_ratio":"2"}},
+      {"id":"repeat-string","decision":"input-types","model":"intervals","input":{"intervals":["3/2"],"repeat":"false"},"normalized":{"kind":"intervals","intervals":["3/2"],"repeat":false}},
+      {"id":"beyond-i64","decision":"integer-domain","model":"frequencies","input":{"values":["440"],"first_note":9223372036854775808},"lookups":[{"note":"9223372036854775808","exact":"440"},{"note":"9223372036854775807","outside":true}]},
+      {"id":"frequency-unit-spellings","decision":"units","model":"frequencies","input":{"values":["2kHz","440 hertz","1 kHz / 3"]},"normalized":{"kind":"frequencies","values":["2000","440","1000/3"],"first_note":0},"lookups":[{"note":"2","exact":"1000/3"}]},
+      {"id":"detune-octave","decision":"units","model":"tuning","input":{"source":{"kind":"computed"},"root_frequency":"2kHz","detune_cents":"1 octave"},"normalized":{"source":{"kind":"computed","denominator_limit":0,"notes_per_octave":12,"octave_ratio":"2"},"root_note":69,"root_frequency":"2000","detune_cents":1200.0},"lookups":[{"note":"69","approx":4000.0}]},
+      {"id":"detune-semitone","decision":"units","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1 semitone"},"lookups":[{"note":"69","approx":466.1637615180899}]},
+      {"id":"approximation-can-reach-zero","decision":"evaluation-limits","model":"computed","input":{"notes_per_octave":1,"octave_ratio":"1/4","denominator_limit":1},"lookups":[{"note":"1","exact":"0"}]},
+      {"id":"detune-underflow","decision":"evaluation-limits","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":-2400000},"lookups":[{"note":"69","approx":0.0}]},
+      {"id":"detune-overflow","decision":"evaluation-limits","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":2400000},"lookups":[{"note":"69","raises":"OverflowError"}]},
+      {"id":"computed-overflow","decision":"evaluation-limits","model":"computed","input":{},"lookups":[{"note":"12289","raises":"OverflowError"}]}
+    ],
+    "invalid": [
+      {"id":"fractional-integer","decision":"input-types","model":"computed","input":{"notes_per_octave":12.5}},
+      {"id":"numeric-ratio","decision":"input-types","model":"ratios","input":{"values":[1.25]}},
+      {"id":"numeric-frequency","decision":"input-types","model":"frequencies","input":{"values":[440]}},
+      {"id":"numeric-anchor","decision":"input-types","model":"tuning","input":{"source":{"kind":"computed"},"root_frequency":440}}
+    ],
+    "expressions": [
+      {"text":"01","rejected":true},
+      {"text":"1\n/2","rejected":true},
+      {"text":"(1\n/2)","exact":"1/2"},
+      {"text":"1e-400^(1/2)","approx":0.0},
+      {"text":"(2^1024)^16","rejected":true}
+    ]
+  }
+}
