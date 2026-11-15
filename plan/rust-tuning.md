@@ -44,7 +44,7 @@ No changes to enge or enge-dependent work are part of this milestone.
 
 ## Repository and ownership
 
-Use a root Cargo workspace and one initial crate at `crates/ufor-core/`, following
+Use a root Cargo workspace and one initial crate named `ufor` at `crates/ufor/`, following
 the sibling arpeg/enveLFO workspace convention. The crate should contain domain
 modules such as `tuning`, `expression`, and `number`, with a small common score
 header module when the tuning envelope is added. Callers import public symbols
@@ -178,7 +178,10 @@ Preserve these details in tests and implementation:
 The Rust integer widths are settled at 64 bits. Python's arbitrary-size domain
 is not the portable domain. Convert table offsets to
 indices only after range checks; apply bounded arithmetic to source evaluation
-as well as parsing. New concrete limits must be explicit contract decisions.
+as well as parsing. Stored ratio, interval and frequency tables are capped at
+10,000 entries, and `Computed.as_ratios()` may materialize at most 10,000 entries.
+The computed note count itself can still span positive `i64`; lookup does not
+materialize it.
 
 Use validated constructors and private invariant-bearing fields in Rust.
 Deserialization must go through the same validation. Do not cache evaluated
@@ -209,9 +212,11 @@ results as shared cases. Decide and document the portable Rust unit syntax befor
 implementing that boundary. Do not claim complete authored-input parity if Rust
 only handles canonical numeric expressions. A general Pint replacement is outside
 this milestone; any proposed restriction of Python's accepted syntax requires a
-separate decision. A finite shared tuning-specific syntax is approved; agree its
-exact spellings and grammar before implementing the adapter. Rust evaluation
-itself consumes canonical quantities.
+separate decision. The approved shared syntax supports Hz/hertz, kHz/kilohertz,
+mHz/millihertz and MHz/megahertz for frequencies; cent/cents/musical_cent,
+semitone and octave/oct for detuning. Numeric pitch expressions may contain one
+unit factor, including `1 kHz / 3`. Broader Pint syntax remains a Python authoring
+facility. Rust evaluation itself consumes canonical quantities.
 
 Read/write adapters operate on supplied text or bytes with an explicit UTF-8
 contract, not paths, locale-dependent numbers, or platform-native separators.
@@ -222,7 +227,7 @@ introduce another implementation.
 ## Implementation sequence
 
 The workspace and bounded numeric/expression evaluator are implemented in
-`crates/ufor-core`, with Rust 2024 / Rust 1.85 as the declared baseline.
+`crates/ufor`, with Rust 2024 / Rust 1.85 as the declared baseline.
 Rust tests consume baseline and approved expression cases, including the
 shared expression budgets. Numeric tests cover cross-cancellation, signed
 bounds, binary floats, and exhaustive small denominator approximations.

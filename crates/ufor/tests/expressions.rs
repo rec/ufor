@@ -1,5 +1,5 @@
 use serde_json::Value;
-use ufor_core::expression::evaluate;
+use ufor::expression::evaluate;
 
 fn check_case(case: &Value) {
     let text = case["text"].as_str().unwrap();

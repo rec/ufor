@@ -1,6 +1,6 @@
-use ufor_core::error::Error;
-use ufor_core::expression::evaluate;
-use ufor_core::number::{Number, Rational};
+use ufor::error::Error;
+use ufor::expression::evaluate;
+use ufor::number::{Number, Rational};
 
 #[test]
 fn rational_arithmetic_reduces_before_checking_range() {

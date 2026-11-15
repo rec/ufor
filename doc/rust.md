@@ -1,21 +1,21 @@
 # Rust implementation
 
 The Cargo workspace currently implements checked pitch numbers and expression
-evaluation in `crates/ufor-core`. Tuning models and document interchange are still
+evaluation in `crates/ufor`. Tuning models and document interchange are still
 planned in [the tuning port plan](../plan/rust-tuning.md).
 
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:
 
 ```rust
-use ufor_core::expression::evaluate;
-use ufor_core::number::Rational;
+use ufor::expression::evaluate;
+use ufor::number::Rational;
 
 let value = evaluate("5/4")?;
 assert_eq!(value.rational(), Some(Rational::new(5, 4)?));
 let step = evaluate("2^(1/12)")?;
 assert!(step.rational().is_none());
-# Ok::<(), ufor_core::error::Error>(())
+# Ok::<(), ufor::error::Error>(())
 ```
 
 `Number` distinguishes exact `Rational` values from approximate finite `f64`
@@ -40,8 +40,9 @@ of an approximate value. Ties favor the smaller denominator, then the value
 closer to zero. Numeric display uses Rust's formatting and is not a canonical
 cross-language serialization of approximate values.
 
-Python installation remains independent of Rust. The Rust core has no runtime
-dependencies; its tests use `serde_json` to read shared conformance cases.
+Python installation remains independent of Rust. The core uses Serde,
+`serde_json` and `toml` for document interchange and shared conformance cases,
+without Python or host-library dependencies.
 
 Run the native checks from the repository root:
 
