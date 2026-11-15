@@ -3,6 +3,7 @@ from pathlib import Path
 import pytest
 
 from ufor import audio_effects
+from ufor.modulation import Target, Unit
 
 
 def test_multiband_roundtrips_units_and_band_actions() -> None:
@@ -26,6 +27,9 @@ def test_multiband_roundtrips_units_and_band_actions() -> None:
     )
     audio_effects.validate_action(graph, action)
     assert action.value == 0.002
+    assert graph.parameter_definition(
+        Target(name='bands', parameter='high-threshold_db')
+    ) == (Unit.db, -24)
     with pytest.raises(ValueError, match='always wet'):
         audio_effects.validate_action(
             graph,

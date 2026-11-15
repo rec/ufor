@@ -875,7 +875,11 @@ class EffectGraph(ModulationSettings):
                     return modulation.Unit.hz, definition.cutoff_hz
                 if name == f'{definition.name}-q':
                     return modulation.Unit.ratio, definition.q
-        value = getattr(processor, name, None)
+        if isinstance(processor, MultibandCompressor):
+            band, _, control = name.partition('-')
+            value = getattr(getattr(processor, band, None), control, None)
+        else:
+            value = getattr(processor, name, None)
         if not isinstance(value, (int, float)):
             raise ValueError(f'Unknown effect parameter {target.name}.{name}')
         validate_parameter(processor, name, value)
