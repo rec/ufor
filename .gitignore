@@ -9,3 +9,6 @@ wheels/
 # Virtual environments
 .venv
 /.cache/reccy-docs/
+
+# Rust-generated files
+/target/

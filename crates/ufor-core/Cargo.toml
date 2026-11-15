@@ -1,0 +1,10 @@
+[package]
+name = "ufor-core"
+version = "0.1.0"
+description = "Shared uFor definitions and tuning mathematics"
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[dev-dependencies]
+serde_json = { version = "1.0", features = ["float_roundtrip"] }
