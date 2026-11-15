@@ -41,6 +41,7 @@ FREEZE_CROSSFADE_FRAMES = 64
 DELAY_RETIME_FADE_FRAMES = 64
 WAVESHAPER_LATENCY_FRAMES = 48
 FREQUENCY_SHIFTER_LATENCY_FRAMES = 512
+CAPTURE_FADE_FRAMES = 64
 
 
 def default_grain_duration(data: dict[str, object]) -> float:
@@ -669,6 +670,27 @@ class Multiply(Model):
     )
 
 
+class CapturedBuffer(Model):
+    """Triggered reverse, direct-position scrub or repeating captured input."""
+
+    kind: Literal['captured_buffer'] = 'captured_buffer'
+    name: Identifier
+    mode: Literal['reverse', 'scrub', 'stutter']
+    window_seconds: PositiveSeconds = Field(default=0.25, le=2)
+    position: UnitInterval = 0.0
+    mix: UnitInterval = 1.0
+    maximum_pending_actions: int = Field(default=64, ge=1, strict=True)
+    bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
+        default=BYPASS_FADE_FRAMES, ge=1, strict=True
+    )
+
+    @model_validator(mode='after')
+    def scrub_position(self) -> Self:
+        if self.mode != 'scrub' and self.position != 0:
+            raise ValueError('position is only authored in scrub mode')
+        return self
+
+
 class Granulator(Model):
     kind: Literal['granulator'] = 'granulator'
     name: Identifier
@@ -708,6 +730,7 @@ class Granulator(Model):
 
 Processor = Annotated[
     Gain
+    | CapturedBuffer
     | Waveshaper
     | FrequencyShifter
     | Bitcrusher
@@ -1073,6 +1096,20 @@ class FreezeAction(Model):
     frozen: StrictBool
 
 
+class CaptureAction(Model):
+    kind: Literal['capture'] = 'capture'
+    tick: Frame
+    ordinal: int = Field(ge=0, strict=True)
+    processor: Identifier
+
+
+class CaptureReleaseAction(Model):
+    kind: Literal['capture_release'] = 'capture_release'
+    tick: Frame
+    ordinal: int = Field(ge=0, strict=True)
+    processor: Identifier
+
+
 class InputEndAction(Model):
     kind: Literal['input_end'] = 'input_end'
     tick: Frame
@@ -1087,7 +1124,13 @@ class StopAction(Model):
 
 
 EffectAction = Annotated[
-    ParameterAction | BypassAction | FreezeAction | InputEndAction | StopAction,
+    ParameterAction
+    | BypassAction
+    | FreezeAction
+    | CaptureAction
+    | CaptureReleaseAction
+    | InputEndAction
+    | StopAction,
     Field(discriminator='kind'),
 ]
 
@@ -1109,15 +1152,31 @@ class ActionBatch(Model):
 
     @property
     def lifecycle(self) -> bool:
-        return any(isinstance(a, (InputEndAction, StopAction)) for a in self.actions)
+        return any(
+            isinstance(a, (InputEndAction, StopAction, CaptureReleaseAction))
+            for a in self.actions
+        )
 
 
 def validate_action(graph: EffectGraph, action: EffectAction) -> None:
     processors = {p.name: p for p in graph.processors}
-    if isinstance(action, (ParameterAction, BypassAction, FreezeAction)):
+    if isinstance(
+        action,
+        (
+            ParameterAction,
+            BypassAction,
+            FreezeAction,
+            CaptureAction,
+            CaptureReleaseAction,
+        ),
+    ):
         if action.processor not in processors:
             raise ValueError(f'unknown processor {action.processor}')
         processor = processors[action.processor]
+        if isinstance(action, (CaptureAction, CaptureReleaseAction)):
+            if not isinstance(processor, CapturedBuffer):
+                raise ValueError('capture actions require a captured buffer')
+            return
         if isinstance(processor, MultibandCompressor) and not isinstance(
             action, ParameterAction
         ):
@@ -1711,6 +1770,10 @@ def processor_latency(processor: Processor, sample_rate: int) -> int:
 
 
 def validate_parameter(processor: Processor, parameter: str, value: float) -> None:
+    if isinstance(processor, CapturedBuffer) and parameter == 'position':
+        if processor.mode != 'scrub' or not isfinite(value) or not 0 <= value <= 1:
+            raise ValueError('position requires scrub mode and a value in [0, 1]')
+        return
     if isinstance(processor, FrequencyShifter) and parameter == 'shift_hz':
         if not isfinite(value) or not -2000 <= value <= 2000:
             raise ValueError('frequency shift must be in [-2000, 2000] Hz')
