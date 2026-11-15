@@ -2,8 +2,8 @@
 
 Characterization for the first stage of [the Rust port](rust-tuning.md), checked
 against the Python implementation and locked dependencies on 2026-11-15. This
-records current behavior alongside four approved directions. Integer precision
-remains open following review of the cost of arbitrary precision. No Rust API or
+records current behavior alongside the approved directions, including a uniform
+64-bit numeric policy for the initial port. No Rust API or
 Python production behavior changes are implemented here.
 
 ## Evidence and fixture format
@@ -23,7 +23,7 @@ tests remain relevant. The new data separates:
   Construction cases name their decision; the expression cases concern the
   parser/number decision. Do not promote them to shared requirements implicitly.
 - `approved_contract`: target cases for strict portable input types, documented
-  expression syntax, and explicit evaluation failures. The runner marks the ten
+  expression syntax, numeric bounds and explicit evaluation failures. The runner marks
   known Python alignment gaps as strict expected failures: an unexpected pass
   requires updating their status, and unrelated exception types still fail.
   Error categories describe intended Rust errors; Python alignment must at least
@@ -164,15 +164,16 @@ Pint aliases, prefixes and arithmetic. A general-purpose units library port is
 not implied. More spellings can be characterized once the portable unit boundary
 is chosen; changing locked dependencies can change characterization results.
 
-## Approved directions and remaining precision decision
+## Approved directions
 
-The user approved the four recommendations other than integer precision.
+The user approved the four initial recommendations and subsequently chose
+64-bit numbers throughout, with any 32-bit version deferred until demanded.
 
 | Decision | Approved direction | Remaining implementation detail |
 |---|---|---|
 | Portable input types | Strict JSON integers and booleans at the portable document boundary; broader Python authoring conveniences may remain separately documented | Add portable validation without silently removing Python authoring conveniences |
 | Units boundary | A finite shared tuning-specific syntax; additional Pint facilities can remain Python-specific | Specify the aliases, prefixes and rational unit-expression grammar; no complete Pint port |
-| Parser and numeric boundaries | Follow the documented grammar and explicit portable limits, with deliberate Python alignment | Numerical bounds follow the unresolved precision policy, rather than automatically preserving 16384-bit arithmetic or float-conversion artifacts |
+| Parser and numeric boundaries | Follow the documented grammar; use `f64` and checked `i64` values, including rational components | Align Python's portable boundary rather than copying its 16384-bit arithmetic or float-conversion artifacts |
 | Evaluation safety and positivity | Bound work and reject nonpositive/nonfinite tuning results with explicit arithmetic failures | Apply the agreed limits to source evaluation and materialization too; do not clamp, wrap, or silently lose exactness |
 
 Shared frequency syntax must at least cover the tested `2kHz`, `440 hertz`,
@@ -180,7 +181,7 @@ and `1 kHz / 3`; pitch syntax must cover `1 octave` and `1 semitone`. The exact
 alias list and grammar still need specification before implementing the unit
 adapter. Approval of a finite subset is not approval of an unspecified parser.
 
-### Integer precision: open, with a revised recommendation
+### Numeric policy: 64-bit throughout
 
 Unlimited precision is not a requirement. The original recommendation privileged
 Python compatibility too strongly. Distinguish three separate questions:
@@ -196,14 +197,31 @@ Python compatibility too strongly. Distinguish three separate questions:
   be boundary tests without being supported tuning requirements. See the
   [Rust f64 reference](https://doc.rust-lang.org/std/primitive.f64.html).
 
-Proposed bounded starting point, **not yet approved**: signed 64-bit note indices
-and checked 128-bit rational components, with `f64` for inherently approximate
-results. Use reduction/cross-cancellation and checked arithmetic; fail explicitly
-when an exact result or intermediate exceeds the agreed capacity. Do not add a
-hidden arbitrary-precision fallback or silently convert exact overflow to float.
-Specify count ranges, denominator-limit ranges, and approximation working
-precision too: converting a binary float into an exact rational can itself
-exceed fixed component sizes.
+Use `f64` for every floating-point value and computation in the initial port.
+Use checked `i64` for note indices, counts, limits, and exact rational components.
+Signed integer bounds are -9223372036854775808 through 9223372036854775807;
+counts/limits remain nonnegative, note counts remain positive, and denominators
+are positive and no greater than 9223372036854775807. Reject inputs outside those
+ranges. JSON integer parsing must not first round them through `f64`.
+
+Normalize signs, reduce fractions and cross-cancel before checked operations
+where possible. Reject arithmetic that still exceeds 64 bits, including an
+intermediate that would overflow before a later division reduces the result.
+The signed minimum literal must be accepted as a signed value, without requiring
+an out-of-range positive intermediate. Do not add arbitrary-precision or 128-bit
+fallbacks, wrapping/saturating arithmetic, or silent conversion of exact overflow
+to float. Use `usize` only for indexing/allocation after checked conversion.
+
+The stored components and all arithmetic must respect this policy. Denominator
+approximation must not materialize an arbitrarily large binary-float fraction:
+implement it with bounded working values and explicit errors when unsupported.
+Detailed operation/work budgets and the bounded approximation algorithm remain
+implementation tasks, not permission to widen arithmetic implicitly.
+
+No 32-bit variant is part of this port; consider one only if demand emerges.
+This numeric policy should guide subsequent domains too. Existing protocol-defined
+byte fields are not being redesigned, and no current Python representation is
+changed by this planning update.
 
 This trades arbitrary exact expression complexity for predictable storage and
 arithmetic cost. It would reject some currently accepted exact calculations even
@@ -211,11 +229,11 @@ at ordinary musical magnitudes, so it needs explicit overflow cases. Measure
 representative tunings before claiming a performance benefit; preparation is not
 automatically a per-sample audio cost. The beyond-i64 and extreme exact-expression
 cases characterize Python, not a commitment to preserve their domains in Rust.
-Confirm the fixed-width policy before choosing dependencies or the Rust API.
+Use this fixed-width policy when choosing dependencies and the Rust API.
 
-The `1e-12` comparison tolerances are the initial test policy for approximate
-results, not a promise of bitwise identity. Confirm them alongside numeric-boundary
-decisions before native implementations are judged equivalent.
+Retain the initial `1e-12` comparison tolerances for approximate `f64` results;
+they are not a promise of bitwise identity across platforms. Review tolerances
+against the native conformance results before claiming equivalence.
 
 Keep current observations and approved targets distinguishable until Python
 alignment is implemented. Then remove the expected-failure markers and update

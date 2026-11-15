@@ -85,7 +85,7 @@ PORTABLE_ERRORS = [
 @pytest.mark.xfail(
     strict=True,
     raises=pytest.fail.Exception,
-    reason='Portable input boundary awaits Python alignment',
+    reason='Portable input types and 64-bit bounds await Python alignment',
 )
 def test_portable_input_types_reject_coercion(case: DefinitionCase) -> None:
     try:
@@ -103,6 +103,20 @@ def test_portable_input_types_reject_coercion(case: DefinitionCase) -> None:
 )
 def test_portable_expression_grammar(case: ExpressionCase) -> None:
     check_number(evaluate(case.text), case.exact, case.approx)
+
+
+@pytest.mark.parametrize('text', DATA['approved_contract']['invalid_expressions'])
+@pytest.mark.xfail(
+    strict=True,
+    raises=pytest.fail.Exception,
+    reason='64-bit expression arithmetic awaits Python alignment',
+)
+def test_portable_expressions_reject_integer_overflow(text: str) -> None:
+    try:
+        evaluate(text)
+    except ValueError:
+        return
+    pytest.fail('Exact expression exceeds the approved 64-bit arithmetic bounds')
 
 
 @pytest.mark.parametrize('case', PORTABLE_ERRORS, ids=lambda c: c.id)

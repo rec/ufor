@@ -3,17 +3,24 @@
   "relative_tolerance": 1e-12,
   "absolute_tolerance": 1e-12,
   "approved_contract": {
-    "integer_precision": "pending",
+    "integer_precision": "i64",
+    "floating_precision": "f64",
+    "rational_components": "i64",
     "invalid": [
       {"id":"portable-boolean-integer","model":"computed","input":{"notes_per_octave":true}},
       {"id":"portable-integral-float","model":"computed","input":{"notes_per_octave":12.0}},
       {"id":"portable-integer-string","model":"computed","input":{"denominator_limit":"5"}},
-      {"id":"portable-repeat-string","model":"intervals","input":{"intervals":["3/2"],"repeat":"false"}}
+      {"id":"portable-repeat-string","model":"intervals","input":{"intervals":["3/2"],"repeat":"false"}},
+      {"id":"portable-note-above-i64","model":"frequencies","input":{"values":["440"],"first_note":9223372036854775808}},
+      {"id":"portable-note-below-i64","model":"frequencies","input":{"values":["440"],"first_note":-9223372036854775809}},
+      {"id":"portable-count-above-i64","model":"computed","input":{"notes_per_octave":9223372036854775808}},
+      {"id":"portable-limit-above-i64","model":"computed","input":{"denominator_limit":9223372036854775808}}
     ],
     "expressions": [
       {"text":"01","exact":"1"},
       {"text":"1\n/2","exact":"1/2"}
     ],
+    "invalid_expressions": ["9223372036854775808", "1/9223372036854775808", "1e-20", "(81/80)^10", "(9223372036854775807^2)/(9223372036854775807^2)"],
     "evaluation_errors": [
       {"id":"portable-zero-approximation","model":"computed","input":{"notes_per_octave":1,"octave_ratio":"1/4","denominator_limit":1},"lookups":[{"note":"1","error":"nonpositive-result"}]},
       {"id":"portable-detune-underflow","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":-2400000},"lookups":[{"note":"69","error":"nonpositive-result"}]},
@@ -22,6 +29,10 @@
     ]
   },
   "valid": [
+    {"id":"i64-maximum-note","model":"frequencies","input":{"values":["440"],"first_note":9223372036854775807},"lookups":[{"note":"9223372036854775807","exact":"440"},{"note":"9223372036854775806","outside":true}]},
+    {"id":"i64-minimum-note","model":"frequencies","input":{"values":["440"],"first_note":-9223372036854775808},"lookups":[{"note":"-9223372036854775808","exact":"440"},{"note":"9223372036854775807","outside":true}]},
+    {"id":"i64-maximum-count","model":"computed","input":{"notes_per_octave":9223372036854775807},"lookups":[{"note":"0","exact":"1"}]},
+    {"id":"i64-maximum-limit","model":"computed","input":{"denominator_limit":9223372036854775807},"lookups":[{"note":"0","exact":"1"}]},
     {"id":"computed-defaults","model":"computed","input":{},"normalized":{"kind":"computed","denominator_limit":0,"notes_per_octave":12,"octave_ratio":"2"},"lookups":[{"note":"-12","exact":"1/2"},{"note":"0","exact":"1"},{"note":"12","exact":"2"},{"note":"1","approx":1.0594630943592953}]},
     {"id":"computed-nonoctave","model":"computed","input":{"notes_per_octave":2,"octave_ratio":"9"},"lookups":[{"note":"-2","exact":"1/9"},{"note":"1","approx":3.0},{"note":"2","exact":"9"}]},
     {"id":"computed-approximation","model":"computed","input":{"denominator_limit":5},"lookups":[{"note":"4","exact":"5/4"},{"note":"16","exact":"5/2"}]},
@@ -71,6 +82,9 @@
     {"id":"unsupported-version","model":"score","input":{"kind":"tuning","name":"tuning","title":"Tuning","version":3,"body":{"source":{"kind":"computed"}}}}
   ],
   "expressions": [
+    {"text":"9223372036854775807","exact":"9223372036854775807"},
+    {"text":"-9223372036854775808","exact":"-9223372036854775808"},
+    {"text":"1/9223372036854775807","exact":"1/9223372036854775807"},
     {"text":"0","exact":"0"},
     {"text":"-3/2","exact":"-3/2"},
     {"text":"+1.25e-2","exact":"1/80"},

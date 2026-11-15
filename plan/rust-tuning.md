@@ -75,8 +75,9 @@ is implemented with shared cases in `conformance/tuning.json` and the Python
 runner `test/test_tuning_conformance.py`. It separates baseline cases from
 Python-specific characterization from approved targets. Strict portable input
 types, a finite shared unit syntax, the documented grammar, and safe bounded
-evaluation are approved. Integer precision remains open, with a bounded approach
-under consideration. Python alignment gaps have explicit expected-failure tests;
+evaluation are approved. The initial numeric policy is now uniformly 64-bit:
+`f64` floating-point values and checked `i64` mathematical integers and rational
+components. Python alignment gaps have explicit expected-failure tests;
 approval of the direction does not mean the implementation already conforms.
 
 Use these existing sources as the starting inventory:
@@ -98,8 +99,8 @@ coverage claim even though they share `test/test_pitch.py`.
 
 Use strict portable document integers and booleans. Pydantic coercions remain
 Python authoring conveniences, not required Rust acceptance behavior. Distinguish
-that authoring API from the portable boundary. Integer widths must still be
-agreed explicitly before rejecting currently accepted Python integers.
+that authoring API from the portable boundary. The portable integer range is
+signed 64-bit, even though Python authoring can represent larger integers.
 
 ## Numbers and expression evaluation
 
@@ -109,13 +110,16 @@ denominator one. Document strings remain authored strings, rather than exposing
 the numeric library's serialization layout as a new wire format.
 
 Python's arbitrary-precision `Fraction` is an implementation fact, not a Rust
-requirement. Reconsider integer widths and exact arithmetic budgets before
-selecting dependencies. The current proposal is signed 64-bit note indices and
-checked 128-bit rational components, with explicit overflow errors; it is not
-yet approved. Preserve exact ratios within the agreed bounds and use `f64` for
-inherently approximate results. Do not introduce arbitrary-precision allocation
-or a hidden floating fallback merely to imitate Python. Audit sibling Rust
-calculations for later reuse, without migrating consumers here.
+requirement. Use `i64` for note indices, counts and rational numerators/denominators,
+and `f64` for floating-point values and computations throughout this initial
+port. Preserve exact ratios within these bounds, with checked arithmetic and
+explicit overflow errors. Positive denominators and nonnegative counts/limits
+must fit `i64::MAX`; signed values may reach `i64::MIN`. Reduce/cross-cancel
+before checked operations where possible. Do not add arbitrary-precision or
+128-bit arithmetic fallbacks, silent conversion of exact overflow to float, or a
+parallel 32-bit implementation. A 32-bit variant can be considered if demanded.
+Rust's `usize` remains an implementation detail for indexing/allocation, reached
+only after checked conversion. Audit sibling calculations without migrating them.
 
 Implement the documented grammar directly with a bounded parser. Preserve:
 
@@ -126,8 +130,8 @@ Implement the documented grammar directly with a bounded parser. Preserve:
   Python's current transition even when the mathematical result is rational.
 - Explicit expression and evaluation limits, including syntax depth, signs and
   intermediate operations. The current Python limits remain characterization;
-  reconcile arithmetic limits with the chosen fixed-width or precision policy
-  rather than requiring 16384-bit exact numbers by default.
+  apply checked 64-bit arithmetic to literals, intermediates and reduced results
+  rather than inheriting Python's 16384-bit exact-number budget.
 - Rejection of unsupported operators, names, calls, division by zero, undefined
   powers, nonfinite results, and out-of-budget expressions.
 
@@ -170,8 +174,8 @@ Preserve these details in tests and implementation:
   `root_frequency`. Absolute tables ignore that anchor. Detuning multiplies
   either result by `2^(detune_cents/1200)`; zero detuning preserves exactness.
 
-Choose and approve the Rust integer widths before implementation. Python's
-arbitrary-size domain need not be the portable domain. Convert table offsets to
+The Rust integer widths are settled at 64 bits. Python's arbitrary-size domain
+is not the portable domain. Convert table offsets to
 indices only after range checks; apply bounded arithmetic to source evaluation
 as well as parsing. New concrete limits must be explicit contract decisions.
 
@@ -216,9 +220,9 @@ introduce another implementation.
 
 ## Implementation sequence
 
-1. Resolve the decisions in the contract inventory and extend fixtures for the
-   agreed boundaries before committing to a public Rust API. Initial inventory
-   and shared Python cases are present; behavior alignment is separate work.
+1. Complete the remaining unit-syntax and work-budget details, using the approved
+   64-bit numeric policy. Initial inventory and shared cases include integer and
+   rational boundaries; Python behavior alignment remains separate work.
 2. Add the workspace and initial crate. Set and test an explicit Rust minimum
    version, considering the siblings' edition 2024 / Rust 1.85 baseline and the
    selected dependencies. Commit the lockfile. Keep Python installation independent.
