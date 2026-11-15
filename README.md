@@ -34,8 +34,9 @@ hosts. Control voltages remain a broader ambition.
 
 The Python library provides frozen Pydantic models, validation, TOML interchange,
 JSON Schema and reference calculations. An explicit library reader loads configured local files; applications supply devices
-and audio rendering. Portable conformance cases lay the groundwork for other
-language implementations.
+and audio rendering. A native [Rust library](doc/rust.md) now implements tuning
+definitions, checked pitch mathematics and tuning-only JSON/TOML documents.
+Shared conformance cases track agreement and remaining Python alignment work.
 
 Start with the [musical definitions](doc/musical-format.md),
 [instruments](doc/instrument-format.md), [modulation](doc/modulation-format.md)

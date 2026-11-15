@@ -293,7 +293,7 @@ impl std::fmt::Display for Number {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self.0 {
             Value::Exact(value) => write!(f, "{value}"),
-            Value::Approx(value) => write!(f, "{value}"),
+            Value::Approx(value) => write!(f, "{value:?}"),
         }
     }
 }

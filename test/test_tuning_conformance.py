@@ -47,6 +47,13 @@ class BudgetCase(ExpressionCase, frozen=True):
     count: int
 
 
+class PreparationCase(BaseModel, frozen=True):
+    id: str
+    model: Literal['computed', 'ratios', 'intervals', 'frequencies']
+    count: int
+    rejected: bool
+
+
 DATA = json.loads((Path(__file__).parents[1] / 'conformance/tuning.json').read_bytes())
 MODELS: dict[str, type[Model]] = {
     'computed': Computed,
@@ -79,6 +86,33 @@ PORTABLE_ERRORS = [
     DefinitionCase.model_validate(c)
     for c in DATA['approved_contract']['evaluation_errors']
 ]
+PREPARATION = [
+    PreparationCase.model_validate(c)
+    for c in DATA['approved_contract']['preparation_budgets']
+]
+
+
+@pytest.mark.parametrize(
+    'case', [c for c in PREPARATION if not c.rejected], ids=lambda c: c.id
+)
+def test_preparation_accepts_tables_at_limit(case: PreparationCase) -> None:
+    prepare_table(case)
+
+
+@pytest.mark.parametrize(
+    'case', [c for c in PREPARATION if c.rejected], ids=lambda c: c.id
+)
+@pytest.mark.xfail(
+    strict=True,
+    raises=pytest.fail.Exception,
+    reason='Preparation limits await Python portable-boundary alignment',
+)
+def test_preparation_rejects_tables_over_limit(case: PreparationCase) -> None:
+    try:
+        prepare_table(case)
+    except ValueError:
+        return
+    pytest.fail('Preparation exceeds the approved table-entry limit')
 
 
 @pytest.mark.parametrize('case', PORTABLE_INVALID, ids=lambda c: c.id)
@@ -204,6 +238,14 @@ def test_expression_budget_boundaries(case: BudgetCase) -> None:
             evaluate(text)
     else:
         check_number(evaluate(text), case.exact, case.approx)
+
+
+def prepare_table(case: PreparationCase) -> None:
+    if case.model == 'computed':
+        Computed(notes_per_octave=case.count, octave_ratio='1').as_ratios()
+    else:
+        field = 'intervals' if case.model == 'intervals' else 'values'
+        MODELS[case.model].model_validate({field: ['1'] * case.count})
 
 
 def check_number(

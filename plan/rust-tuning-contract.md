@@ -3,8 +3,9 @@
 Characterization for the first stage of [the Rust port](rust-tuning.md), checked
 against the Python implementation and locked dependencies on 2026-11-15. This
 records current behavior alongside the approved directions, including a uniform
-64-bit numeric policy for the initial port. No Rust API or
-Python production behavior changes are implemented here.
+64-bit numeric policy for the initial port. The native Rust implementation now
+conforms to the baseline and approved cases; Python production behavior remains
+unchanged. See [current coverage and APIs](../doc/rust.md).
 
 ## Evidence and fixture format
 
@@ -31,6 +32,11 @@ tests remain relevant. The new data separates:
   Target tests currently exercise the existing model entrypoints. When a portable
   document validation boundary is implemented, direct those tests to that boundary
   rather than requiring authoring constructors to lose their conveniences.
+  Its `preparation_budgets` generate a repeated `"1"` table of `count` entries,
+  or `Computed(notes_per_octave=count, octave_ratio="1").as_ratios()`.
+  Boundary admission is shared; over-limit rejection remains an expected Python
+  failure. Unit alias lists and `maximum_table_entries` record the approved
+  portable subset and preparation cap.
 
 Case model names select standalone source classes, `Tuning`, or `TuningScore`.
 Inputs are ordinary document objects; `normalized` is the complete expected
@@ -169,17 +175,22 @@ is chosen; changing locked dependencies can change characterization results.
 The user approved the four initial recommendations and subsequently chose
 64-bit numbers throughout, with any 32-bit version deferred until demanded.
 
-| Decision | Approved direction | Remaining implementation detail |
+| Decision | Approved direction | Implementation status |
 |---|---|---|
 | Portable input types | Strict JSON integers and booleans at the portable document boundary; broader Python authoring conveniences may remain separately documented | Add portable validation without silently removing Python authoring conveniences |
-| Units boundary | A finite shared tuning-specific syntax; additional Pint facilities can remain Python-specific | Specify the aliases, prefixes and rational unit-expression grammar; no complete Pint port |
+| Units boundary | A finite shared tuning-specific syntax; additional Pint facilities can remain Python-specific | Implemented in Rust and covered by shared alias cases; see the exact syntax below |
 | Parser and numeric boundaries | Follow the documented grammar; use `f64` and checked `i64` values, including rational components | Align Python's portable boundary rather than copying its 16384-bit arithmetic or float-conversion artifacts |
 | Evaluation safety and positivity | Bound work and reject nonpositive/nonfinite tuning results with explicit arithmetic failures | Apply the agreed limits to source evaluation and materialization too; do not clamp, wrap, or silently lose exactness |
 
-Shared frequency syntax must at least cover the tested `2kHz`, `440 hertz`,
-and `1 kHz / 3`; pitch syntax must cover `1 octave` and `1 semitone`. The exact
-alias list and grammar still need specification before implementing the unit
-adapter. Approval of a finite subset is not approval of an unspecified parser.
+The approved aliases are Hz/hertz, kHz/kilohertz, mHz/millihertz and
+MHz/megahertz for frequency; cent/cents/musical_cent, semitone and octave/oct for
+detuning. Numeric pitch grammar admits one unit factor following a numeric power/sign term,
+including `1 kHz / 3` and `(440/3) Hz`; a bare unit means one unit. Division and
+powers must retain the expected dimension. Rust rejects inverse frequency,
+squared frequency, unit-bearing exponents and multiple unit factors. Broader
+Pint syntax remains Python-only authoring. The exact aliases are exercised by
+both suites. Stored tables and computed-table materialization are capped at
+10,000 entries in Rust, with Python alignment still pending.
 
 ### Numeric policy: 64-bit throughout
 
@@ -215,8 +226,10 @@ to float. Use `usize` only for indexing/allocation after checked conversion.
 The stored components and all arithmetic must respect this policy. Denominator
 approximation must not materialize an arbitrarily large binary-float fraction:
 implement it with bounded working values and explicit errors when unsupported.
-Detailed operation/work budgets and the bounded approximation algorithm remain
-implementation tasks, not permission to widen arithmetic implicitly.
+Rust implements the bounded approximation algorithm with checked convergents
+and distance comparisons that avoid overflowing cross-products. Tests cover
+ties, exact binary float inputs and exhaustive small rational approximations.
+Python portable alignment remains work; arithmetic must not widen implicitly.
 
 No 32-bit variant is part of this port; consider one only if demand emerges.
 This numeric policy should guide subsequent domains too. Existing protocol-defined

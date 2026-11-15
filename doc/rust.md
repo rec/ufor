@@ -1,8 +1,10 @@
 # Rust implementation
 
-The Cargo workspace currently implements checked pitch numbers and expression
-evaluation in `crates/ufor`. Tuning models and document interchange are still
-planned in [the tuning port plan](../plan/rust-tuning.md).
+The Cargo workspace implements checked pitch numbers, expression evaluation,
+`Computed`, `RatioTable`, `IntervalPattern`, `FrequencyTable`, `Tuning`, and the
+tuning-only `TuningScore` envelope in `crates/ufor`. JSON/TOML interchange supports
+those definitions. Scale, Scala, oscillators, other score kinds, Python bindings,
+WebAssembly, and consumer migrations remain outside this implementation.
 
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:
@@ -40,6 +42,47 @@ of an approximate value. Ties favor the smaller denominator, then the value
 closer to zero. Numeric display uses Rust's formatting and is not a canonical
 cross-language serialization of approximate values.
 
+Validated constructors and Serde deserialization reject the same invalid
+definitions. Source fields and evaluated tables are private and immutable;
+construct a new value to edit a definition. Methods return typed `Error` values
+for domain, arithmetic, positivity, or work-limit failures.
+
+```rust
+use ufor::codec::{self, Format};
+use ufor::tuning::{Computed, Source, Tuning};
+
+let tuning = Tuning::new(Source::Computed(Computed::default()), 69, "440Hz".into(), 0.0)?;
+assert_eq!(tuning.evaluate(81)?.to_string(), "880");
+let text = codec::tuning_text(&tuning, Format::Toml)?;
+assert_eq!(codec::parse_tuning(&text, Format::Toml)?, tuning);
+# Ok::<(), ufor::error::Error>(())
+```
+
+`codec::parse_tuning` / `tuning_text` handle tuning bodies;
+`codec::parse_score` / `score_text` handle tuning scores. Select JSON or TOML
+with `Format`. Both operate on supplied UTF-8 strings and preserve expression
+spelling except unit normalization. The score codec requires `kind = "tuning"`;
+typed `TuningScore` deserialization can supply that default. Direct Serde use
+also validates models, while the codec additionally enforces the Python codec's
+16,777,216-character, 100,000-value and 64-level document budgets.
+
+Tables may have at most 10,000 entries. The same limit applies to materializing
+`Computed::as_ratios()`, while the stored computed note count may be any positive
+`i64`. Finite sources reject notes outside their domain. Repeating sources use
+Euclidean division for negative degrees. Detuning must produce a positive finite
+frequency; underflow, overflow and approximation to zero are explicit errors.
+
+The portable frequency units are `Hz`/`hertz`, `kHz`/`kilohertz`,
+`mHz`/`millihertz`, and `MHz`/`megahertz`. Detuning supports
+`cent`/`cents`/`musical_cent`, `semitone`, and `octave`/`oct`.
+Unit spellings are case-sensitive. A quantity may use one unit factor attached
+to a numeric power/sign term or parenthesized expression, or a bare unit meaning one unit.
+For example, `1 kHz / 3` and `(440/3) Hz` normalize to exact hertz expressions;
+`2^3 kHz` means 8,000 Hz. Use parentheses for powers of an entire quantity.
+Division and powers must leave the expected dimension: `1/(3 kHz)` and `1Hz^2`
+are rejected. Multiple unit factors and general Pint syntax are outside this
+adapter. Unitless frequency strings retain their spelling.
+
 Python installation remains independent of Rust. The core uses Serde,
 `serde_json` and `toml` for document interchange and shared conformance cases,
 without Python or host-library dependencies.
@@ -55,3 +98,10 @@ cargo clippy --workspace --all-targets --all-features --locked -- -D warnings
 The release workflow runs these checks on Linux, Windows, and macOS with the
 minimum compiler and current stable Rust. A local macOS result does not establish
 that those hosted jobs have passed.
+
+Python and Rust consume the same shared baseline cases, unit aliases and document
+values. Python's portable boundary still needs alignment for strict input types,
+the documented expression grammar, checked 64-bit arithmetic, preparation limits,
+and explicit evaluation failures. These are recorded as expected failures in
+the Python conformance runner and remaining work in [the plan](../plan/rust-tuning.md).
+Broader Pint syntax remains a Python authoring facility.

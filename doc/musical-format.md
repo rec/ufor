@@ -2,8 +2,9 @@
 
 Ufor owns pitch and scale semantics and oscillator parameters. Tuney owns its
 editable configuration, Scala collection browser, units/UI annotations, broader
-expression authoring, and existing NumPy audio implementation. reccy supplies Pint-backed
-[unit parsing](units.md). Ufor has no NumPy, device, GUI, or plugin dependency.
+expression authoring, and existing NumPy audio implementation. reccy supplies
+Python's Pint-backed [unit parsing](units.md); the native Rust tuning library
+implements the approved shared subset. Ufor has no NumPy, device, GUI, or plugin dependency.
 
 ## Pitch expressions
 
@@ -27,10 +28,14 @@ values; nonintegral powers may require floating-point evaluation. Stored pitch
 values must evaluate to positive finite real numbers. No function calls,
 names, addition, multiplication, modulo, or Python `**` operator are accepted.
 Tuney's broader authoring evaluator compiles its results into portable values.
-Ufor limits an expression to 4096 characters and 64 syntax levels, a numeric
-scientific exponent to 4096, a power to 1024, and an exact numerator or
-denominator to 16384 bits. Larger expressions fail validation before producing
-an unbounded exact result.
+Both implementations limit expressions to 4096 characters and 64 syntax levels,
+scientific exponent magnitude to 4096, and power magnitude to 1024. The Rust
+portable contract uses checked signed 64-bit rational components and finite
+64-bit floats, rejecting overflow in literals and intermediate calculations.
+The current Python evaluator still uses a 16384-bit exact-number budget and
+Python AST syntax; alignment with the portable grammar and 64-bit bounds is
+tracked in [the Rust tuning plan](../plan/rust-tuning.md). See
+[Rust coverage and usage](rust.md) for preparation limits and unit syntax.
 
 In Ufor expressions `100.0` means one hundred. Only the Scala importer
 interprets a decimal-point pitch entry as cents.

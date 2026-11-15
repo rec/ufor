@@ -226,25 +226,26 @@ introduce another implementation.
 
 ## Implementation sequence
 
-The workspace and bounded numeric/expression evaluator are implemented in
-`crates/ufor`, with Rust 2024 / Rust 1.85 as the declared baseline.
-Rust tests consume baseline and approved expression cases, including the
-shared expression budgets. Numeric tests cover cross-cancellation, signed
-bounds, binary floats, and exhaustive small denominator approximations.
+The native implementation in `crates/ufor` covers all five tuning definitions,
+the tuning score envelope, bounded numbers/expressions, the approved units,
+and JSON/TOML interchange. Rust 2024 / Rust 1.85 is the declared baseline.
+Rust tests consume baseline definitions, approved rejection cases, shared
+expression and preparation budgets, and the existing Python tuning TOML fixture.
+Both formats round-trip through validated deserialization. Numeric tests cover
+cross-cancellation, signed bounds, binary floats, and exhaustive small denominator
+approximations. See [the implementation guide](../doc/rust.md).
 Local verification currently uses macOS and the installed compiler; minimum
 compiler and other platform results remain unverified until release CI runs.
 
-1. Complete the remaining unit-syntax and work-budget details, using the approved
-   64-bit numeric policy. Initial inventory and shared cases include integer and
-   rational boundaries; Python behavior alignment remains separate work.
-2. Implement the four source types and `Tuning`, using the numeric core's
-   denominator approximation, and add `as_ratios()`. Validate direct construction
-   and deserialization equally.
-3. Add JSON/TOML and tuning-envelope interchange, including agreed unit
-   normalization. Test Python-to-Rust and Rust-to-Python round trips through
-   tracked fixtures or tracked test tooling, without native Python bindings.
-4. Complete platform checks and documentation. Replace completed plan entries
-   with links to the implementation and its public usage examples.
+1. Align Python's portable boundary with strict integer/boolean input types,
+   checked 64-bit numeric and source evaluation, the documented grammar, explicit
+   evaluation errors and the 10,000-entry preparation limit. Preserve separately
+   documented authoring conveniences. Review the effect on Scale and oscillator
+   callers before changing shared Python arithmetic. Keep the existing expected
+   failures until those behaviors are implemented.
+2. Obtain native minimum-compiler and three-platform evidence from the configured
+   release workflow. The Rust jobs already cover Rust 1.85 and stable on macOS,
+   Windows and Linux; do not claim those results from local macOS checks.
 
 ## Verification and completion
 

@@ -1,7 +1,7 @@
 # Units
 
-uFor uses reccy's Pint-backed unit parser for authored quantities. Models and
-reference calculations retain ordinary numbers, exact fractions, and integer
+The Python implementation uses reccy's Pint-backed unit parser for authored
+quantities. Models and reference calculations retain ordinary numbers, exact fractions, and integer
 native timelines. No Pint Quantity objects appear in the public data format.
 
 Bare numbers retain each field's documented canonical unit. Unit strings permit
@@ -14,6 +14,11 @@ means one unit. Exact coordinates use rational arithmetic throughout conversion;
 expressions that produce an inexact magnitude cannot populate exact-time fields.
 Boolean quantities, nonfinite numbers, incompatible dimensions, and fractional
 integer counts are rejected.
+
+The native [Rust tuning library](rust.md) supports a finite shared subset of
+frequency and musical-interval units, including `1 kHz / 3`, with dimension
+checks. General Pint facilities remain Python authoring conveniences; the Rust
+adapter does not implement units for other domains.
 
 | Quantity | Canonical unit | Examples |
 | --- | --- | --- |

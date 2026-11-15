@@ -8,6 +8,25 @@ pub const MAX_EXPRESSION_DEPTH: usize = 64;
 pub const MAX_POWER: i64 = 1024;
 
 pub fn evaluate(text: &str) -> Result<Number, Error> {
+    parse(text, &[])?.evaluate(0)
+}
+
+pub(crate) fn evaluate_unit(
+    text: &str,
+    units: &'static [(&str, i64, i64)],
+) -> Result<(Number, bool), Error> {
+    let tree = parse(text, units)?;
+    let value = tree.evaluate(0)?;
+    let dimension = tree.dimension()?;
+    if let Some(dimension) = dimension {
+        if dimension.rational() != Number::exact(1, 1)?.rational() {
+            return Err(Error::Invalid("quantity has the wrong dimension".into()));
+        }
+    }
+    Ok((value, dimension.is_some()))
+}
+
+fn parse(text: &str, units: &'static [(&str, i64, i64)]) -> Result<Node, Error> {
     if text.chars().count() > MAX_EXPRESSION_LENGTH {
         return Err(Error::Limit("expression length"));
     }
@@ -15,13 +34,15 @@ pub fn evaluate(text: &str) -> Result<Number, Error> {
         text,
         position: 0,
         parentheses: 0,
+        units,
+        unit_count: 0,
     };
     let tree = parser.division(0)?;
     parser.space();
     if parser.position != text.len() {
         return Err(Error::Invalid("unexpected pitch expression token".into()));
     }
-    tree.evaluate(0)
+    Ok(tree)
 }
 
 enum Node {
@@ -29,6 +50,7 @@ enum Node {
     Sign(bool, Box<Node>),
     Division(Box<Node>, Box<Node>),
     Power(Box<Node>, Box<Node>),
+    Unit(Box<Node>, Number),
 }
 
 impl Node {
@@ -53,6 +75,7 @@ impl Node {
                 }
             }
             Self::Division(a, b) => a.evaluate(depth + 1)?.checked_div(b.evaluate(depth + 1)?),
+            Self::Unit(value, factor) => value.evaluate(depth + 1)?.checked_mul(*factor),
             Self::Power(a, b) => {
                 let base = a.evaluate(depth + 1)?;
                 let exponent = b.evaluate(depth + 1)?;
@@ -63,12 +86,35 @@ impl Node {
             }
         }
     }
+
+    fn dimension(&self) -> Result<Option<Number>, Error> {
+        match self {
+            Self::Literal(_) => Ok(None),
+            Self::Sign(_, value) => value.dimension(),
+            Self::Unit(_, _) => Ok(Some(Number::exact(1, 1)?)),
+            Self::Division(a, b) => match (a.dimension()?, b.dimension()?) {
+                (None, Some(value)) => Ok(Some(value.checked_neg()?)),
+                (value, None) => Ok(value),
+                _ => Err(Error::Invalid("only one unit factor is supported".into())),
+            },
+            Self::Power(a, b) => {
+                if b.dimension()?.is_some() {
+                    return Err(Error::Invalid("exponent must be dimensionless".into()));
+                }
+                a.dimension()?
+                    .map(|v| v.checked_mul(b.evaluate(0)?))
+                    .transpose()
+            }
+        }
+    }
 }
 
 struct Parser<'a> {
     text: &'a str,
     position: usize,
     parentheses: usize,
+    units: &'static [(&'static str, i64, i64)],
+    unit_count: usize,
 }
 
 impl Parser<'_> {
@@ -92,9 +138,9 @@ impl Parser<'_> {
     }
 
     fn division(&mut self, depth: usize) -> Result<Node, Error> {
-        let mut value = self.signed(depth)?;
+        let mut value = self.quantity(depth)?;
         while self.take(b'/') {
-            value = Node::Division(Box::new(value), Box::new(self.signed(depth)?));
+            value = Node::Division(Box::new(value), Box::new(self.quantity(depth)?));
         }
         Ok(value)
     }
@@ -121,6 +167,55 @@ impl Parser<'_> {
     }
 
     fn atom(&mut self, depth: usize) -> Result<Node, Error> {
+        self.space();
+        if !self.units.is_empty()
+            && self
+                .text
+                .as_bytes()
+                .get(self.position)
+                .is_some_and(u8::is_ascii_alphabetic)
+        {
+            Ok(Node::Literal("1".into()))
+        } else {
+            self.primary(depth)
+        }
+    }
+
+    fn quantity(&mut self, depth: usize) -> Result<Node, Error> {
+        let value = self.signed(depth)?;
+        if self.units.is_empty() {
+            return Ok(value);
+        }
+        self.space();
+        let start = self.position;
+        while self
+            .text
+            .as_bytes()
+            .get(self.position)
+            .is_some_and(|c| c.is_ascii_alphabetic() || *c == b'_')
+        {
+            self.position += 1;
+        }
+        if start == self.position {
+            return Ok(value);
+        }
+        self.unit_count += 1;
+        if self.unit_count > 1 {
+            return Err(Error::Invalid("only one unit factor is supported".into()));
+        }
+        let name = &self.text[start..self.position];
+        let (_, numerator, denominator) = self
+            .units
+            .iter()
+            .find(|(u, _, _)| *u == name)
+            .ok_or_else(|| Error::Invalid(format!("unsupported unit {name}")))?;
+        Ok(Node::Unit(
+            Box::new(value),
+            Number::exact(*numerator, *denominator)?,
+        ))
+    }
+
+    fn primary(&mut self, depth: usize) -> Result<Node, Error> {
         if self.take(b'(') {
             self.parentheses += 1;
             if self.parentheses > MAX_EXPRESSION_DEPTH {

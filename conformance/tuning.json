@@ -6,6 +6,19 @@
     "integer_precision": "i64",
     "floating_precision": "f64",
     "rational_components": "i64",
+    "maximum_table_entries": 10000,
+    "frequency_units": ["Hz", "hertz", "kHz", "kilohertz", "mHz", "millihertz", "MHz", "megahertz"],
+    "detune_units": ["cent", "cents", "musical_cent", "semitone", "octave", "oct"],
+    "preparation_budgets": [
+      {"id":"ratio-table-at-limit","model":"ratios","count":10000,"rejected":false},
+      {"id":"ratio-table-over-limit","model":"ratios","count":10001,"rejected":true},
+      {"id":"interval-table-at-limit","model":"intervals","count":10000,"rejected":false},
+      {"id":"interval-table-over-limit","model":"intervals","count":10001,"rejected":true},
+      {"id":"frequency-table-at-limit","model":"frequencies","count":10000,"rejected":false},
+      {"id":"frequency-table-over-limit","model":"frequencies","count":10001,"rejected":true},
+      {"id":"computed-table-at-limit","model":"computed","count":10000,"rejected":false},
+      {"id":"computed-table-over-limit","model":"computed","count":10001,"rejected":true}
+    ],
     "invalid": [
       {"id":"portable-boolean-integer","model":"computed","input":{"notes_per_octave":true}},
       {"id":"portable-integral-float","model":"computed","input":{"notes_per_octave":12.0}},
@@ -29,6 +42,14 @@
     ]
   },
   "valid": [
+    {"id":"shared-unit-power-precedence","model":"frequencies","input":{"values":["2^3 kHz"]},"normalized":{"kind":"frequencies","values":["8000"],"first_note":0},"lookups":[{"note":"0","exact":"8000"}]},
+    {"id":"shared-frequency-aliases","model":"frequencies","input":{"values":["1Hz","1hertz","1kHz","1kilohertz","1mHz","1millihertz","1MHz","1megahertz","1 kHz / 3"]},"normalized":{"kind":"frequencies","values":["1","1","1000","1000","1/1000","1/1000","1000000","1000000","1000/3"],"first_note":0},"lookups":[{"note":"8","exact":"1000/3"}]},
+    {"id":"shared-cent-alias","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1 cent"},"lookups":[{"note":"69","approx":440.25422738288415}]},
+    {"id":"shared-cents-alias","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1 cents"},"lookups":[{"note":"69","approx":440.25422738288415}]},
+    {"id":"shared-musical-cent-alias","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1 musical_cent"},"lookups":[{"note":"69","approx":440.25422738288415}]},
+    {"id":"shared-oct-alias","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1 oct"},"lookups":[{"note":"69","approx":880.0}]},
+    {"id":"shared-detune-octave","model":"tuning","input":{"source":{"kind":"computed"},"root_frequency":"2kHz","detune_cents":"1 octave"},"normalized":{"source":{"kind":"computed","denominator_limit":0,"notes_per_octave":12,"octave_ratio":"2"},"root_note":69,"root_frequency":"2000","detune_cents":1200.0},"lookups":[{"note":"69","approx":4000.0}]},
+    {"id":"shared-detune-semitone","model":"tuning","input":{"source":{"kind":"computed"},"detune_cents":"1 semitone"},"lookups":[{"note":"69","approx":466.1637615180899}]},
     {"id":"i64-maximum-note","model":"frequencies","input":{"values":["440"],"first_note":9223372036854775807},"lookups":[{"note":"9223372036854775807","exact":"440"},{"note":"9223372036854775806","outside":true}]},
     {"id":"i64-minimum-note","model":"frequencies","input":{"values":["440"],"first_note":-9223372036854775808},"lookups":[{"note":"-9223372036854775808","exact":"440"},{"note":"9223372036854775807","outside":true}]},
     {"id":"i64-maximum-count","model":"computed","input":{"notes_per_octave":9223372036854775807},"lookups":[{"note":"0","exact":"1"}]},
@@ -39,6 +60,7 @@
     {"id":"approximation-lower-tie","model":"computed","input":{"notes_per_octave":1,"octave_ratio":"3/2","denominator_limit":1},"lookups":[{"note":"1","exact":"1"}]},
     {"id":"approximation-upper-tie","model":"computed","input":{"notes_per_octave":1,"octave_ratio":"5/2","denominator_limit":1},"lookups":[{"note":"1","exact":"2"}]},
     {"id":"computed-as-ratios","model":"computed","input":{"notes_per_octave":2,"octave_ratio":"9","denominator_limit":5},"as_ratios":{"kind":"ratios","values":["1","3"],"repeat_ratio":"9","name":"","description":""}},
+    {"id":"computed-as-ratios-approximate","model":"computed","input":{"notes_per_octave":2,"octave_ratio":"9"},"as_ratios":{"kind":"ratios","values":["1","3.0"],"repeat_ratio":"9","name":"","description":""}},
     {"id":"finite-ratios","model":"ratios","input":{"values":["3/2","1","5/4"],"name":"été","description":"Nonascending ratios"},"normalized":{"kind":"ratios","values":["3/2","1","5/4"],"repeat_ratio":null,"name":"été","description":"Nonascending ratios"},"lookups":[{"note":"-1","outside":true},{"note":"0","exact":"3/2"},{"note":"2","exact":"5/4"},{"note":"3","outside":true}]},
     {"id":"repeating-ratios","model":"ratios","input":{"values":["1","5/4","3/2"],"repeat_ratio":"2"},"lookups":[{"note":"-4","exact":"3/8"},{"note":"-3","exact":"1/2"},{"note":"-1","exact":"3/4"},{"note":"0","exact":"1"},{"note":"4","exact":"5/2"}]},
     {"id":"finite-intervals","model":"intervals","input":{"intervals":["5/4","6/5"],"repeat":false},"lookups":[{"note":"-1","outside":true},{"note":"0","exact":"1"},{"note":"1","exact":"5/4"},{"note":"2","exact":"3/2"},{"note":"3","outside":true}]},
@@ -54,6 +76,8 @@
     {"id":"tuning-document","model":"score","input":{"kind":"tuning","name":"just","title":"Just 🎵","tags":["#just","#just"],"body":{"source":{"kind":"ratios","values":["1"," 5/4 "],"repeat_ratio":"2"},"root_frequency":"440/3"}},"normalized":{"format":"recs","version":4,"kind":"tuning","name":"just","title":"Just 🎵","tags":["#just"],"body":{"source":{"kind":"ratios","values":["1"," 5/4 "],"repeat_ratio":"2","name":"","description":""},"root_note":69,"root_frequency":"440/3","detune_cents":0.0}},"lookups":[{"note":"70","exact":"550/3"}]}
   ],
   "invalid": [
+    {"id":"document-name-control-whitespace","model":"score","input":{"kind":"tuning","name":"\u001cname","title":"Tuning","body":{"source":{"kind":"computed"}}}},
+    {"id":"document-tag-control-whitespace","model":"score","input":{"kind":"tuning","name":"name","title":"Tuning","tags":["#bad\u001c"],"body":{"source":{"kind":"computed"}}}},
     {"id":"missing-source","model":"tuning","input":{}},
     {"id":"missing-discriminator","model":"tuning","input":{"source":{}}},
     {"id":"unknown-discriminator","model":"tuning","input":{"source":{"kind":"equal"}}},
