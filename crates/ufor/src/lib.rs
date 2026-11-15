@@ -5,6 +5,7 @@
 
 pub mod codec;
 pub mod control;
+pub mod envelfo;
 pub mod error;
 pub mod expression;
 pub mod identifier;

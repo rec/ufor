@@ -52,7 +52,61 @@ pub fn scalar(text: &str, unit: &str) -> Result<f64, Error> {
 }
 
 pub fn exact_seconds(text: &str) -> Result<Rational, Error> {
-    let (tokens, scale) = quantity(text, "seconds")?;
+    let value = exact(text, "seconds")?;
+    if value.numerator() < 0 {
+        return Err(Error::Invalid("smoothing must be nonnegative".into()));
+    }
+    Ok(value)
+}
+
+/// Portable exact generator quantity. Signed results are permitted; the field
+/// consuming this value applies its own domain restrictions.
+pub fn exact(text: &str, unit: &str) -> Result<Rational, Error> {
+    if !matches!(
+        unit,
+        "seconds" | "beats" | "hz" | "phase" | "ratio" | "per_second" | "per_beat"
+    ) {
+        return Err(invalid());
+    }
+    if text.chars().take(MAX_TEXT + 1).count() > MAX_TEXT {
+        return Err(Error::Limit("quantity characters"));
+    }
+    let mut numeric = text.to_owned();
+    let mut numeric_unit = if unit == "per_second" { "hz" } else { unit };
+    let mut reciprocal = Rational::new(1, 1)?;
+    if matches!(unit, "hz" | "per_second" | "per_beat") {
+        for (index, character) in text.char_indices() {
+            if character != '/' {
+                continue;
+            }
+            let tail = text[index + 1..].trim_start();
+            let length = tail
+                .bytes()
+                .take_while(|c| c.is_ascii_alphabetic() || *c == b'_')
+                .count();
+            if length != 0 {
+                if tail[length..]
+                    .chars()
+                    .next()
+                    .is_some_and(|c| !c.is_whitespace() && c != '/')
+                {
+                    return Err(invalid());
+                }
+                reciprocal = Rational::new(1, 1)?.checked_div(factor(
+                    if unit == "per_beat" {
+                        "beats"
+                    } else {
+                        "seconds"
+                    },
+                    &tail[..length],
+                )?)?;
+                numeric = format!("{}{}", &text[..index], &tail[length..]);
+                numeric_unit = "ratio";
+                break;
+            }
+        }
+    }
+    let (tokens, scale) = quantity(&numeric, numeric_unit)?;
     let mut value = evaluate(tokens[0])?
         .rational()
         .ok_or(Error::ArithmeticRange)?;
@@ -60,10 +114,7 @@ pub fn exact_seconds(text: &str) -> Result<Rational, Error> {
         value = value.checked_div(evaluate(token)?.rational().ok_or(Error::ArithmeticRange)?)?;
     }
     value = value.checked_mul(scale)?;
-    if value.numerator() < 0 {
-        return Err(Error::Invalid("smoothing must be nonnegative".into()));
-    }
-    Ok(value)
+    value.checked_mul(reciprocal)
 }
 
 fn quantity<'a>(text: &'a str, unit: &str) -> Result<(Vec<&'a str>, Rational), Error> {
@@ -171,6 +222,8 @@ fn factor(unit: &str, alias: &str) -> Result<Rational, Error> {
         | ("seconds", "s" | "second" | "seconds")
         | ("beats", "beat" | "beats")
         | ("radians", "rad" | "radian" | "radians") => (1, 1),
+        ("phase", "turn" | "turns" | "cycle" | "cycles") => (1, 1),
+        ("phase", "deg" | "degree" | "degrees") => (1, 360),
         ("hz", "kHz" | "kilohertz") => (1000, 1),
         ("hz", "MHz" | "megahertz") => (1000000, 1),
         ("hz", "mHz" | "millihertz")

@@ -321,7 +321,7 @@ class Envelope(EnveLFO):
         ]
         if any(not -1 <= value <= 1 for value in levels):
             raise ValueError('envelope levels must be in [-1, 1]')
-        if self.polarity == control.Polarity.unipolar and min(levels) < 0:
+        if self.polarity == control.Polarity.unipolar and any(v < 0 for v in levels):
             raise ValueError('unipolar envelope levels must be in [0, 1]')
         unique((m.name for m in self.markers), 'envelope marker')
         if any(

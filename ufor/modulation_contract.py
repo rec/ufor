@@ -58,7 +58,9 @@ def finite(value: float) -> float:
 def scalar_quantity(value: object, unit: str) -> float:
     if unit == 'hz_offset':
         unit = 'hz'
-    if unit not in UNITS and unit not in ('logical', 'ratio', 'normalized'):
+    if unit == 'phase' or (
+        unit not in UNITS and unit not in ('logical', 'ratio', 'normalized')
+    ):
         raise ValueError('Unknown scalar unit')
     if not isinstance(value, str):
         if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -78,23 +80,54 @@ def scalar_quantity(value: object, unit: str) -> float:
 
 
 def exact_seconds(value: object) -> Fraction:
+    result = exact_quantity(value, 'seconds')
+    if result < 0:
+        raise ValueError('Smoothing must be nonnegative')
+    return result
+
+
+def exact_quantity(value: object, unit: str) -> Fraction:
+    """Parse a portable exact quantity without binary float time or widening."""
+    if unit not in (
+        'seconds',
+        'beats',
+        'hz',
+        'phase',
+        'ratio',
+        'per_beat',
+        'per_second',
+    ):
+        raise ValueError('Unknown exact unit')
     if type(value) is int:
         result = number.checked_fraction(value)
     elif isinstance(value, str):
-        tokens, factor = _quantity(value, 'seconds')
+        if len(value) > MAX_TEXT:
+            raise ValueError('Quantity exceeds 4096 characters')
+        if any(c in value for c in '\x1c\x1d\x1e\x1f'):
+            raise ValueError('Unsupported quantity whitespace')
+        factor = Fraction(1)
+        numeric_unit = 'hz' if unit == 'per_second' else unit
+        if unit in ('hz', 'per_beat', 'per_second'):
+            aliases = UNITS['beats' if unit == 'per_beat' else 'seconds']
+            if match := re.search(r'/\s*([A-Za-z_]+)(?=\s|/|$)', value):
+                if match[1] not in aliases:
+                    raise ValueError('Incompatible reciprocal generator unit')
+                factor = 1 / aliases[match[1]]
+                value = value[: match.start()] + value[match.end() :]
+                numeric_unit = 'ratio'
+        tokens, scale = _quantity(value, numeric_unit)
         result = evaluate(tokens[0])
         for token in tokens[1:]:
             result = number.checked_divide(result, evaluate(token))
+        result = number.checked_multiply(result, scale)
         result = number.checked_multiply(result, factor)
     elif isinstance(value, Fraction):
         result = number.checked_fraction(value.numerator, value.denominator)
     else:
         raise ValueError(
-            'Exact smoothing requires integer or rational text, not float time'
+            'Exact quantities require integer or rational text, not float time'
         )
     assert isinstance(result, Fraction)
-    if result < 0:
-        raise ValueError('Smoothing must be nonnegative')
     return result
 
 
@@ -214,4 +247,13 @@ UNITS = {
     },
     'beats': {'beat': Fraction(1), 'beats': Fraction(1)},
     'radians': {'rad': Fraction(1), 'radian': Fraction(1), 'radians': Fraction(1)},
+    'phase': {
+        'turn': Fraction(1),
+        'turns': Fraction(1),
+        'cycle': Fraction(1),
+        'cycles': Fraction(1),
+        'deg': Fraction(1, 360),
+        'degree': Fraction(1, 360),
+        'degrees': Fraction(1, 360),
+    },
 }

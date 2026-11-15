@@ -7,8 +7,19 @@ existing `ufor` Rust crate, following [the modulation port](rust-modulation.md).
 The end goal remains a library usable from Rust and Python with matching format
 semantics and idiomatic facilities in each language.
 
-This document authorizes no implementation by itself. The stages below are
-planned work; the recommendations under decisions are not yet approved.
+Implementation was authorized on 2026-11-15. All seven recommendations were
+approved, with a configurable preparation-record limit defaulting to 10,000.
+The quantity syntax, per-operation configuration and captured indefinite-hold
+alignment described below were subsequently approved as well.
+
+The first implementation increment supplies the
+[contract inventory](../doc/rust-envelfo-contract.md), shared definition cases
+and their Python consumer, and shared Python/Rust exact-quantity and configurable
+record-budget preflight helpers. It also fixes the approved empty-level Envelope
+validation bug. This is not yet a native generator implementation: portable model
+alignment, validated Rust generator types, score adapters and generator-aware
+binding validation remain in stages 2 through 6 below. The preflight helpers do
+not establish structural validity and are not yet wired into those future APIs.
 
 **Keep enge unchanged.** Do not change its source, dependencies, lockfiles,
 interfaces, plans, fixtures, preparation arrays or runtime. Treat current enge
@@ -165,10 +176,10 @@ arbitrary total order between independent nodes. Add order-sensitive arithmetic
 cases where authored input order affects floating-point results. Record any
 Python alignment that affects existing consumers as a deliberate contract change.
 
-## Decisions before implementation
+## Approved decisions
 
-The prior approval to use 64-bit numbers remains in force. These recommendations
-need approval; they do not reopen that policy.
+The prior approval to use 64-bit numbers remains in force. The following
+recommendations are approved; they do not reopen that policy.
 
 1. **Milestone scope.** Recommend all current concrete generator definitions,
    score/parameter/reference structures and generator-aware checks, delivered in
@@ -202,7 +213,7 @@ need approval; they do not reopen that policy.
    inventory. Do not add an execution adapter or depend on `envelfo-core` in this
    milestone; later adaptation belongs with the consumer. Full target/follower
    validation needs the corresponding instrument/effect definitions later.
-7. **Limits and ordering.** Recommend a shared 10,000-record preparation budget
+7. **Limits and ordering.** Use a configurable preparation budget, default 10,000,
    counting generators, segments, markers, stages, transitions, Patch nodes,
    input references, output entries, connections, parameters and supplied binding
    context once per occurrence. Reuse 4096-character identifier/quantity limits
@@ -210,6 +221,21 @@ need approval; they do not reopen that policy.
    limits before implementation. Keep declaration order for public outputs and
    authored arithmetic order; do not make an arbitrary topological order part of
    the wire contract.
+
+Approved implementation details:
+
+- The record override is per operation: Python portable validation context
+  `max_records`, and an explicit Rust preparation limit. Constructors and normal
+  Serde validation default to 10,000. No process-global state or score field.
+  Generator-aware checks count embedded modulation in the same budget; existing
+  standalone modulation APIs retain their defaults. Text/document limits remain.
+- Quantity syntax uses the existing seconds/beats and Hz aliases, phase aliases
+  turn/turns/cycle/cycles and deg/degree/degrees, and reciprocal rate spellings
+  such as `1/beat`, `2/beat`, `1/s` and `2 Hz`. Bare rational text is valid for
+  rate/phase; serialized Segment durations retain explicit `s` or `beat` units.
+- An Envelope with `initial='current'` and only indefinite holds is valid as a
+  noninitial stage. Fix the empty-level validation crash. Existing initial-stage
+  and top-level binding restrictions remain in force.
 
 Ask immediately if implementation reveals another behavior, data-shape or
 ownership decision. Record approvals here and in the shared cases before coding
