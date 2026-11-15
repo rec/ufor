@@ -41,6 +41,7 @@ FREEZE_CROSSFADE_FRAMES = 64
 DELAY_RETIME_FADE_FRAMES = 64
 WAVESHAPER_LATENCY_FRAMES = 48
 FREQUENCY_SHIFTER_LATENCY_FRAMES = 512
+CAPTURE_FADE_FRAMES = 64
 
 
 def default_grain_duration(data: dict[str, object]) -> float:
@@ -678,6 +679,7 @@ class CapturedBuffer(Model):
     window_seconds: PositiveSeconds = Field(default=0.25, le=2)
     position: UnitInterval = 0.0
     mix: UnitInterval = 1.0
+    maximum_pending_actions: int = Field(default=64, ge=1, strict=True)
     bypass_fade_frames: Annotated[int, units.unit_validator('frame')] = Field(
         default=BYPASS_FADE_FRAMES, ge=1, strict=True
     )

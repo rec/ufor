@@ -70,3 +70,11 @@ def test_capture_window_requires_a_positive_duration_at_most_two_seconds(
         audio_effects.CapturedBuffer(
             name='buffer', mode='reverse', window_seconds=seconds
         )
+
+
+@pytest.mark.parametrize('capacity', [0, -1, True, 1.5])
+def test_capture_command_capacity_requires_a_positive_integer(capacity: object) -> None:
+    with pytest.raises(ValidationError):
+        audio_effects.CapturedBuffer.model_validate(
+            {'name': 'buffer', 'mode': 'stutter', 'maximum_pending_actions': capacity}
+        )
