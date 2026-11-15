@@ -21,6 +21,7 @@ class Unit(StrEnum):
     db = auto()
     cents = auto()
     hz = auto()
+    hz_offset = auto()
     normalized = auto()
     volts = auto()
     seconds = auto()
@@ -352,6 +353,7 @@ UNIT_NAMES = {
     Unit.db: 'decibel',
     Unit.cents: 'musical_cent',
     Unit.hz: 'hertz',
+    Unit.hz_offset: 'hertz',
     Unit.normalized: 'dimensionless',
     Unit.volts: 'volt',
     Unit.seconds: 'second',

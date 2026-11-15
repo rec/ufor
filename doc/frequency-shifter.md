@@ -16,8 +16,10 @@ it is an exact delayed identity only when that phase is zero. This is frequency
 translation, not proportional pitch transposition or a transparent bypass.
 
 `shift_hz` is finite, defaults to zero and accepts [-2000,2000] Hz, including
-per-frame scoped modulation and ordinary parameter ramps. It applies at the
-current output frame, after any upstream input alignment. The FIR approximation
+per-frame scoped modulation and ordinary parameter ramps. Modulation uses
+`hz_offset`, a signed frequency difference
+in hertz; existing `hz` domains continue to require positive absolute frequencies.
+It applies at the current output frame, after any upstream input alignment. The FIR approximation
 weakens near DC and Nyquist; renderer qualification must report its usable band.
 Negative frequencies reflect at DC and frequencies above Nyquist alias. There
 is no protective filter or feedback.

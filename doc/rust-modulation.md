@@ -86,6 +86,7 @@ and functions are outside this grammar. The tuning expression grammar is unchang
 | Declared unit | Portable spellings |
 |---|---|
 | `hz` | Hz, hertz, kHz, kilohertz, mHz, millihertz, MHz, megahertz |
+| `hz_offset` | Same quantities as `hz`, but permits signed and zero parameter domains |
 | `cents` | cent, cents, musical_cent, semitone, octave, oct |
 | `db` | dB, decibel, decibels |
 | `volts` | V, volt, volts, mV, millivolt, millivolts |

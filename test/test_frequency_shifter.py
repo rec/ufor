@@ -58,6 +58,6 @@ def test_frequency_shift_modulation_has_signed_hertz_domain() -> None:
     )
     assert graph.parameter_definition(
         modulation.Target(name='shift', parameter='shift_hz')
-    ) == (modulation.Unit.hz, 0)
+    ) == (modulation.Unit.hz_offset, 0)
     assert graph.output_channels() == ['left', 'right']
     assert graph.latencies(48000) == {'shift': 512}

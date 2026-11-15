@@ -15,6 +15,8 @@ pub enum Unit {
     Db,
     Cents,
     Hz,
+    #[serde(rename = "hz_offset")]
+    HzOffset,
     Normalized,
     Volts,
     Seconds,
@@ -29,6 +31,7 @@ impl Unit {
             Self::Db => "db",
             Self::Cents => "cents",
             Self::Hz => "hz",
+            Self::HzOffset => "hz_offset",
             Self::Normalized => "normalized",
             Self::Volts => "volts",
             Self::Seconds => "seconds",

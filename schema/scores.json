@@ -16691,6 +16691,7 @@
         "db",
         "cents",
         "hz",
+        "hz_offset",
         "normalized",
         "volts",
         "seconds",

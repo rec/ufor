@@ -23,6 +23,7 @@ pub fn records(count: usize) -> Result<(), Error> {
 }
 
 pub fn scalar(text: &str, unit: &str) -> Result<f64, Error> {
+    let unit = if unit == "hz_offset" { "hz" } else { unit };
     if !matches!(
         unit,
         "logical"

@@ -6,6 +6,8 @@
   "maximum_records": 10000,
   "maximum_text": 4096,
   "definitions": [
+    {"id":"parameter-signed-frequency-offset","model":"parameter","input":{"target":{"name":"shift","parameter":"shift_hz"},"unit":"hz_offset","scope":"voice","minimum":"-2 kHz","maximum":"2 kHz","default":0},"normalized":{"target":{"name":"shift","parameter":"shift_hz"},"unit":"hz_offset","scope":"voice","minimum":-2000.0,"maximum":2000.0,"default":0.0}},
+    {"id":"route-signed-frequency-offset","model":"route","input":{"name":"sweep","source":"motion","target":{"name":"shift","parameter":"shift_hz"},"unit":"hz_offset","operation":"add","points":[{"input":-1,"amount":"-0.5 kHz"},{"input":1,"amount":"0.5 kHz"}]}},
     {"id":"empty","model":"modulation","input":{},"normalized":{"parameters":[],"sources":[],"routes":[]}},
     {"id":"source-default-domain","model":"source","input":{"name":"x","scope":"trigger","minimum":0,"maximum":0}},
     {"id":"source-boolean","model":"source","input":{"name":"x","scope":"voice","minimum":false,"maximum":1},"rejected":true},

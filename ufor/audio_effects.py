@@ -932,7 +932,9 @@ class EffectGraph(ModulationSettings):
             raise ValueError(f'Unknown effect parameter {target.name}.{name}')
         validate_parameter(processor, name, value)
         unit = (
-            modulation.Unit.db
+            modulation.Unit.hz_offset
+            if isinstance(processor, FrequencyShifter) and name == 'shift_hz'
+            else modulation.Unit.db
             if name.endswith('_db')
             else modulation.Unit.cents
             if name.endswith('_cents')

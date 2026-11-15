@@ -56,6 +56,8 @@ def finite(value: float) -> float:
 
 
 def scalar_quantity(value: object, unit: str) -> float:
+    if unit == 'hz_offset':
+        unit = 'hz'
     if unit not in UNITS and unit not in ('logical', 'ratio', 'normalized'):
         raise ValueError('Unknown scalar unit')
     if not isinstance(value, str):
