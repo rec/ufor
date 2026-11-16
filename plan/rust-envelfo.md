@@ -12,14 +12,20 @@ approved, with a configurable preparation-record limit defaulting to 10,000.
 The quantity syntax, per-operation configuration and captured indefinite-hold
 alignment described below were subsequently approved as well.
 
-The first implementation increment supplies the
-[contract inventory](../doc/rust-envelfo-contract.md), shared definition cases
-and their Python consumer, and shared Python/Rust exact-quantity and configurable
-record-budget preflight helpers. It also fixes the approved empty-level Envelope
-validation bug. This is not yet a native generator implementation: portable model
-alignment, validated Rust generator types, score adapters and generator-aware
-binding validation remain in stages 2 through 6 below. The preflight helpers do
-not establish structural validity and are not yet wired into those future APIs.
+The implementation now supplies the
+[contract inventory](../doc/rust-envelfo-contract.md),
+[API guide](../doc/rust-envelfo.md), shared cases and independent Python/Rust
+consumers. Native generator models and Python portable alignment include
+LFO/Envelope/SampleHold, Stages/Patch, unresolved references, exact units,
+configurable preparation limits and supporting pure mathematics. Native score
+adapters/public-parameter instantiation, generator-aware binding checks and
+hosted qualification remain below. Standalone preflight helpers still count
+records only; the model/parser boundary performs structural validation as well.
+
+On 2026-11-16 the user approved TOML's `preserve_order` feature in a separate
+dependency commit. It activates the already locked `indexmap` package (Rust
+1.85) without changing versions. Ordered-document cases check the parser and
+writer together. No implementation decisions are currently pending.
 
 **Keep enge unchanged.** Do not change its source, dependencies, lockfiles,
 interfaces, plans, fixtures, preparation arrays or runtime. Treat current enge
@@ -67,57 +73,40 @@ acceptance is evidence, not automatic approval to preserve an accidental bug.
 
 ## Implementation stages
 
-### 1. Inventory and executable contract
+### Completed: inventory, native definitions and Python alignment
 
-Resolve the decisions below before Rust implementation. Add
-`conformance/envelfo-definitions.json` and a focused Python fixture consumer.
-Define expected normalized documents and error categories from the contract,
-not by blindly recording Python output. Identify which existing enveLFO fixtures
-test execution and must stay with that project.
+The contract inventory and `conformance/envelfo-definitions.json` are tracked.
+`test/test_envelfo_conformance.py` and `crates/ufor/tests/envelfo.rs` check
+definitions, normalized values, structural failures, quantities, budgets,
+inheritance, output order and pure helper results. Execution fixtures remain in
+enveLFO. The native public types have private fields and immutable accessors;
+Serde and named generator adapters validate whole definitions.
 
 Keep uFor and enveLFO independently testable from their declared checkouts and
 dependencies. Do not require a sibling repository at test time or copy its
 runtime corpus wholesale into uFor.
 
-### 2. Supporting types and portable Python boundary
+Python portable validation propagates its context and configured record budget,
+revalidates actual instance field values, checks inherited values before
+omitting them, and retains ordinary authoring coercions. Shared Segment and
+ExponentialApproach callers keep nongenerator level ranges. Captured resolution
+now rejects nonfinite intermediates and derived nanosecond counts outside i64.
 
-Implement the required clock/playback/reset/retrigger types, exact quantities,
-markers, segment variants and captured-approach definitions. Reuse checked
-64-bit rationals and the pinned portable identifier repertoire.
+LFO, Envelope, SampleHold, Stages, Patch nodes/connections and unresolved
+reference definitions are implemented natively. Definitions preserve the
+current scope, range, completion-port, inheritance and serialization rules.
+Signal dependency order is unconstrained between independent nodes; input-list
+arithmetic and public output order are preserved. Reference validation reads no
+resources. Generic JSON maps are used for preflight counts, not for retaining
+authored order in typed parsing.
 
-Align affected Python models using `context={'portable': True}` and instance
-revalidation, following the tuning/modulation approach. Preserve ordinary Python
-authoring facilities where they normalize to valid portable definitions.
-Review shared Segment/Curve/ExponentialApproach callers before changing them;
-do not silently impose generator-only level ranges on other users.
+Local verification on 2026-11-16 passed: 2,151 Python tests with one skip,
+34 Rust integration tests and six Rust documentation examples. Ruff, formatting,
+type checking, pyupgrade, Clippy and diff checks passed. These results use the
+installed non-editable Python package and locked Cargo workspace; hosted
+platform/minimum-compiler evidence remains below.
 
-### 3. LFO, Envelope and SampleHold
-
-Port validated immutable Rust definitions and Serde interchange, including
-literal/public-parameter rate alternatives, scope/clock/position-driver rules,
-markers, polarity, onset/release segments, holds, retrigger behavior, playback
-modes, loop boundaries and repeat counts. Include SampleHold's definition and
-scope/range rules without implementing its random stream.
-
-Validate inherited fields and preserve the existing omission of inherited
-settings on child serialization. Do not expose invalid editable Rust fields.
-Implement only the pure helpers explicitly selected under decision 5.
-
-### 4. Stages and Patch structure
-
-Port stage actions/transitions and all currently supported Patch child types:
-LFO, Envelope, Stages, SampleHold, Sum, Product, Affine, Quantize, Latch,
-Threshold and Slew. Nested Patch support must follow the actual Python type
-contract; do not add recursion absent from it.
-
-Check stage names, initial stage, transitions, completion/marker ports, inherited
-settings, allowed child profiles and reserved names. For Patch, validate signal
-references and acyclicity, calculate finite signal ranges, resolve selected
-outputs and event outputs, and check event action/cue compatibility. Preserve
-input-list arithmetic order and distinguish signal dependency cycles from event
-connections; do not invent an event-cycle rejection policy.
-
-### 5. Scores, parameters and generator-aware binding checks
+### Remaining: scores, parameters and generator-aware binding checks
 
 Add the existing `envelfo` score envelope to native codec handling, including
 public parameter declarations, parameter substitution and origin metadata.
@@ -134,7 +123,7 @@ them. Success must not imply follower processor capability or instrument/effect
 target validation. Retain explicit unresolved results for missing external
 context; do not construct a partly validated full `ModulationSettings` model.
 
-### 6. Documentation and qualification
+### Remaining: score/binding documentation and hosted qualification
 
 Update the native API guide, format/validation documentation and generated schema
 where the approved implementation changes them. Include tested Rust examples
@@ -236,6 +225,9 @@ Approved implementation details:
 - An Envelope with `initial='current'` and only indefinite holds is valid as a
   noninitial stage. Fix the empty-level validation crash. Existing initial-stage
   and top-level binding restrictions remain in force.
+- Origin identities, paths, selectors, event-port strings and transition-event
+  strings are capped at 4096 characters. Selector input is checked before
+  canonicalization. Descriptions retain the overall document budget.
 
 Ask immediately if implementation reveals another behavior, data-shape or
 ownership decision. Record approvals here and in the shared cases before coding
@@ -243,7 +235,8 @@ the affected behavior.
 
 ## Deferred work
 
-No enge or enveLFO changes, new dependencies, runtime adapters, native host
+No enge or enveLFO changes, additional dependencies beyond the approved TOML
+order-preservation feature, runtime adapters, native host
 integration, generator execution, random streams, snapshots, state/event replay,
 control smoothing runtime, TempoMap/transport execution, audio generation,
 Python/Rust bindings, device access or WebAssembly are included. Runtime

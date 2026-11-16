@@ -3,6 +3,32 @@ use ufor::expression::evaluate;
 use ufor::number::{Number, Rational};
 
 #[test]
+fn rational_ordering_keeps_signed_boundaries_and_nearby_fractions_exact() {
+    let values = [
+        Rational::new(i64::MIN, 1).unwrap(),
+        Rational::new(i64::MIN, i64::MAX).unwrap(),
+        Rational::new(-1, 1).unwrap(),
+        Rational::new(-1, i64::MAX).unwrap(),
+        Rational::new(0, 1).unwrap(),
+        Rational::new(1, i64::MAX).unwrap(),
+        Rational::new(i64::MAX - 2, i64::MAX - 1).unwrap(),
+        Rational::new(i64::MAX - 1, i64::MAX).unwrap(),
+        Rational::new(1, 1).unwrap(),
+        Rational::new(i64::MAX, 1).unwrap(),
+    ];
+    for pair in values.windows(2) {
+        assert!(pair[0] < pair[1]);
+        assert!(pair[1] > pair[0]);
+    }
+    assert_eq!(
+        Rational::new(2, 4)
+            .unwrap()
+            .cmp(&Rational::new(1, 2).unwrap()),
+        std::cmp::Ordering::Equal
+    );
+}
+
+#[test]
 fn rational_arithmetic_reduces_before_checking_range() {
     let large = Rational::new(i64::MAX, 2).unwrap();
     assert_eq!(

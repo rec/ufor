@@ -69,7 +69,17 @@ def scalar_quantity(value: object, unit: str) -> float:
             return finite(float(value))
         except OverflowError as error:
             raise ValueError('Scalar exceeds the f64 range') from error
-    tokens, factor = _quantity(value, unit)
+    return _scalar_quantity(*_quantity(value, unit))
+
+
+def scalar_rate(value: object) -> float:
+    """A finite scalar reciprocal-second rate, without exact-rational limits."""
+    if not isinstance(value, str):
+        return scalar_quantity(value, 'hz')
+    return _scalar_quantity(*_generator_quantity(value, 'per_second'))
+
+
+def _scalar_quantity(tokens: list[str], factor: Fraction) -> float:
     result = finite(float(tokens[0]))
     for token in tokens[1:]:
         divisor = finite(float(token))
@@ -101,25 +111,10 @@ def exact_quantity(value: object, unit: str) -> Fraction:
     if type(value) is int:
         result = number.checked_fraction(value)
     elif isinstance(value, str):
-        if len(value) > MAX_TEXT:
-            raise ValueError('Quantity exceeds 4096 characters')
-        if any(c in value for c in '\x1c\x1d\x1e\x1f'):
-            raise ValueError('Unsupported quantity whitespace')
-        factor = Fraction(1)
-        numeric_unit = 'hz' if unit == 'per_second' else unit
-        if unit in ('hz', 'per_beat', 'per_second'):
-            aliases = UNITS['beats' if unit == 'per_beat' else 'seconds']
-            if match := re.search(r'/\s*([A-Za-z_]+)(?=\s|/|$)', value):
-                if match[1] not in aliases:
-                    raise ValueError('Incompatible reciprocal generator unit')
-                factor = 1 / aliases[match[1]]
-                value = value[: match.start()] + value[match.end() :]
-                numeric_unit = 'ratio'
-        tokens, scale = _quantity(value, numeric_unit)
+        tokens, factor = _generator_quantity(value, unit)
         result = evaluate(tokens[0])
         for token in tokens[1:]:
             result = number.checked_divide(result, evaluate(token))
-        result = number.checked_multiply(result, scale)
         result = number.checked_multiply(result, factor)
     elif isinstance(value, Fraction):
         result = number.checked_fraction(value.numerator, value.denominator)
@@ -129,6 +124,25 @@ def exact_quantity(value: object, unit: str) -> Fraction:
         )
     assert isinstance(result, Fraction)
     return result
+
+
+def _generator_quantity(text: str, unit: str) -> tuple[list[str], Fraction]:
+    if len(text) > MAX_TEXT:
+        raise ValueError('Quantity exceeds 4096 characters')
+    if any(c in text for c in '\x1c\x1d\x1e\x1f'):
+        raise ValueError('Unsupported quantity whitespace')
+    factor = Fraction(1)
+    numeric_unit = 'hz' if unit == 'per_second' else unit
+    if unit in ('hz', 'per_beat', 'per_second'):
+        aliases = UNITS['beats' if unit == 'per_beat' else 'seconds']
+        if match := re.search(r'/\s*([A-Za-z_]+)(?=\s|/|$)', text):
+            if match[1] not in aliases:
+                raise ValueError('Incompatible reciprocal generator unit')
+            factor = 1 / aliases[match[1]]
+            text = text[: match.start()] + text[match.end() :]
+            numeric_unit = 'ratio'
+    tokens, scale = _quantity(text, numeric_unit)
+    return tokens, scale * factor
 
 
 def records(count: int) -> None:

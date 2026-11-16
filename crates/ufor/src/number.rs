@@ -170,7 +170,7 @@ impl Rational {
         // directly, avoiding the large cross-products of two distances.
         let remainder = Self::new(n - k * d, d)?;
         let threshold = Self::new(q, q1)?;
-        let selected = if compare_positive(remainder, threshold) != std::cmp::Ordering::Less {
+        let selected = if remainder.cmp(&threshold) != std::cmp::Ordering::Less {
             second
         } else {
             first
@@ -192,6 +192,41 @@ impl std::fmt::Display for Rational {
             write!(f, "{}", self.numerator)
         } else {
             write!(f, "{}/{}", self.numerator, self.denominator)
+        }
+    }
+}
+
+impl PartialOrd for Rational {
+    fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+        Some(self.cmp(other))
+    }
+}
+
+impl Ord for Rational {
+    fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+        if (self.numerator < 0) != (other.numerator < 0) {
+            return self.numerator.cmp(&other.numerator);
+        }
+        let (mut a, mut b, mut c, mut d) = (
+            self.numerator.unsigned_abs(),
+            self.denominator as u64,
+            other.numerator.unsigned_abs(),
+            other.denominator as u64,
+        );
+        let mut reversed = self.numerator < 0;
+        loop {
+            let order = (a / b).cmp(&(c / d));
+            let (r, s) = (a % b, c % d);
+            let order = if order != std::cmp::Ordering::Equal {
+                order
+            } else if r == 0 || s == 0 {
+                r.cmp(&s)
+            } else {
+                (a, b, c, d) = (b, r, d, s);
+                reversed = !reversed;
+                continue;
+            };
+            return if reversed { order.reverse() } else { order };
         }
     }
 }
@@ -315,29 +350,4 @@ fn signed(value: u64, negative: bool) -> Result<i64, Error> {
     }
     let value = i64::try_from(value).map_err(|_| Error::ArithmeticRange)?;
     Ok(if negative { -value } else { value })
-}
-
-fn compare_positive(mut a: Rational, mut b: Rational) -> std::cmp::Ordering {
-    let mut reversed = false;
-    loop {
-        let order = (a.numerator / a.denominator).cmp(&(b.numerator / b.denominator));
-        if order != std::cmp::Ordering::Equal {
-            return if reversed { order.reverse() } else { order };
-        }
-        let ar = a.numerator % a.denominator;
-        let br = b.numerator % b.denominator;
-        if ar == 0 || br == 0 {
-            let order = ar.cmp(&br);
-            return if reversed { order.reverse() } else { order };
-        }
-        a = Rational {
-            numerator: a.denominator,
-            denominator: ar,
-        };
-        b = Rational {
-            numerator: b.denominator,
-            denominator: br,
-        };
-        reversed = !reversed;
-    }
 }

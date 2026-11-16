@@ -4,12 +4,13 @@ from enum import StrEnum, auto
 from fractions import Fraction
 from typing import Annotated, Literal
 
+import pydantic
 from pydantic import Field, StrictBool, field_serializer, model_validator
 from pydantic.functional_validators import BeforeValidator
 from reccy.configuration import units
 
-from . import control
-from .base import FiniteScalar, Model
+from . import control, envelfo_contract
+from .base import FiniteScalar
 
 
 def duration(value: object) -> Fraction:
@@ -34,7 +35,7 @@ class DurationUnit(StrEnum):
 Duration = Annotated[Fraction, BeforeValidator(duration)]
 
 
-class Segment(Model):
+class Segment(envelfo_contract.Definition):
     duration: Duration = Field(ge=0)
     to: FiniteScalar | StrictBool
     curve: float = 0
@@ -42,7 +43,18 @@ class Segment(Model):
 
     @model_validator(mode='before')
     @classmethod
-    def authored_unit(cls, value: object) -> object:
+    def authored_unit(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if (
+            info.context
+            and info.context.get('portable')
+            and isinstance(value, dict)
+            and 'duration' in value
+        ):
+            authored, unit = envelfo_contract.duration_quantity(value['duration'])
+            declared = value.get('duration_unit', unit)
+            if declared != unit and isinstance(value['duration'], str):
+                raise ValueError('segment duration unit conflicts with its suffix')
+            return value | {'duration': authored, 'duration_unit': declared}
         if isinstance(value, dict) and isinstance(value.get('duration'), str):
             authored = value['duration']
             unit = (
@@ -61,7 +73,7 @@ class Segment(Model):
         return f'{value} {unit}'
 
 
-class IndefiniteSegment(Model):
+class IndefiniteSegment(envelfo_contract.Definition):
     """Hold the incoming Envelope value until an explicit advance command."""
 
     duration: Literal[None] = None

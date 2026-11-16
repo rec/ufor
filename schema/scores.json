@@ -87,6 +87,7 @@
           "type": "string"
         },
         "input": {
+          "maxLength": 4096,
           "title": "Input",
           "type": "string"
         },
@@ -4464,6 +4465,7 @@
           "type": "string"
         },
         "stage": {
+          "maxLength": 4096,
           "title": "Stage",
           "type": "string"
         }
@@ -4539,6 +4541,9 @@
                 "type": "string"
               }
             ]
+          },
+          "propertyNames": {
+            "maxLength": 4096
           },
           "title": "Parameters",
           "type": "object"
@@ -4877,6 +4882,9 @@
           "additionalProperties": {
             "$ref": "#/$defs/EnvelfoParameter"
           },
+          "propertyNames": {
+            "maxLength": 4096
+          },
           "title": "Parameters",
           "type": "object"
         },
@@ -5035,6 +5043,7 @@
         "loop_start": {
           "anyOf": [
             {
+              "maxLength": 4096,
               "type": "string"
             },
             {
@@ -5047,6 +5056,7 @@
         "loop_end": {
           "anyOf": [
             {
+              "maxLength": 4096,
               "type": "string"
             },
             {
@@ -8260,6 +8270,7 @@
           "type": "string"
         },
         "input": {
+          "maxLength": 4096,
           "title": "Input",
           "type": "string"
         }
@@ -8846,6 +8857,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -10472,6 +10484,7 @@
       "additionalProperties": false,
       "properties": {
         "parameter": {
+          "maxLength": 4096,
           "title": "Parameter",
           "type": "string"
         }
@@ -10756,20 +10769,30 @@
             ]
           },
           "minProperties": 1,
+          "propertyNames": {
+            "maxLength": 4096
+          },
           "title": "Envelfos",
           "type": "object"
         },
         "outputs": {
           "additionalProperties": {
+            "maxLength": 4096,
             "type": "string"
           },
           "minProperties": 1,
+          "propertyNames": {
+            "maxLength": 4096
+          },
           "title": "Outputs",
           "type": "object"
         },
         "event_outputs": {
           "additionalProperties": {
             "type": "string"
+          },
+          "propertyNames": {
+            "maxLength": 4096
           },
           "title": "Event Outputs",
           "type": "object"
@@ -10798,6 +10821,7 @@
           "type": "string"
         },
         "target": {
+          "maxLength": 4096,
           "title": "Target",
           "type": "string"
         },
@@ -10815,6 +10839,7 @@
         "cue": {
           "anyOf": [
             {
+              "maxLength": 4096,
               "type": "string"
             },
             {
@@ -11427,6 +11452,7 @@
         },
         "inputs": {
           "items": {
+            "maxLength": 4096,
             "type": "string"
           },
           "minItems": 2,
@@ -11632,6 +11658,7 @@
           "type": "string"
         },
         "input": {
+          "maxLength": 4096,
           "title": "Input",
           "type": "string"
         },
@@ -14328,6 +14355,7 @@
           "type": "string"
         },
         "input": {
+          "maxLength": 4096,
           "title": "Input",
           "type": "string"
         },
@@ -14989,6 +15017,7 @@
       "additionalProperties": false,
       "properties": {
         "name": {
+          "maxLength": 4096,
           "title": "Name",
           "type": "string"
         },
@@ -15023,6 +15052,7 @@
       "properties": {
         "from": {
           "items": {
+            "maxLength": 4096,
             "type": "string"
           },
           "minItems": 1,
@@ -15472,6 +15502,7 @@
         },
         "inputs": {
           "items": {
+            "maxLength": 4096,
             "type": "string"
           },
           "minItems": 2,
@@ -16041,6 +16072,7 @@
           "type": "string"
         },
         "input": {
+          "maxLength": 4096,
           "title": "Input",
           "type": "string"
         },
