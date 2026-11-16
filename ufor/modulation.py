@@ -147,7 +147,7 @@ class Route(Model):
     target: Target
     operation: Operation
     unit: Unit
-    points: list[Point] = Field(min_length=1, max_length=9999)
+    points: list[Point] = Field(min_length=1)
     interpolation: Interpolation = Interpolation.linear
 
     @model_validator(mode='before')
@@ -155,7 +155,7 @@ class Route(Model):
     def declared_units(cls, value: object, info: pydantic.ValidationInfo) -> object:
         if not isinstance(value, dict) or not isinstance(value.get('points'), list):
             return value
-        records(1 + len(value['points']))
+        records(1 + len(value['points']), info)
         return dict(value) | {
             'points': [
                 {
@@ -185,18 +185,18 @@ class Route(Model):
 
 
 class Modulation(Model):
-    parameters: list[Parameter] = Field(default_factory=list, max_length=10000)
-    sources: list[Source] = Field(default_factory=list, max_length=10000)
-    routes: list[Route] = Field(default_factory=list, max_length=10000)
+    parameters: list[Parameter] = Field(default_factory=list)
+    sources: list[Source] = Field(default_factory=list)
+    routes: list[Route] = Field(default_factory=list)
 
     @model_validator(mode='before')
     @classmethod
-    def preparation_budget(cls, value: object) -> object:
+    def preparation_budget(cls, value: object, info: pydantic.ValidationInfo) -> object:
         if isinstance(value, dict):
             arrays = [value.get(k, []) for k in ('parameters', 'sources', 'routes')]
             if all(isinstance(a, (list, tuple)) for a in arrays):
                 count = sum(len(a) for a in arrays)
-                records(count)
+                records(count, info)
                 for route in arrays[2]:
                     points = (
                         route.points
@@ -207,12 +207,12 @@ class Modulation(Model):
                     )
                     if isinstance(points, (list, tuple)):
                         count += len(points)
-                        records(count)
+                        records(count, info)
         return value
 
     @model_validator(mode='after')
-    def references_and_units(self) -> Self:
-        records(self.record_count())
+    def references_and_units(self, info: pydantic.ValidationInfo) -> Self:
+        records(self.record_count(), info)
         unique([s.name for s in self.sources], 'source IDs')
         unique([r.name for r in self.routes], 'route IDs')
         parameters = {p.target: p for p in self.parameters}

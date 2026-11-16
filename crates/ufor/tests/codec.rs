@@ -1,16 +1,24 @@
 use ufor::codec::{self, Format};
+use ufor::envelfo::PreparationLimits;
 use ufor::error::Error;
 use ufor::musical::TuningScore;
+use ufor::score::Score;
 
 #[test]
 fn shared_python_document_roundtrips_json_and_toml() {
     let source = include_str!("../../../conformance/library/scores/tuning.toml");
-    let score = codec::parse_score(source, Format::Toml).unwrap();
+    let score = codec::parse_score(source, Format::Toml, PreparationLimits::default()).unwrap();
     assert_eq!(score.name(), "western");
-    assert_eq!(score.body().evaluate(69).unwrap().to_string(), "440");
+    let Score::Tuning(tuning) = &score else {
+        panic!("expected tuning");
+    };
+    assert_eq!(tuning.body().evaluate(69).unwrap().to_string(), "440");
     for format in [Format::Json, Format::Toml] {
         let text = codec::score_text(&score, format).unwrap();
-        assert_eq!(codec::parse_score(&text, format).unwrap(), score);
+        assert_eq!(
+            codec::parse_score(&text, format, PreparationLimits::default()).unwrap(),
+            score
+        );
     }
 }
 
@@ -32,18 +40,31 @@ fn headers_and_unknown_fields_use_the_same_validated_boundary() {
             "{input}"
         );
         assert!(
-            codec::parse_score(&input.to_string(), Format::Json).is_err(),
+            codec::parse_score(
+                &input.to_string(),
+                Format::Json,
+                PreparationLimits::default()
+            )
+            .is_err(),
             "{input}"
         );
     }
     let mut no_kind = valid;
     no_kind.as_object_mut().unwrap().remove("kind");
     assert!(serde_json::from_value::<TuningScore>(no_kind.clone()).is_ok());
-    assert!(codec::parse_score(&no_kind.to_string(), Format::Json).is_err());
+    assert!(
+        codec::parse_score(
+            &no_kind.to_string(),
+            Format::Json,
+            PreparationLimits::default()
+        )
+        .is_err()
+    );
     assert!(
         codec::parse_score(
             "version = 4.0\nkind='tuning'\nname='a'\ntitle='A'\n[body.source]\nkind='computed'",
-            Format::Toml
+            Format::Toml,
+            PreparationLimits::default()
         )
         .is_err()
     );

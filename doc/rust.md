@@ -70,10 +70,13 @@ assert_eq!(codec::parse_tuning(&text, Format::Toml)?, tuning);
 ```
 
 `codec::parse_tuning` / `tuning_text` handle tuning bodies;
-`codec::parse_score` / `score_text` handle tuning scores. Select JSON or TOML
+`codec::parse_score(text, format, limits)` / `score_text` handle the typed
+`score::Score` enum with `Tuning` and `Envelfo` variants. Select JSON or TOML
 with `Format`. Both operate on supplied UTF-8 strings and preserve expression
-spelling except unit normalization. The score codec requires `kind = "tuning"`;
-typed `TuningScore` deserialization can supply that default. Direct Serde use
+spelling except unit normalization. The score codec requires an explicit supported
+`kind`; typed `TuningScore` and `EnvelfoScore` deserialization can supply their
+respective defaults. `PreparationLimits` configures EnveLFO preparation; tuning's
+fixed table/materialization bounds remain unchanged. Direct Serde use
 also validates models, while the codec additionally enforces the Python codec's
 16,777,216-character, 100,000-value and 64-level document budgets.
 

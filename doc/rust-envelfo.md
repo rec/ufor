@@ -142,10 +142,123 @@ Selectors are bounded before canonicalization. Descriptions retain the overall
 document budget. No path resolution or platform-specific filesystem operation
 occurs during validation.
 
+## Scores and public parameters
+
+The existing score codec now returns `score::Score`, with `Tuning` and `Envelfo`
+variants. `parse_score` takes an explicit preparation limit. `EnvelfoScore` uses
+the existing recs/version 4 header, validated name/title/tags and concrete body.
+Its public parameters currently bind only the root LFO's rate. Each declaration
+must be used, have Hz units and a positive minimum, and contain its default.
+Hz public parameters require a seconds-clock LFO, both in the score and at
+materialization. Literal beat-clock LFO rates remain supported.
+
+```rust
+use std::collections::BTreeMap;
+use ufor::codec::{self, Format};
+use ufor::envelfo::{Body, ParameterValue, PreparationLimits, Rate, Settings};
+use ufor::identifier::Identifier;
+use ufor::number::Rational;
+use ufor::score::Score;
+
+let limits = PreparationLimits::default();
+let score = codec::parse_score(r#"{
+  "kind":"envelfo", "name":"motion", "title":"Motion",
+  "parameters":{"speed":{"unit":"hz","minimum":0.1,"maximum":10,"default":2}},
+  "body":{"kind":"lfo","rate":{"parameter":"speed"}}
+}"#, Format::Json, limits)?;
+let text = codec::score_text(&score, Format::Toml)?;
+assert_eq!(codec::parse_score(&text, Format::Toml, limits)?, score);
+let Score::Envelfo(definition) = score else { unreachable!() };
+let values = BTreeMap::from([
+    (Identifier::new("speed".into())?, ParameterValue::Text("1/3 Hz".into()))
+]);
+let generator = definition.instantiate(&values, Settings::default(), limits)?;
+let Body::Lfo(lfo) = generator.body() else { unreachable!() };
+assert_eq!(lfo.rate(), &Rate::Literal(
+    Rational::new(3333333333333333, 10000000000000000)?
+));
+# Ok::<(), ufor::error::Error>(())
+```
+
+Instantiation validates finite scalar overrides and declared bounds, rejects
+unknown keys, then converts the f64 rate's shortest decimal representation into
+a checked exact rational. Thus `0.1` becomes `1/10`, while `1/3 Hz` first rounds
+to f64 and becomes the rational shown above. Values whose resulting rational
+cannot fit i64 fail explicitly. Root settings/origin replace the score settings;
+children inherit the new scope/clock. The score remains unchanged. No reference
+resolution or resource access occurs.
+
+Python `instantiate_envelfo(..., context={'portable': True, 'max_records': N})`
+revalidates the score and overrides under the same rules. Without portable
+context, ordinary authoring retains broader Pint syntax. The checked conversion
+and Hz/beat-clock rejection apply to both modes. The operation budget includes
+the score's records plus each supplied override.
+
+## Generator-aware binding checks
+
+`samples::bindings::validate_generator_bindings` takes a modulation definition,
+bindings, control declarations, generator definitions, event connections and
+`PreparationLimits`. Python's corresponding function is
+`ufor.samples.processing.validate_generator_bindings`, with keyword
+`max_records`. Both share the existing local binding checks, then check generator
+existence, selected Patch outputs, scope/domain, shared-child release timing,
+releasing envelopes, and known event source ports/destination cues.
+
+```rust
+use std::collections::BTreeMap;
+use ufor::envelfo::{Generator, PreparationLimits};
+use ufor::identifier::Identifier;
+use ufor::modulation::Modulation;
+use ufor::samples::bindings::validate_generator_bindings;
+use ufor::samples::processing::Binding;
+
+let definition: Modulation = serde_json::from_str(r#"{
+  "sources":[{"name":"motion","scope":"voice","minimum":-1,"maximum":1}]
+}"#)?;
+let binding: Binding = serde_json::from_str(
+    r#"{"name":"motion","kind":"envelfo","reference":"osc"}"#
+)?;
+let generator: Generator = serde_json::from_str(r#"{"kind":"lfo","rate":2}"#)?;
+let generators = BTreeMap::from([(Identifier::new("osc".into())?, generator)]);
+let result = validate_generator_bindings(
+    &definition, &[binding], &BTreeMap::new(), &generators, &[],
+    PreparationLimits::default(),
+)?;
+assert!(result.unresolved_bindings().is_empty());
+assert!(result.unresolved_connections().is_empty());
+assert!(result.unresolved_targets().is_empty());
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+`BindingValidation` explicitly reports remaining work:
+
+- `unresolved_bindings`, in binding declaration order: followers retain their
+  declarations; unresolved score generators carry typed `output` and `domain`
+  requirements, plus `release` when voice release timing is requested.
+- `unresolved_connections`, in connection order: each connection carries
+  `source_port` and/or `destination_cue` requirements for unresolved ends. A
+  known end is checked even when the other end is unresolved.
+- `unresolved_targets`: all modulation parameter targets, in declaration order.
+  Their actual instrument/effect unit, default and capability checks remain external.
+
+An unresolved reference still has a known scope, which must match its use.
+Concrete generator sources require exact domains, while derived Patch outputs
+permit a declared source domain enclosing the calculated range. Voice release
+timing requires a selected releasing Envelope. Full Python `ModulationSettings`
+retains its stricter existing behavior for unresolved voice-release references.
+This partial API does not claim full settings validation or follower capability.
+
+The aggregate budget counts the supplied context root, embedded modulation root
+and all declarations/references once per occurrence. To decode embedded native
+modulation above its standalone default, use `Modulation::decode(deserializer,
+limits.max_records())` before passing it to this validator. Python propagates
+the context override. Standalone constructors, ordinary Serde and the existing
+local-only API retain their default limits. Dynamic operation budgets are
+semantic validation, not fixed JSON Schema collection maxima.
+
 ## Remaining scope
 
-Native `envelfo` score headers, public-parameter instantiation, library resolution
-and generator-aware modulation binding checks remain later stages. A parsed
+Library resolution remains consumer work. A parsed
 unresolved reference does not establish generator existence or its output
 domain. Generator state, execution, event replay, smoothing, TempoMap, native
 consumer adapters and audio rendering remain in their owning projects. Local

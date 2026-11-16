@@ -5,7 +5,7 @@ use crate::error::Error;
 use crate::identifier::Identifier;
 use crate::modulation::{Modulation, SourceScope};
 use crate::number::Rational;
-use crate::quantity::{exact_seconds, records};
+use crate::quantity::exact_seconds;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -185,9 +185,22 @@ pub fn validate_local_bindings(
     bindings: &[Binding],
     controls: &BTreeMap<Identifier, ControlDeclaration>,
 ) -> Result<Vec<UnresolvedBinding>, Error> {
-    records(bindings.len())?;
-    records(controls.len())?;
-    records(definition.record_count() + bindings.len() + controls.len())?;
+    validate_local_with_limit(definition, bindings, controls, crate::quantity::MAX_RECORDS)
+}
+pub(super) fn validate_local_with_limit(
+    definition: &Modulation,
+    bindings: &[Binding],
+    controls: &BTreeMap<Identifier, ControlDeclaration>,
+    maximum: usize,
+) -> Result<Vec<UnresolvedBinding>, Error> {
+    crate::quantity::record_budget(
+        definition
+            .record_count()
+            .checked_add(bindings.len())
+            .and_then(|n| n.checked_add(controls.len()))
+            .ok_or(Error::ArithmeticRange)?,
+        maximum,
+    )?;
     let sources: BTreeMap<_, _> = definition.sources().iter().map(|s| (s.name(), s)).collect();
     let names: BTreeSet<_> = bindings.iter().map(Binding::name).collect();
     if names.len() != bindings.len()
@@ -405,4 +418,109 @@ enum BindingDefinition {
     Control(ControlDefinition),
     Envelfo(GeneratorDefinition),
     Follower(FollowerDefinition),
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(
+    try_from = "EventConnectionDefinition",
+    into = "EventConnectionDefinition"
+)]
+pub struct EnvelfoEventConnection {
+    source: Identifier,
+    port: String,
+    destination: Identifier,
+    cue: Identifier,
+    every: i64,
+    offset: i64,
+    probability: f64,
+    delay: Rational,
+}
+impl EnvelfoEventConnection {
+    pub fn source(&self) -> &Identifier {
+        &self.source
+    }
+    pub fn port(&self) -> &str {
+        &self.port
+    }
+    pub fn destination(&self) -> &Identifier {
+        &self.destination
+    }
+    pub fn cue(&self) -> &Identifier {
+        &self.cue
+    }
+    pub fn every(&self) -> i64 {
+        self.every
+    }
+    pub fn offset(&self) -> i64 {
+        self.offset
+    }
+    pub fn probability(&self) -> f64 {
+        self.probability
+    }
+    pub fn delay(&self) -> Rational {
+        self.delay
+    }
+}
+#[derive(Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct EventConnectionDefinition {
+    source: Identifier,
+    port: String,
+    destination: Identifier,
+    cue: Identifier,
+    #[serde(default = "event_every")]
+    every: i64,
+    #[serde(default)]
+    offset: i64,
+    #[serde(default = "event_probability")]
+    probability: f64,
+    #[serde(default = "event_delay")]
+    delay: Smoothing,
+}
+fn event_every() -> i64 {
+    1
+}
+fn event_probability() -> f64 {
+    1.0
+}
+fn event_delay() -> Smoothing {
+    Smoothing::Integer(0)
+}
+impl TryFrom<EventConnectionDefinition> for EnvelfoEventConnection {
+    type Error = Error;
+    fn try_from(v: EventConnectionDefinition) -> Result<Self, Error> {
+        crate::quantity::finite(v.probability)?;
+        if v.port.is_empty()
+            || v.port.chars().take(4097).count() > 4096
+            || v.every < 1
+            || v.offset < 0
+            || !(0.0..=1.0).contains(&v.probability)
+        {
+            return Err(invalid("invalid generator event connection"));
+        }
+        Ok(Self {
+            source: v.source,
+            port: v.port,
+            destination: v.destination,
+            cue: v.cue,
+            every: v.every,
+            offset: v.offset,
+            probability: v.probability,
+            delay: v.delay.value()?,
+        })
+    }
+}
+impl From<EnvelfoEventConnection> for EventConnectionDefinition {
+    fn from(v: EnvelfoEventConnection) -> Self {
+        Self {
+            source: v.source,
+            port: v.port,
+            destination: v.destination,
+            cue: v.cue,
+            every: v.every,
+            offset: v.offset,
+            probability: v.probability,
+            delay: Smoothing::Text(v.delay.to_string()),
+        }
+    }
 }

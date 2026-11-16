@@ -9,7 +9,7 @@ import pydantic
 from pydantic import Field, StrictBool, model_validator
 from reccy.configuration import units
 
-from .. import control, envelfo, modulation, modulation_contract
+from .. import control, envelfo, envelfo_contract, modulation, modulation_contract
 from ..approach import ExponentialApproach
 from ..base import (
     FiniteScalar,
@@ -219,11 +219,13 @@ class FollowerBinding(Model):
     model_config = pydantic.ConfigDict(revalidate_instances='always')
 
 
-class EnvelfoEventConnection(Model):
-    source: Identifier
-    port: str = Field(min_length=1)
-    destination: Identifier
-    cue: Identifier
+class EnvelfoEventConnection(envelfo_contract.Definition):
+    source: modulation_contract.Identifier
+    port: Annotated[str, pydantic.AfterValidator(envelfo_contract.text)] = Field(
+        min_length=1
+    )
+    destination: modulation_contract.Identifier
+    cue: modulation_contract.Identifier
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
     probability: UnitInterval = 1.0
@@ -231,11 +233,130 @@ class EnvelfoEventConnection(Model):
         Field(default=Fraction(0), ge=0)
     )
 
+    @model_validator(mode='before')
+    @classmethod
+    def portable_delay(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if (
+            info.context
+            and info.context.get('portable')
+            and isinstance(value, dict)
+            and 'delay' in value
+        ):
+            return value | {'delay': modulation_contract.exact_seconds(value['delay'])}
+        return value
+
 
 Binding = Annotated[
     EventBinding | ControlBinding | GeneratorBinding | FollowerBinding,
     Field(discriminator='kind'),
 ]
+
+
+class GeneratorRequirement(StrEnum):
+    output = auto()
+    domain = auto()
+    release = auto()
+
+
+class ConnectionRequirement(StrEnum):
+    source_port = auto()
+    destination_cue = auto()
+
+
+class UnresolvedGeneratorBinding(Model):
+    kind: Literal['generator'] = 'generator'
+    binding: GeneratorBinding
+    checks: list[GeneratorRequirement]
+
+
+class UnresolvedEventConnection(Model):
+    connection: EnvelfoEventConnection
+    checks: list[ConnectionRequirement]
+
+
+class BindingValidation(Model):
+    unresolved_bindings: list[UnresolvedGeneratorBinding | FollowerBinding]
+    unresolved_connections: list[UnresolvedEventConnection]
+    unresolved_targets: list[modulation.Target]
+
+
+def validate_generator_bindings(
+    definition: modulation.Modulation,
+    bindings: list[Binding],
+    controls: dict[str, ControlDeclaration],
+    generators: dict[str, Generator],
+    connections: list[EnvelfoEventConnection],
+    *,
+    max_records: int = 10000,
+) -> BindingValidation:
+    """Validate available generator facts and report every external obligation."""
+    context = {
+        'portable': True,
+        'max_records': envelfo_contract.record_limit(max_records),
+    }
+    data = {
+        'modulation': definition,
+        'bindings': bindings,
+        'controls': controls,
+        'envelfos': generators,
+        'event_connections': connections,
+    }
+    envelfo_contract.preparation_records(data, max_records)
+    definition = modulation.Modulation.model_validate(definition, context=context)
+    bindings = pydantic.TypeAdapter(list[Binding]).validate_python(
+        bindings, context=context
+    )
+    controls = pydantic.TypeAdapter(
+        dict[modulation_contract.Identifier, ControlDeclaration]
+    ).validate_python(controls, context=context)
+    generators = pydantic.TypeAdapter(
+        dict[modulation_contract.Identifier, Generator]
+    ).validate_python(generators, context=context)
+    connections = pydantic.TypeAdapter(list[EnvelfoEventConnection]).validate_python(
+        connections, context=context
+    )
+    sources = _binding_sources(definition, bindings)
+    _inline_generators(generators)
+    unresolved: list[UnresolvedGeneratorBinding | FollowerBinding] = []
+    timings: dict[tuple[str, str], ReleaseTiming] = {}
+    for binding in bindings:
+        source = sources[binding.name]
+        if isinstance(binding, ControlBinding):
+            if binding.control not in controls:
+                raise ValueError(f'Unknown control: {binding.control}')
+            _validate_control_source(source, controls[binding.control])
+        elif isinstance(binding, EventBinding):
+            _validate_event_source(source, binding, definition.routes)
+        elif isinstance(binding, FollowerBinding):
+            _validate_follower_source(source)
+            unresolved.append(binding)
+        else:
+            if binding.reference not in generators:
+                raise ValueError(f'Unknown local envelfo source: {binding.reference}')
+            generator = generators[binding.reference]
+            if isinstance(generator, envelfo.EnveLFOReference):
+                if source.scope != generator.scope:
+                    raise ValueError('Envelfo source scope must match its use')
+                checks = [GeneratorRequirement.output, GeneratorRequirement.domain]
+                if binding.release_timing == ReleaseTiming.voice:
+                    checks.append(GeneratorRequirement.release)
+                unresolved.append(
+                    UnresolvedGeneratorBinding(binding=binding, checks=checks)
+                )
+            else:
+                _validate_generator_source(source, binding, generator, timings)
+    by_name = {b.name: b for b in bindings}
+    events: list[UnresolvedEventConnection] = []
+    for connection in connections:
+        if checks := _validate_generator_connection(connection, by_name, generators):
+            events.append(
+                UnresolvedEventConnection(connection=connection, checks=checks)
+            )
+    return BindingValidation(
+        unresolved_bindings=unresolved,
+        unresolved_connections=events,
+        unresolved_targets=[p.target for p in definition.parameters],
+    )
 
 
 def validate_local_bindings(
@@ -284,63 +405,11 @@ class ModulationSettings(Model):
 
     @model_validator(mode='after')
     def local_references(self) -> Self:
-        for generator in self.envelfos.values():
-            if isinstance(generator, LFO) and isinstance(
-                generator.rate, envelfo.ParameterReference
-            ):
-                raise ValueError('inline LFO rate cannot reference a public parameter')
-            if isinstance(generator, Envelope) and generator.initial == 'current':
-                raise ValueError('current envelope initial requires a parent stage')
+        _inline_generators(self.envelfos)
         sources = _binding_sources(self.modulation, self.bindings)
         bindings = {b.name: b for b in self.bindings}
         for connection in self.event_connections:
-            source = bindings.get(connection.source)
-            destination = bindings.get(connection.destination)
-            if not isinstance(source, GeneratorBinding) or not isinstance(
-                destination, GeneratorBinding
-            ):
-                raise ValueError('Envelfo event connections require Envelfo bindings')
-            origin = self.envelfos.get(source.reference)
-            target = self.envelfos.get(destination.reference)
-            if origin is None or target is None:
-                raise ValueError(
-                    'Envelfo event connection references an unknown Envelfo'
-                )
-            if (
-                origin.scope != control.Scope.voice
-                or target.scope != control.Scope.voice
-            ):
-                raise ValueError('Envelfo event connections require voice scope')
-            if not isinstance(origin, envelfo.EnveLFOReference):
-                if isinstance(origin, Patch):
-                    ports = origin.event_outputs.keys()
-                elif isinstance(origin, Stages):
-                    ports = stage_event_ports(origin)
-                elif isinstance(origin, LFO):
-                    if (
-                        origin.clock != control.Clock.seconds
-                        or origin.rate == 0
-                        or origin.reset != Reset.trigger
-                        or origin.delay
-                        or origin.fade_in
-                    ):
-                        raise ValueError(
-                            'LFO event source requires a simple seconds clock'
-                        )
-                    ports = {marker.name for marker in origin.markers}
-                else:
-                    raise ValueError('Envelfo event source has no event ports')
-                if connection.port not in ports:
-                    raise ValueError(
-                        'Envelfo event connection references an unknown port'
-                    )
-            if not isinstance(target, envelfo.EnveLFOReference) and (
-                not isinstance(target, Stages)
-                or not any(
-                    t.event == f'cue.{connection.cue}' for t in target.transitions
-                )
-            ):
-                raise ValueError('Envelfo event destination has no matching cue')
+            _validate_generator_connection(connection, bindings, self.envelfos)
         patch_release_timings: dict[tuple[str, str], ReleaseTiming] = {}
         for binding in self.bindings:
             source = sources[binding.name]
@@ -356,73 +425,9 @@ class ModulationSettings(Model):
                         f'Unknown local envelfo source: {binding.reference}'
                     )
                 generator = self.envelfos[binding.reference]
-                if isinstance(generator, Patch):
-                    if (
-                        binding.output is None
-                        or binding.output not in generator.outputs
-                    ):
-                        raise ValueError('Patch binding requires a named output')
-                    selected = generator.envelfos[generator.outputs[binding.output]]
-                    child = (binding.reference, generator.outputs[binding.output])
-                    if (
-                        child in patch_release_timings
-                        and patch_release_timings[child] != binding.release_timing
-                    ):
-                        raise ValueError(
-                            'Patch child outputs require one release timing'
-                        )
-                    patch_release_timings[child] = binding.release_timing
-                else:
-                    if binding.output is not None and not isinstance(
-                        generator, envelfo.EnveLFOReference
-                    ):
-                        raise ValueError('Only Patch bindings select named outputs')
-                    selected = generator
-                if (
-                    binding.release_timing == ReleaseTiming.voice
-                    and generator is not None
-                    and (
-                        not isinstance(selected, envelfo.Envelope)
-                        or not selected.release
-                    )
-                ):
-                    raise ValueError(
-                        'Voice release timing requires a releasing envelope'
-                    )
-                if isinstance(generator, envelfo.EnveLFOReference):
-                    if source.scope != generator.scope:
-                        raise ValueError('Envelfo source scope must match its use')
-                    continue
-                minimum = (
-                    0
-                    if isinstance(selected, envelfo.Envelope)
-                    and selected.polarity == control.Polarity.unipolar
-                    else -1
+                _validate_generator_source(
+                    source, binding, generator, patch_release_timings
                 )
-                if isinstance(generator, Patch) and isinstance(
-                    selected, (Sum, Product, Affine, Quantize, Latch, Threshold, Slew)
-                ):
-                    assert binding.output is not None
-                    minimum, maximum = generator.signal_ranges[
-                        generator.outputs[binding.output]
-                    ]
-                    if (
-                        source.scope != generator.scope
-                        or source.minimum > minimum
-                        or source.maximum < maximum
-                    ):
-                        raise ValueError(
-                            'Patch output range exceeds its declared source domain'
-                        )
-                    continue
-                if (source.scope, source.minimum, source.maximum) != (
-                    generator.scope,
-                    minimum,
-                    1,
-                ):
-                    raise ValueError(
-                        'Generator source scope and domain must match its definition'
-                    )
         for parameter in self.modulation.parameters:
             generator_use = self.envelfos.get(
                 parameter.target.name.removeprefix('envelfo-')
@@ -643,3 +648,115 @@ def _validate_event_source(
             raise ValueError('NoteKey mapping inputs must be integers')
     elif (source.minimum, source.maximum) != (0, 1):
         raise ValueError('Velocity source domain must be [0, 1]')
+
+
+def _inline_generators(generators: dict[str, Generator]) -> None:
+    for generator in generators.values():
+        if isinstance(generator, LFO) and isinstance(
+            generator.rate, envelfo.ParameterReference
+        ):
+            raise ValueError('inline LFO rate cannot reference a public parameter')
+        if isinstance(generator, Envelope) and generator.initial == 'current':
+            raise ValueError('current envelope initial requires a parent stage')
+
+
+def _validate_generator_source(
+    source: modulation.Source,
+    binding: GeneratorBinding,
+    generator: Generator,
+    timings: dict[tuple[str, str], ReleaseTiming],
+) -> None:
+    if isinstance(generator, Patch):
+        if binding.output is None or binding.output not in generator.outputs:
+            raise ValueError('Patch binding requires a named output')
+        selected = generator.envelfos[generator.outputs[binding.output]]
+        child = (binding.reference, generator.outputs[binding.output])
+        if child in timings and timings[child] != binding.release_timing:
+            raise ValueError('Patch child outputs require one release timing')
+        timings[child] = binding.release_timing
+    else:
+        if binding.output is not None and not isinstance(
+            generator, envelfo.EnveLFOReference
+        ):
+            raise ValueError('Only Patch bindings select named outputs')
+        selected = generator
+    if binding.release_timing == ReleaseTiming.voice and (
+        not isinstance(selected, Envelope) or not selected.release
+    ):
+        raise ValueError('Voice release timing requires a releasing envelope')
+    if isinstance(generator, envelfo.EnveLFOReference):
+        if source.scope != generator.scope:
+            raise ValueError('Envelfo source scope must match its use')
+        return
+    minimum = (
+        0
+        if isinstance(selected, Envelope)
+        and selected.polarity == control.Polarity.unipolar
+        else -1
+    )
+    if isinstance(generator, Patch) and isinstance(
+        selected, (Sum, Product, Affine, Quantize, Latch, Threshold, Slew)
+    ):
+        assert binding.output is not None
+        minimum, maximum = generator.signal_ranges[generator.outputs[binding.output]]
+        if (
+            source.scope != generator.scope
+            or source.minimum > minimum
+            or source.maximum < maximum
+        ):
+            raise ValueError('Patch output range exceeds its declared source domain')
+        return
+    if (source.scope, source.minimum, source.maximum) != (generator.scope, minimum, 1):
+        raise ValueError('Generator source scope and domain must match its definition')
+
+
+def _validate_generator_connection(
+    connection: EnvelfoEventConnection,
+    bindings: dict[str, Binding],
+    generators: dict[str, Generator],
+) -> list[ConnectionRequirement]:
+    source, destination = (
+        bindings.get(connection.source),
+        bindings.get(connection.destination),
+    )
+    if not isinstance(source, GeneratorBinding) or not isinstance(
+        destination, GeneratorBinding
+    ):
+        raise ValueError('Envelfo event connections require Envelfo bindings')
+    origin, target = (
+        generators.get(source.reference),
+        generators.get(destination.reference),
+    )
+    if origin is None or target is None:
+        raise ValueError('Envelfo event connection references an unknown Envelfo')
+    if origin.scope != control.Scope.voice or target.scope != control.Scope.voice:
+        raise ValueError('Envelfo event connections require voice scope')
+    checks: list[ConnectionRequirement] = []
+    if isinstance(origin, envelfo.EnveLFOReference):
+        checks.append(ConnectionRequirement.source_port)
+    else:
+        if isinstance(origin, Patch):
+            ports = origin.event_outputs.keys()
+        elif isinstance(origin, Stages):
+            ports = stage_event_ports(origin)
+        elif isinstance(origin, LFO):
+            if (
+                origin.clock != control.Clock.seconds
+                or origin.rate == 0
+                or origin.reset != Reset.trigger
+                or origin.delay
+                or origin.fade_in
+            ):
+                raise ValueError('LFO event source requires a simple seconds clock')
+            ports = {m.name for m in origin.markers}
+        else:
+            raise ValueError('Envelfo event source has no event ports')
+        if connection.port not in ports:
+            raise ValueError('Envelfo event connection references an unknown port')
+    if isinstance(target, envelfo.EnveLFOReference):
+        checks.append(ConnectionRequirement.destination_cue)
+    elif not isinstance(target, Stages) or not any(
+        t.event == f'cue.{connection.cue}' for t in target.transitions
+    ):
+        raise ValueError('Envelfo event destination has no matching cue')
+    return checks

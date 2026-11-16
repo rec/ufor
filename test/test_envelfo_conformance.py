@@ -9,8 +9,10 @@ import pytest
 import tomlkit
 from pydantic import TypeAdapter
 
-from ufor import envelfo, envelfo_contract, modulation_contract
+from ufor import control, envelfo, envelfo_contract, modulation, modulation_contract
 from ufor.approach import ExponentialApproach
+from ufor.codec import parse_score, score_toml
+from ufor.samples import processing
 from ufor.samples.processing import SoundSettings
 from ufor.segments import IndefiniteSegment, Segment
 
@@ -19,6 +21,11 @@ DATA = json.loads(
 )
 ADAPTER = TypeAdapter(envelfo.Generator)
 CONTEXT = {'portable': True}
+SCORES = json.loads(
+    (
+        Path(__file__).parents[1] / 'conformance/envelfo-scores-bindings.json'
+    ).read_bytes()
+)
 
 
 def same(actual: object, expected: object) -> None:
@@ -39,6 +46,148 @@ def same(actual: object, expected: object) -> None:
         assert actual is expected
     else:
         assert actual == expected
+
+
+@pytest.mark.parametrize('case', SCORES['scores'], ids=lambda c: c['id'])
+def test_generator_scores_share_headers_parameters_and_interchange(case: dict) -> None:
+    if case.get('rejected'):
+        with pytest.raises(ValueError):
+            envelfo.EnvelfoScore.model_validate(case['input'], context=CONTEXT)
+        return
+    value = envelfo.EnvelfoScore.model_validate(case['input'], context=CONTEXT)
+    same(value.model_dump(mode='json'), case['expected'])
+    assert parse_score(score_toml(value)) == value
+    assert (
+        envelfo.EnvelfoScore.model_validate_json(
+            value.model_dump_json(), context=CONTEXT
+        )
+        == value
+    )
+
+
+@pytest.mark.parametrize('case', SCORES['instantiations'], ids=lambda c: c['id'])
+def test_public_rate_materialization(case: dict) -> None:
+    score = envelfo.EnvelfoScore.model_validate(
+        SCORES['parameterized_score'], context=CONTEXT
+    )
+    settings = case['settings']
+    if case.get('rejected'):
+        with pytest.raises(ValueError):
+            envelfo.instantiate_envelfo(
+                score, case['values'], **settings, context=CONTEXT
+            )
+        return
+    value = envelfo.instantiate_envelfo(
+        score, case['values'], **settings, context=CONTEXT
+    )
+    same(value.model_dump(mode='json'), case['expected'])
+
+
+@pytest.mark.parametrize('case', SCORES['bindings'], ids=lambda c: c['id'])
+def test_generator_binding_facts_and_outstanding_checks(case: dict) -> None:
+    data = case['input']
+
+    def validate() -> processing.BindingValidation:
+        return processing.validate_generator_bindings(
+            modulation.Modulation.model_validate(data['modulation'], context=CONTEXT),
+            data.get('bindings', []),
+            data.get('controls', {}),
+            data.get('envelfos', {}),
+            data.get('event_connections', []),
+        )
+
+    if case.get('rejected'):
+        with pytest.raises(ValueError):
+            validate()
+    else:
+        assert validate().model_dump(mode='json') == case['expected']
+
+
+def test_score_output_order_survives_both_formats() -> None:
+    value = parse_score(SCORES['ordered_score'])
+    assert isinstance(value, envelfo.EnvelfoScore)
+    assert isinstance(value.body, envelfo.Patch)
+    assert list(value.body.outputs) == ['z', 'a']
+    restored = parse_score(score_toml(value))
+    assert isinstance(restored, envelfo.EnvelfoScore)
+    assert isinstance(restored.body, envelfo.Patch)
+    assert list(restored.body.outputs) == ['z', 'a']
+
+
+def test_materialization_revalidates_edits_and_retains_authoring_units() -> None:
+    score = envelfo.EnvelfoScore.model_validate(SCORES['parameterized_score'])
+    value = envelfo.instantiate_envelfo(score, {'speed': '2 * Hz'})
+    assert isinstance(value, envelfo.LFO) and value.rate == 2
+    score.parameters['extra'] = score.parameters['speed']
+    with pytest.raises(ValueError, match='supported field'):
+        envelfo.instantiate_envelfo(score, context=CONTEXT)
+
+
+def test_materialization_replaces_root_settings_and_inherits_children() -> None:
+    score = parse_score(SCORES['ordered_score'])
+    assert isinstance(score, envelfo.EnvelfoScore)
+    value = envelfo.instantiate_envelfo(
+        score, scope=control.Scope.part, clock=control.Clock.beats, context=CONTEXT
+    )
+    assert isinstance(value, envelfo.Patch)
+    child = value.envelfos['osc']
+    assert isinstance(child, envelfo.LFO)
+    assert child.scope == control.Scope.part and child.clock == control.Clock.beats
+    assert score.body.clock == control.Clock.seconds
+
+
+def test_score_and_binding_limits_cover_embedded_modulation() -> None:
+    score = envelfo.EnvelfoScore.model_validate(
+        SCORES['parameterized_score'], context=CONTEXT
+    )
+    count = envelfo_contract.preparation_records(score)
+    assert count == envelfo_contract.preparation_records(SCORES['parameterized_score'])
+    envelfo.instantiate_envelfo(
+        score, {'speed': 2}, context=CONTEXT | {'max_records': count + 1}
+    )
+    with pytest.raises(ValueError):
+        envelfo.instantiate_envelfo(
+            score, {'speed': 2}, context=CONTEXT | {'max_records': count}
+        )
+    # An override must reach modulation before its standalone default can reject it.
+    data = {
+        'sources': [
+            {'name': 's' + str(i), 'scope': 'voice', 'minimum': 0, 'maximum': 1}
+            for i in range(10001)
+        ]
+    }
+    with pytest.raises(ValueError):
+        modulation.Modulation.model_validate(data, context=CONTEXT)
+    definition = modulation.Modulation.model_validate(
+        data, context=CONTEXT | {'max_records': 30000}
+    )
+    bindings = [{'kind': 'velocity', 'name': s.name} for s in definition.sources]
+    with pytest.raises(ValueError):
+        processing.validate_generator_bindings(definition, bindings, {}, {}, [])
+    assert (
+        processing.validate_generator_bindings(
+            definition, bindings, {}, {}, [], max_records=30000
+        ).unresolved_bindings
+        == []
+    )
+
+
+@pytest.mark.parametrize('case', SCORES['connections'], ids=lambda c: c['id'])
+def test_portable_event_connection_quantities_and_types(case: dict) -> None:
+    if case.get('rejected'):
+        with pytest.raises(ValueError):
+            processing.EnvelfoEventConnection.model_validate(
+                case['input'], context=CONTEXT
+            )
+    else:
+        value = processing.EnvelfoEventConnection.model_validate(
+            case['input'], context=CONTEXT
+        )
+        assert value.model_dump(mode='json') == case['expected']
+        assert (
+            processing.EnvelfoEventConnection.model_validate(value, context=CONTEXT)
+            == value
+        )
 
 
 @pytest.mark.parametrize('case', DATA['definitions'], ids=lambda c: c['id'])

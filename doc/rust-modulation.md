@@ -128,18 +128,29 @@ been validated. In particular, this API does not establish generator existence,
 Patch output validity, release-envelope behavior, follower processor support,
 event ports/cues, or target-setting unit/default compatibility.
 
+The subsequent [generator port](rust-envelfo.md) adds
+`samples::bindings::validate_generator_bindings` for callers supplying real
+generator definitions and event connections. It shares these local checks and
+returns typed outstanding reference, follower and target work.
+
 `ModulationSettings`, control-ramp execution, clocks/tempo maps, generator state
 and full instrument/effect documents have not been ported by this milestone.
 Their existing Python validation and execution stay in their owning modules.
 
 ## Limits and Unicode
 
-Preparation permits at most 10,000 aggregate parameters, sources, routes, points,
+Standalone preparation permits at most 10,000 aggregate parameters, sources, routes, points,
 bindings and control declarations. A standalone route counts itself and its
 points; local binding validation additionally counts its supplied bindings and
 control declarations. Identifier and quantity text limits are 4096 characters.
 The named text adapters independently retain the existing 16,777,216-character,
 100,000-value and 64-level document limits.
+
+Generator-aware operations can explicitly raise the shared record budget.
+Native embedded decoding uses `Modulation::decode(deserializer, max_records)`;
+Python uses the portable context's `max_records`. Ordinary constructors,
+standalone text adapters and Serde retain their defaults. JSON Schema does not
+encode these configurable aggregate limits.
 
 Portable modulation identifiers use Python 3.13 / Unicode 15.1.0's single-character
 Lowercase and Decimal/Digit behavior, plus `-` and `_` after the first character.

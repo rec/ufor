@@ -177,7 +177,7 @@ def preparation_records(value: object, max_records: int = 10000) -> int:
                 count += len(child)
             elif key in REFERENCE_MAPS and isinstance(child, dict):
                 count += len(child)
-            elif key in CHILD_RECORDS and isinstance(child, dict):
+            elif key in CHILD_RECORDS and isinstance(child, (dict, pydantic.BaseModel)):
                 count += 1
                 pending.append(child)
             check_records(count, maximum)

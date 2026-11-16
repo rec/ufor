@@ -18,8 +18,8 @@ The implementation now supplies the
 consumers. Native generator models and Python portable alignment include
 LFO/Envelope/SampleHold, Stages/Patch, unresolved references, exact units,
 configurable preparation limits and supporting pure mathematics. Native score
-adapters/public-parameter instantiation, generator-aware binding checks and
-hosted qualification remain below. Standalone preflight helpers still count
+adapters/public-parameter instantiation and generator-aware binding checks are
+also implemented; hosted qualification remains below. Standalone preflight helpers still count
 records only; the model/parser boundary performs structural validation as well.
 
 On 2026-11-16 the user approved TOML's `preserve_order` feature in a separate
@@ -100,39 +100,41 @@ arithmetic and public output order are preserved. Reference validation reads no
 resources. Generic JSON maps are used for preflight counts, not for retaining
 authored order in typed parsing.
 
-Local verification on 2026-11-16 passed: 2,151 Python tests with one skip,
-34 Rust integration tests and six Rust documentation examples. Ruff, formatting,
-type checking, pyupgrade, Clippy and diff checks passed. These results use the
-installed non-editable Python package and locked Cargo workspace; hosted
+### Completed: scores, parameters and generator-aware binding checks
+
+The native `score::Score` enum extends the existing codec with Tuning and Envelfo
+variants. `parse_score` now requires explicit `PreparationLimits`; repository
+callers use the new signature. Public parameter declarations, substitution and
+origin metadata match the existing score schema. References stay unresolved;
+parsing and materialization perform no resource access.
+
+The separate `validate_generator_bindings` API shares local checks and validates
+actual generator existence, Patch output selection, source scope/domain, shared
+child release timing, releasing Envelopes and known event ports/cues. Typed
+outstanding checks retain unresolved reference facts, followers and target
+compatibility. Existing exact/enclosing-domain rules and full Python settings'
+stricter unresolved voice-release behavior remain in force. No partial full
+`ModulationSettings` object is constructed.
+
+`conformance/envelfo-scores-bindings.json` is consumed independently by Python
+and Rust. It covers headers/parameters, portable scalar and exact boundaries,
+materialization, provenance/settings, output order, binding facts and unresolved
+results, event quantities and preparation overrides. Native documentation
+examples cover a score round trip, public rate materialization and binding
+validation. The generated score schema and validation/API guides are updated.
+Model-instance budgets count nested score/modulation bodies just as decoded
+objects do. The explicit override reaches embedded modulation, while ordinary
+standalone entry points retain 10,000-record defaults.
+
+Local verification on 2026-11-16 passed: 2,208 Python tests with one skip,
+40 Rust integration tests and eight Rust documentation examples. Ruff,
+formatting, type checking, pyupgrade, Clippy and diff checks passed. These results
+use the installed non-editable Python package and locked Cargo workspace; hosted
 platform/minimum-compiler evidence remains below.
 
-### Remaining: scores, parameters and generator-aware binding checks
+### Remaining: hosted qualification
 
-Add the existing `envelfo` score envelope to native codec handling, including
-public parameter declarations, parameter substitution and origin metadata.
-Represent unresolved score references as references, not fabricated generators.
-Reference parsing and instantiation must not read files, fetch assets or invoke
-an application. Define score-reference support using the actual existing schema.
-
-Add a separate generator-aware check alongside `validate_local_bindings`, sharing
-its checks. Supply real generator definitions and validate generator existence,
-selected Patch outputs, source scope/domain, consistent release timing for shared
-Patch children, releasing-envelope requirements, and generator event ports/cues.
-Preserve existing asymmetric domain rules unless a decision explicitly changes
-them. Success must not imply follower processor capability or instrument/effect
-target validation. Retain explicit unresolved results for missing external
-context; do not construct a partly validated full `ModulationSettings` model.
-
-### Remaining: score/binding documentation and hosted qualification
-
-Update the native API guide, format/validation documentation and generated schema
-where the approved implementation changes them. Include tested Rust examples
-for a simple generator, a Patch, a score round trip and binding validation.
-Replace completed plan stages with evidence and remaining work.
-
-Run the affected Python suite and repository Python verification gates when
-Python/data changes occur. Test the installed non-editable package, including
-resource packaging. Run locked Cargo tests, rustfmt and Clippy. Preserve Rust
+Preserve Rust
 1.85 and Python 3.13 compatibility, and platform-neutral code for macOS, Windows
 and Linux. Hosted evidence comes from the existing release matrix; do not run
 release workflows for every commit or claim local checks qualify other systems.
@@ -228,6 +230,17 @@ Approved implementation details:
 - Origin identities, paths, selectors, event-port strings and transition-event
   strings are capped at 4096 characters. Selector input is checked before
   canonicalization. Descriptions retain the overall document budget.
+- On 2026-11-16, reject Hz public parameters on beat-clock LFOs, both in score
+  validation and requested materialization settings. Literal beat-clock rates
+  remain supported. Overrides normalize to f64, then the shortest decimal
+  representation becomes a checked i64 rational.
+- The partial binding API returns typed output/domain/release requirements for
+  unresolved score references and source-port/destination-cue requirements for
+  unresolved event ends. Known facts are checked immediately. Followers and all
+  modulation targets retain explicit outstanding work.
+- Extend the existing Rust score API to a typed Tuning/Envelfo enum and an
+  explicit parsing preparation limit, updating all callers without a legacy
+  parser alongside it.
 
 Ask immediately if implementation reveals another behavior, data-shape or
 ownership decision. Record approvals here and in the shared cases before coding

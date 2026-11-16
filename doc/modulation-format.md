@@ -101,6 +101,14 @@ library score reference and parameter overrides. A reusable score is an `Envelfo
 Only the score document has a `body` field. Concrete generators have their clock,
 scope, and playback configuration directly on the definition.
 
+Public score parameters currently bind only a root LFO rate, with Hz units and a
+positive minimum. Hz parameters require a seconds clock in the score and when
+instantiated; literal beat-clock LFOs remain supported. Portable materialization
+normalizes overrides to finite f64 within the declared domain, then converts the
+shortest decimal spelling to a checked i64 rational. Unknown overrides and exact
+storage overflow fail explicitly. The [native/Python guide](rust-envelfo.md)
+documents score interchange and generator-aware partial binding validation.
+
 `Envelope` has an `initial` level, nonempty `segments` and an optional `release` list,
 `hold`, `retrigger`, clock, scope, and polarity. Every segment has a
 nonnegative `duration`, `to`, and finite `curve` (default zero). Targets

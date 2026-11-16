@@ -23,31 +23,7 @@ impl TuningScore {
         tags: Vec<String>,
         body: Tuning,
     ) -> Result<Self, Error> {
-        if name.is_empty()
-            || name.trim_matches(whitespace) != name
-            || name.contains([':', '#', '/'])
-            || name.contains(".*")
-        {
-            return Err(Error::Invalid("invalid score name".into()));
-        }
-        if title.is_empty() {
-            return Err(Error::Invalid("score title must not be empty".into()));
-        }
-        let mut distinct = HashSet::new();
-        let mut normalized = Vec::new();
-        for tag in tags {
-            if !tag.starts_with('#')
-                || tag.len() == 1
-                || tag[1..]
-                    .chars()
-                    .any(|c| whitespace(c) || matches!(c, ':' | '#' | '/'))
-            {
-                return Err(Error::Invalid("invalid score tag".into()));
-            }
-            if distinct.insert(tag.clone()) {
-                normalized.push(tag);
-            }
-        }
+        let normalized = header(&name, &title, tags)?;
         Ok(Self {
             name,
             title,
@@ -68,6 +44,35 @@ impl TuningScore {
     pub fn body(&self) -> &Tuning {
         &self.body
     }
+}
+
+pub(crate) fn header(name: &str, title: &str, tags: Vec<String>) -> Result<Vec<String>, Error> {
+    if name.is_empty()
+        || name.trim_matches(whitespace) != name
+        || name.contains([':', '#', '/'])
+        || name.contains(".*")
+    {
+        return Err(Error::Invalid("invalid score name".into()));
+    }
+    if title.is_empty() {
+        return Err(Error::Invalid("score title must not be empty".into()));
+    }
+    let mut distinct = HashSet::new();
+    let mut normalized = Vec::new();
+    for tag in tags {
+        if !tag.starts_with('#')
+            || tag.len() == 1
+            || tag[1..]
+                .chars()
+                .any(|c| whitespace(c) || matches!(c, ':' | '#' | '/'))
+        {
+            return Err(Error::Invalid("invalid score tag".into()));
+        }
+        if distinct.insert(tag.clone()) {
+            normalized.push(tag);
+        }
+    }
+    Ok(normalized)
 }
 
 #[derive(Serialize, Deserialize)]
