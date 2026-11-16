@@ -1,25 +1,30 @@
 # Rust EnveLFO contract inventory
 
 This inventory accompanies [the implementation plan](../plan/rust-envelfo.md).
-It records the first implementation increment, not completion of the generator
-port. Enge and enveLFO are unchanged. No generator runtime is implemented here.
+It records the implemented generator-definition contract, not completion of the
+score/binding stages. Enge and enveLFO are unchanged. No generator runtime is
+implemented here. See [the native/Python API guide](rust-envelfo.md).
 
 ## Current implementation and evidence
 
 `conformance/envelfo-definitions.json` version 1 contains definition, exact
-quantity, record-budget and quantizer cases. The Python consumer is
+quantity, record-budget, quantizer, captured-approach, ordered-document and
+portable-boundary cases. The Python consumer is
 `test/test_envelfo_conformance.py`. Rust's `crates/ufor/tests/envelfo.rs` currently
-consumes the exact-quantity and record-budget cases only. Native generator models,
-definition interchange and generator-aware binding validation remain planned.
+consumes the shared definition and preparation cases, including strict types,
+inheritance, ranges, units, limits and JSON/TOML semantic round trips. Native
+generator models and definition interchange are implemented. Generator-aware
+binding validation and native score adapters remain planned.
 
 Python's `modulation_contract.exact_quantity` and Rust's `quantity::exact` share
 the exact generator quantity grammar. Existing nonnegative smoothing APIs reuse
 this arithmetic while keeping their own domain checks. Python's
 `envelfo_contract.preparation_records` and Rust's `envelfo::preparation_records`
-implement the same configurable preparation preflight. These functions count
+implement the same configurable preparation preflight. The standalone functions count
 decoded declarations; they do not validate a generator's structure, references,
 field domains or document budgets. They are not substitutes for the future
-validated model/parser boundary.
+validated model/parser boundary. The `Generator` boundary and Python portable
+models now combine this preflight with structural validation.
 
 The approved Python fix permits `initial='current'` with only indefinite holds
 without taking the minimum of an empty level list. A noninitial Stage may use
@@ -124,18 +129,21 @@ referenced definition. The shared corpus specifies worked counts for roots,
 segments, shared Patch nodes, stages, scores and combined binding contexts.
 Collection sizes are checked before adding their members to preparation work.
 
-The next model integration must pass Python `context={'portable': True,
-'max_records': N}` and explicit Rust limits through one whole validation
-operation, including embedded modulation. Existing standalone modulation APIs
-retain their default. No limit field belongs in serialized score data.
+Python `context={'portable': True, 'max_records': N}` and Rust's explicit
+`PreparationLimits` apply to one whole generator validation operation. Raising
+the limit works through nested generator definitions and model revalidation.
+Generator-aware binding validation must later combine its supplied modulation,
+bindings and controls in that same operation budget. Existing standalone
+modulation APIs retain their default. No limit field belongs in score data.
 
 ## Range and contextual boundaries
 
 Preserve authored input-list arithmetic order. Patch signal order is any valid
 dependency order; independent nodes have no required relative order. Public
-output enumeration follows declaration order. Rust's current default
-`serde_json::Map` sorts keys, so the generator implementation must preserve
-declaration order explicitly rather than assuming the existing codec does so.
+output enumeration follows declaration order. Rust uses ordered entries and
+Serde map visitors for generator maps. Named adapters decode the original text
+after budget checks, rather than reusing a sorted generic JSON map. TOML also
+requires its parser's `preserve_order` feature to retain declared table order.
 
 Current Python signal ranges conservatively give ordinary generators [-1,1],
 except unipolar Envelope [0,1]. In particular, SampleHold's narrower declared
@@ -151,9 +159,9 @@ ModulationSettings validation or implement placeholder processor/generator data.
 
 ## Remaining stages
 
-The next increments are portable model alignment and validated Rust supporting
-types; native LFO/Envelope/SampleHold; Stages/Patch; scores and generator-aware
-bindings; then documentation/schema and full platform qualification. The current
-shared definition cases establish initial expectations, not exhaustive coverage
-of these later stages. Add strict portable type, overflow, event/context and
-limit propagation cases alongside each implementation.
+Portable model alignment, native LFO/Envelope/SampleHold, Stages/Patch,
+unresolved-reference definitions and the supporting pure mathematics are
+implemented. The remaining increments are native scores/public parameters,
+generator-aware bindings and hosted platform qualification. Extend shared cases
+alongside those implementations; current local success does not establish
+consumer execution, reference resolution or full contextual validation.

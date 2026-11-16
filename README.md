@@ -39,6 +39,9 @@ definitions, checked pitch mathematics and tuning-only JSON/TOML documents.
 Shared conformance cases track agreement between the Python and Rust tuning implementations.
 Rust also supports [modulation routing and control declarations](doc/rust-modulation.md),
 with scalar evaluation and a defined local-binding validation boundary.
+Native [generator definitions](doc/rust-envelfo.md) now include LFOs, envelopes,
+Stages and Patches, with matching Python portable validation and pure preparation
+mathematics. Generator execution remains in enveLFO and consumers.
 
 Start with the [musical definitions](doc/musical-format.md),
 [instruments](doc/instrument-format.md), [modulation](doc/modulation-format.md)

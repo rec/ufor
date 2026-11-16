@@ -11,6 +11,12 @@ value types](rust-modulation.md), including scalar reference evaluation and
 explicit reporting of unresolved generator/processor references. Full
 instrument/effect preparation and runtime integration remain with consumers.
 
+The [generator-definition module](rust-envelfo.md) adds LFO, Envelope, SampleHold,
+Stages, Patch and unresolved reference models, portable JSON/TOML bodies,
+configurable preparation limits, graph ranges and captured-approach mathematics.
+Generator execution, native envelfo score adapters and generator-aware binding
+validation remain separate work.
+
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:
 

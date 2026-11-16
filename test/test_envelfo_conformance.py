@@ -1,6 +1,7 @@
 """Portable generator definitions and exact preparation foundations."""
 
 import json
+from copy import deepcopy
 from fractions import Fraction
 from pathlib import Path
 
@@ -11,7 +12,7 @@ from pydantic import TypeAdapter
 from ufor import envelfo, envelfo_contract, modulation_contract
 from ufor.approach import ExponentialApproach
 from ufor.samples.processing import SoundSettings
-from ufor.segments import IndefiniteSegment
+from ufor.segments import IndefiniteSegment, Segment
 
 DATA = json.loads(
     (Path(__file__).parents[1] / 'conformance/envelfo-definitions.json').read_bytes()
@@ -153,3 +154,119 @@ def test_top_level_bound_envelope_still_requires_an_explicit_initial_level() -> 
                 )
             }
         )
+
+
+@pytest.mark.parametrize('case', DATA['segments'], ids=lambda c: c['id'])
+def test_shared_segment_boundary_keeps_nongenerator_levels(
+    case: dict[str, object],
+) -> None:
+    if case.get('rejected'):
+        with pytest.raises(ValueError):
+            Segment.model_validate(case['input'], context=CONTEXT)
+    else:
+        value = Segment.model_validate(case['input'], context=CONTEXT)
+        same(value.model_dump(mode='json'), case['expected'])
+        assert Segment.model_validate(value, context=CONTEXT) == value
+
+
+@pytest.mark.parametrize('case', DATA['ordered_documents'], ids=lambda c: c['id'])
+def test_output_order_survives_document_roundtrips(case: dict[str, object]) -> None:
+    data = (
+        json.loads(str(case['text']))
+        if case['format'] == 'json'
+        else tomlkit.parse(str(case['text'])).unwrap()
+    )
+    value = ADAPTER.validate_python(data, context=CONTEXT)
+    assert isinstance(value, envelfo.Patch)
+    assert list(value.outputs) == case['outputs']
+    for decoded in (
+        json.loads(value.model_dump_json()),
+        tomlkit.parse(
+            tomlkit.dumps(value.model_dump(mode='json', exclude_none=True))
+        ).unwrap(),
+    ):
+        restored = ADAPTER.validate_python(decoded, context=CONTEXT)
+        assert isinstance(restored, envelfo.Patch)
+        assert list(restored.outputs) == case['outputs']
+
+
+@pytest.mark.parametrize('case', DATA['approach_errors'], ids=lambda c: c['id'])
+def test_approach_resolution_rejects_overflow(case: dict[str, object]) -> None:
+    value = ExponentialApproach.model_validate(case['input'], context=CONTEXT)
+    with pytest.raises(ValueError):
+        value.resolve(float(case['initial']))
+
+
+@pytest.mark.parametrize('case', DATA['text_limits'], ids=lambda c: c['id'])
+def test_generator_text_limits_precede_canonicalization(
+    case: dict[str, object],
+) -> None:
+    value = deepcopy(case['input'])
+    target = value
+    for key in case['path'][:-1]:
+        target = target[key]
+    target[case['path'][-1]] = ' ' * int(case['length'])
+    if case['accepted']:
+        ADAPTER.validate_python(value, context=CONTEXT)
+    else:
+        with pytest.raises(ValueError, match='4096'):
+            ADAPTER.validate_python(value, context=CONTEXT)
+
+
+def test_portable_budget_counts_models_and_uses_one_override() -> None:
+    value = envelfo.Envelope(segments=[Segment(duration=0, to=1)] * 10000)
+    with pytest.raises(ValueError, match='10000'):
+        ADAPTER.validate_python(value, context=CONTEXT)
+    result = ADAPTER.validate_python(value, context=CONTEXT | {'max_records': 10001})
+    assert isinstance(result, envelfo.Envelope) and len(result.segments) == 10000
+    patch = envelfo.Patch(envelfos={'a': value}, outputs={'out': 'a'})
+    with pytest.raises(ValueError):
+        ADAPTER.validate_python(patch, context=CONTEXT | {'max_records': 10002})
+    ADAPTER.validate_python(patch, context=CONTEXT | {'max_records': 10003})
+
+
+def test_portable_revalidation_rejects_edited_nested_values_and_settings() -> None:
+    segment = Segment(duration=0, to=1).model_copy(update={'duration': 0.25})
+    value = envelfo.Envelope(segments=[Segment(duration=0, to=1)])
+    value.segments[0] = segment
+    with pytest.raises(ValueError):
+        ADAPTER.validate_python(value, context=CONTEXT)
+    patch = envelfo.Patch(envelfos={'a': envelfo.LFO(rate=1)}, outputs={'out': 'a'})
+    patch.envelfos['a'] = patch.envelfos['a'].model_copy(update={'scope': 'part'})
+    with pytest.raises(ValueError, match='parent'):
+        ADAPTER.validate_python(patch, context=CONTEXT)
+
+
+def test_authoring_coercions_and_broader_units_normalize_before_portability() -> None:
+    value = envelfo.LFO(rate='1 * Hz', center=0)
+    assert (
+        ADAPTER.validate_python(value, context=CONTEXT).model_dump()
+        == value.model_dump()
+    )
+    value = envelfo.Envelope(
+        hold=1,
+        playback='loop',
+        repeat_count='2',
+        segments=[Segment(duration='1 second', to=1, curve='0')],
+    )
+    assert ADAPTER.validate_python(value, context=CONTEXT) == value
+
+
+def test_slew_scalar_rate_is_not_limited_to_exact_time_range() -> None:
+    value = envelfo.Slew.model_validate(
+        {'input': 'source', 'rise': '1e-200/s', 'fall': 2}, context=CONTEXT
+    )
+    assert value.rise == 1e-200
+
+
+def test_portable_graph_validation_does_not_trust_cached_ranges() -> None:
+    value = envelfo.Patch(
+        envelfos={'a': envelfo.LFO(rate=1), 'mix': envelfo.Sum(inputs=['a', 'a'])},
+        outputs={'out': 'mix'},
+    )
+    assert value.signal_ranges['mix'] == (-2, 2)
+    node = value.envelfos['mix']
+    assert isinstance(node, envelfo.Sum)
+    node.inputs[0] = 'missing'
+    with pytest.raises(ValueError, match='unknown child'):
+        ADAPTER.validate_python(value, context=CONTEXT)

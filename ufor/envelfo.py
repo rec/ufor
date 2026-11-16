@@ -8,6 +8,7 @@ from graphlib import CycleError, TopologicalSorter
 from math import floor, isfinite
 from typing import Annotated, Literal, Self
 
+import pydantic
 from pydantic import (
     BaseModel,
     ConfigDict,
@@ -18,7 +19,7 @@ from pydantic import (
 )
 from reccy.configuration import units
 
-from . import control
+from . import control, envelfo_contract, modulation_contract
 from .approach import ExponentialApproach
 from .base import FiniteScalar, Identifier, Model, UnitInterval, UnitScalar, unique
 from .envelope import Retrigger
@@ -30,11 +31,11 @@ from .score import Score
 from .segments import IndefiniteSegment, Segment
 
 
-class ParameterReference(Model):
-    parameter: Identifier
+class ParameterReference(envelfo_contract.Definition):
+    parameter: modulation_contract.Identifier
 
 
-class EnvelfoParameter(Model):
+class EnvelfoParameter(envelfo_contract.Definition):
     unit: Unit
     default: UnitScalar
     minimum: UnitScalar
@@ -43,8 +44,8 @@ class EnvelfoParameter(Model):
 
     @model_validator(mode='before')
     @classmethod
-    def declared_units(cls, value: object) -> object:
-        return unit_fields(value, ['minimum', 'maximum', 'default'])
+    def declared_units(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        return unit_fields(value, ['minimum', 'maximum', 'default'], info)
 
     @model_validator(mode='after')
     def domain(self) -> Self:
@@ -55,13 +56,13 @@ class EnvelfoParameter(Model):
         return self
 
 
-class EnvelfoOrigin(Model):
-    identity: str
+class EnvelfoOrigin(envelfo_contract.Definition):
+    identity: Annotated[str, pydantic.AfterValidator(envelfo_contract.text)]
     sha256: str | None = Field(default=None, pattern=r'^[0-9a-f]{64}$')
 
 
-class Marker(Model):
-    name: Identifier
+class Marker(envelfo_contract.Definition):
+    name: modulation_contract.Identifier
     position: control.Rational = Field(ge=0, le=1)
 
 
@@ -76,7 +77,7 @@ class PositionDriver(StrEnum):
     transport = auto()
 
 
-class EnveLFO(Model):
+class EnveLFO(envelfo_contract.Definition):
     """Common clock and ownership settings for concrete control generators."""
 
     kind: str
@@ -87,32 +88,50 @@ class EnveLFO(Model):
 
     @model_validator(mode='before')
     @classmethod
-    def inherited_settings(cls, value: object) -> object:
+    def inherited_settings(cls, value: object, info: pydantic.ValidationInfo) -> object:
         if not isinstance(value, dict):
             return value
         clock = value.get('clock', control.Clock.seconds)
         scope = value.get('scope', control.Scope.voice)
         result = dict(value)
         if value.get('kind', cls.model_fields['kind'].default) == 'lfo':
-            result = control.clock_fields(result, clock)
+            if info.context and info.context.get('portable'):
+                for field, unit in (
+                    ('rate', 'per_beat' if clock == control.Clock.beats else 'hz'),
+                    ('phase', 'phase'),
+                    ('duty_cycle', 'ratio'),
+                    ('delay', str(clock)),
+                    ('fade_in', str(clock)),
+                ):
+                    if field in result and not (
+                        field == 'rate'
+                        and isinstance(result[field], (dict, ParameterReference))
+                    ):
+                        result[field] = modulation_contract.exact_quantity(
+                            result[field], unit
+                        )
+            else:
+                result = control.clock_fields(result, clock)
         assert isinstance(result, dict)
-        if 'envelfos' in result:
+        if isinstance(result.get('envelfos'), dict):
             result['envelfos'] = {
                 n: _inherit_child(v, clock, scope)
                 for n, v in result['envelfos'].items()
             }
-        if 'stages' in result:
-            result['stages'] = [
-                (s.model_dump() if isinstance(s, BaseModel) else dict(s))
-                | {
-                    'envelfo': _inherit_child(
-                        s.envelfo if isinstance(s, BaseModel) else s['envelfo'],
-                        clock,
-                        scope,
-                    )
-                }
-                for s in result['stages']
-            ]
+        if isinstance(result.get('stages'), (list, tuple)):
+            stages: list[object] = []
+            for stage in result['stages']:
+                data = (
+                    envelfo_contract.definition_data(stage)
+                    if isinstance(stage, BaseModel)
+                    else stage
+                )
+                if isinstance(data, dict) and 'envelfo' in data:
+                    data = data | {
+                        'envelfo': _inherit_child(data['envelfo'], clock, scope)
+                    }
+                stages.append(data)
+            result['stages'] = stages
         return result
 
     @model_serializer(mode='wrap')
@@ -196,13 +215,13 @@ class EnveLFO(Model):
                 name
                 for connection in self.events
                 if isinstance(
-                    self.envelfos[name := connection.source.partition('.')[0]],
+                    self.envelfos.get(name := connection.source.partition('.')[0]),
                     LFO,
                 )
             } | {
                 source.partition('.')[0]
                 for source in self.event_outputs.values()
-                if isinstance(self.envelfos[source.partition('.')[0]], LFO)
+                if isinstance(self.envelfos.get(source.partition('.')[0]), LFO)
             }
             if (self.events or lfo_sources) and self.scope != control.Scope.voice:
                 raise ValueError('patch event connections require voice scope')
@@ -286,8 +305,8 @@ class Envelope(EnveLFO):
     retrigger: Retrigger = Retrigger.current
     playback: PlaybackMode = PlaybackMode.once
     markers: list[Marker] = Field(default_factory=list)
-    loop_start: Identifier | None = None
-    loop_end: Identifier | None = None
+    loop_start: modulation_contract.Identifier | None = None
+    loop_end: modulation_contract.Identifier | None = None
     repeat_count: int | None = Field(default=None, ge=1)
 
     @model_validator(mode='after')
@@ -348,25 +367,27 @@ class Envelope(EnveLFO):
         return self
 
 
-class Stage(Model):
-    name: Identifier
+class Stage(envelfo_contract.Definition):
+    name: modulation_contract.Identifier
     envelfo: Annotated[LFO | Envelope, Field(discriminator='kind')]
 
 
-class EnterStage(Model):
+class EnterStage(envelfo_contract.Definition):
     kind: Literal['enter'] = 'enter'
-    stage: Identifier
+    stage: modulation_contract.Identifier
 
 
-class FinishStage(Model):
+class FinishStage(envelfo_contract.Definition):
     kind: Literal['finish'] = 'finish'
 
 
-class StageTransition(Model):
-    from_stages: list[Identifier] = Field(
+class StageTransition(envelfo_contract.Definition):
+    from_stages: list[modulation_contract.Identifier] = Field(
         min_length=1, validation_alias='from', serialization_alias='from'
     )
-    event: str = Field(min_length=1)
+    event: Annotated[str, pydantic.AfterValidator(envelfo_contract.text)] = Field(
+        min_length=1
+    )
     action: Annotated[EnterStage | FinishStage, Field(discriminator='kind')]
 
     model_config = ConfigDict(serialize_by_alias=True, validate_by_name=True)
@@ -477,17 +498,33 @@ def stage_event_ports(body: Stages) -> set[str]:
     return ports
 
 
-class PatchEventConnection(Model):
-    source: str = Field(min_length=3)
-    target: Identifier
+class PatchEventConnection(envelfo_contract.Definition):
+    source: Annotated[str, pydantic.AfterValidator(envelfo_contract.text)] = Field(
+        min_length=3
+    )
+    target: modulation_contract.Identifier
     action: Literal['start', 'cue', 'sample', 'capture'] = 'start'
-    cue: Identifier | None = None
+    cue: modulation_contract.Identifier | None = None
     every: int = Field(default=1, ge=1, strict=True)
     offset: int = Field(default=0, ge=0, strict=True)
     probability: UnitInterval = 1.0
     delay: Annotated[control.Rational, units.unit_validator('second', exact=True)] = (
         Field(default=Fraction(0), ge=0)
     )
+
+    @model_validator(mode='before')
+    @classmethod
+    def portable_delay(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if (
+            info.context
+            and info.context.get('portable')
+            and isinstance(value, dict)
+            and 'delay' in value
+        ):
+            return value | {
+                'delay': modulation_contract.exact_quantity(value['delay'], 'seconds')
+            }
+        return value
 
     @model_validator(mode='after')
     def cue_payload(self) -> Self:
@@ -508,47 +545,54 @@ class SampleHold(EnveLFO, frozen=True):
         return self
 
 
-class Sum(Model, frozen=True):
+class Sum(envelfo_contract.Definition, frozen=True):
     kind: Literal['sum'] = 'sum'
-    inputs: list[Identifier] = Field(min_length=2)
+    inputs: list[modulation_contract.Identifier] = Field(min_length=2)
 
 
-class Product(Model, frozen=True):
+class Product(envelfo_contract.Definition, frozen=True):
     kind: Literal['product'] = 'product'
-    inputs: list[Identifier] = Field(min_length=2)
+    inputs: list[modulation_contract.Identifier] = Field(min_length=2)
 
 
-class Affine(Model, frozen=True):
+class Affine(envelfo_contract.Definition, frozen=True):
     kind: Literal['affine'] = 'affine'
-    input: Identifier
+    input: modulation_contract.Identifier
     scale: FiniteScalar = 1.0
     offset: FiniteScalar = 0.0
 
 
-class Latch(Model, frozen=True):
+class Latch(envelfo_contract.Definition, frozen=True):
     kind: Literal['latch'] = 'latch'
-    input: Identifier
+    input: modulation_contract.Identifier
 
 
-class Quantize(Model, frozen=True):
+class Quantize(envelfo_contract.Definition, frozen=True):
     kind: Literal['quantize'] = 'quantize'
-    input: Identifier
+    input: modulation_contract.Identifier
     step: FiniteScalar = Field(gt=0)
     origin: FiniteScalar = 0.0
 
 
 def quantize_value(body: Quantize, value: float) -> float:
     """Round to the nearest grid point, choosing the higher point at a tie."""
-    position = (value - body.origin) / body.step
+    value = modulation_contract.finite(value)
+    modulation_contract.finite(body.origin)
+    if modulation_contract.finite(body.step) <= 0:
+        raise ValueError('quantizer step must be positive')
+    position = modulation_contract.finite(value - body.origin) / body.step
     if not isfinite(position):
         raise ValueError('quantizer grid coordinate is not finite')
     lower = floor(position)
-    return body.origin + (lower + (position - lower >= 0.5)) * body.step
+    return modulation_contract.finite(
+        body.origin
+        + modulation_contract.finite((lower + (position - lower >= 0.5)) * body.step)
+    )
 
 
-class Threshold(Model, frozen=True):
+class Threshold(envelfo_contract.Definition, frozen=True):
     kind: Literal['threshold'] = 'threshold'
-    input: Identifier
+    input: modulation_contract.Identifier
     lower: FiniteScalar
     upper: FiniteScalar
 
@@ -559,18 +603,29 @@ class Threshold(Model, frozen=True):
         return self
 
 
-class Slew(Model, frozen=True):
+class Slew(envelfo_contract.Definition, frozen=True):
     kind: Literal['slew'] = 'slew'
-    input: Identifier
+    input: modulation_contract.Identifier
     rise: Annotated[FiniteScalar, units.unit_validator('1/second')] = Field(ge=0)
     fall: Annotated[FiniteScalar, units.unit_validator('1/second')] = Field(ge=0)
     initial: FiniteScalar | None = None
+
+    @model_validator(mode='before')
+    @classmethod
+    def portable_rates(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if info.context and info.context.get('portable') and isinstance(value, dict):
+            return value | {
+                f: modulation_contract.scalar_rate(value[f])
+                for f in ('rise', 'fall')
+                if f in value
+            }
+        return value
 
 
 class Patch(EnveLFO):
     kind: Literal['patch'] = 'patch'
     envelfos: dict[
-        Identifier,
+        modulation_contract.Identifier,
         Annotated[
             LFO
             | Envelope
@@ -586,8 +641,13 @@ class Patch(EnveLFO):
             Field(discriminator='kind'),
         ],
     ] = Field(min_length=1)
-    outputs: dict[Identifier, Identifier] = Field(min_length=1)
-    event_outputs: dict[Identifier, str] = Field(default_factory=dict)
+    outputs: dict[modulation_contract.Identifier, modulation_contract.Identifier] = (
+        Field(min_length=1)
+    )
+    event_outputs: dict[
+        modulation_contract.Identifier,
+        Annotated[str, pydantic.AfterValidator(envelfo_contract.text)],
+    ] = Field(default_factory=dict)
     events: list[PatchEventConnection] = Field(default_factory=list)
 
     @cached_property
@@ -734,7 +794,38 @@ class Patch(EnveLFO):
 class EnveLFOReference(EnveLFO):
     kind: Literal['reference'] = 'reference'
     score: ScoreReference
-    parameters: dict[Identifier, float | str] = Field(default_factory=dict)
+    parameters: dict[modulation_contract.Identifier, float | str] = Field(
+        default_factory=dict
+    )
+
+    @pydantic.field_validator('parameters', mode='before')
+    @classmethod
+    def portable_overrides(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if info.context and info.context.get('portable') and isinstance(value, dict):
+            return {
+                n: envelfo_contract.text(v, info)
+                if isinstance(v, str)
+                else modulation_contract.scalar(v, info)
+                for n, v in value.items()
+            }
+        return value
+
+    @pydantic.field_validator('score', mode='before')
+    @classmethod
+    def portable_reference(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if info.context and info.context.get('portable'):
+            if isinstance(value, ScoreReference):
+                value = value.model_dump()
+            if isinstance(value, dict):
+                for field in ('path', 'selector'):
+                    if isinstance(value.get(field), str):
+                        envelfo_contract.text(value[field], info)
+            reference = ScoreReference.model_validate(value)
+            for field in (reference.path, reference.selector):
+                if field is not None:
+                    envelfo_contract.text(field, info)
+            return reference
+        return value
 
     @model_validator(mode='after')
     def unresolved_origin(self) -> Self:
@@ -762,7 +853,11 @@ def _inherit_child(value: object, clock: object, scope: object) -> object:
         raise ValueError(
             'child generators inherit clock and scope; overrides are not allowed'
         )
-    data = value.model_dump() if isinstance(value, EnveLFO) else dict(value)
+    data = (
+        envelfo_contract.definition_data(value)
+        if isinstance(value, EnveLFO)
+        else dict(value)
+    )
     return data | {'clock': clock, 'scope': scope}
 
 
@@ -873,9 +968,11 @@ class EnvelfoAdvance(Model):
     events: list[EnvelfoOutputEvent] = Field(default_factory=list)
 
 
-class EnvelfoScore(Score):
+class EnvelfoScore(Score, envelfo_contract.Definition):
     kind: Literal['envelfo'] = 'envelfo'
-    parameters: dict[Identifier, EnvelfoParameter] = Field(default_factory=dict)
+    parameters: dict[modulation_contract.Identifier, EnvelfoParameter] = Field(
+        default_factory=dict
+    )
     body: Annotated[
         LFO | Envelope | Stages | SampleHold | Patch, Field(discriminator='kind')
     ]

@@ -39,7 +39,18 @@ pub fn scalar(text: &str, unit: &str) -> Result<f64, Error> {
     ) {
         return Err(invalid());
     }
-    let (tokens, scale) = quantity(text, unit)?;
+    let (tokens, scale, _) = quantity(text, unit)?;
+    scalar_tokens(tokens, scale)
+}
+
+/// Finite scalar reciprocal-second rate, not an exact time quantity.
+pub fn rate(text: &str) -> Result<f64, Error> {
+    let (numeric, unit, reciprocal) = generator_text(text, "per_second")?;
+    let (tokens, scale, _) = quantity(&numeric, unit)?;
+    scalar_tokens(tokens, scale.checked_mul(reciprocal)?)
+}
+
+fn scalar_tokens(tokens: Vec<&str>, scale: Rational) -> Result<f64, Error> {
     let mut value = finite(tokens[0].parse::<f64>().map_err(|_| invalid())?)?;
     for token in &tokens[1..] {
         let divisor = finite(token.parse::<f64>().map_err(|_| invalid())?)?;
@@ -68,6 +79,29 @@ pub fn exact(text: &str, unit: &str) -> Result<Rational, Error> {
     ) {
         return Err(invalid());
     }
+    let (numeric, numeric_unit, reciprocal) = generator_text(text, unit)?;
+    let (tokens, scale, _) = quantity(&numeric, numeric_unit)?;
+    let mut value = evaluate(tokens[0])?
+        .rational()
+        .ok_or(Error::ArithmeticRange)?;
+    for token in &tokens[1..] {
+        value = value.checked_div(evaluate(token)?.rational().ok_or(Error::ArithmeticRange)?)?;
+    }
+    value = value.checked_mul(scale)?;
+    value.checked_mul(reciprocal)
+}
+
+/// Parse a segment duration with an explicit compatible suffix.
+pub fn duration(text: &str) -> Result<(Rational, &'static str), Error> {
+    for unit in ["seconds", "beats"] {
+        if let Ok((_, _, Some(_))) = quantity(text, unit) {
+            return Ok((exact(text, unit)?, unit));
+        }
+    }
+    Err(invalid())
+}
+
+fn generator_text<'a>(text: &str, unit: &'a str) -> Result<(String, &'a str, Rational), Error> {
     if text.chars().take(MAX_TEXT + 1).count() > MAX_TEXT {
         return Err(Error::Limit("quantity characters"));
     }
@@ -106,18 +140,13 @@ pub fn exact(text: &str, unit: &str) -> Result<Rational, Error> {
             }
         }
     }
-    let (tokens, scale) = quantity(&numeric, numeric_unit)?;
-    let mut value = evaluate(tokens[0])?
-        .rational()
-        .ok_or(Error::ArithmeticRange)?;
-    for token in &tokens[1..] {
-        value = value.checked_div(evaluate(token)?.rational().ok_or(Error::ArithmeticRange)?)?;
-    }
-    value = value.checked_mul(scale)?;
-    value.checked_mul(reciprocal)
+    Ok((numeric, numeric_unit, reciprocal))
 }
 
-fn quantity<'a>(text: &'a str, unit: &str) -> Result<(Vec<&'a str>, Rational), Error> {
+fn quantity<'a>(
+    text: &'a str,
+    unit: &str,
+) -> Result<(Vec<&'a str>, Rational, Option<&'a str>), Error> {
     if text.chars().take(MAX_TEXT + 1).count() > MAX_TEXT {
         return Err(Error::Limit("quantity characters"));
     }
@@ -204,7 +233,7 @@ fn quantity<'a>(text: &'a str, unit: &str) -> Result<(Vec<&'a str>, Rational), E
     } else {
         Rational::new(1, 1)?
     };
-    Ok((tokens.into_iter().step_by(2).collect(), scale))
+    Ok((tokens.into_iter().step_by(2).collect(), scale, alias))
 }
 
 fn invalid() -> Error {

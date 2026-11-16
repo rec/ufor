@@ -3,6 +3,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
 use crate::modulation::Modulation;
 use crate::musical::TuningScore;
@@ -31,6 +32,34 @@ pub fn parse_modulation(text: &str, format: Format) -> Result<Modulation, Error>
 }
 
 pub fn modulation_text(value: &Modulation, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
+/// Validate document budgets before typed decoding of the original map order.
+pub fn parse_generator(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<Generator, Error> {
+    let document = read(text, format)?;
+    crate::envelfo::preparation_records(&document, limits)?;
+    match format {
+        Format::Json => {
+            let mut decoder = serde_json::Deserializer::from_str(text);
+            let value = Generator::decode(&mut decoder, limits)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            decoder.end().map_err(|e| Error::Invalid(e.to_string()))?;
+            Ok(value)
+        }
+        Format::Toml => Generator::decode(
+            toml::de::Deserializer::parse(text).map_err(|e| Error::Invalid(e.to_string()))?,
+            limits,
+        )
+        .map_err(|e| Error::Invalid(e.to_string())),
+    }
+}
+
+pub fn generator_text(value: &Generator, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 
