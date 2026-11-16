@@ -1,8 +1,8 @@
 # Rust EnveLFO contract inventory
 
 This inventory accompanies [the implementation plan](../plan/rust-envelfo.md).
-It records the implemented generator-definition contract, not completion of the
-score/binding stages. Enge and enveLFO are unchanged. No generator runtime is
+It records the implemented generator, score and partial binding contract.
+Enge and enveLFO are unchanged. No generator runtime is
 implemented here. See [the native/Python API guide](rust-envelfo.md).
 
 ## Current implementation and evidence
@@ -13,8 +13,11 @@ portable-boundary cases. The Python consumer is
 `test/test_envelfo_conformance.py`. Rust's `crates/ufor/tests/envelfo.rs` currently
 consumes the shared definition and preparation cases, including strict types,
 inheritance, ranges, units, limits and JSON/TOML semantic round trips. Native
-generator models and definition interchange are implemented. Generator-aware
-binding validation and native score adapters remain planned.
+generator models and definition interchange are implemented. The additional
+`conformance/envelfo-scores-bindings.json` cases are consumed by that Python test
+module and `crates/ufor/tests/envelfo_scores.rs`. They cover score headers,
+parameters, materialization, known binding facts, typed unresolved requirements,
+event connection quantities and declaration order.
 
 Python's `modulation_contract.exact_quantity` and Rust's `quantity::exact` share
 the exact generator quantity grammar. Existing nonnegative smoothing APIs reuse
@@ -22,7 +25,7 @@ this arithmetic while keeping their own domain checks. Python's
 `envelfo_contract.preparation_records` and Rust's `envelfo::preparation_records`
 implement the same configurable preparation preflight. The standalone functions count
 decoded declarations; they do not validate a generator's structure, references,
-field domains or document budgets. They are not substitutes for the future
+field domains or document budgets. They are not substitutes for the
 validated model/parser boundary. The `Generator` boundary and Python portable
 models now combine this preflight with structural validation.
 
@@ -132,8 +135,9 @@ Collection sizes are checked before adding their members to preparation work.
 Python `context={'portable': True, 'max_records': N}` and Rust's explicit
 `PreparationLimits` apply to one whole generator validation operation. Raising
 the limit works through nested generator definitions and model revalidation.
-Generator-aware binding validation must later combine its supplied modulation,
-bindings and controls in that same operation budget. Existing standalone
+Generator-aware binding validation combines its supplied modulation,
+bindings, controls, generators and event connections in that same operation budget.
+Model instances and decoded objects receive the same record counts. Existing standalone
 modulation APIs retain their default. No limit field belongs in score data.
 
 ## Range and contextual boundaries
@@ -157,11 +161,34 @@ capabilities and instrument/effect target-unit/default compatibility explicitly
 unresolved until their owning definitions are supplied. Do not claim full
 ModulationSettings validation or implement placeholder processor/generator data.
 
-## Remaining stages
+## Score and binding boundary
+
+Native score parsing returns the typed `score::Score` enum. Its supported kinds
+are tuning and envelfo; `parse_score` requires an explicit preparation limit.
+Direct typed deserialization retains the default 10,000 limit. Concrete EnveLFO
+score bodies cannot be unresolved references. Public parameters currently bind
+only root LFO rates and must be declared in Hz with a strictly positive minimum.
+Hz parameter use on a beat-clock LFO is rejected, including when a caller
+requests that clock during materialization. Literal beat-clock LFOs remain valid.
+
+Overrides normalize to finite f64 within declared bounds, then the shortest
+decimal spelling becomes a checked i64 rational rate. Unknown overrides and
+unrepresentable exact results fail. The budget counts supplied overrides as well
+as score records. Materialization replaces root settings/provenance and inherits
+scope/clock into children without mutating the score or resolving resources.
+
+The partial generator-aware validator returns typed output/domain/release checks
+for unresolved score references. Known scopes are checked immediately. Event
+connections retain source-port/destination-cue checks only for unresolved ends;
+known ends must be valid. Followers and all target-setting compatibility remain
+explicitly unresolved. Full Python settings retain their existing stricter
+unresolved voice-release checks. See the [API guide](rust-envelfo.md) for signatures,
+ordering and exact result shapes exercised by shared cases.
+
+## Remaining qualification
 
 Portable model alignment, native LFO/Envelope/SampleHold, Stages/Patch,
 unresolved-reference definitions and the supporting pure mathematics are
-implemented. The remaining increments are native scores/public parameters,
-generator-aware bindings and hosted platform qualification. Extend shared cases
-alongside those implementations; current local success does not establish
+implemented, together with native scores/public parameters and generator-aware
+partial bindings. Hosted platform qualification remains; current local success does not establish
 consumer execution, reference resolution or full contextual validation.

@@ -15,7 +15,16 @@ pub fn finite(value: f64) -> Result<f64, Error> {
 }
 
 pub fn records(count: usize) -> Result<(), Error> {
-    if count > MAX_RECORDS {
+    record_budget(count, MAX_RECORDS)
+}
+
+pub(crate) fn record_budget(count: usize, maximum: usize) -> Result<(), Error> {
+    if u64::try_from(maximum).map_err(|_| Error::ArithmeticRange)? > i64::MAX as u64 {
+        return Err(Error::Invalid(
+            "max_records exceeds signed 64-bit domain".into(),
+        ));
+    }
+    if count > maximum {
         Err(Error::Limit("modulation records"))
     } else {
         Ok(())

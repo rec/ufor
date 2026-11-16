@@ -145,9 +145,14 @@ def _generator_quantity(text: str, unit: str) -> tuple[list[str], Fraction]:
     return tokens, scale * factor
 
 
-def records(count: int) -> None:
-    if count > MAX_RECORDS:
-        raise ValueError('Modulation preparation exceeds 10000 records')
+def records(count: int, info: pydantic.ValidationInfo | None = None) -> None:
+    maximum = MAX_RECORDS
+    if info is not None and info.context and 'max_records' in info.context:
+        maximum = number.bounded_integer(info.context['max_records'])
+        if maximum < 0:
+            raise ValueError('max_records must be nonnegative')
+    if count > maximum:
+        raise ValueError(f'Modulation preparation exceeds {maximum} records')
 
 
 class _IdentifierRanges(pydantic.BaseModel, frozen=True):

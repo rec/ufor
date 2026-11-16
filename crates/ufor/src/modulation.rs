@@ -4,7 +4,7 @@ use crate::control::Scope;
 use crate::error::Error;
 use crate::identifier::Identifier;
 use crate::quantity::{self, finite, records};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -223,16 +223,7 @@ impl Route {
         points: Vec<Point>,
         interpolation: Interpolation,
     ) -> Result<Self, Error> {
-        records(points.len())?;
-        records(points.len() + 1)?;
-        if points.is_empty()
-            || points.windows(2).any(|p| p[1].input <= p[0].input)
-            || (interpolation == Interpolation::Exponential
-                && points.iter().any(|p| p.amount <= 0.0))
-        {
-            return Err(invalid("invalid mapping points"));
-        }
-        Ok(Self {
+        Self {
             name,
             source,
             target,
@@ -240,7 +231,25 @@ impl Route {
             unit,
             points,
             interpolation,
-        })
+        }
+        .checked(quantity::MAX_RECORDS)
+    }
+    fn checked(self, maximum: usize) -> Result<Self, Error> {
+        quantity::record_budget(
+            self.points
+                .len()
+                .checked_add(1)
+                .ok_or(Error::ArithmeticRange)?,
+            maximum,
+        )?;
+        if self.points.is_empty()
+            || self.points.windows(2).any(|p| p[1].input <= p[0].input)
+            || (self.interpolation == Interpolation::Exponential
+                && self.points.iter().any(|p| p.amount <= 0.0))
+        {
+            return Err(invalid("invalid mapping points"));
+        }
+        Ok(self)
     }
     pub fn name(&self) -> &Identifier {
         &self.name
@@ -278,14 +287,34 @@ impl Modulation {
         sources: Vec<Source>,
         routes: Vec<Route>,
     ) -> Result<Self, Error> {
-        for length in [parameters.len(), sources.len(), routes.len()] {
-            records(length)?;
+        Self {
+            parameters,
+            sources,
+            routes,
         }
-        let mut count = parameters.len() + sources.len() + routes.len();
-        records(count)?;
+        .checked(quantity::MAX_RECORDS)
+    }
+    pub fn decode<'de, D: Deserializer<'de>>(d: D, max_records: usize) -> Result<Self, D::Error> {
+        ModulationDefinition::deserialize(d)?
+            .prepare(max_records)
+            .map_err(serde::de::Error::custom)
+    }
+    fn checked(self, maximum: usize) -> Result<Self, Error> {
+        let Self {
+            parameters,
+            sources,
+            routes,
+        } = self;
+        let mut count = 0_usize;
+        for length in [parameters.len(), sources.len(), routes.len()] {
+            count = count.checked_add(length).ok_or(Error::ArithmeticRange)?;
+            quantity::record_budget(count, maximum)?;
+        }
         for route in &routes {
-            count += route.points.len();
-            records(count)?;
+            count = count
+                .checked_add(route.points.len())
+                .ok_or(Error::ArithmeticRange)?;
+            quantity::record_budget(count, maximum)?;
         }
         let source_map: BTreeMap<_, _> = sources.iter().map(|s| (&s.name, s)).collect();
         let parameter_map: BTreeMap<_, _> = parameters.iter().map(|p| (&p.target, p)).collect();
@@ -653,22 +682,33 @@ struct RouteDefinition {
 impl TryFrom<RouteDefinition> for Route {
     type Error = Error;
     fn try_from(v: RouteDefinition) -> Result<Self, Error> {
-        records(v.points.len())?;
-        records(v.points.len() + 1)?;
-        let points = v
+        v.prepare(quantity::MAX_RECORDS)
+    }
+}
+impl RouteDefinition {
+    fn prepare(self, maximum: usize) -> Result<Route, Error> {
+        quantity::record_budget(
+            self.points
+                .len()
+                .checked_add(1)
+                .ok_or(Error::ArithmeticRange)?,
+            maximum,
+        )?;
+        let points = self
             .points
             .into_iter()
-            .map(|p| Point::new(p.input, p.amount.normalize(v.unit)?))
+            .map(|p| Point::new(p.input, p.amount.normalize(self.unit)?))
             .collect::<Result<_, _>>()?;
-        Self::new(
-            v.name,
-            v.source,
-            v.target,
-            v.operation,
-            v.unit,
+        Route {
+            name: self.name,
+            source: self.source,
+            target: self.target,
+            operation: self.operation,
+            unit: self.unit,
             points,
-            v.interpolation,
-        )
+            interpolation: self.interpolation,
+        }
+        .checked(maximum)
     }
 }
 impl From<Route> for RouteDefinition {
@@ -701,30 +741,40 @@ struct ModulationDefinition {
 impl TryFrom<ModulationDefinition> for Modulation {
     type Error = Error;
     fn try_from(v: ModulationDefinition) -> Result<Self, Error> {
-        for length in [v.parameters.len(), v.sources.len(), v.routes.len()] {
-            records(length)?;
+        v.prepare(quantity::MAX_RECORDS)
+    }
+}
+impl ModulationDefinition {
+    fn prepare(self, maximum: usize) -> Result<Modulation, Error> {
+        let mut count = 0_usize;
+        for length in [self.parameters.len(), self.sources.len(), self.routes.len()] {
+            count = count.checked_add(length).ok_or(Error::ArithmeticRange)?;
+            quantity::record_budget(count, maximum)?;
         }
-        let mut count = v.parameters.len() + v.sources.len() + v.routes.len();
-        records(count)?;
-        for route in &v.routes {
-            records(route.points.len())?;
-            count += route.points.len();
-            records(count)?;
+        for route in &self.routes {
+            count = count
+                .checked_add(route.points.len())
+                .ok_or(Error::ArithmeticRange)?;
+            quantity::record_budget(count, maximum)?;
         }
-        Self::new(
-            v.parameters
+        Modulation {
+            parameters: self
+                .parameters
                 .into_iter()
                 .map(Parameter::try_from)
                 .collect::<Result<_, _>>()?,
-            v.sources
+            sources: self
+                .sources
                 .into_iter()
                 .map(Source::try_from)
                 .collect::<Result<_, _>>()?,
-            v.routes
+            routes: self
+                .routes
                 .into_iter()
-                .map(Route::try_from)
+                .map(|r| r.prepare(maximum))
                 .collect::<Result<_, _>>()?,
-        )
+        }
+        .checked(maximum)
     }
 }
 impl From<Modulation> for ModulationDefinition {

@@ -1,4 +1,4 @@
-//! UTF-8 JSON/TOML interchange for tuning bodies and tuning scores.
+//! UTF-8 JSON/TOML interchange for the implemented bodies and score kinds.
 
 use serde::Serialize;
 use serde_json::Value;
@@ -6,7 +6,7 @@ use serde_json::Value;
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
 use crate::modulation::Modulation;
-use crate::musical::TuningScore;
+use crate::score::Score;
 use crate::tuning::Tuning;
 
 pub const MAX_SCORE_CHARACTERS: usize = 16 * 1024 * 1024;
@@ -63,15 +63,25 @@ pub fn generator_text(value: &Generator, format: Format) -> Result<String, Error
     write(value, format)
 }
 
-pub fn parse_score(text: &str, format: Format) -> Result<TuningScore, Error> {
-    let document = read(text, format)?;
-    if document.get("kind").and_then(Value::as_str) != Some("tuning") {
-        return Err(Error::Invalid("expected kind tuning".into()));
+pub fn parse_score(text: &str, format: Format, limits: PreparationLimits) -> Result<Score, Error> {
+    read(text, format)?;
+    match format {
+        Format::Json => {
+            let mut decoder = serde_json::Deserializer::from_str(text);
+            let value =
+                Score::decode(&mut decoder, limits).map_err(|e| Error::Invalid(e.to_string()))?;
+            decoder.end().map_err(|e| Error::Invalid(e.to_string()))?;
+            Ok(value)
+        }
+        Format::Toml => Score::decode(
+            toml::de::Deserializer::parse(text).map_err(|e| Error::Invalid(e.to_string()))?,
+            limits,
+        )
+        .map_err(|e| Error::Invalid(e.to_string())),
     }
-    serde_json::from_value(document).map_err(|e| Error::Invalid(e.to_string()))
 }
 
-pub fn score_text(value: &TuningScore, format: Format) -> Result<String, Error> {
+pub fn score_text(value: &Score, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 

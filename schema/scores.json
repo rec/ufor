@@ -4693,6 +4693,7 @@
       "additionalProperties": false,
       "properties": {
         "source": {
+          "maxLength": 4096,
           "title": "Source",
           "type": "string"
         },
@@ -4702,10 +4703,12 @@
           "type": "string"
         },
         "destination": {
+          "maxLength": 4096,
           "title": "Destination",
           "type": "string"
         },
         "cue": {
+          "maxLength": 4096,
           "title": "Cue",
           "type": "string"
         },
@@ -9155,7 +9158,6 @@
           "items": {
             "$ref": "#/$defs/Parameter"
           },
-          "maxItems": 10000,
           "title": "Parameters",
           "type": "array"
         },
@@ -9163,7 +9165,6 @@
           "items": {
             "$ref": "#/$defs/Source"
           },
-          "maxItems": 10000,
           "title": "Sources",
           "type": "array"
         },
@@ -9171,7 +9172,6 @@
           "items": {
             "$ref": "#/$defs/Route"
           },
-          "maxItems": 10000,
           "title": "Routes",
           "type": "array"
         }
@@ -12827,7 +12827,6 @@
           "items": {
             "$ref": "#/$defs/Point"
           },
-          "maxItems": 9999,
           "minItems": 1,
           "title": "Points",
           "type": "array"

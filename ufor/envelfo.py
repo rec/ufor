@@ -45,6 +45,17 @@ class EnvelfoParameter(envelfo_contract.Definition):
     @model_validator(mode='before')
     @classmethod
     def declared_units(cls, value: object, info: pydantic.ValidationInfo) -> object:
+        if (
+            info.context
+            and info.context.get('portable')
+            and isinstance(value, dict)
+            and value.get('unit') == Unit.hz
+        ):
+            return value | {
+                f: modulation_contract.scalar_rate(value[f])
+                for f in ('minimum', 'maximum', 'default')
+                if f in value
+            }
         return unit_fields(value, ['minimum', 'maximum', 'default'], info)
 
     @model_validator(mode='after')
@@ -988,6 +999,11 @@ class EnvelfoScore(Score, envelfo_contract.Definition):
             and self.parameters[rate.parameter].unit != Unit.hz
         ):
             raise ValueError('LFO rate requires a Hz parameter')
+        if (
+            isinstance(rate, ParameterReference)
+            and self.body.clock == control.Clock.beats
+        ):
+            raise ValueError('Hz parameters require a seconds-clock LFO')
         return self
 
 
@@ -998,21 +1014,37 @@ def instantiate_envelfo(
     clock: control.Clock = control.Clock.seconds,
     origin: EnvelfoOrigin | None = None,
     position_driver: PositionDriver = PositionDriver.elapsed,
+    *,
+    context: dict[str, object] | None = None,
 ) -> EnveLFO:
     values = parameters or {}
+    if context and context.get('portable'):
+        maximum = envelfo_contract.record_limit(context.get('max_records', 10000))
+        count = envelfo_contract.preparation_records(score, maximum)
+        envelfo_contract.check_records(count + len(values), maximum)
+    score = EnvelfoScore.model_validate(score, context=context)
     if values.keys() - score.parameters.keys():
         raise ValueError('unknown public envelfo parameters')
     body = score.body
     if isinstance(body, LFO) and isinstance(body.rate, ParameterReference):
+        if clock == control.Clock.beats:
+            raise ValueError('Hz parameters require a seconds-clock LFO')
         declared = score.parameters[body.rate.parameter]
-        value = unit_number(
-            values.get(body.rate.parameter, declared.default), declared.unit
+        authored = values.get(body.rate.parameter, declared.default)
+        value = (
+            modulation_contract.scalar_rate(authored)
+            if context and context.get('portable')
+            else modulation_contract.finite(unit_number(authored, declared.unit))
         )
         if not declared.minimum <= value <= declared.maximum:
             raise ValueError(
                 f'envelfo parameter {body.rate.parameter} is outside its range'
             )
-        body = LFO.model_validate(body.model_dump() | {'rate': Fraction(str(value))})
+        body = LFO.model_validate(
+            body.model_dump()
+            | {'rate': modulation_contract.exact_quantity(str(value), 'ratio')},
+            context=context,
+        )
     return type(body).model_validate(
         body.model_dump()
         | {
@@ -1020,5 +1052,6 @@ def instantiate_envelfo(
             'clock': clock,
             'position_driver': position_driver,
             'origin': origin,
-        }
+        },
+        context=context,
     )

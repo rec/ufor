@@ -63,7 +63,13 @@ fn definitions_match_shared_cases_and_roundtrip_both_formats() {
                 )
                 .unwrap(),
                 Definition::Score(value) => serde_json::to_value(
-                    codec::parse_score(&codec::score_text(value, format).unwrap(), format).unwrap(),
+                    codec::parse_score(
+                        &codec::score_text(&ufor::score::Score::Tuning(value.clone()), format)
+                            .unwrap(),
+                        format,
+                        ufor::envelfo::PreparationLimits::default(),
+                    )
+                    .unwrap(),
                 )
                 .unwrap(),
                 Definition::Source(_) => {

@@ -15,5 +15,6 @@ pub mod musical;
 pub mod number;
 pub mod quantity;
 pub mod samples;
+pub mod score;
 pub mod tuning;
 pub mod units;

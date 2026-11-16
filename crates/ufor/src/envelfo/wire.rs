@@ -990,3 +990,111 @@ pub(super) fn definition(value: &Generator, inherited: bool) -> Raw {
         },
     }
 }
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ParameterWire {
+    unit: Unit,
+    default: Scalar,
+    minimum: Scalar,
+    maximum: Scalar,
+    #[serde(default)]
+    description: Option<String>,
+}
+impl ParameterWire {
+    fn prepare(self) -> Result<EnvelfoParameter, Error> {
+        let unit = if self.unit == Unit::Hz {
+            "per_second"
+        } else {
+            self.unit.as_str()
+        };
+        EnvelfoParameter::new(
+            self.unit,
+            self.default.value(unit)?,
+            self.minimum.value(unit)?,
+            self.maximum.value(unit)?,
+            self.description,
+        )
+    }
+}
+
+#[derive(Clone, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub(crate) struct ScoreWire {
+    #[serde(default = "score_format")]
+    format: String,
+    #[serde(default = "score_version")]
+    version: i64,
+    #[serde(default = "score_kind")]
+    kind: String,
+    name: String,
+    title: String,
+    #[serde(default)]
+    tags: Vec<String>,
+    #[serde(default)]
+    parameters: Ordered<ParameterWire>,
+    body: Raw,
+}
+fn score_format() -> String {
+    "recs".into()
+}
+fn score_version() -> i64 {
+    4
+}
+fn score_kind() -> String {
+    "envelfo".into()
+}
+impl ScoreWire {
+    pub(crate) fn prepare(self, limits: PreparationLimits) -> Result<EnvelfoScore, Error> {
+        if self.format != "recs" || self.version != 4 || self.kind != "envelfo" {
+            return Err(invalid("expected a recs version 4 envelfo score"));
+        }
+        preparation_records(
+            &serde_json::to_value(&self).map_err(|e| invalid(&e.to_string()))?,
+            limits,
+        )?;
+        let parameters = self
+            .parameters
+            .0
+            .into_iter()
+            .map(|(n, p)| Ok((n, p.prepare()?)))
+            .collect::<Result<_, Error>>()?;
+        EnvelfoScore::new(
+            self.name,
+            self.title,
+            self.tags,
+            parameters,
+            self.body.prepare(None)?,
+            limits,
+        )
+    }
+}
+pub(super) fn score_definition(value: &EnvelfoScore) -> ScoreWire {
+    ScoreWire {
+        format: score_format(),
+        version: score_version(),
+        kind: score_kind(),
+        name: value.name.clone(),
+        title: value.title.clone(),
+        tags: value.tags.clone(),
+        parameters: Ordered(
+            value
+                .parameters
+                .iter()
+                .map(|(n, p)| {
+                    (
+                        n.clone(),
+                        ParameterWire {
+                            unit: p.unit,
+                            default: Scalar::Number(p.default),
+                            minimum: Scalar::Number(p.minimum),
+                            maximum: Scalar::Number(p.maximum),
+                            description: p.description.clone(),
+                        },
+                    )
+                })
+                .collect(),
+        ),
+        body: definition(&value.body, false),
+    }
+}

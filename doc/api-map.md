@@ -21,6 +21,8 @@ historical wire format, not the producer. safaz owns SFZ conversion.
 | Declare shared TX81Z DAC ownership | `synth.TX81ZOutput`, `SynthInstrument.tx81z_outputs`; explicit template membership and post-DAC processing/routes |
 | Declare shared TX81Z LFO ownership | `synth.TX81ZLFOGroup`, `SynthInstrument.tx81z_lfos`; explicit owners and member selectors, independent of DAC groups |
 | Define reusable generators | `envelfo.EnvelfoScore`, `LFO`, `Envelope`, `Stages`, `SampleHold`, `Patch`; stateful execution belongs to enveLFO |
+| Materialize a generator score | `envelfo.instantiate_envelfo`; native `envelfo::EnvelfoScore::instantiate` |
+| Check supplied generator binding facts | `samples.processing.validate_generator_bindings`; native `samples::bindings::validate_generator_bindings`, returning explicit outstanding checks |
 | Describe audio effect graphs | `audio_effects.EffectGraph`, `ActionBatch`, `validate_action`, `validate_batch`; execution belongs to enge |
 | Describe arpeggiation | `arpeggiator.ArpeggiatorScore`; `arpeggiator_capture` owns captured phrases/occurrences; `arpeggiator_ports` owns controls and notifications |
 | Read Yamaha patch bytes | `vl70.parse_vl70`, `dx7.parse_dx7`, `tx81z.parse_tx81z`; no device I/O |

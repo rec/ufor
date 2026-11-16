@@ -2,15 +2,17 @@
 #![doc = include_str!("../../../doc/rust-envelfo.md")]
 
 mod validation;
-mod wire;
+pub(crate) mod wire;
 
 use crate::control::{Polarity, Scope};
 use crate::error::Error;
 use crate::identifier::Identifier;
+use crate::modulation::Unit;
 use crate::number::Rational;
 use crate::quantity::finite;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -748,6 +750,217 @@ fn duration(seconds: f64) -> Result<Rational, Error> {
 }
 fn invalid(message: &str) -> Error {
     Error::Invalid(message.into())
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EnvelfoParameter {
+    unit: Unit,
+    default: f64,
+    minimum: f64,
+    maximum: f64,
+    description: Option<String>,
+}
+impl EnvelfoParameter {
+    pub fn new(
+        unit: Unit,
+        default: f64,
+        minimum: f64,
+        maximum: f64,
+        description: Option<String>,
+    ) -> Result<Self, Error> {
+        for v in [default, minimum, maximum] {
+            finite(v)?;
+        }
+        if minimum < 0.0
+            || minimum > default
+            || default > maximum
+            || (unit == Unit::Hz && minimum == 0.0)
+        {
+            return Err(invalid("invalid envelfo parameter domain or default"));
+        }
+        Ok(Self {
+            unit,
+            default,
+            minimum,
+            maximum,
+            description,
+        })
+    }
+    pub fn unit(&self) -> Unit {
+        self.unit
+    }
+    pub fn default_value(&self) -> f64 {
+        self.default
+    }
+    pub fn minimum(&self) -> f64 {
+        self.minimum
+    }
+    pub fn maximum(&self) -> f64 {
+        self.maximum
+    }
+    pub fn description(&self) -> Option<&str> {
+        self.description.as_deref()
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct EnvelfoScore {
+    name: String,
+    title: String,
+    tags: Vec<String>,
+    parameters: Vec<(Identifier, EnvelfoParameter)>,
+    body: Generator,
+}
+impl EnvelfoScore {
+    pub fn new(
+        name: String,
+        title: String,
+        tags: Vec<String>,
+        parameters: Vec<(Identifier, EnvelfoParameter)>,
+        body: Generator,
+        limits: PreparationLimits,
+    ) -> Result<Self, Error> {
+        limits.check_records(parameters.len())?;
+        let tags = crate::musical::header(&name, &title, tags)?;
+        let declared: BTreeMap<_, _> = parameters.iter().map(|(n, p)| (n, p)).collect();
+        if declared.len() != parameters.len() || matches!(body.body, Body::Reference(_)) {
+            return Err(invalid("invalid score body or duplicate public parameters"));
+        }
+        let used = if let Body::Lfo(Lfo {
+            rate: Rate::Parameter(ref p),
+            ..
+        }) = body.body
+        {
+            Some(p)
+        } else {
+            None
+        };
+        match used {
+            Some(name) => {
+                if parameters.len() != 1 || declared.get(name).is_none_or(|p| p.unit != Unit::Hz) {
+                    return Err(invalid(
+                        "LFO public rate requires exactly its declared Hz parameter",
+                    ));
+                }
+                if body.settings.clock == Clock::Beats {
+                    return Err(invalid("Hz parameters require a seconds-clock LFO"));
+                }
+            }
+            None if !parameters.is_empty() => return Err(invalid("unused public parameters")),
+            None => (),
+        }
+        let mut value = Self {
+            name,
+            title,
+            tags,
+            parameters,
+            body,
+        };
+        preparation_records(
+            &serde_json::to_value(&value).map_err(|e| invalid(&e.to_string()))?,
+            limits,
+        )?;
+        validation::generator(&mut value.body)?;
+        Ok(value)
+    }
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+    pub fn tags(&self) -> &[String] {
+        &self.tags
+    }
+    pub fn parameters(&self) -> &[(Identifier, EnvelfoParameter)] {
+        &self.parameters
+    }
+    pub fn body(&self) -> &Generator {
+        &self.body
+    }
+    pub fn instantiate(
+        &self,
+        values: &BTreeMap<Identifier, ParameterValue>,
+        settings: Settings,
+        limits: PreparationLimits,
+    ) -> Result<Generator, Error> {
+        let count = preparation_records(
+            &serde_json::to_value(self).map_err(|e| invalid(&e.to_string()))?,
+            limits,
+        )?;
+        limits.check_records(
+            count
+                .checked_add(values.len())
+                .ok_or(Error::ArithmeticRange)?,
+        )?;
+        let declared: BTreeMap<_, _> = self.parameters.iter().map(|(n, p)| (n, p)).collect();
+        if values.keys().any(|n| !declared.contains_key(n)) {
+            return Err(invalid("unknown public envelfo parameter"));
+        }
+        let mut body = self.body.clone();
+        if let Body::Lfo(lfo) = &mut body.body {
+            if let Rate::Parameter(name) = &lfo.rate {
+                if settings.clock == Clock::Beats {
+                    return Err(invalid("Hz parameters require a seconds-clock LFO"));
+                }
+                let p = declared[name];
+                let value = match values.get(name) {
+                    None => p.default,
+                    Some(ParameterValue::Number(v)) => finite(*v)?,
+                    Some(ParameterValue::Text(t)) => crate::quantity::rate(t)?,
+                };
+                if value < p.minimum || value > p.maximum {
+                    return Err(invalid("public parameter is outside its domain"));
+                }
+                lfo.rate = Rate::Literal(crate::quantity::exact(&value.to_string(), "ratio")?);
+            }
+        }
+        body.settings = settings;
+        inherit_children(&mut body);
+        Generator::new(body.settings, body.body, limits)
+    }
+    pub(crate) fn decode<'de, D: Deserializer<'de>>(
+        d: D,
+        limits: PreparationLimits,
+    ) -> Result<Self, D::Error> {
+        wire::ScoreWire::deserialize(d)?
+            .prepare(limits)
+            .map_err(serde::de::Error::custom)
+    }
+}
+impl Serialize for EnvelfoScore {
+    fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        wire::score_definition(self).serialize(s)
+    }
+}
+impl<'de> Deserialize<'de> for EnvelfoScore {
+    fn deserialize<D: Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
+        Self::decode(d, PreparationLimits::default())
+    }
+}
+
+fn inherit_children(value: &mut Generator) {
+    let settings = &value.settings;
+    let update = |g: &mut Generator| {
+        g.settings.scope = settings.scope;
+        g.settings.clock = settings.clock;
+        inherit_children(g);
+    };
+    match &mut value.body {
+        Body::Stages(v) => {
+            for s in &mut v.stages {
+                update(&mut s.envelfo);
+            }
+        }
+        Body::Patch(v) => {
+            for (_, n) in &mut v.envelfos {
+                if let PatchNode::Generator(g) = n {
+                    update(g);
+                }
+            }
+        }
+        _ => (),
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
