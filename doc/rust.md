@@ -2,9 +2,9 @@
 
 The Cargo workspace implements checked pitch numbers, expression evaluation,
 `Computed`, `RatioTable`, `IntervalPattern`, `FrequencyTable`, `Tuning`, and the
-tuning-only `TuningScore` envelope in `crates/ufor`. JSON/TOML interchange supports
-those definitions. Scale, Scala, oscillators, other score kinds, Python bindings,
-WebAssembly, and consumer migrations remain outside this implementation.
+`TuningScore` envelope in `crates/ufor`. JSON/TOML interchange supports those
+definitions. Scale, Scala, oscillators, Python bindings and WebAssembly remain
+outside this implementation.
 
 The crate also implements [modulation routes, control declarations and binding
 value types](rust-modulation.md), including scalar reference evaluation and
@@ -14,8 +14,17 @@ instrument/effect preparation and runtime integration remain with consumers.
 The [generator-definition module](rust-envelfo.md) adds LFO, Envelope, SampleHold,
 Stages, Patch and unresolved reference models, portable JSON/TOML bodies,
 configurable preparation limits, graph ranges and captured-approach mathematics.
-Generator execution, native envelfo score adapters and generator-aware binding
-validation remain separate work.
+Envelfo scores, public rate parameters and materialization are implemented, as
+are generator-aware binding checks with typed outstanding requirements for
+unresolved references, followers and target compatibility. The native score enum
+supports Tuning and Envelfo; other score kinds remain unported.
+
+Generator execution belongs to the separate `engelfo` crate. Enge already uses
+Rust uFor for LFO, named-Envelope and main voice-amplitude preparation. Further
+graph, modulation and tuning adoption is tracked in
+[enge's integration plan](https://github.com/rec/enge/blob/main/plan/rust-ufor-integration.md).
+Full instrument/effect documents, processing settings, resource resolution and
+TempoMap are separate milestones, not prerequisites for the completed APIs.
 
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:

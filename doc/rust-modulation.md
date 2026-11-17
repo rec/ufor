@@ -3,8 +3,9 @@
 Python and Rust implement the same modulation definitions and scalar reference
 contract. The native crate now supplies `modulation`, `control`, `identifier`,
 `quantity`, `samples::controls` and `samples::processing` modules. Enge integration,
-audio rendering and generator execution are separate work; no enge changes were
-made for this port.
+audio rendering and generator execution are separate work. The scalar port made
+no enge changes; subsequent integration uses Rust generator definitions there,
+while modulation-route preparation remains pending.
 
 ## Definitions and validation
 
