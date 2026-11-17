@@ -5,6 +5,7 @@ use std::fmt::Debug;
 use ufor::codec::{self, Format};
 use ufor::error::Error;
 use ufor::identifier::Identifier;
+use ufor::modulation::math::{self, CalculationError, Mapping};
 use ufor::modulation::{
     self, Modulation, Parameter, ParameterValue, Point, Route, Source, SourceValue, Target,
 };
@@ -94,6 +95,11 @@ fn shared_mapping_boundaries_and_arithmetic_errors() {
                 .as_f64()
                 .unwrap_or_else(|| query["value"].as_str().unwrap().parse().unwrap());
             let result = modulation::map_value(&route, value);
+            let prepared = Mapping::new(route.interpolation(), route.points().to_vec()).unwrap();
+            assert_eq!(prepared.value(value).is_ok(), result.is_ok());
+            if let Ok(expected) = result.as_ref() {
+                assert_eq!(prepared.value(value).unwrap(), *expected);
+            }
             if query["error"] == "arithmetic-range" {
                 assert_eq!(result, Err(Error::ArithmeticRange), "{}", case["id"]);
             } else {
@@ -101,6 +107,37 @@ fn shared_mapping_boundaries_and_arithmetic_errors() {
             }
         }
     }
+}
+
+#[test]
+fn prepared_scalar_kernels_check_arithmetic_and_caller_storage() {
+    let mapping = Mapping::new(
+        modulation::Interpolation::Linear,
+        vec![
+            Point::new(-f64::MAX, 0.0).unwrap(),
+            Point::new(f64::MAX, 1.0).unwrap(),
+        ],
+    )
+    .unwrap();
+    assert_eq!(mapping.value(-f64::MAX), Ok(0.0));
+    assert_eq!(mapping.value(0.0), Err(CalculationError::NonFinite));
+    assert_eq!(mapping.value(f64::NAN), Err(CalculationError::NonFinite));
+    let mut storage = [0.0; 3];
+    let mut count = 0;
+    for value in [1e16, 1.0, -1e16] {
+        math::add_partial(&mut storage, &mut count, value).unwrap();
+    }
+    assert_eq!(math::sum_partials(&storage[..count]), Ok(1.0));
+    assert_eq!(
+        math::add_partial(&mut [], &mut 0, 1.0),
+        Err(CalculationError::ScratchCapacity)
+    );
+    let mut count = 0;
+    math::add_partial(&mut storage, &mut count, f64::MAX).unwrap();
+    assert_eq!(
+        math::add_partial(&mut storage, &mut count, f64::MAX),
+        Err(CalculationError::NonFinite)
+    );
 }
 #[test]
 fn shared_scalar_combination_and_route_permutations() {

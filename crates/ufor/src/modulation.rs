@@ -1,5 +1,6 @@
 //! Typed scalar routes and their stateless reference mathematics.
 #![doc = include_str!("../../../doc/rust-modulation.md")]
+pub mod math;
 use crate::control::Scope;
 use crate::error::Error;
 use crate::identifier::Identifier;
@@ -242,13 +243,7 @@ impl Route {
                 .ok_or(Error::ArithmeticRange)?,
             maximum,
         )?;
-        if self.points.is_empty()
-            || self.points.windows(2).any(|p| p[1].input <= p[0].input)
-            || (self.interpolation == Interpolation::Exponential
-                && self.points.iter().any(|p| p.amount <= 0.0))
-        {
-            return Err(invalid("invalid mapping points"));
-        }
+        math::validate(self.interpolation, &self.points)?;
         Ok(self)
     }
     pub fn name(&self) -> &Identifier {
@@ -420,28 +415,7 @@ impl ParameterValue {
 }
 
 pub fn map_value(route: &Route, value: f64) -> Result<f64, Error> {
-    finite(value)?;
-    if value <= route.points[0].input {
-        return Ok(route.points[0].amount);
-    }
-    for pair in route.points.windows(2) {
-        let (first, second) = (&pair[0], &pair[1]);
-        if value < second.input {
-            if route.interpolation == Interpolation::Step {
-                return Ok(first.amount);
-            }
-            let progress =
-                finite(finite(value - first.input)? / finite(second.input - first.input)?)?;
-            return finite(if route.interpolation == Interpolation::Exponential {
-                (finite((1.0 - progress) * first.amount.ln())?
-                    + finite(progress * second.amount.ln())?)
-                .exp()
-            } else {
-                first.amount + finite(progress * finite(second.amount - first.amount)?)?
-            });
-        }
-    }
-    Ok(route.points[route.points.len() - 1].amount)
+    math::map_points(route.interpolation, &route.points, value).map_err(|_| Error::ArithmeticRange)
 }
 
 pub fn evaluate(
@@ -501,12 +475,13 @@ pub fn evaluate(
             .get(&parameter.target)
             .map(Vec::as_slice)
             .unwrap_or(&[]);
-        let sum = accurate_sum(
-            terms
-                .iter()
-                .filter(|(o, _)| *o == Operation::Add)
-                .map(|(_, v)| *v),
-        )?;
+        let mut partials = vec![0.0; terms.len()];
+        let mut count = 0;
+        for (_, value) in terms.iter().filter(|(o, _)| *o == Operation::Add) {
+            math::add_partial(&mut partials, &mut count, *value)
+                .map_err(|_| Error::ArithmeticRange)?;
+        }
+        let sum = math::sum_partials(&partials[..count]).map_err(|_| Error::ArithmeticRange)?;
         let mut product = 1.0;
         for (_, value) in terms.iter().filter(|(o, _)| *o == Operation::Multiply) {
             product = finite(product * value)?;
@@ -518,48 +493,6 @@ pub fn evaluate(
         result.push(ParameterValue::new(parameter.target.clone(), value)?);
     }
     Ok(result)
-}
-
-fn accurate_sum(values: impl Iterator<Item = f64>) -> Result<f64, Error> {
-    let mut partials: Vec<f64> = Vec::new();
-    for mut x in values {
-        let mut index = 0;
-        for j in 0..partials.len() {
-            let mut y = partials[j];
-            if x.abs() < y.abs() {
-                std::mem::swap(&mut x, &mut y);
-            }
-            let hi = finite(x + y)?;
-            let lo = y - (hi - x);
-            if lo != 0.0 {
-                partials[index] = lo;
-                index += 1;
-            }
-            x = hi;
-        }
-        partials.truncate(index);
-        partials.push(x);
-    }
-    let Some(mut hi) = partials.pop() else {
-        return Ok(0.0);
-    };
-    let mut lo = 0.0;
-    while let Some(y) = partials.pop() {
-        let x = hi;
-        hi = finite(x + y)?;
-        lo = y - (hi - x);
-        if lo != 0.0 {
-            break;
-        }
-    }
-    if partials.last().is_some_and(|p| (*p < 0.0) == (lo < 0.0)) {
-        let y = lo * 2.0;
-        let x = hi + y;
-        if x - hi == y {
-            hi = x;
-        }
-    }
-    finite(hi)
 }
 
 fn invalid(message: &str) -> Error {
