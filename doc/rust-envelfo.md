@@ -2,8 +2,10 @@
 
 The Rust `envelfo` module provides immutable generator definitions and structural
 validation. Python uses its existing models with `context={'portable': True}`.
-Both implement the [shared contract](rust-envelfo-contract.md). Enge and enveLFO
-remain unchanged; this module does not execute generators or render audio.
+Both implement the [shared contract](rust-envelfo-contract.md). This module does
+not execute generators or render audio; execution belongs to `engelfo`. Enge now
+uses these definitions for native LFO, named-Envelope and main-amplitude
+preparation. Stages/Patch integration is the next consumer milestone.
 
 Both JSON and TOML preserve declared output order. The TOML parser uses its
 approved `preserve_order` feature, with the existing locked dependency versions.

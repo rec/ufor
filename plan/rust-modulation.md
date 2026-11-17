@@ -10,10 +10,10 @@ The implementation is complete locally. See [the API and contract guide](../doc/
 `conformance/modulation.json`, `test/test_modulation_conformance.py` and
 `crates/ufor/tests/modulation.rs`. Hosted qualification remains below.
 
-**Enge remains unchanged.** No enge code, manifests, lockfiles, plans, fixtures,
-native interfaces, array layouts or control runtimes are changed by this work.
-Native consumer integration is a separate future task. If follow-up work would
-require enge changes, identify that dependency before proceeding.
+This scalar milestone made no changes to enge code, manifests, lockfiles,
+plans, fixtures, native interfaces, array layouts or control runtimes. Subsequent
+generator integration is underway there; modulation integration remains a
+separate consumer task.
 
 Ownership remains:
 
@@ -98,12 +98,17 @@ cargo fmt --all
 
 ## Explicitly deferred contextual work
 
-This port does not implement full `ModulationSettings`, generator definitions or
-execution, Patch output resolution, releasing-envelope checks, processor
-capabilities, event ports/cues, or validation against actual instrument/processor
-target settings. Local success and binding leaf parsing do not establish those
-facts. Future validation must use their real definitions; do not invent opaque
-payloads, stub generators or fabricated metadata schemas to bypass the cutline.
+The subsequent [generator milestone](rust-envelfo.md) implements generator
+definitions, Patch output resolution, releasing-envelope checks and known event
+ports/cues in its separate generator-aware binding API. These are no longer
+remaining shared-library work. Enge adoption is tracked in
+[its integration plan](https://github.com/rec/enge/blob/main/plan/rust-ufor-integration.md).
+
+Full `ModulationSettings`, processor capabilities and validation against actual
+instrument/processor target settings remain deferred. Local success and binding
+leaf parsing do not establish those facts. Future validation must use their real
+definitions; do not invent opaque payloads, stub generators or fabricated metadata
+schemas to bypass the cutline.
 
 `ControlState`, smoothing execution, `control_at`, `control_event`, `TempoMap`,
 transport handling, audio generation, new schedulers, Python/Rust bindings,
