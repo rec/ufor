@@ -89,6 +89,12 @@ fixed table/materialization bounds remain unchanged. Direct Serde use
 also validates models, while the codec additionally enforces the Python codec's
 16,777,216-character, 100,000-value and 64-level document budgets.
 
+`codec::parse_value` applies those same document budgets to generic JSON/TOML
+values, allowing consumers to decode preparation declarations with existing uFor
+types. It does not establish domain validity or retain object declaration order.
+Order-sensitive generator/score bodies must still use their typed adapters on
+the original text. This helper does not add a full instrument/settings model.
+
 Tables may have at most 10,000 entries. The same limit applies to materializing
 `Computed::as_ratios()`, while the stored computed note count may be any positive
 `i64`. Finite sources reject notes outside their domain. Repeating sources use

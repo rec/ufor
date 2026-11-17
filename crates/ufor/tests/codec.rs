@@ -5,6 +5,16 @@ use ufor::musical::TuningScore;
 use ufor::score::Score;
 
 #[test]
+fn bounded_values_support_consumer_declarations_without_claiming_domain_validity() {
+    let json = r#"{"bindings":[],"modulation":{"parameters":[]}}"#;
+    let toml = "bindings=[]\n[modulation]\nparameters=[]";
+    let value = codec::parse_value(json, Format::Json).unwrap();
+    assert_eq!(value, codec::parse_value(toml, Format::Toml).unwrap());
+    assert!(value["bindings"].as_array().unwrap().is_empty());
+    assert!(codec::parse_value("not JSON", Format::Json).is_err());
+}
+
+#[test]
 fn shared_python_document_roundtrips_json_and_toml() {
     let source = include_str!("../../../conformance/library/scores/tuning.toml");
     let score = codec::parse_score(source, Format::Toml, PreparationLimits::default()).unwrap();

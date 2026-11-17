@@ -20,7 +20,7 @@ pub enum Format {
 }
 
 pub fn parse_tuning(text: &str, format: Format) -> Result<Tuning, Error> {
-    serde_json::from_value(read(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
+    serde_json::from_value(parse_value(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
 }
 
 pub fn tuning_text(value: &Tuning, format: Format) -> Result<String, Error> {
@@ -28,7 +28,7 @@ pub fn tuning_text(value: &Tuning, format: Format) -> Result<String, Error> {
 }
 
 pub fn parse_modulation(text: &str, format: Format) -> Result<Modulation, Error> {
-    serde_json::from_value(read(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
+    serde_json::from_value(parse_value(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
 }
 
 pub fn modulation_text(value: &Modulation, format: Format) -> Result<String, Error> {
@@ -41,7 +41,7 @@ pub fn parse_generator(
     format: Format,
     limits: PreparationLimits,
 ) -> Result<Generator, Error> {
-    let document = read(text, format)?;
+    let document = parse_value(text, format)?;
     crate::envelfo::preparation_records(&document, limits)?;
     match format {
         Format::Json => {
@@ -64,7 +64,7 @@ pub fn generator_text(value: &Generator, format: Format) -> Result<String, Error
 }
 
 pub fn parse_score(text: &str, format: Format, limits: PreparationLimits) -> Result<Score, Error> {
-    read(text, format)?;
+    parse_value(text, format)?;
     match format {
         Format::Json => {
             let mut decoder = serde_json::Deserializer::from_str(text);
@@ -85,7 +85,12 @@ pub fn score_text(value: &Score, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 
-fn read(text: &str, format: Format) -> Result<Value, Error> {
+/// Decode a generic value with the shared character, value-count and depth limits.
+///
+/// This checks document budgets, not domain validity. Object declaration order is
+/// not retained in `Value`; use `parse_generator` or `parse_score` on the original
+/// text for order-sensitive definitions.
+pub fn parse_value(text: &str, format: Format) -> Result<Value, Error> {
     if text.chars().take(MAX_SCORE_CHARACTERS + 1).count() > MAX_SCORE_CHARACTERS {
         return Err(Error::Limit("score characters"));
     }
