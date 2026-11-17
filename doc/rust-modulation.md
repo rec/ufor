@@ -48,6 +48,22 @@ tiny multiplier rounding to zero. No algebraic regrouping or clipping is applied
 Results retain parameter declaration order. Nonfinite scalar inputs, arithmetic
 overflow and out-of-domain final results fail deliberately.
 
+`modulation::math::Mapping` prepares the same knot/interpolation contract without
+requiring source/target declarations. `Mapping::value`, `add_partial` and
+`sum_partials` allocate neither on success nor on failure. The sum functions use
+caller-provided storage sized for the contribution count; reset its count to zero
+for each new sum. `CalculationError` is a fixed-size, copyable error distinguishing
+nonfinite arithmetic from insufficient scratch space. Discard a failed sum before
+starting another. Mapping construction may allocate, and document/preparation
+record limits remain the caller's responsibility.
+
+The scalar reference evaluator uses these same kernels, retaining its canonical
+route ordering and weighting. Hosts may preserve their own established ordering
+and weighting shortcuts explicitly; sharing the kernels alone does not establish
+equivalence of those policies. Enge's migration retains its category order and
+existing direct full-weight contributions, while adopting finite-intermediate
+checks. The general `evaluate` API still allocates and is not a callback API.
+
 ```rust
 use std::collections::BTreeMap;
 use ufor::codec::{self, Format};
