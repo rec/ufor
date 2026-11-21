@@ -7,5 +7,6 @@ pub mod inheritance;
 pub mod playback;
 pub mod processing;
 mod random;
+pub mod routing;
 pub mod selection;
 pub mod variation;

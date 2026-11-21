@@ -1,0 +1,32 @@
+{
+  "pan": [
+    ["native", false, -1, [1, 0]],
+    ["native", false, 0, [0.7071067811865476, 0.7071067811865475]],
+    ["native", true, 0.5, [0.5, 1]],
+    ["native", true, -0.5, [1, 0.5]],
+    ["sfizz", false, 1, [0, 1.4125375446227544]],
+    ["sfizz", true, 0, [0.9976311574844398, 0.9976311574844398]]
+  ],
+  "matrices": [
+    {
+      "inputs": ["mono"], "outputs": ["left", "right"],
+      "routes": [{"input": "mono", "output": "right", "gain": 0.25}, {"input": "mono", "output": "left", "gain": 0.5}],
+      "spatial": ["native", 0, 1], "expected": [[0.5, 0.25]]
+    },
+    {
+      "inputs": ["left", "right"], "outputs": ["left", "right"],
+      "routes": [{"input": "right", "output": "left", "gain": -0.5}, {"input": "left", "output": "right", "gain": 1}],
+      "spatial": ["native", -1, 0.5], "expected": [[0, 1], [-0.25, 0]]
+    },
+    {
+      "inputs": ["right", "left"], "outputs": ["left", "right"],
+      "routes": [{"input": "right", "output": "left", "gain": -0.5}, {"input": "left", "output": "right", "gain": 1}],
+      "spatial": ["native", -1, 0.5], "expected": [[-0.5, 0], [0, 1]]
+    },
+    {
+      "inputs": ["mono"], "outputs": ["bus two", "bus one"],
+      "routes": [{"input": "mono", "output": "bus one", "gain": 0.125}],
+      "spatial": null, "expected": [[0, 0.125]]
+    }
+  ]
+}

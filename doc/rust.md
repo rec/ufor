@@ -28,6 +28,12 @@ It preserves nested declaration order for decoding with SoundSettings.
 The [shared cases](../conformance/slot-settings.json) cover inherited
 categories, explicit resets, and selection opt-out.
 
+`samples::routing` builds an explicit matrix in input and output channel
+order. It also resolves native and Sfizz pan laws for sampler mono pan and
+stereo balance. Sampler mono pan uses center-relative scaling of authored
+routes. The [shared vectors](../conformance/channel-routing.json) cover
+layout order, signed gains, and the pan endpoints.
+
 `codec::parse_oscillator` and `codec::oscillator_text` handle oscillator
 declarations in JSON and TOML with a checked exact duty cycle. The oscillator
 provides key-scaled linear gain, correctly rounded binary64 duty for

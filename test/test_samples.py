@@ -402,6 +402,40 @@ def test_random_ranges_share_one_value_per_input_event() -> None:
     ] == ['wide', 'narrow']
 
 
+def test_pan_and_routes_match_shared_vectors() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/channel-routing.json').read_text()
+    )
+    for law, stereo, position, expected in vectors['pan']:
+        gains = processing.pan_gains(position, processing.PanLaw(law), stereo=stereo)
+        assert gains == pytest.approx(expected, abs=1e-14, rel=0)
+    for spec in vectors['matrices']:
+        routes = [processing.ChannelRoute.model_validate(r) for r in spec['routes']]
+        gains = [1.0] * len(spec['outputs'])
+        if spec['spatial'] is not None and spec['outputs'] == ['left', 'right']:
+            law, pan, balance = spec['spatial']
+            if spec['inputs'] == ['mono']:
+                gains = [
+                    g / 2**-0.5
+                    for g in processing.pan_gains(
+                        pan, processing.PanLaw(law), stereo=False
+                    )
+                ]
+            elif spec['inputs'] == ['left', 'right']:
+                gains = processing.pan_gains(
+                    balance, processing.PanLaw(law), stereo=True
+                )
+        matrix = [
+            [
+                sum(r.gain for r in routes if r.input == i and r.output == o) * gain
+                for o, gain in zip(spec['outputs'], gains, strict=True)
+            ]
+            for i in spec['inputs']
+        ]
+        for row, expected in zip(matrix, spec['expected'], strict=True):
+            assert row == pytest.approx(expected, abs=1e-14, rel=0)
+
+
 def test_slot_categories_and_selection_match_shared_vectors() -> None:
     vectors = json.loads(
         (Path(__file__).parents[1] / 'conformance/slot-settings.json').read_text()
