@@ -101,6 +101,11 @@ class SlotGroup(SoundSettings):
     selection: Identifier | None = None
 
 
+class ResolvedSlotSettings(Model):
+    settings: SoundSettings
+    selection: Identifier | None
+
+
 class SampleSlot(SoundSettings):
     name: Identifier
     slice: Identifier
@@ -475,6 +480,21 @@ class AudioAsset(Asset):
         if is_finite_audio_source(self.location) and self.audio.frames is None:
             raise ValueError(f'{self.location.kind} requires a finite audio extent')
         return self
+
+
+def resolve_slots(
+    instrument: SampleInstrument,
+) -> dict[Identifier, ResolvedSlotSettings]:
+    """Resolve the settings and take-set selection for each authored slot."""
+    groups = {g.name: g for g in instrument.groups}
+    resolved: dict[Identifier, ResolvedSlotSettings] = {}
+    for slot in instrument.slots:
+        group = groups.get(slot.group)
+        resolved[slot.name] = ResolvedSlotSettings(
+            settings=effective_settings(slot, group),
+            selection=effective_selection(slot, group),
+        )
+    return resolved
 
 
 class SampleInstrumentScore(InterfaceScore):

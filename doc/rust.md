@@ -22,6 +22,12 @@ supports Tuning and Envelfo; other score kinds remain unported.
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
 
+`samples::inheritance::resolve_slot_settings` combines the projected JSON
+categories and selection of a sample slot and its optional group.
+It preserves nested declaration order for decoding with SoundSettings.
+The [shared cases](../conformance/slot-settings.json) cover inherited
+categories, explicit resets, and selection opt-out.
+
 `codec::parse_oscillator` and `codec::oscillator_text` handle oscillator
 declarations in JSON and TOML with a checked exact duty cycle. The oscillator
 provides key-scaled linear gain, correctly rounded binary64 duty for

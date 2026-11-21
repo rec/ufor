@@ -13,6 +13,7 @@ from ufor.samples.instrument import (
     SampleInstrument,
     SampleSettings,
     SampleSlot,
+    SlotGroup,
     effective_selection,
     effective_settings,
 )
@@ -399,6 +400,23 @@ def test_random_ranges_share_one_value_per_input_event() -> None:
         for action in result.actions
         if isinstance(action, trace.VoiceStart)
     ] == ['wide', 'narrow']
+
+
+def test_slot_categories_and_selection_match_shared_vectors() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/slot-settings.json').read_text()
+    )
+    group = SlotGroup.model_validate(vectors['group'] | {'name': 'group'})
+    for case in vectors['cases']:
+        members = {'group': group.name} if case['grouped'] else {}
+        slot = SampleSlot.model_validate(document(case['slot'] | members)['slots'][0])
+        inherited = group if case['grouped'] else None
+        settings = effective_settings(slot, inherited)
+        assert settings.processing.volume_db == case['volume_db']
+        assert settings.processing.tuning_cents == case['tuning_cents']
+        assert (settings.envelope is not None) == case['envelope']
+        assert list(settings.envelfos) == case['envelfos']
+        assert effective_selection(slot, inherited) == case['selection']
 
 
 def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:

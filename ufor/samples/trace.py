@@ -44,10 +44,10 @@ from ..voice_release import (
 from ..voice_start import PrepareVoiceStart, prepare_values
 from . import enums
 from .instrument import (
+    ResolvedSlotSettings,
     SampleInstrument,
     SampleSlot,
-    effective_selection,
-    effective_settings,
+    resolve_slots,
 )
 from .processing import ChannelRoute, SoundSettings
 from .selection import AdvanceSelection, SelectionState, choose, random_range_value
@@ -169,6 +169,9 @@ def prepare(
     admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
     release_plan: Callable[[ReleaseRequest], ReleasePlan] = plan_release,
     prepare_start: PrepareVoiceStart = prepare_values,
+    slot_settings: Callable[
+        [SampleInstrument], dict[Identifier, ResolvedSlotSettings]
+    ] = resolve_slots,
     draw_random_range: Callable[
         [int, str, str | None, int, int], float
     ] = random_range_value,
@@ -199,7 +202,7 @@ def prepare(
     triggers: list[ActiveTrigger] = []
     sustain: dict[Identifier, bool] = {}
     next_voice = 0
-    groups = {g.name: g for g in instrument.groups}
+    resolved_slots = slot_settings(instrument)
     pools = {p.name: p.policy for p in instrument.voice_pools}
     slot_pools = {s.name: s.voice_pool for s in instrument.slots}
     requires_admission = bool(
@@ -263,14 +266,12 @@ def prepare(
             if eligible_slots is None
             else [slots_by_name[n] for n in eligible_slots(context)]
         )
-        selected = [
-            s for s in eligible if effective_selection(s, groups.get(s.group)) is None
-        ]
+        selected = [s for s in eligible if resolved_slots[s.name].selection is None]
         for selection in selections.values():
             candidates = [
                 s
                 for s in eligible
-                if effective_selection(s, groups.get(s.group)) == selection.name
+                if resolved_slots[s.name].selection == selection.name
             ]
             if candidates:
                 assert key is not None
@@ -383,7 +384,7 @@ def prepare(
                     start_frame=sample_slice.start_frame + slot.alignment_frames,
                     alignment_frames=slot.alignment_frames,
                     channels=slot.channels,
-                    settings=effective_settings(slot, groups.get(slot.group)),
+                    settings=resolved_slots[slot.name].settings,
                     variation=resolved_variation,
                     envelfo_key=envelfo_key,
                 )

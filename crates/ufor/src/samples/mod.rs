@@ -3,6 +3,7 @@ pub mod bindings;
 pub mod controls;
 pub mod crossfade;
 pub mod eligibility;
+pub mod inheritance;
 pub mod playback;
 pub mod processing;
 mod random;
