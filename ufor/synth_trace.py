@@ -115,6 +115,27 @@ class SynthTrace(Model):
         return self
 
 
+def matching_voices(
+    voices: list[SynthSource],
+    kind: enums.TriggerKind,
+    key: int,
+    velocity: float,
+) -> list[SynthSource]:
+    """Return all mapped voices in declaration order."""
+    return [
+        v
+        for v in voices
+        if v.trigger == kind
+        and v.mapping.lowest_key <= key <= v.mapping.highest_key
+        and v.mapping.minimum_velocity <= velocity <= v.mapping.maximum_velocity
+        and (
+            kind
+            not in (enums.TriggerKind.sustain_press, enums.TriggerKind.sustain_release)
+            or v.mapping.event_key == key
+        )
+    ]
+
+
 def prepare(
     instrument: SynthInstrument,
     events: list[PerformanceEvent],
@@ -124,6 +145,8 @@ def prepare(
     *,
     admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
     release_plan: Callable[[ReleaseRequest], ReleasePlan] = plan_release,
+    eligible_voices: Callable[[enums.TriggerKind, int, float], list[Identifier]]
+    | None = None,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -179,6 +202,7 @@ def prepare(
         >= sustain_definition.threshold
     )
     next_voice = 0
+    voices_by_name = {v.name: v for v in instrument.voices}
     requires_admission = bool(
         instrument.voice_policy or any(s.chokes for s in instrument.voices)
     )
@@ -186,23 +210,9 @@ def prepare(
     def selected_voices(
         kind: enums.TriggerKind, key: int, velocity: float
     ) -> list[SynthSource]:
-        return [
-            voice
-            for voice in instrument.voices
-            if voice.trigger == kind
-            and voice.mapping.lowest_key <= key <= voice.mapping.highest_key
-            and voice.mapping.minimum_velocity
-            <= velocity
-            <= voice.mapping.maximum_velocity
-            and (
-                kind
-                not in (
-                    enums.TriggerKind.sustain_press,
-                    enums.TriggerKind.sustain_release,
-                )
-                or voice.mapping.event_key == key
-            )
-        ]
+        if eligible_voices is None:
+            return matching_voices(instrument.voices, kind, key, velocity)
+        return [voices_by_name[n] for n in eligible_voices(kind, key, velocity)]
 
     def retire(
         voice: ActiveVoice,

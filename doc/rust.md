@@ -79,6 +79,12 @@ The [shared cases](../conformance/sample-eligibility.json) cover inclusive
 note and control bounds, half-open random ranges, and sustain event keys.
 Python trace preparation supplies these event facts and owns voice lifecycle.
 
+`codec::parse_voice_eligibility` prepares mappings for synth-family voices.
+It shares the sampler's inclusive note and velocity predicates and matches
+the declared event key for sustain triggers. The
+[shared cases](../conformance/voice-eligibility.json) cover layering in
+declaration order, boundary velocities and synth sustain mappings.
+
 `samples::selection::Sequence::advance` returns the next take and partition
 state for cycle, seeded random, and shuffle. It preserves the portable
 SHA-256 draw and selection snapshot fields. The

@@ -1,0 +1,23 @@
+{
+  "voices": [
+    {"name": "z-wide", "mapping": {"lowest_key": 48, "highest_key": 72, "pitch_tracking": false}},
+    {"name": "a-layer", "mapping": {"lowest_key": 60, "highest_key": 60, "minimum_velocity": 0.5, "maximum_velocity": 0.75, "pitch_tracking": false}},
+    {"name": "tail", "trigger": "logical_release", "mapping": {"lowest_key": 60, "highest_key": 60, "pitch_tracking": false}},
+    {"name": "pedal", "trigger": "sustain_press", "mapping": {"lowest_key": 60, "highest_key": 70, "event_key": 65, "reference_pitch_hz": 440}},
+    {"name": "unmapped", "trigger": "sustain_press", "mapping": {"lowest_key": 70, "highest_key": 71, "event_key": 65, "pitch_tracking": false}},
+    {"name": "pedal-up", "trigger": "sustain_release", "mapping": {"lowest_key": 65, "highest_key": 65, "event_key": 65, "pitch_tracking": false}}
+  ],
+  "cases": [
+    {"trigger": "start", "key": 48, "velocity": 0.0, "matches": ["z-wide"]},
+    {"trigger": "start", "key": 72, "velocity": 1.0, "matches": ["z-wide"]},
+    {"trigger": "start", "key": 60, "velocity": 0.5, "matches": ["z-wide", "a-layer"]},
+    {"trigger": "start", "key": 60, "velocity": 0.75, "matches": ["z-wide", "a-layer"]},
+    {"trigger": "start", "key": 60, "velocity": 0.751, "matches": ["z-wide"]},
+    {"trigger": "start", "key": 73, "velocity": 0.5, "matches": []},
+    {"trigger": "logical_release", "key": 60, "velocity": 0.5, "matches": ["tail"]},
+    {"trigger": "sustain_press", "key": 65, "velocity": 0.5, "matches": ["pedal"]},
+    {"trigger": "sustain_press", "key": 66, "velocity": 0.5, "matches": []},
+    {"trigger": "sustain_release", "key": 65, "velocity": -0.5, "matches": []},
+    {"trigger": "sustain_release", "key": 65, "velocity": 0.25, "matches": ["pedal-up"]}
+  ]
+}

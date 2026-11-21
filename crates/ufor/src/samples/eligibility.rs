@@ -1,4 +1,4 @@
-//! Ordered sampler slot filtering against an already-resolved event context.
+//! Ordered mapping and sampler predicates against an already-resolved event.
 use super::playback::Mapping;
 use crate::{error::Error, identifier::Identifier, quantity};
 use serde::{Deserialize, Serialize};
@@ -26,6 +26,54 @@ impl Trigger {
             Self::SustainPress => "sustain_press",
             Self::SustainRelease => "sustain_release",
         }
+    }
+
+    fn is_sustain(self) -> bool {
+        matches!(self, Self::SustainPress | Self::SustainRelease)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct VoiceMapping {
+    name: Identifier,
+    mapping: Mapping,
+    #[serde(default)]
+    trigger: Trigger,
+}
+
+/// Synth-family voice mappings in instrument declaration order.
+#[derive(Debug)]
+pub struct VoiceEligibility(Vec<VoiceMapping>);
+
+impl VoiceEligibility {
+    pub(crate) fn decode(value: serde_json::Value, maximum: usize) -> Result<Self, Error> {
+        let voices: Vec<VoiceMapping> =
+            serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
+        quantity::record_budget(voices.len(), maximum)?;
+        let mut names = BTreeSet::new();
+        for voice in &voices {
+            if !names.insert(&voice.name) {
+                return Err(invalid("duplicate voice name"));
+            }
+            if voice.trigger.is_sustain() != voice.mapping.event_key().is_some() {
+                return Err(invalid("event_key is required only for sustain voices"));
+            }
+        }
+        Ok(Self(voices))
+    }
+
+    /// Return all mapped voices in declaration order.
+    pub fn matching_voices(
+        &self,
+        trigger: Trigger,
+        key: i64,
+        velocity: f64,
+    ) -> impl Iterator<Item = &Identifier> {
+        self.0.iter().filter_map(move |voice| {
+            (voice.trigger == trigger && matches_note(&voice.mapping, trigger, Some(key), velocity))
+                .then_some(&voice.name)
+        })
     }
 }
 
@@ -138,11 +186,7 @@ impl Eligibility {
             if !names.insert(&slot.name) {
                 return Err(invalid("duplicate sample slot"));
             }
-            let sustain = matches!(
-                slot.trigger,
-                Trigger::SustainPress | Trigger::SustainRelease
-            );
-            let valid_mapping = if sustain {
+            let valid_mapping = if slot.trigger.is_sustain() {
                 slot.mapping.has_sustain_mapping()
             } else {
                 slot.mapping.event_key().is_none()
@@ -192,13 +236,12 @@ impl Eligibility {
         let mut matches = Vec::new();
         for slot in &self.0 {
             if slot.trigger != context.trigger
-                || context
-                    .key
-                    .is_some_and(|key| !slot.mapping.accepts_note(key, context.velocity))
-                || (matches!(
+                || !matches_note(
+                    &slot.mapping,
                     context.trigger,
-                    Trigger::SustainPress | Trigger::SustainRelease
-                ) && slot.mapping.event_key() != context.key)
+                    context.key,
+                    context.velocity,
+                )
                 || slot.control_trigger.as_ref().is_some_and(|trigger| {
                     !context
                         .control_event
@@ -255,6 +298,11 @@ impl Eligibility {
         }
         Ok(matches)
     }
+}
+
+fn matches_note(mapping: &Mapping, trigger: Trigger, key: Option<i64>, velocity: f64) -> bool {
+    key.is_none_or(|key| mapping.accepts_note(key, velocity))
+        && (!trigger.is_sustain() || mapping.event_key() == key)
 }
 
 fn one() -> f64 {

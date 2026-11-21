@@ -18,6 +18,27 @@ CASES = json.loads(
 )
 
 
+def test_synth_mapping_matches_shared_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/voice-eligibility.json').read_text()
+    )
+    voices: list[synth.SynthSource] = [
+        synth.SynthVoice.model_validate(
+            v
+            | {
+                'channels': [{'input': 'mono', 'output': 'left', 'gain': 1}],
+                'oscillator': {'waveform': 'triangle'},
+            }
+        )
+        for v in data['voices']
+    ]
+    for case in data['cases']:
+        matches = synth_trace.matching_voices(
+            voices, case['trigger'], case['key'], case['velocity']
+        )
+        assert [v.name for v in matches] == case['matches']
+
+
 def test_release_plans_match_shared_cases() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/voice-release.json').read_text()

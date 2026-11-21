@@ -12,7 +12,7 @@ use crate::error::Error;
 use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::samples::crossfade::Crossfade;
-use crate::samples::eligibility::{Context as EligibilityContext, Eligibility};
+use crate::samples::eligibility::{Context as EligibilityContext, Eligibility, VoiceEligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
 use crate::samples::selection::Sequence;
@@ -65,6 +65,14 @@ pub fn parse_sample_eligibility(
     maximum: usize,
 ) -> Result<Eligibility, Error> {
     Eligibility::decode(parse_value(text, format)?, maximum)
+}
+
+pub fn parse_voice_eligibility(
+    text: &str,
+    format: Format,
+    maximum: usize,
+) -> Result<VoiceEligibility, Error> {
+    VoiceEligibility::decode(parse_value(text, format)?, maximum)
 }
 
 pub fn parse_sample_eligibility_context(
