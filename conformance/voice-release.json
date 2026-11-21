@@ -1,0 +1,39 @@
+{
+  "triggers": [
+    {"part": "left", "trigger_id": "first", "physically_released": true},
+    {"part": "right", "trigger_id": "first", "physically_released": true},
+    {"part": "left", "trigger_id": "held"},
+    {"part": "left", "trigger_id": "done", "physically_released": true, "logical_released": true},
+    {"part": "left", "trigger_id": "last", "physically_released": true}
+  ],
+  "cases": [
+    {
+      "event": {"kind": "key_release", "part": "left", "trigger_id": "missing", "sustain_pressed": false},
+      "expected": {"unknown_release": true}
+    },
+    {
+      "event": {"kind": "key_release", "part": "left", "trigger_id": "first", "sustain_pressed": false},
+      "expected": {}
+    },
+    {
+      "event": {"kind": "key_release", "part": "left", "trigger_id": "held", "sustain_pressed": true},
+      "expected": {"physical_index": 2}
+    },
+    {
+      "event": {"kind": "key_release", "part": "left", "trigger_id": "held", "sustain_pressed": false},
+      "expected": {"physical_index": 2, "logical_indices": [2]}
+    },
+    {
+      "event": {"kind": "pedal_change", "part": "left", "was_pressed": false, "value": 0.5, "threshold": 0.5},
+      "expected": {"sustain_pressed": true, "sustain_trigger": "sustain_press"}
+    },
+    {
+      "event": {"kind": "pedal_change", "part": "left", "was_pressed": true, "value": 0.6, "threshold": 0.5},
+      "expected": {"sustain_pressed": true}
+    },
+    {
+      "event": {"kind": "pedal_change", "part": "left", "was_pressed": true, "value": 0.499, "threshold": 0.5},
+      "expected": {"sustain_pressed": false, "sustain_trigger": "sustain_release", "logical_indices": [0, 4]}
+    }
+  ]
+}

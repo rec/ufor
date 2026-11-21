@@ -21,3 +21,4 @@ pub mod score;
 pub mod tuning;
 pub mod units;
 pub mod voice_admission;
+pub mod voice_release;

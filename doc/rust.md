@@ -99,6 +99,14 @@ chokes, per-part voice pools in name order, and the global voice policy.
 The [shared case](../conformance/voice-admission.json) covers choke
 precedence, same-key retriggers and oldest-first retirement across parts.
 
+`codec::parse_voice_release` reads a key release or a per-part sustain
+change with its ordered trigger state. `ReleaseRequest::plan` identifies
+physical and logical releases and pedal transitions. Hosts use the returned
+indices to apply release layers in order, updating the active voice state
+after each layer. The [shared cases](../conformance/voice-release.json)
+cover deferred releases, duplicate releases, part isolation and threshold
+crossings.
+
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
 with checked 64-bit rational arithmetic and rounds up once to an output frame.

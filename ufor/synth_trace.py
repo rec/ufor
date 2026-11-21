@@ -46,6 +46,13 @@ from .synth import (
     YamahaVoiceTemplate,
 )
 from .voice_admission import VoiceAdmission, plan_retirements
+from .voice_release import (
+    KeyRelease,
+    PedalChange,
+    ReleasePlan,
+    ReleaseRequest,
+    plan_release,
+)
 
 
 class VoiceStart(LifecycleVoiceStart):
@@ -116,6 +123,7 @@ def prepare(
     sample_rate: int | None = None,
     *,
     admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
+    release_plan: Callable[[ReleaseRequest], ReleasePlan] = plan_release,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -164,6 +172,12 @@ def prepare(
     voices: list[ActiveVoice] = []
     triggers: list[ActiveTrigger] = []
     sustain: dict[Identifier, bool] = {}
+    sustain_definition = instrument.sustain
+    initially_pressed = (
+        sustain_definition is not None
+        and instrument.controls[sustain_definition.control].default
+        >= sustain_definition.threshold
+    )
     next_voice = 0
     requires_admission = bool(
         instrument.voice_policy or any(s.chokes for s in instrument.voices)
@@ -315,6 +329,26 @@ def prepare(
             and voice.template_trigger == enums.TriggerKind.start
         ]
 
+    def release_logically(index: int, event: PerformanceEvent) -> None:
+        trigger = triggers[index]
+        if start_template_voices(trigger):
+            start_voices(
+                selected_voices(
+                    enums.TriggerKind.logical_release,
+                    trigger.key,
+                    trigger.velocity,
+                ),
+                event,
+                trigger.part,
+                trigger.trigger_id,
+                trigger.key,
+                trigger.pitch_hz,
+                trigger.velocity,
+            )
+            for voice in start_template_voices(trigger):
+                retire(voice, event, RetirementCause.logical_release, 'release')
+        update_trigger(trigger, logical_released=True)
+
     for event in events:
         instrument.validate_event(event)
         if isinstance(event, LFOChange):
@@ -356,7 +390,6 @@ def prepare(
                     trigger_id=event.trigger_id,
                 )
             )
-            sustain_definition = instrument.sustain
             if (
                 sustain_definition is not None
                 and event.scope == 'part'
@@ -364,55 +397,35 @@ def prepare(
                 and event.part is not None
             ):
                 part = event.part
-                was_pressed = sustain.get(
-                    part,
-                    instrument.controls[sustain_definition.control].default
-                    >= sustain_definition.threshold,
+                plan = release_plan(
+                    ReleaseRequest(
+                        triggers=triggers,
+                        event=PedalChange(
+                            part=part,
+                            was_pressed=sustain.get(part, initially_pressed),
+                            value=event.value,
+                            threshold=sustain_definition.threshold,
+                        ),
+                    )
                 )
-                is_pressed = event.value >= sustain_definition.threshold
-                sustain[part] = is_pressed
-                if not was_pressed and is_pressed:
-                    start_sustain(enums.TriggerKind.sustain_press, event, part)
-                elif was_pressed and not is_pressed:
-                    for trigger in list(triggers):
-                        if (
-                            trigger.part == part
-                            and trigger.physically_released
-                            and not trigger.logical_released
-                        ):
-                            if start_template_voices(trigger):
-                                start_voices(
-                                    selected_voices(
-                                        enums.TriggerKind.logical_release,
-                                        trigger.key,
-                                        trigger.velocity,
-                                    ),
-                                    event,
-                                    trigger.part,
-                                    trigger.trigger_id,
-                                    trigger.key,
-                                    trigger.pitch_hz,
-                                    trigger.velocity,
-                                )
-                                for voice in list(start_template_voices(trigger)):
-                                    retire(
-                                        voice,
-                                        event,
-                                        RetirementCause.logical_release,
-                                        'release',
-                                    )
-                            update_trigger(trigger, logical_released=True)
-                    start_sustain(enums.TriggerKind.sustain_release, event, part)
+                assert plan.sustain_pressed is not None
+                sustain[part] = plan.sustain_pressed
+                for index in plan.logical_indices:
+                    release_logically(index, event)
+                if plan.sustain_trigger is not None:
+                    start_sustain(plan.sustain_trigger, event, part)
         elif isinstance(event, Release):
-            trigger = next(
-                (
-                    t
-                    for t in triggers
-                    if t.part == event.part and t.trigger_id == event.trigger_id
-                ),
-                None,
+            plan = release_plan(
+                ReleaseRequest(
+                    triggers=triggers,
+                    event=KeyRelease(
+                        part=event.part,
+                        trigger_id=event.trigger_id,
+                        sustain_pressed=sustain.get(event.part, initially_pressed),
+                    ),
+                )
             )
-            if trigger is None:
+            if plan.unknown_release:
                 actions.append(
                     Diagnostic(
                         tick=event.tick,
@@ -421,7 +434,8 @@ def prepare(
                         message=f'No active trigger {event.trigger_id}',
                     )
                 )
-            elif not trigger.physically_released:
+            elif plan.physical_index is not None:
+                trigger = triggers[plan.physical_index]
                 actions.append(
                     TriggerRelease(
                         tick=event.tick,
@@ -443,35 +457,8 @@ def prepare(
                         trigger.pitch_hz,
                         trigger.velocity,
                     )
-                pressed = sustain.get(
-                    trigger.part,
-                    instrument.sustain is not None
-                    and instrument.controls[instrument.sustain.control].default
-                    >= instrument.sustain.threshold,
-                )
-                if not pressed:
-                    if start_template_voices(trigger):
-                        start_voices(
-                            selected_voices(
-                                enums.TriggerKind.logical_release,
-                                trigger.key,
-                                trigger.velocity,
-                            ),
-                            event,
-                            trigger.part,
-                            trigger.trigger_id,
-                            trigger.key,
-                            trigger.pitch_hz,
-                            trigger.velocity,
-                        )
-                        for voice in list(start_template_voices(trigger)):
-                            retire(
-                                voice,
-                                event,
-                                RetirementCause.logical_release,
-                                'release',
-                            )
-                    update_trigger(trigger, logical_released=True)
+                for index in plan.logical_indices:
+                    release_logically(index, event)
         elif isinstance(event, Trigger):
             previous = next(
                 (

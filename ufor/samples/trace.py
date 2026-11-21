@@ -35,6 +35,13 @@ from ..instrument_trace import (
 )
 from ..modulation import ParameterValue
 from ..voice_admission import VoiceAdmission, plan_retirements
+from ..voice_release import (
+    KeyRelease,
+    PedalChange,
+    ReleasePlan,
+    ReleaseRequest,
+    plan_release,
+)
 from . import enums
 from .instrument import (
     SampleInstrument,
@@ -160,6 +167,7 @@ def prepare(
     eligible_slots: Callable[[EligibilityContext], list[Identifier]] | None = None,
     advance_selection: AdvanceSelection | None = None,
     admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
+    release_plan: Callable[[ReleaseRequest], ReleasePlan] = plan_release,
     draw_random_range: Callable[
         [int, str, str | None, int, int], float
     ] = random_range_value,
@@ -202,6 +210,11 @@ def prepare(
     selections = {s.name: s for s in instrument.settings.selections}
     slots_by_name = {s.name: s for s in instrument.slots}
     control_defaults = {n: c.default for n, c in instrument.settings.controls.items()}
+    sustain_definition = instrument.settings.sustain
+    initially_pressed = (
+        sustain_definition is not None
+        and control_defaults[sustain_definition.control] >= sustain_definition.threshold
+    )
     playback_modes = {
         s.name: s.playback.mode or instrument.settings.playback.mode
         for s in instrument.slots
@@ -415,6 +428,29 @@ def prepare(
             and voice.template_trigger == enums.TriggerKind.start
         ]
 
+    def release_logically(index: int, event: PerformanceEvent) -> None:
+        trigger = triggers[index]
+        if start_voices(trigger):
+            start_slots(
+                selected_slots(
+                    trigger.part,
+                    enums.TriggerKind.logical_release,
+                    trigger.key,
+                    trigger.velocity,
+                    event,
+                ),
+                event,
+                trigger.part,
+                trigger.trigger_id,
+                trigger.key,
+                trigger.pitch_hz,
+                velocity=trigger.velocity,
+            )
+            for voice in start_voices(trigger):
+                if playback_modes[voice.template] != enums.PlaybackMode.one_shot:
+                    retire(voice, event, RetirementCause.logical_release, 'release')
+        update_trigger(trigger, logical_released=True)
+
     for event in events:
         instrument.validate_event(event)
         if isinstance(event, LFOChange):
@@ -466,61 +502,30 @@ def prepare(
                         }
                     }
                 )
-            sustain_definition = instrument.settings.sustain
             if (
                 sustain_definition is not None
                 and event.scope == 'part'
                 and event.control == sustain_definition.control
                 and event.part is not None
             ):
-                assert event.part is not None
                 part = event.part
-                was_pressed = sustain.get(
-                    part,
-                    instrument.settings.controls[sustain_definition.control].default
-                    >= sustain_definition.threshold,
+                plan = release_plan(
+                    ReleaseRequest(
+                        triggers=triggers,
+                        event=PedalChange(
+                            part=part,
+                            was_pressed=sustain.get(part, initially_pressed),
+                            value=event.value,
+                            threshold=sustain_definition.threshold,
+                        ),
+                    )
                 )
-                is_pressed = event.value >= sustain_definition.threshold
-                sustain[part] = is_pressed
-                if not was_pressed and is_pressed:
-                    start_sustain(enums.TriggerKind.sustain_press, event, part)
-                elif was_pressed and not is_pressed:
-                    for trigger in list(triggers):
-                        if (
-                            trigger.part == part
-                            and trigger.physically_released
-                            and not trigger.logical_released
-                        ):
-                            if start_voices(trigger):
-                                start_slots(
-                                    selected_slots(
-                                        trigger.part,
-                                        enums.TriggerKind.logical_release,
-                                        trigger.key,
-                                        trigger.velocity,
-                                        event,
-                                    ),
-                                    event,
-                                    trigger.part,
-                                    trigger.trigger_id,
-                                    trigger.key,
-                                    trigger.pitch_hz,
-                                    velocity=trigger.velocity,
-                                )
-                                for voice in list(start_voices(trigger)):
-                                    if (
-                                        playback_modes[voice.template]
-                                        == enums.PlaybackMode.one_shot
-                                    ):
-                                        continue
-                                    retire(
-                                        voice,
-                                        event,
-                                        RetirementCause.logical_release,
-                                        'release',
-                                    )
-                            update_trigger(trigger, logical_released=True)
-                    start_sustain(enums.TriggerKind.sustain_release, event, part)
+                assert plan.sustain_pressed is not None
+                sustain[part] = plan.sustain_pressed
+                for index in plan.logical_indices:
+                    release_logically(index, event)
+                if plan.sustain_trigger is not None:
+                    start_sustain(plan.sustain_trigger, event, part)
             if event.scope == 'part' and event.part is not None:
                 start_slots(
                     selected_slots(
@@ -532,15 +537,17 @@ def prepare(
                     None,
                 )
         elif isinstance(event, Release):
-            trigger = next(
-                (
-                    t
-                    for t in triggers
-                    if t.part == event.part and t.trigger_id == event.trigger_id
-                ),
-                None,
+            plan = release_plan(
+                ReleaseRequest(
+                    triggers=triggers,
+                    event=KeyRelease(
+                        part=event.part,
+                        trigger_id=event.trigger_id,
+                        sustain_pressed=sustain.get(event.part, initially_pressed),
+                    ),
+                )
             )
-            if trigger is None:
+            if plan.unknown_release:
                 actions.append(
                     Diagnostic(
                         tick=event.tick,
@@ -549,7 +556,8 @@ def prepare(
                         message=f'No active trigger {event.trigger_id}',
                     )
                 )
-            elif not trigger.physically_released:
+            elif plan.physical_index is not None:
+                trigger = triggers[plan.physical_index]
                 actions.append(
                     TriggerRelease(
                         tick=event.tick,
@@ -581,44 +589,8 @@ def prepare(
                         trigger.pitch_hz,
                         velocity=trigger.velocity,
                     )
-                pressed = sustain.get(
-                    trigger.part,
-                    instrument.settings.sustain is not None
-                    and instrument.settings.controls[
-                        instrument.settings.sustain.control
-                    ].default
-                    >= instrument.settings.sustain.threshold,
-                )
-                if not pressed:
-                    if start_voices(trigger):
-                        start_slots(
-                            selected_slots(
-                                trigger.part,
-                                enums.TriggerKind.logical_release,
-                                trigger.key,
-                                trigger.velocity,
-                                event,
-                            ),
-                            event,
-                            trigger.part,
-                            trigger.trigger_id,
-                            trigger.key,
-                            trigger.pitch_hz,
-                            velocity=trigger.velocity,
-                        )
-                        for voice in list(start_voices(trigger)):
-                            if (
-                                playback_modes[voice.template]
-                                == enums.PlaybackMode.one_shot
-                            ):
-                                continue
-                            retire(
-                                voice,
-                                event,
-                                RetirementCause.logical_release,
-                                'release',
-                            )
-                    update_trigger(trigger, logical_released=True)
+                for index in plan.logical_indices:
+                    release_logically(index, event)
         elif isinstance(event, Trigger):
             switches = instrument.settings.articulations
             switch = (

@@ -11,10 +11,23 @@ from ufor.samples import trace
 from ufor.samples.instrument import SampleInstrument
 from ufor.synth import SynthInstrument
 from ufor.voice_admission import VoiceAdmission, plan_retirements
+from ufor.voice_release import ReleasePlan, ReleaseRequest, plan_release
 
 CASES = json.loads(
     (Path(__file__).parents[1] / 'conformance/instrument-lifecycle.json').read_text()
 )
+
+
+def test_release_plans_match_shared_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/voice-release.json').read_text()
+    )
+    triggers = [t | {'key': 60, 'velocity': 1} for t in data['triggers']]
+    for case in data['cases']:
+        request = ReleaseRequest.model_validate(
+            {'event': case['event'], 'triggers': triggers}
+        )
+        assert plan_release(request) == ReleasePlan.model_validate(case['expected'])
 
 
 def test_admission_applies_chokes_pools_and_global_limit_in_order() -> None:
