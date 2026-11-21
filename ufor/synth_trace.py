@@ -1,14 +1,13 @@
 """Portable semantic actions for prepared synth-instrument performances."""
 
 from collections.abc import Callable
-from fractions import Fraction
-from math import ceil
 from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
 from .base import Identifier, Model, UnitInterval, unique
-from .control import TempoMap, TransportSeekError
+from .command_schedule import ScheduleCommands, schedule_commands
+from .control import TempoMap
 from .events import (
     ControlChange,
     EnvelfoChange,
@@ -147,6 +146,7 @@ def prepare(
     eligible_voices: Callable[[enums.TriggerKind, int, float], list[Identifier]]
     | None = None,
     prepare_start: PrepareVoiceStart = prepare_values,
+    schedule: ScheduleCommands = schedule_commands,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -161,36 +161,21 @@ def prepare(
             raise ValueError(
                 'quantized Envelfo commands require a host tempo map and sample rate'
             )
-        occupied: dict[int, int] = {}
+        coordinates = []
         for event in events:
-            occupied[event.tick] = max(occupied.get(event.tick, -1), event.ordinal)
-        scheduled: list[PerformanceEvent] = []
-        moved: list[tuple[int, EnvelfoChange]] = []
-        for event in events:
-            if not isinstance(event, EnvelfoChange) or event.quantize_beats is None:
-                scheduled.append(event)
-                continue
-            instrument.validate_event(event)
-            at = Fraction(event.tick, sample_rate)
-            target = tempo_map.quantized_beat(at, event.quantize_beats)
-            try:
-                dispatch = tempo_map.time_for_beat(target, at)
-            except TransportSeekError:
-                continue
-            if dispatch is None:
-                continue
-            tick = ceil(dispatch * sample_rate)
-            if tick == event.tick:
-                scheduled.append(event)
-            else:
-                moved.append((tick, event))
-        for tick, event in moved:
-            ordinal = occupied.get(tick, -1) + 1
-            occupied[tick] = ordinal
-            scheduled.append(
-                event.model_copy(update={'tick': tick, 'ordinal': ordinal})
+            division = (
+                event.quantize_beats if isinstance(event, EnvelfoChange) else None
             )
-        events = sorted(scheduled, key=lambda e: (e.tick, e.ordinal))
+            if division is not None:
+                instrument.validate_event(event)
+            coordinates.append((event.tick, event.ordinal, division))
+        scheduled: list[PerformanceEvent] = []
+        for index, tick, ordinal in schedule(tempo_map, sample_rate, coordinates):
+            event = events[index]
+            if (tick, ordinal) != (event.tick, event.ordinal):
+                event = event.model_copy(update={'tick': tick, 'ordinal': ordinal})
+            scheduled.append(event)
+        events = scheduled
     actions: list[Action] = []
     voices: list[ActiveVoice] = []
     triggers: list[ActiveTrigger] = []

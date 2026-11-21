@@ -1,4 +1,5 @@
 //! Declaration scopes and control polarity, without runtime state.
+pub mod schedule;
 pub mod tempo;
 
 use serde::{Deserialize, Serialize};

@@ -57,6 +57,13 @@ distinguishes transport position from elapsed running beats, resolves
 quantized targets, and reports seeks that invalidate pending beats. Enge uses
 its exact frame points for native beat-clock preparation.
 
+`control::schedule::schedule_commands` resolves quantized EnveLFO command
+coordinates on a host tempo map. It rounds dispatch times up to frames,
+places moved commands after authored events on the destination tick, and
+drops pending commands invalidated by a seek or an unreachable beat.
+The [shared cases](../conformance/command-schedule.json) cover these rules
+including a tempo change and multiple commands arriving on the same tick.
+
 `codec::parse_sample_slice` and `codec::parse_sample_playback` read sample
 traversal declarations. `samples::playback::Slice` validates native frame
 intervals, loop crossfades, and resolved playback against decoded asset length.

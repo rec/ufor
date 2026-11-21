@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 import ufor.synth_trace
 from ufor.codec import parse_score, score_schema, score_toml
+from ufor.command_schedule import schedule_commands
 from ufor.control import TempoMap
 from ufor.events import ControlChange, EnvelfoChange, Release, Trigger
 from ufor.instrument_trace import (
@@ -66,6 +67,20 @@ def test_synth_trace_preserves_trigger_addressed_envelfo_change() -> None:
             offset=-0.25,
         )
     ]
+
+
+def test_command_coordinates_match_shared_cases() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/command-schedule.json').read_text()
+    )
+    for spec in vectors['cases']:
+        tempo = TempoMap.model_validate(spec['tempo'])
+        events = [
+            (t, o, Fraction(*d) if d is not None else None)
+            for t, o, d in spec['events']
+        ]
+        schedule = schedule_commands(tempo, spec['sample_rate'], events)
+        assert [list(e) for e in schedule] == spec['scheduled'], spec['name']
 
 
 def test_synth_trace_quantizes_envelfo_command_after_other_boundary_events() -> None:
