@@ -3,6 +3,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::effects::Processor;
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
 use crate::fm::Fm;
@@ -35,6 +36,16 @@ pub fn parse_modulation(text: &str, format: Format) -> Result<Modulation, Error>
 
 pub fn modulation_text(value: &Modulation, format: Format) -> Result<String, Error> {
     write(value, format)
+}
+
+pub fn parse_effect_processor(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<Processor, Error> {
+    let value = parse_value(text, format)?;
+    crate::envelfo::preparation_records(&value, limits)?;
+    serde_json::from_value(value).map_err(|error| Error::Invalid(error.to_string()))
 }
 
 pub fn parse_fm(text: &str, format: Format, limits: PreparationLimits) -> Result<Fm, Error> {

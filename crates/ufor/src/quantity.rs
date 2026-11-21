@@ -2,9 +2,27 @@
 use crate::error::Error;
 use crate::expression::evaluate;
 use crate::number::Rational;
+use serde::{Deserialize, Deserializer};
 
 pub const MAX_RECORDS: usize = 10_000;
 pub const MAX_TEXT: usize = 4096;
+
+pub(crate) fn deserialize_scalar<'de, D: Deserializer<'de>>(
+    d: D,
+    unit: &str,
+) -> Result<f64, D::Error> {
+    #[derive(Deserialize)]
+    #[serde(untagged)]
+    enum Scalar {
+        Number(f64),
+        Text(String),
+    }
+    match Scalar::deserialize(d)? {
+        Scalar::Number(value) => finite(value),
+        Scalar::Text(text) => scalar(&text, unit),
+    }
+    .map_err(serde::de::Error::custom)
+}
 
 pub fn finite(value: f64) -> Result<f64, Error> {
     if value.is_finite() {

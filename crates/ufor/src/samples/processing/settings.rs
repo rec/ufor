@@ -668,16 +668,16 @@ fn positive<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
     require_positive(finite_number(d)?)
 }
 fn hertz<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
-    require_positive(scalar(d, "hz")?)
+    require_positive(quantity::deserialize_scalar(d, "hz")?)
 }
 fn positive_db<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
-    require_positive(scalar(d, "db")?)
+    require_positive(quantity::deserialize_scalar(d, "db")?)
 }
 fn decibels<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
-    scalar(d, "db")
+    quantity::deserialize_scalar(d, "db")
 }
 fn cents<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
-    scalar(d, "cents")
+    quantity::deserialize_scalar(d, "cents")
 }
 fn require_positive<E: serde::de::Error>(value: f64) -> Result<f64, E> {
     if value > 0.0 {
@@ -685,17 +685,4 @@ fn require_positive<E: serde::de::Error>(value: f64) -> Result<f64, E> {
     } else {
         Err(E::custom("expected a positive scalar"))
     }
-}
-fn scalar<'de, D: Deserializer<'de>>(d: D, unit: &str) -> Result<f64, D::Error> {
-    #[derive(Deserialize)]
-    #[serde(untagged)]
-    enum Scalar {
-        Number(f64),
-        Text(String),
-    }
-    match Scalar::deserialize(d)? {
-        Scalar::Number(value) => quantity::finite(value),
-        Scalar::Text(text) => quantity::scalar(&text, unit),
-    }
-    .map_err(serde::de::Error::custom)
 }

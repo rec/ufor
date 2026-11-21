@@ -1,0 +1,37 @@
+{
+  "processors": [
+    {"kind":"gain","name":"gain","gain_db":"-6 dB","mix":0.5},
+    {"kind":"multiply","name":"multiply"},
+    {"kind":"frequency_shifter","name":"shifter","shift_hz":"-1/2 kHz"},
+    {"kind":"filter","name":"filter","filters":[
+      {"name":"high-pass","response":"highpass","cutoff_hz":"500 Hz","q":1.5}
+    ]}
+  ],
+  "accepted": [
+    ["gain","gain_db","db",-6,-24,24],
+    ["gain","mix","ratio",0.5,0,1],
+    ["multiply","mix","ratio",1,0,1],
+    ["shifter","shift_hz","hz_offset",-500,-2000,2000],
+    ["filter","high-pass-cutoff_hz","hz",500,1,96000],
+    ["filter","high-pass-q","ratio",1.5,0.01,4]
+  ],
+  "rejected": [
+    ["gain","mix","ratio",0.5,-1,1],
+    ["gain","mix","ratio",0.5,0,1.1],
+    ["gain","gain_db","db",0,-24,24],
+    ["gain","bypass_fade_frames","ratio",64,1,96],
+    ["multiply","gain_db","db",0,-24,24],
+    ["shifter","shift_hz","cents",-500,-2000,2000],
+    ["shifter","shift_hz","hz_offset",-500,-2001,2000],
+    ["filter","high-pass-q","ratio",1.5,0,4],
+    ["filter","other-cutoff_hz","hz",500,1,2000]
+  ],
+  "invalid_processors": [
+    {"kind":"gain","name":"gain","bypass_fade_frames":0},
+    {"kind":"multiply","name":"mul","mix":1.1},
+    {"kind":"frequency_shifter","name":"shift","shift_hz":2001},
+    {"kind":"filter","name":"filter","filters":[]},
+    {"kind":"filter","name":"filter","state_floor":2,"tail_threshold":1,
+     "filters":[{"name":"a","response":"lowpass","cutoff_hz":200}]}
+  ]
+}

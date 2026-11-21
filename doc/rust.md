@@ -30,6 +30,12 @@ edge indices, and carrier level from the owning declarations. Use
 provides graph facts for consumer preparation. The renderer owns sample-rate
 conversion, voice state and execution.
 
+`ufor::effects::Processor` reads authored Gain, Multiply, FrequencyShifter
+and Filter processors through `codec::parse_effect_processor`. It resolves
+their modulation units, defaults and parameter domains against the actual
+processor definition. The remaining effect families, effect graph topology,
+host indexing and DSP preparation are outside this first effect slice.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See

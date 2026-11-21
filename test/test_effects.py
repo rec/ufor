@@ -3,7 +3,7 @@ from math import fsum, sqrt
 from pathlib import Path
 
 import pytest
-from pydantic import ValidationError
+from pydantic import TypeAdapter, ValidationError
 
 from ufor import audio_effects, modulation
 from ufor.samples.processing import ModulationSettings
@@ -624,6 +624,35 @@ def test_effect_graph_conformance() -> None:
     assert (
         audio_effects.EffectGraph.model_validate_json(graph.model_dump_json()) == graph
     )
+
+
+def test_effect_target_facts_match_the_shared_rust_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/effect-targets.json').read_text()
+    )
+    adapter = TypeAdapter(audio_effects.Processor)
+    processors = [adapter.validate_python(p) for p in data['processors']]
+    by_name = {p.name: p for p in processors}
+    # Check target lookup independently of the audio connections.
+    graph = audio_effects.EffectGraph.model_validate(DATA['graph']).model_copy(
+        update={'processors': processors}
+    )
+    for group in ('accepted', 'rejected'):
+        for name, field, unit, default, minimum, maximum in data[group]:
+            target = modulation.Target(name=name, parameter=field)
+            if group == 'accepted':
+                assert graph.parameter_definition(target) == (unit, default)
+                for value in (minimum, maximum):
+                    audio_effects.validate_parameter(by_name[name], field, value)
+                continue
+            with pytest.raises(ValueError):
+                if graph.parameter_definition(target) != (unit, default):
+                    raise ValueError('parameter unit or default mismatch')
+                for value in (minimum, maximum):
+                    audio_effects.validate_parameter(by_name[name], field, value)
+    for raw in data['invalid_processors']:
+        with pytest.raises(ValueError):
+            adapter.validate_python(raw)
 
 
 def test_reverb_declares_stereo_output_and_a_bounded_predelay() -> None:
