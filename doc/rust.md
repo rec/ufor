@@ -93,6 +93,12 @@ seeds and ordinals, and binary64 scalar bounds in canonical units.
 The [random-range](../conformance/random-ranges.json) and
 [variation](../conformance/variation.json) cases pin both draw contracts.
 
+`codec::parse_voice_admission` reads the selected batch and its active-voice
+context. `Admission::retirements` returns the ordered trace actions for
+chokes, per-part voice pools in name order, and the global voice policy.
+The [shared case](../conformance/voice-admission.json) covers choke
+precedence, same-key retriggers and oldest-first retirement across parts.
+
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
 with checked 64-bit rational arithmetic and rounds up once to an output frame.

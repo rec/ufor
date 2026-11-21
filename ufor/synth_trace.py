@@ -1,5 +1,6 @@
 """Portable semantic actions for prepared synth-instrument performances."""
 
+from collections.abc import Callable
 from fractions import Fraction
 from math import ceil
 from typing import Annotated, Literal, Self
@@ -44,6 +45,7 @@ from .synth import (
     SynthVoice,
     YamahaVoiceTemplate,
 )
+from .voice_admission import VoiceAdmission, plan_retirements
 
 
 class VoiceStart(LifecycleVoiceStart):
@@ -112,6 +114,8 @@ def prepare(
     seed: int,
     tempo_map: TempoMap | None = None,
     sample_rate: int | None = None,
+    *,
+    admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -161,6 +165,9 @@ def prepare(
     triggers: list[ActiveTrigger] = []
     sustain: dict[Identifier, bool] = {}
     next_voice = 0
+    requires_admission = bool(
+        instrument.voice_policy or any(s.chokes for s in instrument.voices)
+    )
 
     def selected_voices(
         kind: enums.TriggerKind, key: int, velocity: float
@@ -214,53 +221,25 @@ def prepare(
         nonlocal next_voice
         pitch_hz = event.pitch_hz if isinstance(event, Trigger) else pitch_hz
         velocity = event.velocity if isinstance(event, Trigger) else velocity
-        for voice in list(voices):
-            rules = [
-                c
-                for s in selected
-                for c in s.chokes
-                if voice.part == part and c.group == voice.choke_group
-            ]
-            if not rules:
-                continue
-            modes = {c.mode for c in rules}
-            if enums.ChokeMode.immediate in modes:
-                retire(voice, event, RetirementCause.choke, 'stop')
-            elif modes == {enums.ChokeMode.release}:
-                retire(voice, event, RetirementCause.choke, 'release')
-            elif modes == {enums.ChokeMode.fade}:
-                retire(
-                    voice,
-                    event,
-                    RetirementCause.choke,
-                    'fade',
-                    min(c.fade_seconds for c in rules if c.fade_seconds is not None),
+        if selected and requires_admission:
+            retirements = admit_voices(
+                VoiceAdmission(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    part=part,
+                    key=key,
+                    voices=voices,
+                    chokes=[c for s in selected for c in s.chokes],
+                    count=len(selected),
+                    policy=instrument.voice_policy
+                    if any(s.trigger == enums.TriggerKind.start for s in selected)
+                    else None,
                 )
-            else:
-                raise ValueError(
-                    'combined fade and envelope-release chokes are unsupported'
-                )
-        policy = instrument.voice_policy
-        if policy is not None and any(
-            s.trigger == enums.TriggerKind.start for s in selected
-        ):
-            if len(selected) > policy.maximum_voices:
-                raise ValueError('trigger batch exceeds maximum_voices')
-            if policy.same_key != enums.SameKey.stack:
-                for voice in [v for v in voices if v.part == part and v.key == key]:
-                    action = (
-                        'release'
-                        if policy.same_key == enums.SameKey.release
-                        else 'stop'
-                    )
-                    retire(voice, event, RetirementCause.same_key, action)
-            while len(voices) + len(selected) > policy.maximum_voices:
-                action = (
-                    'release'
-                    if policy.overflow == enums.VoiceOverflow.release_oldest
-                    else 'stop'
-                )
-                retire(voices[0], event, RetirementCause.voice_limit, action)
+            )
+            if retirements:
+                actions.extend(retirements)
+                retired = {r.voice_id for r in retirements}
+                voices[:] = [v for v in voices if v.voice_id not in retired]
         for template in selected:
             voice_id = f'voice-{next_voice}'
             next_voice += 1

@@ -1,5 +1,6 @@
 """Portable semantic actions for prepared sample-instrument performances."""
 
+from collections import Counter
 from collections.abc import Callable
 from typing import Annotated, Literal, Self, TypedDict
 
@@ -33,6 +34,7 @@ from ..instrument_trace import (
     VoiceStart as LifecycleVoiceStart,
 )
 from ..modulation import ParameterValue
+from ..voice_admission import VoiceAdmission, plan_retirements
 from . import enums
 from .instrument import (
     SampleInstrument,
@@ -157,6 +159,7 @@ def prepare(
     *,
     eligible_slots: Callable[[EligibilityContext], list[Identifier]] | None = None,
     advance_selection: AdvanceSelection | None = None,
+    admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
     draw_random_range: Callable[
         [int, str, str | None, int, int], float
     ] = random_range_value,
@@ -190,6 +193,11 @@ def prepare(
     groups = {g.name: g for g in instrument.groups}
     pools = {p.name: p.policy for p in instrument.voice_pools}
     slot_pools = {s.name: s.voice_pool for s in instrument.slots}
+    requires_admission = bool(
+        pools
+        or instrument.settings.voice_policy
+        or any(s.chokes for s in instrument.slots)
+    )
     slices = {s.name: s for s in instrument.slices}
     selections = {s.name: s for s in instrument.settings.selections}
     slots_by_name = {s.name: s for s in instrument.slots}
@@ -293,81 +301,34 @@ def prepare(
         velocity: float = 1,
     ) -> None:
         nonlocal next_voice
-        for voice in list(voices):
-            rules = [
-                c
-                for s in slots
-                for c in s.chokes
-                if voice.part == part and c.group == voice.choke_group
-            ]
-            if not rules:
-                continue
-            modes = {c.mode for c in rules}
-            if enums.ChokeMode.immediate in modes:
-                retire(voice, event, RetirementCause.choke, 'stop')
-            elif modes == {enums.ChokeMode.release}:
-                retire(voice, event, RetirementCause.choke, 'release')
-            elif modes == {enums.ChokeMode.fade}:
-                retire(
-                    voice,
-                    event,
-                    RetirementCause.choke,
-                    'fade',
-                    min(c.fade_seconds for c in rules if c.fade_seconds is not None),
-                )
-            else:
-                raise ValueError(
-                    'combined fade and envelope-release chokes are unsupported'
-                )
-        for pool_name in sorted({s.voice_pool for s in slots if s.voice_pool}):
-            pool_slots = [s for s in slots if s.voice_pool == pool_name]
-            policy = pools[pool_name]
-            if len(pool_slots) > policy.maximum_voices:
-                raise ValueError(f'trigger batch exceeds voice pool {pool_name} limit')
-            pool_voices = [
-                v
-                for v in voices
-                if v.part == part and slot_pools[v.template] == pool_name
-            ]
-            if key is not None and policy.same_key != enums.SameKey.stack:
-                for voice in [v for v in pool_voices if v.key == key]:
-                    action = (
-                        'release'
-                        if policy.same_key == enums.SameKey.release
-                        else 'stop'
+        if slots and requires_admission:
+            retirements = admit_voices(
+                VoiceAdmission(
+                    tick=event.tick,
+                    ordinal=event.ordinal,
+                    part=part,
+                    key=key,
+                    voices=voices,
+                    chokes=[c for s in slots for c in s.chokes],
+                    count=len(slots),
+                    policy=instrument.settings.voice_policy
+                    if any(
+                        s.trigger
+                        in (enums.TriggerKind.start, enums.TriggerKind.control)
+                        for s in slots
                     )
-                    retire(voice, event, RetirementCause.same_key, action)
-                    pool_voices.remove(voice)
-            while len(pool_voices) + len(pool_slots) > policy.maximum_voices:
-                voice = pool_voices.pop(0)
-                action = (
-                    'release'
-                    if policy.overflow == enums.VoiceOverflow.release_oldest
-                    else 'stop'
+                    else None,
+                    pool_counts=dict(
+                        Counter(s.voice_pool for s in slots if s.voice_pool is not None)
+                    ),
+                    pools=pools,
+                    pool_by_template=slot_pools,
                 )
-                retire(voice, event, RetirementCause.voice_limit, action)
-        policy = instrument.settings.voice_policy
-        if policy is not None and any(
-            s.trigger in (enums.TriggerKind.start, enums.TriggerKind.control)
-            for s in slots
-        ):
-            if len(slots) > policy.maximum_voices:
-                raise ValueError('trigger batch exceeds maximum_voices')
-            if key is not None and policy.same_key != enums.SameKey.stack:
-                for voice in [v for v in voices if v.part == part and v.key == key]:
-                    action = (
-                        'release'
-                        if policy.same_key == enums.SameKey.release
-                        else 'stop'
-                    )
-                    retire(voice, event, RetirementCause.same_key, action)
-            while len(voices) + len(slots) > policy.maximum_voices:
-                action = (
-                    'release'
-                    if policy.overflow == enums.VoiceOverflow.release_oldest
-                    else 'stop'
-                )
-                retire(voices[0], event, RetirementCause.voice_limit, action)
+            )
+            if retirements:
+                actions.extend(retirements)
+                retired = {r.voice_id for r in retirements}
+                voices[:] = [v for v in voices if v.voice_id not in retired]
         for slot in slots:
             voice_velocity = event.velocity if isinstance(event, Trigger) else velocity
             voice_pitch = event.pitch_hz if isinstance(event, Trigger) else pitch_hz

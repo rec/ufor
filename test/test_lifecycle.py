@@ -10,10 +10,23 @@ from ufor.instrument_trace import TriggerContext, TriggerRelease, VoiceRetiremen
 from ufor.samples import trace
 from ufor.samples.instrument import SampleInstrument
 from ufor.synth import SynthInstrument
+from ufor.voice_admission import VoiceAdmission, plan_retirements
 
 CASES = json.loads(
     (Path(__file__).parents[1] / 'conformance/instrument-lifecycle.json').read_text()
 )
+
+
+def test_admission_applies_chokes_pools_and_global_limit_in_order() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/voice-admission.json').read_text()
+    )
+    batch = VoiceAdmission.model_validate(data['batch'])
+    actions = plan_retirements(batch)
+    assert all((a.tick, a.ordinal) == (batch.tick, batch.ordinal) for a in actions)
+    assert [[a.voice_id, a.cause, a.action, a.fade_seconds] for a in actions] == data[
+        'retirements'
+    ]
 
 
 @pytest.mark.parametrize('kind', ['sample', 'synth'])

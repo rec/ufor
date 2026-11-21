@@ -1,0 +1,40 @@
+{
+  "batch": {
+    "tick": 100,
+    "ordinal": 8,
+    "part": "left",
+    "key": 60,
+    "voices": [
+      {"voice_id": "other-old", "part": "right", "template": "a", "key": 60, "trigger_id": null},
+      {"voice_id": "fade", "part": "left", "template": "unpooled", "key": 58, "trigger_id": null, "choke_group": "slow"},
+      {"voice_id": "z-key", "part": "left", "template": "z", "key": 60, "trigger_id": null},
+      {"voice_id": "a-key", "part": "left", "template": "a", "key": 60, "trigger_id": null},
+      {"voice_id": "z-old", "part": "left", "template": "z", "key": 65, "trigger_id": null},
+      {"voice_id": "a-old", "part": "left", "template": "a", "key": 65, "trigger_id": null},
+      {"voice_id": "stop", "part": "left", "template": "unpooled", "key": 57, "trigger_id": null, "choke_group": "fast"}
+    ],
+    "chokes": [
+      {"group": "fast", "mode": "release"},
+      {"group": "slow", "mode": "fade", "fade_seconds": 0.25},
+      {"group": "fast", "mode": "immediate"},
+      {"group": "slow", "mode": "fade", "fade_seconds": 0.125}
+    ],
+    "count": 3,
+    "policy": {"maximum_voices": 3, "same_key": "release"},
+    "pool_counts": {"z": 1, "a": 1},
+    "pools": {
+      "z": {"maximum_voices": 2, "same_key": "replace"},
+      "a": {"maximum_voices": 1, "same_key": "release", "overflow": "replace_oldest"}
+    },
+    "pool_by_template": {"a": "a", "z": "z", "unpooled": null}
+  },
+  "retirements": [
+    ["fade", "choke", "fade", 0.125],
+    ["stop", "choke", "stop", null],
+    ["a-key", "same_key", "release", null],
+    ["a-old", "voice_limit", "stop", null],
+    ["z-key", "same_key", "stop", null],
+    ["other-old", "voice_limit", "release", null],
+    ["z-old", "voice_limit", "release", null]
+  ]
+}

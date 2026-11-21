@@ -20,3 +20,4 @@ pub mod samples;
 pub mod score;
 pub mod tuning;
 pub mod units;
+pub mod voice_admission;
