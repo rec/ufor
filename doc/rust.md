@@ -67,6 +67,12 @@ the sample's reference frequency. `Mapping::pitch_ratio` combines resolved
 `pitch_hz` with tuning and variation cents. Sample-rate conversion remains a
 renderer operation.
 
+`codec::parse_slot_playback` resolves slot direction and mode overrides against
+instrument defaults. The prepared declaration sums slot and variation delays
+with checked 64-bit rational arithmetic and rounds up once to an output frame.
+JSON preserves totals through `2^64` plays by storing the additional-play
+count. TOML integers use their signed 64-bit format domain.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See

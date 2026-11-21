@@ -1,4 +1,6 @@
 import json
+from fractions import Fraction
+from math import ceil
 from pathlib import Path
 
 import pytest
@@ -47,6 +49,18 @@ def test_sample_traversal_matches_the_shared_slice_cases() -> None:
         assert (
             playback.pitch_ratio(mappings[name], pitch, tuning, variation) == expected
         )
+
+
+def test_slot_playback_matches_shared_delay_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/sample-playback.json').read_text()
+    )
+    slot = playback.SlotPlayback.model_validate(data['slot_playback'])
+    assert slot.play_count == 2**64
+    assert slot.end_fade_seconds == 0.125
+    for variation, rate, frames in data['slot_delays']:
+        delay = Fraction(str(slot.start_delay_seconds)) + Fraction(variation)
+        assert ceil(delay * rate) == frames
 
 
 def test_slot_playback_end_fade_round_trips() -> None:

@@ -11,7 +11,7 @@ use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
 use crate::fm::Fm;
 use crate::modulation::Modulation;
-use crate::samples::playback::{Mapping, Playback, Slice};
+use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
 use crate::score::Score;
 use crate::tuning::Tuning;
@@ -51,6 +51,19 @@ pub fn parse_sample_mapping(text: &str, format: Format) -> Result<Mapping, Error
 pub fn parse_sample_playback(text: &str, format: Format) -> Result<Playback, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_slot_playback(text: &str, format: Format) -> Result<SlotPlayback, Error> {
+    let value = parse_value(text, format)?;
+    let normalized;
+    let text = match format {
+        Format::Json => text,
+        Format::Toml => {
+            normalized = value.to_string();
+            &normalized
+        }
+    };
+    serde_json::from_str(text).map_err(|error| Error::Invalid(error.to_string()))
 }
 
 pub fn tempo_map_text(value: &TempoMap, format: Format) -> Result<String, Error> {

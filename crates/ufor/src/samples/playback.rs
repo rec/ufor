@@ -1,6 +1,7 @@
 //! Portable sample traversal declarations in native asset frames.
-use crate::{error::Error, identifier::Identifier, quantity};
+use crate::{error::Error, identifier::Identifier, number::Rational, quantity};
 use serde::{Deserialize, Serialize};
+use serde_json::value::RawValue;
 
 /// Authored note and velocity ranges with an optional sample pitch reference.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
@@ -119,6 +120,121 @@ pub struct Playback {
     pub direction: Direction,
     #[serde(default)]
     pub mode: PlaybackMode,
+}
+
+/// Slot overrides with exact start timing and an optional additional-play budget.
+#[derive(Clone, Debug, PartialEq, Deserialize)]
+#[serde(try_from = "SlotDefinition<'_>")]
+pub struct SlotPlayback {
+    direction: Option<Direction>,
+    mode: Option<PlaybackMode>,
+    additional_plays: Option<u64>,
+    start_delay: Rational,
+    end_fade_seconds: f64,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct ResolvedSlotPlayback {
+    pub playback: Playback,
+    pub additional_plays: u64,
+    start_delay: Rational,
+    pub end_fade_seconds: f64,
+}
+
+impl SlotPlayback {
+    pub fn resolve(&self, defaults: Playback) -> Result<ResolvedSlotPlayback, Error> {
+        let playback = Playback {
+            direction: self.direction.unwrap_or(defaults.direction),
+            mode: self.mode.unwrap_or(defaults.mode),
+        };
+        if self.additional_plays.is_some() && playback.mode != PlaybackMode::OneShot {
+            return Err(invalid("play_count requires one_shot"));
+        }
+        Ok(ResolvedSlotPlayback {
+            playback,
+            additional_plays: self.additional_plays.unwrap_or(0),
+            start_delay: self.start_delay,
+            end_fade_seconds: self.end_fade_seconds,
+        })
+    }
+}
+
+impl ResolvedSlotPlayback {
+    /// Round the combined slot and variation delay up to an output frame.
+    pub fn delay_frames(&self, variation: Rational, sample_rate: i64) -> Result<i64, Error> {
+        if variation < 0.into() || sample_rate <= 0 {
+            return Err(invalid(
+                "sample delay requires a nonnegative variation and positive sample rate",
+            ));
+        }
+        Ok(self
+            .start_delay
+            .checked_add(variation)?
+            .checked_mul(sample_rate.into())?
+            .ceil())
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SlotDefinition<'a> {
+    #[serde(default)]
+    direction: Option<Direction>,
+    #[serde(default)]
+    mode: Option<PlaybackMode>,
+    #[serde(default, borrow)]
+    play_count: Option<&'a RawValue>,
+    #[serde(default, borrow)]
+    start_delay_seconds: Option<&'a RawValue>,
+    #[serde(default, deserialize_with = "seconds")]
+    end_fade_seconds: f64,
+}
+
+impl TryFrom<SlotDefinition<'_>> for SlotPlayback {
+    type Error = Error;
+
+    fn try_from(value: SlotDefinition<'_>) -> Result<Self, Error> {
+        let additional_plays = value
+            .play_count
+            .map(|count| {
+                let text = count.get();
+                if text == "18446744073709551616" {
+                    return Ok(u64::MAX);
+                }
+                text.parse::<u64>()
+                    .ok()
+                    .and_then(|plays| plays.checked_sub(1))
+                    .ok_or_else(|| {
+                        invalid("play_count must be a positive integer no greater than 2^64")
+                    })
+            })
+            .transpose()?;
+        let start_delay = match value.start_delay_seconds {
+            None => 0.into(),
+            Some(raw) => {
+                let text = raw.get();
+                if text.starts_with('"') {
+                    let value: String =
+                        serde_json::from_str(text).map_err(|error| invalid(error.to_string()))?;
+                    quantity::exact(&value, "seconds")?
+                } else {
+                    quantity::exact(text, "seconds")?
+                }
+            }
+        };
+        if start_delay < 0.into() || value.end_fade_seconds < 0.0 {
+            return Err(invalid(
+                "sample start delay and end fade must be nonnegative",
+            ));
+        }
+        Ok(Self {
+            direction: value.direction,
+            mode: value.mode,
+            additional_plays,
+            start_delay,
+            end_fade_seconds: value.end_fade_seconds,
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
@@ -283,6 +399,10 @@ impl From<Loop> for LoopDefinition {
 
 fn invalid(message: impl Into<String>) -> Error {
     Error::Invalid(message.into())
+}
+
+fn seconds<'de, D: serde::Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+    quantity::deserialize_scalar(d, "seconds")
 }
 
 fn one() -> f64 {

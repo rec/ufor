@@ -23,5 +23,11 @@
     ["tracked", 330, 0, 0, 0.75],
     ["untracked", null, 0, 1200, 2],
     ["untracked", 220, 0, 0, 1]
-  ]
+  ],
+  "slot_playback": {
+    "direction": "mirror", "play_count": 18446744073709551616,
+    "start_delay_seconds": 0.00001, "end_fade_seconds": "125 ms"
+  },
+  "slot_defaults": {"direction": "backward", "mode": "one_shot"},
+  "slot_delays": [["0", 48000, 1], ["0.00001", 48000, 1], ["0.00002", 48000, 2]]
 }

@@ -99,3 +99,45 @@ fn sample_pitch_mapping_matches_shared_frequency_cases() {
         assert!(codec::parse_sample_mapping(raw, Format::Json).is_err());
     }
 }
+
+#[test]
+fn slot_playback_resolves_overrides_and_rounds_the_combined_delay_once() {
+    let data: Value =
+        serde_json::from_str(include_str!("../../../conformance/sample-playback.json")).unwrap();
+    let document: std::collections::BTreeMap<&str, &serde_json::value::RawValue> =
+        serde_json::from_str(include_str!("../../../conformance/sample-playback.json")).unwrap();
+    let slot = codec::parse_slot_playback(document["slot_playback"].get(), Format::Json).unwrap();
+    let defaults =
+        codec::parse_sample_playback(&data["slot_defaults"].to_string(), Format::Json).unwrap();
+    assert!(slot.resolve(Playback::default()).is_err());
+    let resolved = slot.resolve(defaults).unwrap();
+    assert_eq!(resolved.additional_plays, u64::MAX);
+    assert_eq!(resolved.playback.direction, Direction::Mirror);
+    assert_eq!(resolved.playback.mode, PlaybackMode::OneShot);
+    assert_eq!(resolved.end_fade_seconds, 0.125);
+    for row in data["slot_delays"].as_array().unwrap() {
+        let variation = ufor::quantity::exact(row[0].as_str().unwrap(), "seconds").unwrap();
+        assert_eq!(
+            resolved
+                .delay_frames(variation, row[1].as_i64().unwrap())
+                .unwrap(),
+            row[2].as_i64().unwrap()
+        );
+    }
+    let toml = codec::parse_slot_playback("start_delay_seconds = '1/8 s'", Format::Toml).unwrap();
+    assert_eq!(
+        toml.resolve(defaults)
+            .unwrap()
+            .delay_frames(0.into(), 48000)
+            .unwrap(),
+        6000
+    );
+    for raw in [
+        r#"{"play_count":0}"#,
+        r#"{"play_count":1.0}"#,
+        r#"{"play_count":18446744073709551617}"#,
+        r#"{"start_delay_seconds":-1}"#,
+    ] {
+        assert!(codec::parse_slot_playback(raw, Format::Json).is_err());
+    }
+}
