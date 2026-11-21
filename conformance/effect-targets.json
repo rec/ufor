@@ -5,7 +5,15 @@
     {"kind":"frequency_shifter","name":"shifter","shift_hz":"-1/2 kHz"},
     {"kind":"filter","name":"filter","filters":[
       {"name":"high-pass","response":"highpass","cutoff_hz":"500 Hz","q":1.5}
-    ]}
+    ]},
+    {"kind":"gate","name":"gate","hold_seconds":"20 ms"},
+    {"kind":"expander","name":"expander"},
+    {"kind":"compressor","name":"comp","makeup_db":"3 dB"},
+    {"kind":"follower","name":"follower"},
+    {"kind":"limiter","name":"limiter"},
+    {"kind":"transient_shaper","name":"transient","attack_gain_db":12},
+    {"kind":"dynamic_eq","name":"eq","center_hz":"2 kHz"},
+    {"kind":"multiband_compressor","name":"multi","mid":{"ratio":3}}
   ],
   "accepted": [
     ["gain","gain_db","db",-6,-24,24],
@@ -13,7 +21,22 @@
     ["multiply","mix","ratio",1,0,1],
     ["shifter","shift_hz","hz_offset",-500,-2000,2000],
     ["filter","high-pass-cutoff_hz","hz",500,1,96000],
-    ["filter","high-pass-q","ratio",1.5,0.01,4]
+    ["filter","high-pass-q","ratio",1.5,0.01,4],
+    ["gate","threshold_db","db",-40,-100,0],
+    ["gate","hold_seconds","seconds",0.02,0,1],
+    ["gate","hysteresis_db","db",6,0,12],
+    ["expander","ratio","ratio",2,1,6],
+    ["comp","makeup_db","db",3,-24,24],
+    ["comp","knee_db","db",6,0,24],
+    ["follower","attack_seconds","seconds",0.01,0,0.1],
+    ["limiter","ceiling_db","db",-1,-12,0],
+    ["limiter","release_seconds","seconds",0.05,0,1],
+    ["transient","attack_gain_db","db",12,-24,24],
+    ["eq","center_hz","hz",2000,200,6000],
+    ["eq","maximum_cut_db","db",12,0,24],
+    ["multi","low-ratio","ratio",1,1,8],
+    ["multi","mid-ratio","ratio",3,1,8],
+    ["multi","high-release_seconds","seconds",0.1,0,1]
   ],
   "rejected": [
     ["gain","mix","ratio",0.5,-1,1],
@@ -24,7 +47,18 @@
     ["shifter","shift_hz","cents",-500,-2000,2000],
     ["shifter","shift_hz","hz_offset",-500,-2001,2000],
     ["filter","high-pass-q","ratio",1.5,0,4],
-    ["filter","other-cutoff_hz","hz",500,1,2000]
+    ["filter","other-cutoff_hz","hz",500,1,2000],
+    ["gate","hysteresis_db","db",6,-0.01,12],
+    ["expander","ratio","ratio",2,0.5,6],
+    ["comp","knee_db","db",6,-1,24],
+    ["follower","mix","ratio",1,0,1],
+    ["limiter","ceiling_db","db",-1,-12,0.01],
+    ["limiter","lookahead_seconds","seconds",0.005,0,1],
+    ["transient","attack_gain_db","db",12,-24,25],
+    ["eq","q","ratio",1,0,4],
+    ["multi","mid-ratio","ratio",1,1,8],
+    ["multi","low-knee_db","db",6,-1,24],
+    ["multi","lower_crossover_hz","hz",200,100,300]
   ],
   "invalid_processors": [
     {"kind":"gain","name":"gain","bypass_fade_frames":0},
@@ -32,6 +66,15 @@
     {"kind":"frequency_shifter","name":"shift","shift_hz":2001},
     {"kind":"filter","name":"filter","filters":[]},
     {"kind":"filter","name":"filter","state_floor":2,"tail_threshold":1,
-     "filters":[{"name":"a","response":"lowpass","cutoff_hz":200}]}
+     "filters":[{"name":"a","response":"lowpass","cutoff_hz":200}]},
+    {"kind":"gate","name":"gate","hold_seconds":-1},
+    {"kind":"expander","name":"expander","ratio":0.5},
+    {"kind":"compressor","name":"comp","knee_db":-1},
+    {"kind":"follower","name":"follower","state_floor":2,"tail_threshold":1},
+    {"kind":"limiter","name":"limiter","lookahead_seconds":0},
+    {"kind":"transient_shaper","name":"transient","sustain_gain_db":25},
+    {"kind":"dynamic_eq","name":"eq","maximum_cut_db":-1},
+    {"kind":"multiband_compressor","name":"multi","lower_crossover_hz":4000},
+    {"kind":"multiband_compressor","name":"multi","high":{"ratio":0}}
   ]
 }
