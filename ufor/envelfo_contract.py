@@ -148,6 +148,15 @@ def check_records(count: int, maximum: int = 10000) -> None:
         raise ValueError(f'Generator preparation exceeds {maximum} records')
 
 
+def omits_default_record(value: pydantic.BaseModel, field: str) -> bool:
+    """Match the omitted singleton records used by the portable wire codec."""
+    return (
+        field in SOUND_CHILD_RECORDS
+        and field not in value.model_fields_set
+        and getattr(value, field) == type(value).model_fields[field].default
+    )
+
+
 def preparation_records(value: object, max_records: int = 10000) -> int:
     """Count declared records and references without expanding shared children.
 
@@ -161,7 +170,11 @@ def preparation_records(value: object, max_records: int = 10000) -> int:
     while pending:
         item = pending.pop()
         if isinstance(item, pydantic.BaseModel):
-            item = {f: getattr(item, f) for f in type(item).model_fields}
+            item = {
+                f: getattr(item, f)
+                for f in type(item).model_fields
+                if not omits_default_record(item, f)
+            }
         if not isinstance(item, dict):
             continue
         for key, child in item.items():
@@ -198,7 +211,10 @@ SEQUENCE_RECORDS = (
     'routes',
     'points',
     'parameters',
+    'equalizer',
+    'filters',
 )
 REFERENCE_LISTS = ('inputs', 'from', 'from_stages')
 REFERENCE_MAPS = ('outputs', 'event_outputs')
-CHILD_RECORDS = ('body', 'envelfo', 'modulation')
+SOUND_CHILD_RECORDS = ('processing', 'envelope', 'tolerance', 'modulation')
+CHILD_RECORDS = ('body', 'envelfo', *SOUND_CHILD_RECORDS)

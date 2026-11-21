@@ -1020,7 +1020,7 @@ pub fn preparation_records(value: &Value, limits: PreparationLimits) -> Result<u
                 }
                 "segments" | "release" | "markers" | "stages" | "transitions" | "events"
                 | "event_connections" | "bindings" | "sources" | "routes" | "points"
-                | "parameters"
+                | "parameters" | "equalizer" | "filters"
                     if child.is_array() =>
                 {
                     count = count
@@ -1039,7 +1039,9 @@ pub fn preparation_records(value: &Value, limits: PreparationLimits) -> Result<u
                         .checked_add(child.as_object().map_or(0, |v| v.len()))
                         .ok_or(Error::ArithmeticRange)?;
                 }
-                "body" | "envelfo" | "modulation" if child.is_object() => {
+                "body" | "envelfo" | "modulation" | "processing" | "envelope" | "tolerance"
+                    if child.is_object() =>
+                {
                     count = count.checked_add(1).ok_or(Error::ArithmeticRange)?;
                     limits.check_records(count)?;
                     pending.push(child);

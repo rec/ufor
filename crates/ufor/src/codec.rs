@@ -6,6 +6,7 @@ use serde_json::Value;
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
 use crate::modulation::Modulation;
+use crate::samples::processing::SoundSettings;
 use crate::score::Score;
 use crate::tuning::Tuning;
 
@@ -32,6 +33,34 @@ pub fn parse_modulation(text: &str, format: Format) -> Result<Modulation, Error>
 }
 
 pub fn modulation_text(value: &Modulation, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
+/// Decode a base SoundSettings body, before supplying external context.
+pub fn parse_sound_settings(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<SoundSettings, Error> {
+    let data = parse_value(text, format)?;
+    crate::envelfo::preparation_records(&data, limits)?;
+    match format {
+        Format::Json => {
+            let mut decoder = serde_json::Deserializer::from_str(text);
+            let value = SoundSettings::decode(&mut decoder, limits)
+                .map_err(|e| Error::Invalid(e.to_string()))?;
+            decoder.end().map_err(|e| Error::Invalid(e.to_string()))?;
+            Ok(value)
+        }
+        Format::Toml => SoundSettings::decode(
+            toml::de::Deserializer::parse(text).map_err(|e| Error::Invalid(e.to_string()))?,
+            limits,
+        )
+        .map_err(|e| Error::Invalid(e.to_string())),
+    }
+}
+
+pub fn sound_settings_text(value: &SoundSettings, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 

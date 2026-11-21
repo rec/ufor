@@ -1,0 +1,8 @@
+[envelfos.z-beat]
+kind = "envelope"
+clock = "beats"
+segments = [{duration = "3/7 beat", to = 1}]
+
+[envelfos.a-held]
+kind = "envelope"
+segments = [{}]

@@ -66,7 +66,7 @@ impl UnresolvedEventConnection {
 pub struct BindingValidation {
     unresolved_bindings: Vec<OutstandingBinding>,
     unresolved_connections: Vec<UnresolvedEventConnection>,
-    unresolved_targets: Vec<Target>,
+    pub(super) unresolved_targets: Vec<Target>,
 }
 impl BindingValidation {
     pub fn unresolved_bindings(&self) -> &[OutstandingBinding] {
@@ -92,6 +92,24 @@ pub fn validate_generator_bindings(
         &serde_json::json!({"modulation":definition,"bindings":bindings,"controls":controls,"envelfos":generators,"event_connections":connections}),
         limits,
     )?;
+    validate_available_bindings(
+        definition,
+        bindings,
+        Some(controls),
+        generators,
+        connections,
+        limits,
+    )
+}
+
+pub(super) fn validate_available_bindings(
+    definition: &Modulation,
+    bindings: &[Binding],
+    controls: Option<&BTreeMap<Identifier, ControlDeclaration>>,
+    generators: &BTreeMap<Identifier, Generator>,
+    connections: &[EnvelfoEventConnection],
+    limits: PreparationLimits,
+) -> Result<BindingValidation, Error> {
     processing::validate_local_with_limit(definition, bindings, controls, limits.max_records())?;
     for g in generators.values() {
         match g.body() {

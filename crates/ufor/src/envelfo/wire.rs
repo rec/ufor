@@ -6,7 +6,7 @@ use serde::ser::SerializeMap;
 use std::marker::PhantomData;
 
 #[derive(Clone, Debug)]
-pub(super) struct Ordered<T>(pub Vec<(Identifier, T)>);
+pub(crate) struct Ordered<T>(pub Vec<(Identifier, T)>);
 impl<T> Default for Ordered<T> {
     fn default() -> Self {
         Self(Vec::new())
@@ -753,9 +753,23 @@ pub(super) fn decode<'de, D: Deserializer<'de>>(
     let raw = Raw::deserialize(deserializer)?;
     let data = serde_json::to_value(&raw).map_err(serde::de::Error::custom)?;
     preparation_records(&data, limits).map_err(serde::de::Error::custom)?;
-    let mut value = raw.prepare(None).map_err(serde::de::Error::custom)?;
-    validation::generator(&mut value).map_err(serde::de::Error::custom)?;
+    prepare_root(raw).map_err(serde::de::Error::custom)
+}
+
+fn prepare_root(raw: Raw) -> Result<Generator, Error> {
+    let mut value = raw.prepare(None)?;
+    validation::generator(&mut value)?;
     Ok(value)
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(transparent)]
+pub(crate) struct RootWire(Raw);
+
+impl RootWire {
+    pub(crate) fn prepare(self) -> Result<Generator, Error> {
+        prepare_root(self.0)
+    }
 }
 
 fn markers(values: &[Marker]) -> Vec<MarkerWire> {
