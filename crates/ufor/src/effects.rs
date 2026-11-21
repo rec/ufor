@@ -1,4 +1,5 @@
 //! Portable effect processors and their modulation targets.
+pub mod actions;
 pub mod topology;
 
 use crate::envelfo::Waveform;

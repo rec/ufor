@@ -59,6 +59,76 @@ fn mixer_layout_and_convolution_latency_match_shared_effect_cases() {
     );
 }
 
+#[test]
+fn effect_action_batches_match_the_shared_authored_contract() {
+    let data: Value =
+        serde_json::from_str(include_str!("../../../conformance/effects.json")).unwrap();
+    let topology = Topology::decode(
+        projection(data["graph"].clone()),
+        PreparationLimits::default(),
+    )
+    .unwrap();
+    let batch = codec::parse_effect_action_batch(&data["batch"].to_string(), Format::Json).unwrap();
+    topology.validate_batch(&batch, 2).unwrap();
+    assert!(!batch.lifecycle());
+    assert_eq!(batch.actions()[0].tick(), 1024);
+    assert!(topology.validate_batch(&batch, 1).is_err());
+    let batch_text = toml::to_string(&batch).unwrap();
+    let round_trip = codec::parse_effect_action_batch(&batch_text, Format::Toml).unwrap();
+    assert_eq!(round_trip, batch);
+
+    let mut invalid_batch = data["batch"].clone();
+    invalid_batch["actions"][1]["ordinal"] = json!(7);
+    assert!(codec::parse_effect_action_batch(&invalid_batch.to_string(), Format::Json).is_err());
+
+    let release = codec::parse_effect_action(
+        r#"{"kind":"input_end","input":"main","tick":1024,"ordinal":7}"#,
+        Format::Json,
+    )
+    .unwrap();
+    assert!(release.lifecycle());
+    topology.validate_action(&release).unwrap();
+
+    let invalid = codec::parse_effect_action(
+        r#"{"kind":"freeze","processor":"ring","tick":0,"ordinal":0,"frozen":true}"#,
+        Format::Json,
+    )
+    .unwrap();
+    assert!(topology.validate_action(&invalid).is_err());
+}
+
+#[test]
+fn mixer_selectors_and_bitcrusher_actions_require_immediate_requests() {
+    let mix: Value = serde_json::from_str(include_str!("../../../conformance/mixer.json")).unwrap();
+    let limits = PreparationLimits::default();
+    let mixer = Topology::decode(projection(mix["graph"].clone()), limits).unwrap();
+    let mut graph = projection(mix["graph"].clone());
+    graph["processors"] = json!([{"name":"sum","kind":"bitcrusher"}]);
+    graph["connections"] = json!([
+        {"processor":"sum","port":"input","source":{"kind":"input","input":"main"}}
+    ]);
+    let bitcrusher = Topology::decode(graph, limits).unwrap();
+    for (topology, parameter, value) in [(&mixer, "a-muted", 1), (&bitcrusher, "bits", 12)] {
+        let mut action = json!({
+            "kind":"parameter","processor":"sum","parameter":parameter,
+            "tick":0,"ordinal":0,"value":value
+        });
+        topology
+            .validate_action(
+                &codec::parse_effect_action(&action.to_string(), Format::Json).unwrap(),
+            )
+            .unwrap();
+        action["duration_frames"] = json!(1);
+        assert!(
+            topology
+                .validate_action(
+                    &codec::parse_effect_action(&action.to_string(), Format::Json).unwrap()
+                )
+                .is_err()
+        );
+    }
+}
+
 fn projection(mut graph: Value) -> Value {
     graph.as_object_mut().unwrap().retain(|key, _| {
         [

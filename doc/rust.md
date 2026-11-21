@@ -44,6 +44,13 @@ within each dependency layer, and includes follower edges in latency
 alignment. `Topology::latencies` uses checked 64-bit frames at the host
 sample rate. Enge resolves assets, assigns runtime slots, and prepares DSP.
 
+`codec::parse_effect_action` and `codec::parse_effect_action_batch` read effects
+automation, bypass, capture, freeze, and lifecycle actions. A topology checks
+processor capabilities, authored target bounds, and input names. Batches require
+one frame and strictly increasing ordinals, and callers supply their batch
+capacity. Enge retains frame windows, queue admission, and state-dependent
+checks.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See

@@ -12,7 +12,8 @@ use std::collections::{BTreeMap, BTreeSet};
 /// Effect graph topology and its deterministic, dependency-layered order.
 #[derive(Debug)]
 pub struct Topology {
-    processors: BTreeMap<Identifier, Processor>,
+    pub(super) processors: BTreeMap<Identifier, Processor>,
+    pub(super) inputs: BTreeSet<Identifier>,
     dependencies: BTreeMap<Identifier, BTreeSet<Identifier>>,
     order: Vec<Identifier>,
     layouts: BTreeMap<Identifier, Vec<Identifier>>,
@@ -184,6 +185,7 @@ impl Topology {
         let output_channels = layouts[&output].clone();
         Ok(Self {
             processors,
+            inputs: inputs.into_keys().collect(),
             dependencies,
             order,
             layouts,

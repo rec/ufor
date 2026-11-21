@@ -4,6 +4,7 @@ use serde::Serialize;
 use serde_json::Value;
 
 use crate::effects::Processor;
+use crate::effects::actions::{Action, ActionBatch};
 use crate::effects::topology::Topology;
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
@@ -55,6 +56,16 @@ pub fn parse_effect_topology(
     limits: PreparationLimits,
 ) -> Result<Topology, Error> {
     Topology::decode(parse_value(text, format)?, limits)
+}
+
+pub fn parse_effect_action(text: &str, format: Format) -> Result<Action, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_effect_action_batch(text: &str, format: Format) -> Result<ActionBatch, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
 }
 
 pub fn parse_fm(text: &str, format: Format, limits: PreparationLimits) -> Result<Fm, Error> {
