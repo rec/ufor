@@ -12,6 +12,7 @@ use crate::error::Error;
 use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::samples::crossfade::Crossfade;
+use crate::samples::eligibility::{Context as EligibilityContext, Eligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
 use crate::score::Score;
@@ -50,6 +51,22 @@ pub fn parse_sample_mapping(text: &str, format: Format) -> Result<Mapping, Error
 }
 
 pub fn parse_sample_crossfade(text: &str, format: Format) -> Result<Crossfade, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_sample_eligibility(
+    text: &str,
+    format: Format,
+    maximum: usize,
+) -> Result<Eligibility, Error> {
+    Eligibility::decode(parse_value(text, format)?, maximum)
+}
+
+pub fn parse_sample_eligibility_context(
+    text: &str,
+    format: Format,
+) -> Result<EligibilityContext, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
 }

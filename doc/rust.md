@@ -71,6 +71,15 @@ renderer operation.
 The shared gain curve supports linear and equal-power fades with exact endpoint
 weights. Hosts retain control smoothing, event routing, and layer selection.
 
+`codec::parse_sample_eligibility` prepares ordered sampler slot predicates.
+`samples::eligibility::Eligibility::matching_slots` filters them using the
+trigger, note and velocity, articulation, resolved controls, held keys,
+previous key, sequence count, and random draw supplied by the caller.
+The [shared cases](../conformance/sample-eligibility.json) cover inclusive
+note and control bounds, half-open random ranges, and sustain event keys.
+Python trace preparation supplies these event facts and owns take selection
+and voice lifecycle.
+
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
 with checked 64-bit rational arithmetic and rounds up once to an output frame.

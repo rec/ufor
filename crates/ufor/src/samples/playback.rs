@@ -9,6 +9,23 @@ use serde_json::value::RawValue;
 pub struct Mapping(MappingDefinition);
 
 impl Mapping {
+    pub(super) fn accepts_note(&self, key: i64, velocity: f64) -> bool {
+        (self.0.lowest_key..=self.0.highest_key).contains(&key)
+            && (self.0.minimum_velocity..=self.0.maximum_velocity).contains(&velocity)
+    }
+
+    pub(super) fn event_key(&self) -> Option<i64> {
+        self.0.event_key
+    }
+
+    pub(super) fn has_sustain_mapping(&self) -> bool {
+        !self.0.pitch_tracking
+            && self
+                .0
+                .event_key
+                .is_some_and(|key| (self.0.lowest_key..=self.0.highest_key).contains(&key))
+    }
+
     /// Resolve pitch without the asset or output sample-rate conversion.
     pub fn pitch_ratio(
         &self,

@@ -12,9 +12,29 @@ from ufor.samples import crossfade, playback, processing, selection, trace
 from ufor.samples.instrument import (
     SampleInstrument,
     SampleSettings,
+    SampleSlot,
     effective_selection,
     effective_settings,
 )
+
+
+def test_slot_eligibility_matches_shared_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/sample-eligibility.json').read_text()
+    )
+    slots = [
+        SampleSlot.model_validate(
+            s
+            | {
+                'slice': 'clip',
+                'channels': [{'input': 'left', 'output': 'left', 'gain': 1}],
+            }
+        )
+        for s in data['slots']
+    ]
+    for case in data['cases']:
+        context = data['context'] | case['changes']
+        assert [s.name for s in trace.matching_slots(slots, context)] == case['matches']
 
 
 def test_mirror_loop_rejects_crossfade() -> None:

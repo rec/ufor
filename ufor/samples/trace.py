@@ -1,6 +1,7 @@
 """Portable semantic actions for prepared sample-instrument performances."""
 
-from typing import Annotated, Literal, Self
+from collections.abc import Callable
+from typing import Annotated, Literal, Self, TypedDict
 
 from pydantic import Field, model_validator
 from reccy.configuration import units
@@ -89,10 +90,78 @@ class SampleTrace(Model):
         return self
 
 
+class EligibilityContext(TypedDict):
+    """Event facts needed to evaluate slot eligibility."""
+
+    trigger: enums.TriggerKind
+    key: int | None
+    velocity: float
+    active_articulation: Identifier | None
+    held_keys: list[int]
+    previous_key: int | None
+    controls: dict[Identifier, float]
+    control_event: tuple[Identifier, float] | None
+    note_on_count: int
+    random_value: float
+
+
+def matching_slots(
+    slots: list[SampleSlot], context: EligibilityContext
+) -> list[SampleSlot]:
+    """Filter slots in declaration order against resolved event facts."""
+    kind, key, velocity = context['trigger'], context['key'], context['velocity']
+    control_event = context['control_event']
+    held_keys = set(context['held_keys'])
+    return [
+        s
+        for s in slots
+        if s.trigger == kind
+        and (key is None or s.mapping.lowest_key <= key <= s.mapping.highest_key)
+        and (
+            key is None
+            or s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
+        )
+        and (
+            s.control_trigger is None
+            or control_event is not None
+            and s.control_trigger.control == control_event[0]
+            and s.control_trigger.minimum_value
+            <= control_event[1]
+            <= s.control_trigger.maximum_value
+        )
+        and (not s.articulations or context['active_articulation'] in s.articulations)
+        and all((c.key in held_keys) == c.pressed for c in s.key_conditions)
+        and (s.previous_key is None or context['previous_key'] == s.previous_key)
+        and all(
+            c.minimum_value <= context['controls'][c.control] <= c.maximum_value
+            for c in s.control_conditions
+        )
+        and (
+            s.sequence is None
+            or (context['note_on_count'] - 1) % s.sequence.length + 1
+            == s.sequence.position
+        )
+        and (s.random_range is None or s.random_range.contains(context['random_value']))
+        and (
+            kind
+            not in (enums.TriggerKind.sustain_press, enums.TriggerKind.sustain_release)
+            or s.mapping.event_key == key
+        )
+    ]
+
+
 def prepare(
-    instrument: SampleInstrument, events: list[PerformanceEvent], seed: int
+    instrument: SampleInstrument,
+    events: list[PerformanceEvent],
+    seed: int,
+    *,
+    eligible_slots: Callable[[EligibilityContext], list[Identifier]] | None = None,
 ) -> SampleTrace:
-    """Resolve selection, linked takes, releases, and chokes without rendering."""
+    """Resolve selection, linked takes, releases, and chokes without rendering.
+
+    An optional eligibility evaluator returns matching slot names in declaration
+    order. Event state and selection are maintained by this function.
+    """
     instrument = SampleInstrument.model_validate(instrument.model_dump())
     articulations = instrument.settings.articulations
     if articulations is not None:
@@ -113,6 +182,8 @@ def prepare(
     slot_pools = {s.name: s.voice_pool for s in instrument.slots}
     slices = {s.name: s for s in instrument.slices}
     selections = {s.name: s for s in instrument.settings.selections}
+    slots_by_name = {s.name: s for s in instrument.slots}
+    control_defaults = {n: c.default for n, c in instrument.settings.controls.items()}
     playback_modes = {
         s.name: s.playback.mode or instrument.settings.playback.mode
         for s in instrument.slots
@@ -135,57 +206,31 @@ def prepare(
         controls = state.controls.get(part, {})
         if isinstance(event, Trigger):
             controls = controls | event.controls
-        control_defaults = instrument.settings.controls
-        random_value = random_range_value(
-            seed, part, getattr(event, 'trigger_id', None), event.tick, event.ordinal
+        context = EligibilityContext(
+            trigger=kind,
+            key=key,
+            velocity=velocity,
+            active_articulation=active,
+            held_keys=list(state.held_keys.get(part, {}).values()),
+            previous_key=state.previous_keys.get(part),
+            controls=control_defaults | controls,
+            control_event=(event.control, event.value)
+            if isinstance(event, ControlChange)
+            else None,
+            note_on_count=state.note_on_counts.get(part, 0),
+            random_value=random_range_value(
+                seed,
+                part,
+                getattr(event, 'trigger_id', None),
+                event.tick,
+                event.ordinal,
+            ),
         )
-        eligible = [
-            s
-            for s in instrument.slots
-            if s.trigger == kind
-            and (key is None or s.mapping.lowest_key <= key <= s.mapping.highest_key)
-            and (
-                key is None
-                or s.mapping.minimum_velocity <= velocity <= s.mapping.maximum_velocity
-            )
-            and (
-                s.control_trigger is None
-                or isinstance(event, ControlChange)
-                and s.control_trigger.control == event.control
-                and s.control_trigger.minimum_value
-                <= event.value
-                <= s.control_trigger.maximum_value
-            )
-            and (not s.articulations or active in s.articulations)
-            and all(
-                (c.key in state.held_keys.get(part, {}).values()) == c.pressed
-                for c in s.key_conditions
-            )
-            and (
-                s.previous_key is None
-                or state.previous_keys.get(part) == s.previous_key
-            )
-            and all(
-                c.minimum_value
-                <= controls.get(c.control, control_defaults[c.control].default)
-                <= c.maximum_value
-                for c in s.control_conditions
-            )
-            and (
-                s.sequence is None
-                or (state.note_on_counts.get(part, 0) - 1) % s.sequence.length + 1
-                == s.sequence.position
-            )
-            and (s.random_range is None or s.random_range.contains(random_value))
-            and (
-                kind
-                not in (
-                    enums.TriggerKind.sustain_press,
-                    enums.TriggerKind.sustain_release,
-                )
-                or s.mapping.event_key == key
-            )
-        ]
+        eligible = (
+            matching_slots(instrument.slots, context)
+            if eligible_slots is None
+            else [slots_by_name[n] for n in eligible_slots(context)]
+        )
         selected = [
             s for s in eligible if effective_selection(s, groups.get(s.group)) is None
         ]

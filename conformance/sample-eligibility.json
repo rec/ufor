@@ -1,0 +1,58 @@
+{
+  "slots": [
+    {
+      "name": "accent",
+      "mapping": {"lowest_key": 60, "highest_key": 72, "minimum_velocity": 0.5, "pitch_tracking": false},
+      "articulations": ["open"],
+      "key_conditions": [{"key": 48, "pressed": true}, {"key": 49, "pressed": false}],
+      "previous_key": 59,
+      "control_conditions": [{"control": "pedal", "minimum_value": 0.25, "maximum_value": 0.5}],
+      "sequence": {"length": 2, "position": 2},
+      "random_range": {"minimum": 0.25, "maximum": 0.5}
+    },
+    {
+      "name": "base",
+      "mapping": {"lowest_key": 60, "highest_key": 72, "pitch_tracking": false}
+    },
+    {
+      "name": "pedal",
+      "trigger": "control",
+      "mapping": {"lowest_key": 60, "highest_key": 72, "minimum_velocity": 1.0, "pitch_tracking": false},
+      "control_trigger": {"control": "pedal", "minimum_value": 0.25, "maximum_value": 0.5, "pitch_hz": 440.0, "velocity": 0.5}
+    },
+    {
+      "name": "sustain",
+      "trigger": "sustain_press",
+      "mapping": {"lowest_key": 60, "highest_key": 72, "event_key": 64, "pitch_tracking": false}
+    }
+  ],
+  "context": {
+    "trigger": "start",
+    "key": 60,
+    "velocity": 0.5,
+    "active_articulation": "open",
+    "held_keys": [48],
+    "previous_key": 59,
+    "controls": {"pedal": 0.5},
+    "control_event": null,
+    "note_on_count": 2,
+    "random_value": 0.25
+  },
+  "cases": [
+    {"changes": {}, "matches": ["accent", "base"]},
+    {"changes": {"key": 59}, "matches": []},
+    {"changes": {"velocity": 0.49}, "matches": ["base"]},
+    {"changes": {"active_articulation": null}, "matches": ["base"]},
+    {"changes": {"held_keys": []}, "matches": ["base"]},
+    {"changes": {"held_keys": [48, 49]}, "matches": ["base"]},
+    {"changes": {"previous_key": 60}, "matches": ["base"]},
+    {"changes": {"controls": {"pedal": 0.75}}, "matches": ["base"]},
+    {"changes": {"note_on_count": 3}, "matches": ["base"]},
+    {"changes": {"random_value": 0.5}, "matches": ["base"]},
+    {"changes": {"key": null, "trigger": "control", "control_event": ["pedal", 0.5]}, "matches": ["pedal"]},
+    {"changes": {"key": null, "trigger": "control", "control_event": ["other", 0.5]}, "matches": []},
+    {"changes": {"key": 64, "trigger": "sustain_press"}, "matches": ["sustain"]},
+    {"changes": {"key": 65, "trigger": "sustain_press"}, "matches": []},
+    {"changes": {"key": 64, "trigger": "sustain_press", "velocity": -0.5}, "matches": []}
+  ]
+}

@@ -1,0 +1,253 @@
+//! Ordered sampler slot filtering against an already-resolved event context.
+use super::playback::Mapping;
+use crate::{error::Error, identifier::Identifier, quantity};
+use serde::Deserialize;
+use std::collections::{BTreeMap, BTreeSet};
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum Trigger {
+    #[default]
+    Start,
+    Control,
+    Release,
+    LogicalRelease,
+    SustainPress,
+    SustainRelease,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Context {
+    pub trigger: Trigger,
+    pub key: Option<i64>,
+    pub velocity: f64,
+    pub active_articulation: Option<Identifier>,
+    pub held_keys: Vec<i64>,
+    pub previous_key: Option<i64>,
+    pub controls: BTreeMap<Identifier, f64>,
+    pub control_event: Option<(Identifier, f64)>,
+    pub note_on_count: u64,
+    pub random_value: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Slot {
+    name: Identifier,
+    mapping: Mapping,
+    #[serde(default)]
+    trigger: Trigger,
+    #[serde(default)]
+    articulations: Vec<Identifier>,
+    #[serde(default)]
+    key_conditions: Vec<KeyCondition>,
+    #[serde(default)]
+    previous_key: Option<i64>,
+    #[serde(default)]
+    control_conditions: Vec<ControlCondition>,
+    #[serde(default)]
+    control_trigger: Option<ControlTrigger>,
+    #[serde(default)]
+    sequence: Option<Sequence>,
+    #[serde(default)]
+    random_range: Option<RandomRange>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct KeyCondition {
+    key: i64,
+    pressed: bool,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ControlCondition {
+    control: Identifier,
+    #[serde(default)]
+    minimum_value: f64,
+    #[serde(default = "one")]
+    maximum_value: f64,
+}
+
+impl ControlCondition {
+    fn valid(&self) -> bool {
+        -1.0 <= self.minimum_value
+            && self.minimum_value <= self.maximum_value
+            && self.maximum_value <= 1.0
+    }
+
+    fn accepts(&self, value: f64) -> bool {
+        (self.minimum_value..=self.maximum_value).contains(&value)
+    }
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ControlTrigger {
+    control: Identifier,
+    #[serde(default)]
+    minimum_value: f64,
+    #[serde(default = "one")]
+    maximum_value: f64,
+    pitch_hz: f64,
+    velocity: f64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Sequence {
+    length: u64,
+    position: u64,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct RandomRange {
+    #[serde(default)]
+    minimum: f64,
+    #[serde(default = "one")]
+    maximum: f64,
+}
+
+/// Validated slot predicates in instrument declaration order.
+#[derive(Debug)]
+pub struct Eligibility(Vec<Slot>);
+
+impl Eligibility {
+    pub(crate) fn decode(value: serde_json::Value, maximum: usize) -> Result<Self, Error> {
+        let slots: Vec<Slot> =
+            serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
+        let mut names = BTreeSet::new();
+        quantity::record_budget(slots.len(), maximum)?;
+        for slot in &slots {
+            if !names.insert(&slot.name) {
+                return Err(invalid("duplicate sample slot"));
+            }
+            let sustain = matches!(
+                slot.trigger,
+                Trigger::SustainPress | Trigger::SustainRelease
+            );
+            let valid_mapping = if sustain {
+                slot.mapping.has_sustain_mapping()
+            } else {
+                slot.mapping.event_key().is_none()
+            };
+            if (slot.trigger == Trigger::Control) != slot.control_trigger.is_some()
+                || slot.trigger != Trigger::Start && slot.sequence.is_some()
+                || slot.trigger == Trigger::Control && slot.random_range.is_some()
+                || !valid_mapping
+            {
+                return Err(invalid(
+                    "invalid eligibility declaration for sample trigger",
+                ));
+            }
+            if slot
+                .sequence
+                .as_ref()
+                .is_some_and(|s| s.position == 0 || s.position > s.length)
+                || slot.random_range.as_ref().is_some_and(|r| {
+                    !(0.0 <= r.minimum && r.minimum < r.maximum && r.maximum <= 1.0)
+                })
+            {
+                return Err(invalid("invalid sample sequence or random range"));
+            }
+            if slot.control_conditions.iter().any(|c| !c.valid())
+                || slot.control_trigger.as_ref().is_some_and(|c| {
+                    !(-1.0 <= c.minimum_value
+                        && c.minimum_value <= c.maximum_value
+                        && c.maximum_value <= 1.0
+                        && c.pitch_hz.is_finite()
+                        && c.pitch_hz > 0.0
+                        && (0.0..=1.0).contains(&c.velocity))
+                })
+            {
+                return Err(invalid("invalid sample control condition"));
+            }
+        }
+        Ok(Self(slots))
+    }
+
+    pub fn matching_slots<'a>(&'a self, context: &Context) -> Result<Vec<&'a Identifier>, Error> {
+        if !context.velocity.is_finite() || !(0.0..=1.0).contains(&context.random_value) {
+            return Err(invalid(
+                "sample velocity must be finite and random draw in [0, 1]",
+            ));
+        }
+        let held: BTreeSet<_> = context.held_keys.iter().copied().collect();
+        let mut matches = Vec::new();
+        for slot in &self.0 {
+            if slot.trigger != context.trigger
+                || context
+                    .key
+                    .is_some_and(|key| !slot.mapping.accepts_note(key, context.velocity))
+                || (matches!(
+                    context.trigger,
+                    Trigger::SustainPress | Trigger::SustainRelease
+                ) && slot.mapping.event_key() != context.key)
+                || slot.control_trigger.as_ref().is_some_and(|trigger| {
+                    !context
+                        .control_event
+                        .as_ref()
+                        .is_some_and(|(control, value)| {
+                            control == &trigger.control
+                                && (trigger.minimum_value..=trigger.maximum_value).contains(value)
+                        })
+                })
+                || (!slot.articulations.is_empty()
+                    && !context
+                        .active_articulation
+                        .as_ref()
+                        .is_some_and(|a| slot.articulations.contains(a)))
+                || slot
+                    .key_conditions
+                    .iter()
+                    .any(|c| held.contains(&c.key) != c.pressed)
+                || slot
+                    .previous_key
+                    .is_some_and(|key| Some(key) != context.previous_key)
+            {
+                continue;
+            }
+            let mut controls_match = true;
+            for condition in &slot.control_conditions {
+                let value = context.controls.get(&condition.control).ok_or_else(|| {
+                    invalid(format!(
+                        "missing sample control {}",
+                        condition.control.as_str()
+                    ))
+                })?;
+                if !condition.accepts(*value) {
+                    controls_match = false;
+                    break;
+                }
+            }
+            if !controls_match
+                || slot.sequence.as_ref().is_some_and(|seq| {
+                    let position = context
+                        .note_on_count
+                        .checked_sub(1)
+                        .map_or(seq.length, |count| count % seq.length + 1);
+                    position != seq.position
+                })
+                || slot
+                    .random_range
+                    .as_ref()
+                    .is_some_and(|r| !(r.minimum..r.maximum).contains(&context.random_value))
+            {
+                continue;
+            }
+            matches.push(&slot.name);
+        }
+        Ok(matches)
+    }
+}
+
+fn one() -> f64 {
+    1.0
+}
+
+fn invalid(message: impl Into<String>) -> Error {
+    Error::Invalid(message.into())
+}
