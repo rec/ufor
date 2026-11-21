@@ -170,7 +170,7 @@ fn direct_construction_and_reconstruction_preserve_invariants() {
     assert!(FrequencyTable::new(vec!["0".into()], 0).is_err());
     assert!(IntervalPattern::new(vec![], true).is_err());
     let original = RatioTable::new(vec!["5/4".into()], None, "just".into(), "test".into()).unwrap();
-    let mut values = original.values().to_vec();
+    let mut values = original.ratios().to_vec();
     values[0] = "3/2".into();
     let edited = RatioTable::new(
         values.clone(),
@@ -197,7 +197,7 @@ fn direct_construction_and_reconstruction_preserve_invariants() {
             "bad/name".into(),
             "title".into(),
             vec![],
-            serde_json::from_value(serde_json::json!({"source":{"kind":"computed"}})).unwrap()
+            serde_json::from_value(serde_json::json!({"source":{}})).unwrap()
         )
         .is_err()
     );
@@ -216,15 +216,10 @@ fn preparation_limits_cover_tables_and_materialization() {
             Computed::new(count as i64, "1".into(), 0)
                 .unwrap()
                 .as_ratios()
-                .map(|v| assert_eq!(v.values().len(), count))
+                .map(|v| assert_eq!(v.ratios().len(), count))
                 .map_err(|e| e.to_string())
         } else {
-            let field = if model == "intervals" {
-                "intervals"
-            } else {
-                "values"
-            };
-            Definition::parse(model, serde_json::json!({field: vec!["1"; count]}))
+            Definition::parse(model, serde_json::json!({model: vec!["1"; count]}))
                 .map(|_| ())
                 .map_err(|e| e.to_string())
         };

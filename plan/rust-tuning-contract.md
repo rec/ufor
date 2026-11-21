@@ -47,12 +47,12 @@ The fixture version describes its shape, not a new score format version.
 | `RatioTable` | `repeat_ratio=null`, `name=""`, `description=""` | 1–10,000 positive entries, optional positive repeat ratio; no ordering or unison requirement |
 | `IntervalPattern` | `repeat=true` | 1–10,000 positive adjacent intervals |
 | `FrequencyTable` | `first_note=0` | 1–10,000 positive hertz expressions and signed i64 starting note |
-| `Tuning` | `root_note=69`, `root_frequency="440"`, `detune_cents=0` | Required discriminated source, positive anchor even for absolute tables, finite detuning |
+| `Tuning` | `root_note=69`, `root_frequency="440"`, `detune_cents=0` | Required source, positive anchor even for absolute tables, finite detuning |
 
-Source kinds are `computed`, `ratios`, `intervals`, and `frequencies`. Standalone
-classes can default their kind; a source dictionary inside `Tuning` requires it.
-Unknown fields are rejected. Expression strings retain spelling except for
-frequency-unit normalization.
+A source object uses `ratios`, `intervals`, or `frequencies` to identify a
+table or pattern. An empty object or an object containing only computed-source
+fields selects `Computed`. Mixed and unknown fields are rejected. Expression
+strings retain spelling except for frequency-unit normalization.
 
 `TuningScore` uses `format="recs"`, integer `version=4`, `kind="tuning"`, required
 name/title/body, and default empty tags. Header rules come from `score.py` and

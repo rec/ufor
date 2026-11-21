@@ -14,7 +14,7 @@ def parse_scala(text: str, name: str = '') -> RatioTable:
         raise ValueError('Scala pitch count does not match the entries')
     entries = [_pitch(i.split()[0]) for i in pitches]
     return RatioTable(
-        values=['1', *entries[:-1]],
+        ratios=['1', *entries[:-1]],
         repeat_ratio=entries[-1],
         name=name,
         description=description,
@@ -22,9 +22,9 @@ def parse_scala(text: str, name: str = '') -> RatioTable:
 
 
 def scala_text(table: RatioTable) -> str:
-    if table.repeat_ratio is None or evaluate(table.values[0]) != 1:
+    if table.repeat_ratio is None or evaluate(table.ratios[0]) != 1:
         raise ValueError('Scala export requires a repeating table beginning at unison')
-    entries = [_scala_pitch(i) for i in [*table.values[1:], table.repeat_ratio]]
+    entries = [_scala_pitch(i) for i in [*table.ratios[1:], table.repeat_ratio]]
     return '\n'.join(
         [
             f'! {table.name}',

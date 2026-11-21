@@ -11,7 +11,6 @@ root_frequency = "440"
 detune_cents = 0.0
 
 [body.source]
-kind = "computed"
 denominator_limit = 0
 notes_per_octave = 12
 octave_ratio = "2"

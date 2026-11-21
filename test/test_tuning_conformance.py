@@ -208,8 +208,7 @@ def prepare_table(case: PreparationCase) -> None:
     if case.model == 'computed':
         Computed(notes_per_octave=case.count, octave_ratio='1').as_ratios()
     else:
-        field = 'intervals' if case.model == 'intervals' else 'values'
-        MODELS[case.model].model_validate({field: ['1'] * case.count})
+        MODELS[case.model].model_validate({case.model: ['1'] * case.count})
 
 
 def check_number(

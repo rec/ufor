@@ -33,9 +33,9 @@ def test_scale_transform_rejects_invalid_or_old_definitions(
 @pytest.mark.parametrize(
     'source',
     [
-        {'kind': 'frequencies', 'values': ['440']},
-        {'kind': 'ratios', 'values': ['1']},
-        {'kind': 'intervals', 'intervals': ['3/2'], 'repeat': False},
+        {'frequencies': ['440']},
+        {'ratios': ['1']},
+        {'intervals': ['3/2'], 'repeat': False},
     ],
 )
 def test_finite_tunings_reject_period_transforms(source: dict[str, object]) -> None:
@@ -60,7 +60,7 @@ def test_tuning_requires_explicit_bend_range() -> None:
         Arpeggiator.model_validate(
             {
                 'rhythm': {'kind': 'grid', 'step': '1 beat'},
-                'tuning': {'source': {'kind': 'computed'}},
+                'tuning': {'source': {}},
             }
         )
 
@@ -69,7 +69,7 @@ def test_register_policy_overrides_unused_legacy_folding_for_finite_tuning() -> 
     arp = Arpeggiator.model_validate(
         {
             'rhythm': {'kind': 'grid', 'step': '1 beat'},
-            'tuning': {'source': {'kind': 'frequencies', 'values': ['440']}},
+            'tuning': {'source': {'frequencies': ['440']}},
             'bend_range': 2,
             'transposition': {'boundary': 'fold'},
             'register_limits': {'boundary': 'drop'},

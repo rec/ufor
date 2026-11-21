@@ -94,12 +94,10 @@ def test_segment_expressions_select_their_clock_and_round_trip(
 
 def test_rhythmic_steps_and_tuning_accept_pint_expressions() -> None:
     assert Grid(step='1000 millibeat / 3').step == '1/3 beat'
-    tuning = Tuning(source={'kind': 'computed'}, root_frequency='880 Hz / 2')
+    tuning = Tuning(source={}, root_frequency='880 Hz / 2')
     assert tuning.root_frequency == '440'
     assert (
-        Tuning(
-            source={'kind': 'computed'}, root_frequency='440/2^(1/12)'
-        ).root_frequency
+        Tuning(source={}, root_frequency='440/2^(1/12)').root_frequency
         == '440/2^(1/12)'
     )
 
@@ -238,8 +236,8 @@ def test_geometry_effects_and_slide_angles_normalize_in_their_own_units() -> Non
         ).rotation
         == 90
     )
-    assert FrequencyTable(values=['2kHz']).frequencies == [2000]
-    tuning = Tuning(source={'kind': 'computed'}, root_frequency='2kHz')
+    assert FrequencyTable(frequencies=['2kHz']).frequencies == ['2000']
+    tuning = Tuning(source={}, root_frequency='2kHz')
     assert tuning.root_frequency == '2000'
 
 

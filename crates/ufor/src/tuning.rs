@@ -106,8 +106,7 @@ impl RatioTable {
             .transpose()?;
         Ok(Self {
             definition: RatioDefinition {
-                kind: ratios_kind(),
-                values,
+                ratios: values,
                 repeat_ratio,
                 name,
                 description,
@@ -117,8 +116,8 @@ impl RatioTable {
         })
     }
 
-    pub fn values(&self) -> &[String] {
-        &self.definition.values
+    pub fn ratios(&self) -> &[String] {
+        &self.definition.ratios
     }
     pub fn repeat_ratio(&self) -> Option<&str> {
         self.definition.repeat_ratio.as_deref()
@@ -157,11 +156,7 @@ impl IntervalPattern {
     pub fn new(intervals: Vec<String>, repeat: bool) -> Result<Self, Error> {
         let ratios = positive_values(&intervals)?;
         Ok(Self {
-            definition: IntervalDefinition {
-                kind: intervals_kind(),
-                intervals,
-                repeat,
-            },
+            definition: IntervalDefinition { intervals, repeat },
             ratios,
         })
     }
@@ -207,16 +202,15 @@ impl FrequencyTable {
         let frequencies = positive_values(&values)?;
         Ok(Self {
             definition: FrequencyDefinition {
-                kind: frequencies_kind(),
-                values,
+                frequencies: values,
                 first_note,
             },
             frequencies,
         })
     }
 
-    pub fn values(&self) -> &[String] {
-        &self.definition.values
+    pub fn frequencies(&self) -> &[String] {
+        &self.definition.frequencies
     }
     pub fn first_note(&self) -> i64 {
         self.definition.first_note
@@ -363,26 +357,6 @@ fn product(values: &[Number]) -> Result<Number, Error> {
         .try_fold(Number::exact(1, 1)?, |a, v| a.checked_mul(*v))
 }
 
-fn kind(actual: &str, expected: &str) -> Result<(), Error> {
-    if actual == expected {
-        Ok(())
-    } else {
-        Err(Error::Invalid(format!("expected kind {expected}")))
-    }
-}
-
-fn computed_kind() -> String {
-    "computed".into()
-}
-fn ratios_kind() -> String {
-    "ratios".into()
-}
-fn intervals_kind() -> String {
-    "intervals".into()
-}
-fn frequencies_kind() -> String {
-    "frequencies".into()
-}
 fn root_note() -> i64 {
     69
 }
@@ -396,7 +370,6 @@ fn repeating() -> bool {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
 struct ComputedDefinition {
-    kind: String,
     denominator_limit: i64,
     notes_per_octave: i64,
     octave_ratio: String,
@@ -405,7 +378,6 @@ struct ComputedDefinition {
 impl Default for ComputedDefinition {
     fn default() -> Self {
         Self {
-            kind: computed_kind(),
             denominator_limit: 0,
             notes_per_octave: 12,
             octave_ratio: "2".into(),
@@ -416,7 +388,6 @@ impl Default for ComputedDefinition {
 impl TryFrom<ComputedDefinition> for Computed {
     type Error = Error;
     fn try_from(value: ComputedDefinition) -> Result<Self, Error> {
-        kind(&value.kind, "computed")?;
         Self::new(
             value.notes_per_octave,
             value.octave_ratio,
@@ -433,9 +404,7 @@ impl From<Computed> for ComputedDefinition {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RatioDefinition {
-    #[serde(default = "ratios_kind")]
-    kind: String,
-    values: Vec<String>,
+    ratios: Vec<String>,
     #[serde(default)]
     repeat_ratio: Option<String>,
     #[serde(default)]
@@ -446,9 +415,8 @@ struct RatioDefinition {
 impl TryFrom<RatioDefinition> for RatioTable {
     type Error = Error;
     fn try_from(value: RatioDefinition) -> Result<Self, Error> {
-        kind(&value.kind, "ratios")?;
         Self::new(
-            value.values,
+            value.ratios,
             value.repeat_ratio,
             value.name,
             value.description,
@@ -464,8 +432,6 @@ impl From<RatioTable> for RatioDefinition {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct IntervalDefinition {
-    #[serde(default = "intervals_kind")]
-    kind: String,
     intervals: Vec<String>,
     #[serde(default = "repeating")]
     repeat: bool,
@@ -473,7 +439,6 @@ struct IntervalDefinition {
 impl TryFrom<IntervalDefinition> for IntervalPattern {
     type Error = Error;
     fn try_from(value: IntervalDefinition) -> Result<Self, Error> {
-        kind(&value.kind, "intervals")?;
         Self::new(value.intervals, value.repeat)
     }
 }
@@ -486,17 +451,14 @@ impl From<IntervalPattern> for IntervalDefinition {
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct FrequencyDefinition {
-    #[serde(default = "frequencies_kind")]
-    kind: String,
-    values: Vec<String>,
+    frequencies: Vec<String>,
     #[serde(default)]
     first_note: i64,
 }
 impl TryFrom<FrequencyDefinition> for FrequencyTable {
     type Error = Error;
     fn try_from(value: FrequencyDefinition) -> Result<Self, Error> {
-        kind(&value.kind, "frequencies")?;
-        Self::new(value.values, value.first_note)
+        Self::new(value.frequencies, value.first_note)
     }
 }
 impl From<FrequencyTable> for FrequencyDefinition {
@@ -506,15 +468,11 @@ impl From<FrequencyTable> for FrequencyDefinition {
 }
 
 #[derive(Deserialize)]
-#[serde(tag = "kind")]
+#[serde(untagged)]
 enum SourceDefinition {
-    #[serde(rename = "computed")]
     Computed(ComputedDefinition),
-    #[serde(rename = "ratios")]
     Ratios(RatioDefinition),
-    #[serde(rename = "intervals")]
     Intervals(IntervalDefinition),
-    #[serde(rename = "frequencies")]
     Frequencies(FrequencyDefinition),
 }
 

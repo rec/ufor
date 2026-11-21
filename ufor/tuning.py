@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated
 
 from pydantic import AfterValidator, BeforeValidator, ConfigDict, Field, ValidationInfo
 from reccy.configuration import units
@@ -51,7 +51,6 @@ def portable_detune(value: object, info: ValidationInfo) -> object:
 
 
 class Computed(Model):
-    kind: Literal['computed'] = 'computed'
     denominator_limit: Annotated[int, BeforeValidator(portable_integer)] = Field(
         0,
         ge=0,
@@ -82,7 +81,7 @@ class Computed(Model):
         if self.notes_per_octave > MAX_TABLE_ENTRIES:
             raise ValueError('Table exceeds 10000 entries')
         return RatioTable(
-            values=[str(self(i)) for i in range(self.notes_per_octave)],
+            ratios=[str(self(i)) for i in range(self.notes_per_octave)],
             repeat_ratio=str(self(self.notes_per_octave)),
         )
 
@@ -92,26 +91,21 @@ class Computed(Model):
 class RatioTable(Model):
     """Reference-relative ratios; optional repetition multiplies each cycle."""
 
-    kind: Literal['ratios'] = 'ratios'
-    values: list[Annotated[str, AfterValidator(positive)]] = Field(
+    ratios: list[Annotated[str, AfterValidator(positive)]] = Field(
         min_length=1, max_length=MAX_TABLE_ENTRIES
     )
     repeat_ratio: Annotated[str, AfterValidator(positive)] | None = None
     name: str = ''
     description: str = ''
 
-    @property
-    def ratios(self) -> list[PitchNumber]:
-        return table_values(self.values)
-
     def __call__(self, degree: int) -> PitchNumber:
         number.bounded_integer(degree)
-        ratios = self.ratios
+        ratios = table_values(self.ratios)
         if self.repeat_ratio is None:
-            if not 0 <= degree < len(self.values):
+            if not 0 <= degree < len(self.ratios):
                 raise ValueError('Degree is outside the finite ratio table')
             return ratios[degree]
-        cycle, offset = divmod(degree, len(self.values))
+        cycle, offset = divmod(degree, len(self.ratios))
         return number.positive_number(
             number.checked_multiply(
                 number.checked_power(evaluate(self.repeat_ratio), cycle), ratios[offset]
@@ -124,7 +118,6 @@ class RatioTable(Model):
 class IntervalPattern(Model):
     """Adjacent frequency ratios; degree zero is unison."""
 
-    kind: Literal['intervals'] = 'intervals'
     intervals: list[Annotated[str, AfterValidator(positive)]] = Field(
         min_length=1, max_length=MAX_TABLE_ENTRIES
     )
@@ -155,8 +148,7 @@ class IntervalPattern(Model):
 class FrequencyTable(Model):
     """Absolute hertz values over a finite contiguous note range. Never wraps."""
 
-    kind: Literal['frequencies'] = 'frequencies'
-    values: list[
+    frequencies: list[
         Annotated[str, BeforeValidator(frequency_expression), AfterValidator(positive)]
     ] = Field(min_length=1, max_length=MAX_TABLE_ENTRIES)
     first_note: Annotated[int, BeforeValidator(portable_integer)] = Field(
@@ -167,19 +159,15 @@ class FrequencyTable(Model):
         },
     )
 
-    @property
-    def frequencies(self) -> list[PitchNumber]:
-        return table_values(self.values)
-
     def __call__(self, note: int) -> PitchNumber:
         number.bounded_integer(note)
         number.bounded_integer(self.first_note)
-        frequencies = self.frequencies
+        frequencies = table_values(self.frequencies)
         try:
             index = number.checked_difference(note, self.first_note)
         except ValueError as error:
             raise ValueError('Note is outside the finite frequency table') from error
-        if not 0 <= index < len(self.values):
+        if not 0 <= index < len(self.frequencies):
             raise ValueError('Note is outside the finite frequency table')
         return frequencies[index]
 
@@ -187,10 +175,7 @@ class FrequencyTable(Model):
 
 
 class Tuning(Model):
-    source: Annotated[
-        Computed | RatioTable | IntervalPattern | FrequencyTable,
-        Field(discriminator='kind'),
-    ]
+    source: Computed | RatioTable | IntervalPattern | FrequencyTable
     root_note: Annotated[int, BeforeValidator(portable_integer)] = Field(
         69,
         json_schema_extra={

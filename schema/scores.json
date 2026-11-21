@@ -3404,12 +3404,6 @@
     "Computed": {
       "additionalProperties": false,
       "properties": {
-        "kind": {
-          "const": "computed",
-          "default": "computed",
-          "title": "Kind",
-          "type": "string"
-        },
         "denominator_limit": {
           "default": 0,
           "description": "Maximum rational denominator; 0 disables approximation",
@@ -6834,19 +6828,13 @@
       "additionalProperties": false,
       "description": "Absolute hertz values over a finite contiguous note range. Never wraps.",
       "properties": {
-        "kind": {
-          "const": "frequencies",
-          "default": "frequencies",
-          "title": "Kind",
-          "type": "string"
-        },
-        "values": {
+        "frequencies": {
           "items": {
             "type": "string"
           },
           "maxItems": 10000,
           "minItems": 1,
-          "title": "Values",
+          "title": "Frequencies",
           "type": "array"
         },
         "first_note": {
@@ -6858,7 +6846,7 @@
         }
       },
       "required": [
-        "values"
+        "frequencies"
       ],
       "title": "FrequencyTable",
       "type": "object"
@@ -7713,12 +7701,6 @@
       "additionalProperties": false,
       "description": "Adjacent frequency ratios; degree zero is unison.",
       "properties": {
-        "kind": {
-          "const": "intervals",
-          "default": "intervals",
-          "title": "Kind",
-          "type": "string"
-        },
         "intervals": {
           "items": {
             "type": "string"
@@ -12079,19 +12061,13 @@
       "additionalProperties": false,
       "description": "Reference-relative ratios; optional repetition multiplies each cycle.",
       "properties": {
-        "kind": {
-          "const": "ratios",
-          "default": "ratios",
-          "title": "Kind",
-          "type": "string"
-        },
-        "values": {
+        "ratios": {
           "items": {
             "type": "string"
           },
           "maxItems": 10000,
           "minItems": 1,
-          "title": "Values",
+          "title": "Ratios",
           "type": "array"
         },
         "repeat_ratio": {
@@ -12118,7 +12094,7 @@
         }
       },
       "required": [
-        "values"
+        "ratios"
       ],
       "title": "RatioTable",
       "type": "object"
@@ -16432,16 +16408,7 @@
       "additionalProperties": false,
       "properties": {
         "source": {
-          "discriminator": {
-            "mapping": {
-              "computed": "#/$defs/Computed",
-              "frequencies": "#/$defs/FrequencyTable",
-              "intervals": "#/$defs/IntervalPattern",
-              "ratios": "#/$defs/RatioTable"
-            },
-            "propertyName": "kind"
-          },
-          "oneOf": [
+          "anyOf": [
             {
               "$ref": "#/$defs/Computed"
             },

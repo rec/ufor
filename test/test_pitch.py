@@ -61,7 +61,7 @@ def test_repeating_ratios_and_intervals_share_conformance_values() -> None:
     for name in ('ratios', 'intervals'):
         case = CASES[name]
         table = (
-            RatioTable(values=case['values'], repeat_ratio=case['repeat_ratio'])
+            RatioTable(ratios=case['values'], repeat_ratio=case['repeat_ratio'])
             if name == 'ratios'
             else IntervalPattern(intervals=case['values'])
         )
@@ -77,10 +77,10 @@ def test_equal_temperament_has_one_repeating_adjacent_interval() -> None:
 
 
 def test_finite_tables_and_intervals_reject_both_outside_boundaries() -> None:
-    frequencies = FrequencyTable(values=['440', '660'], first_note=69)
+    frequencies = FrequencyTable(frequencies=['440', '660'], first_note=69)
     assert frequencies(69) == 440
     assert frequencies(70) == 660
-    ratios = RatioTable(values=['1', '3/2'])
+    ratios = RatioTable(ratios=['1', '3/2'])
     intervals = IntervalPattern(intervals=['3/2'], repeat=False)
     assert ratios(1) == intervals(1) == Fraction(3, 2)
     for table, indexes in (
@@ -95,7 +95,7 @@ def test_finite_tables_and_intervals_reject_both_outside_boundaries() -> None:
 
 def test_mts_sized_frequency_table_remains_finite() -> None:
     tuning = Tuning(source=Computed())
-    table = FrequencyTable(values=[str(tuning(i)) for i in range(128)])
+    table = FrequencyTable(frequencies=[str(tuning(i)) for i in range(128)])
     assert table(69) == 440
     with pytest.raises(ValueError, match='outside'):
         table(128)
@@ -103,11 +103,11 @@ def test_mts_sized_frequency_table_remains_finite() -> None:
 
 def test_tuning_anchors_ratios_but_does_not_transpose_absolute_tables() -> None:
     tuning = Tuning(
-        source=RatioTable(values=['1', '5/4'], repeat_ratio='2'), root_frequency='440/3'
+        source=RatioTable(ratios=['1', '5/4'], repeat_ratio='2'), root_frequency='440/3'
     )
     assert tuning(70) == pytest.approx(440 / 3 * 5 / 4)
     absolute = Tuning(
-        source=FrequencyTable(values=['440'], first_note=69),
+        source=FrequencyTable(frequencies=['440'], first_note=69),
         root_frequency='100',
         detune_cents=1200,
     )
@@ -121,7 +121,7 @@ def test_computed_limit_is_a_maximum_denominator() -> None:
 
 
 def test_tuning_preserves_exact_ratios_without_detuning() -> None:
-    tuning = Tuning(source=RatioTable(values=['1', '5/4']), root_frequency='440/3')
+    tuning = Tuning(source=RatioTable(ratios=['1', '5/4']), root_frequency='440/3')
     assert isinstance(tuning(70), Fraction)
     assert tuning(70) == Fraction(550, 3)
     for degree, expected in [
@@ -142,11 +142,13 @@ def test_scala_preserves_fractions_and_converts_decimal_cents() -> None:
     assert table(-3) == Fraction(1, 2)
     exported = scala_text(table)
     assert '\n5/4\n' in exported
-    assert parse_scala(exported).ratios == pytest.approx(table.ratios)
+    round_tripped = parse_scala(exported)
+    for degree in range(len(table.ratios)):
+        assert round_tripped(degree) == pytest.approx(table(degree))
     with pytest.raises(ValueError, match='count'):
         parse_scala('Example\n2\n2\n')
     with pytest.raises(ValueError, match='repeating'):
-        scala_text(RatioTable(values=['1']))
+        scala_text(RatioTable(ratios=['1']))
 
 
 @pytest.mark.parametrize(
@@ -155,7 +157,7 @@ def test_scala_preserves_fractions_and_converts_decimal_cents() -> None:
         TuningScore(
             name='tuning',
             title='Ratios',
-            body=Tuning(source=RatioTable(values=['1', '5/4'], repeat_ratio='2')),
+            body=Tuning(source=RatioTable(ratios=['1', '5/4'], repeat_ratio='2')),
         ),
         ScaleScore(name='scale', title='Notes', body=Scale()),
         OscillatorScore(
@@ -202,8 +204,8 @@ def test_scale_names_and_pitch_mapping_include_negative_notes() -> None:
 @pytest.mark.parametrize(
     'table, field, note, replacement, expected',
     [
-        (RatioTable(values=['1', '5/4']), 'values', 1, '3/2', Fraction(3, 2)),
-        (FrequencyTable(values=['440', '550']), 'values', 1, '660', 660),
+        (RatioTable(ratios=['1', '5/4']), 'ratios', 1, '3/2', Fraction(3, 2)),
+        (FrequencyTable(frequencies=['440', '550']), 'frequencies', 1, '660', 660),
         (IntervalPattern(intervals=['5/4']), 'intervals', 1, '3/2', Fraction(3, 2)),
     ],
 )
@@ -260,9 +262,9 @@ def test_scale_repeated_intervals_and_edits_keep_pitch_mapping_consistent() -> N
 
 def test_serializing_an_edited_definition_revalidates_it() -> None:
     document = TuningScore(
-        name='edited', title='Edited', body=Tuning(source=RatioTable(values=['1']))
+        name='edited', title='Edited', body=Tuning(source=RatioTable(ratios=['1']))
     )
-    document.body.source.values[0] = '-1'
+    document.body.source.ratios[0] = '-1'
     with pytest.raises(ValueError):
         score_toml(document)
 
