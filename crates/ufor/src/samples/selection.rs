@@ -1,10 +1,12 @@
 //! Deterministic advancement of one sampler take-selection partition.
 
 use super::eligibility::Trigger;
+use super::random::{hash_field, uniform_integer};
 use crate::{error::Error, identifier::Identifier};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::collections::BTreeSet;
+use std::num::NonZeroU64;
 
 #[derive(Clone, Copy, Debug, Deserialize)]
 #[serde(rename_all = "snake_case")]
@@ -123,30 +125,7 @@ impl Sequence {
         ]) {
             hash_field(&mut digest, field);
         }
-        let bound = bound as u128;
-        // Compute 2^256 modulo the bound one byte at a time.
-        let rejected = (0..32).fold(1_u128, |value, _| (value << 8) % bound);
-        for retry in 0..=u64::MAX {
-            let mut draw = digest.clone();
-            hash_field(&mut draw, &retry.to_string());
-            let bytes = draw.finalize();
-            // Only the last `rejected` integers of the 256-bit range are biased.
-            if bytes[..24].iter().all(|byte| *byte == 255) {
-                let tail = u64::from_be_bytes(bytes[24..].try_into().expect("eight digest bytes"));
-                if u128::from(u64::MAX - tail) < rejected {
-                    continue;
-                }
-            }
-            return Ok(bytes.iter().fold(0_u128, |value, byte| {
-                ((value << 8) | u128::from(*byte)) % bound
-            }) as usize);
-        }
-        Err(Error::Limit("sample selection draw retries"))
+        let bound = NonZeroU64::new(bound as u64).expect("positive take count");
+        Ok(uniform_integer(digest, bound)? as usize)
     }
-}
-
-fn hash_field(digest: &mut Sha256, field: &str) {
-    // Identifiers have a smaller portable length limit than the prefix.
-    digest.update((field.len() as u32).to_be_bytes());
-    digest.update(field.as_bytes());
 }

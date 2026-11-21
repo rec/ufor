@@ -16,6 +16,7 @@ use crate::samples::eligibility::{Context as EligibilityContext, Eligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
 use crate::samples::selection::Sequence;
+use crate::samples::variation::Variation;
 use crate::score::Score;
 use crate::tuning::Tuning;
 
@@ -73,6 +74,11 @@ pub fn parse_sample_eligibility_context(
 }
 
 pub fn parse_sample_selection_sequence(text: &str, format: Format) -> Result<Sequence, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_sample_variation(text: &str, format: Format) -> Result<Variation, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
 }

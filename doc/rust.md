@@ -85,6 +85,14 @@ SHA-256 draw and selection snapshot fields. The
 [shared vectors](../conformance/selection.json) cover choices and continuation
 after restoring the partition. Rust uses a checked unsigned 64-bit counter.
 
+`samples::variation::DrawEvent` derives the shared random-range draw for
+an event. `Variation::resolve` uses that event and the supplied take or slot
+identity to resolve independent delay, frame offset, pitch and gain draws.
+The portable API uses signed 64-bit ticks and frame offsets, unsigned 64-bit
+seeds and ordinals, and binary64 scalar bounds in canonical units.
+The [random-range](../conformance/random-ranges.json) and
+[variation](../conformance/variation.json) cases pin both draw contracts.
+
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
 with checked 64-bit rational arithmetic and rounds up once to an output frame.
@@ -186,7 +194,7 @@ adapter. Unitless frequency strings retain their spelling.
 
 Python installation remains independent of Rust. The core uses Serde,
 `serde_json` and `toml` for document interchange and `sha2` for deterministic
-sample take selection,
+sample draws,
 without Python or host-library dependencies.
 
 Run the native checks from the repository root:

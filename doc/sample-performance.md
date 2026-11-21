@@ -203,8 +203,10 @@ For every input event, all candidate slots share one random value. Derive it wit
 SHA-256 from length-prefixed UTF-8 values: the domain tag
 `sample-random-range-v1`, decimal seed, part ID, trigger ID (or empty), decimal
 event tick, and decimal ordinal. Interpret the first seven digest bytes as an
-unsigned integer and divide by `2 ** 56`, producing `[0, 1)`. This has no mutable
-state, so unrelated voices, selections, and block boundaries cannot affect it.
+unsigned integer and divide by `2 ** 56`. The binary64 result can round to
+`1` for the largest prefixes, where it matches no half-open range. The draw
+has no mutable state, so unrelated voices, selections, and block boundaries
+cannot affect it.
 `conformance/random-ranges.json` pins the portable case.
 
 ## Parameter Variation

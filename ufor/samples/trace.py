@@ -42,7 +42,7 @@ from .instrument import (
 )
 from .processing import ChannelRoute, SoundSettings
 from .selection import AdvanceSelection, SelectionState, choose, random_range_value
-from .variation import ResolvedVariation, resolve
+from .variation import ResolvedVariation, Variation, resolve
 
 
 class VoiceStart(LifecycleVoiceStart):
@@ -157,11 +157,19 @@ def prepare(
     *,
     eligible_slots: Callable[[EligibilityContext], list[Identifier]] | None = None,
     advance_selection: AdvanceSelection | None = None,
+    draw_random_range: Callable[
+        [int, str, str | None, int, int], float
+    ] = random_range_value,
+    resolve_variation: Callable[
+        [Variation, int, Identifier, Identifier | None, int, int, Identifier],
+        ResolvedVariation,
+    ] = resolve,
 ) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering.
 
     An optional eligibility evaluator returns matching slot names in declaration
     order. An optional selection evaluator advances a single take partition.
+    The supplied draw functions resolve stateless event and per-voice values.
     This function owns event state and the order of partitions in snapshots.
     """
     instrument = SampleInstrument.model_validate(instrument.model_dump())
@@ -220,7 +228,7 @@ def prepare(
             if isinstance(event, ControlChange)
             else None,
             note_on_count=state.note_on_counts.get(part, 0),
-            random_value=random_range_value(
+            random_value=draw_random_range(
                 seed,
                 part,
                 getattr(event, 'trigger_id', None),
@@ -369,7 +377,7 @@ def prepare(
             voice_id = f'voice-{next_voice}'
             next_voice += 1
             sample_slice = slices[slot.slice]
-            resolved_variation = resolve(
+            resolved_variation = resolve_variation(
                 slot.variation,
                 seed,
                 part,
