@@ -13,7 +13,14 @@
     {"kind":"limiter","name":"limiter"},
     {"kind":"transient_shaper","name":"transient","attack_gain_db":12},
     {"kind":"dynamic_eq","name":"eq","center_hz":"2 kHz"},
-    {"kind":"multiband_compressor","name":"multi","mid":{"ratio":3}}
+    {"kind":"multiband_compressor","name":"multi","mid":{"ratio":3}},
+    {"kind":"reverb","name":"room","predelay_seconds":"25 ms"},
+    {"kind":"tap_delay","name":"tap","delay_seconds":"125 ms","maximum_delay_seconds":0.5},
+    {"kind":"matrix_delay","name":"matrix","delay_seconds":0.125,"maximum_delay_seconds":0.5,
+     "damping_hz":"4 kHz","feedback_matrix":[[0,-1],[0.5,0.5]]},
+    {"kind":"resonant_delay","name":"resonant","frequency_hz":"440 Hz"},
+    {"kind":"modulated_delay","name":"chorus","base_delay_seconds":0.125,"depth_seconds":0.03125,
+     "maximum_delay_seconds":0.25,"rate_hz":2,"waveform":"triangle","channel_phase_offsets":[0,0.5]}
   ],
   "accepted": [
     ["gain","gain_db","db",-6,-24,24],
@@ -36,7 +43,14 @@
     ["eq","maximum_cut_db","db",12,0,24],
     ["multi","low-ratio","ratio",1,1,8],
     ["multi","mid-ratio","ratio",3,1,8],
-    ["multi","high-release_seconds","seconds",0.1,0,1]
+    ["multi","high-release_seconds","seconds",0.1,0,1],
+    ["room","predelay_seconds","seconds",0.025,0,0.25],
+    ["tap","delay_seconds","seconds",0.125,0.0625,0.5],
+    ["matrix","damping_hz","hz",4000,200,6000],
+    ["resonant","decay_seconds","seconds",1,0.125,4],
+    ["chorus","base_delay_seconds","seconds",0.125,0.0625,0.21875],
+    ["chorus","depth_seconds","seconds",0.03125,0,0.0625],
+    ["chorus","rate_hz","hz",2,0.5,4]
   ],
   "rejected": [
     ["gain","mix","ratio",0.5,-1,1],
@@ -58,7 +72,15 @@
     ["eq","q","ratio",1,0,4],
     ["multi","mid-ratio","ratio",1,1,8],
     ["multi","low-knee_db","db",6,-1,24],
-    ["multi","lower_crossover_hz","hz",200,100,300]
+    ["multi","lower_crossover_hz","hz",200,100,300],
+    ["room","predelay_seconds","seconds",0.025,0,0.251],
+    ["tap","feedback","ratio",0,0,1],
+    ["tap","damping_hz","hz",4000,200,6000],
+    ["tap","delay_seconds","seconds",0.125,0,0.5],
+    ["matrix","delay_seconds","seconds",0.125,0.0625,0.501],
+    ["resonant","frequency_hz","hz",440,220,880],
+    ["chorus","base_delay_seconds","seconds",0.125,0.03125,0.21875],
+    ["chorus","depth_seconds","seconds",0.03125,0,0.125]
   ],
   "invalid_processors": [
     {"kind":"gain","name":"gain","bypass_fade_frames":0},
@@ -75,6 +97,15 @@
     {"kind":"transient_shaper","name":"transient","sustain_gain_db":25},
     {"kind":"dynamic_eq","name":"eq","maximum_cut_db":-1},
     {"kind":"multiband_compressor","name":"multi","lower_crossover_hz":4000},
-    {"kind":"multiband_compressor","name":"multi","high":{"ratio":0}}
+    {"kind":"multiband_compressor","name":"multi","high":{"ratio":0}},
+    {"kind":"reverb","name":"room","predelay_seconds":0.3},
+    {"kind":"tap_delay","name":"tap","delay_seconds":0.2,"maximum_delay_seconds":0.1},
+    {"kind":"matrix_delay","name":"matrix","delay_seconds":0.125,"maximum_delay_seconds":0.5,
+     "feedback_matrix":[[1,0.1],[0,1]]},
+    {"kind":"matrix_delay","name":"matrix","delay_seconds":0.125,"maximum_delay_seconds":0.5,
+     "feedback_matrix":[[1,0]]},
+    {"kind":"resonant_delay","name":"resonant","frequency_hz":0},
+    {"kind":"modulated_delay","name":"chorus","base_delay_seconds":0.125,"depth_seconds":0.125,
+     "maximum_delay_seconds":0.5,"rate_hz":2}
   ]
 }

@@ -1,6 +1,8 @@
 //! Portable effect processors and their modulation targets.
+use crate::envelfo::Waveform;
 use crate::error::Error;
 use crate::identifier::Identifier;
+use crate::modulation::math::{add_partial, sum_partials};
 use crate::modulation::{Parameter, Unit};
 use crate::quantity;
 use crate::samples::processing::ResonantFilter;
@@ -33,7 +35,12 @@ impl Processor {
             | Definition::Limiter { name, .. }
             | Definition::TransientShaper { name, .. }
             | Definition::DynamicEq { name, .. }
-            | Definition::MultibandCompressor { name, .. } => name,
+            | Definition::MultibandCompressor { name, .. }
+            | Definition::Reverb { name, .. }
+            | Definition::TapDelay { name, .. }
+            | Definition::MatrixDelay { name, .. }
+            | Definition::ResonantDelay { name, .. }
+            | Definition::ModulatedDelay { name, .. } => name,
         }
     }
 
@@ -55,6 +62,11 @@ impl Processor {
             | Definition::Limiter { mix, .. }
             | Definition::TransientShaper { mix, .. }
             | Definition::DynamicEq { mix, .. }
+            | Definition::Reverb { mix, .. }
+            | Definition::TapDelay { mix, .. }
+            | Definition::MatrixDelay { mix, .. }
+            | Definition::ResonantDelay { mix, .. }
+            | Definition::ModulatedDelay { mix, .. }
                 if field == "mix" =>
             {
                 (Unit::Ratio, *mix, Domain::Closed(0.0, 1.0))
@@ -154,6 +166,73 @@ impl Processor {
                 };
                 band.target(control)?
             }
+            Definition::Reverb {
+                predelay_seconds,
+                maximum_predelay_seconds,
+                decay_seconds,
+                damping_hz,
+                ..
+            } => match field {
+                "predelay_seconds" => (
+                    Unit::Seconds,
+                    *predelay_seconds,
+                    Domain::Closed(0.0, *maximum_predelay_seconds),
+                ),
+                "decay_seconds" => (Unit::Seconds, *decay_seconds, Domain::Positive),
+                "damping_hz" => (Unit::Hz, *damping_hz, Domain::Positive),
+                _ => return None,
+            },
+            Definition::TapDelay {
+                delay_seconds,
+                maximum_delay_seconds,
+                feedback,
+                damping_hz,
+                ..
+            }
+            | Definition::MatrixDelay {
+                delay_seconds,
+                maximum_delay_seconds,
+                feedback,
+                damping_hz,
+                ..
+            } => match field {
+                "delay_seconds" => (
+                    Unit::Seconds,
+                    *delay_seconds,
+                    Domain::OpenClosed(0.0, *maximum_delay_seconds),
+                ),
+                "feedback" => (Unit::Ratio, *feedback, Domain::Feedback),
+                "damping_hz" => (Unit::Hz, (*damping_hz)?, Domain::Positive),
+                _ => return None,
+            },
+            Definition::ResonantDelay { decay_seconds, .. } if field == "decay_seconds" => {
+                (Unit::Seconds, *decay_seconds, Domain::Positive)
+            }
+            Definition::ModulatedDelay {
+                base_delay_seconds,
+                depth_seconds,
+                maximum_delay_seconds,
+                rate_hz,
+                feedback,
+                ..
+            } => match field {
+                "base_delay_seconds" => (
+                    Unit::Seconds,
+                    *base_delay_seconds,
+                    Domain::OpenClosed(*depth_seconds, maximum_delay_seconds - depth_seconds),
+                ),
+                "depth_seconds" => (
+                    Unit::Seconds,
+                    *depth_seconds,
+                    Domain::DelayDepth {
+                        base: *base_delay_seconds,
+                        maximum: *maximum_delay_seconds,
+                    },
+                ),
+                "rate_hz" => (Unit::Hz, *rate_hz, Domain::AtLeast(0.0)),
+                "feedback" => (Unit::Ratio, *feedback, Domain::Feedback),
+                _ => return None,
+            },
             _ => return None,
         };
         Some(TargetFacts {
@@ -177,6 +256,39 @@ impl Processor {
         facts.domain.check(parameter.minimum())?;
         facts.domain.check(parameter.maximum())
     }
+
+    /// Validate the targets owned by this processor and any coupled range limits.
+    pub fn validate_parameters<'a>(
+        &self,
+        parameters: impl IntoIterator<Item = &'a Parameter>,
+    ) -> Result<(), Error> {
+        let mut base = None;
+        let mut depth = None;
+        for parameter in parameters {
+            self.validate_parameter(parameter)?;
+            match parameter.target().parameter().as_str() {
+                "base_delay_seconds" => base = Some((parameter.minimum(), parameter.maximum())),
+                "depth_seconds" => depth = Some(parameter.maximum()),
+                _ => (),
+            }
+        }
+        if let Definition::ModulatedDelay {
+            base_delay_seconds,
+            depth_seconds,
+            maximum_delay_seconds,
+            ..
+        } = &self.0
+        {
+            let (minimum, maximum) = base.unwrap_or((*base_delay_seconds, *base_delay_seconds));
+            let depth = depth.unwrap_or(*depth_seconds);
+            if minimum <= depth || maximum + depth > *maximum_delay_seconds {
+                return Err(Error::Invalid(
+                    "modulation domains exceed the prepared delay span".into(),
+                ));
+            }
+        }
+        Ok(())
+    }
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -186,6 +298,9 @@ enum Domain {
     AtLeast(f64),
     AtMost(f64),
     Closed(f64, f64),
+    OpenClosed(f64, f64),
+    Feedback,
+    DelayDepth { base: f64, maximum: f64 },
 }
 
 impl Domain {
@@ -197,6 +312,11 @@ impl Domain {
             Self::AtLeast(minimum) => value >= minimum,
             Self::AtMost(maximum) => value <= maximum,
             Self::Closed(minimum, maximum) => (minimum..=maximum).contains(&value),
+            Self::OpenClosed(minimum, maximum) => minimum < value && value <= maximum,
+            Self::Feedback => (0.0..1.0).contains(&value),
+            Self::DelayDepth { base, maximum } => {
+                (0.0..base).contains(&value) && base + value <= maximum
+            }
         };
         if valid {
             Ok(())
@@ -378,6 +498,120 @@ enum Definition {
         #[serde(default = "floor")]
         state_floor: f64,
     },
+    Reverb {
+        name: Identifier,
+        #[serde(default, deserialize_with = "seconds")]
+        predelay_seconds: f64,
+        #[serde(default = "reverb_predelay", deserialize_with = "seconds")]
+        maximum_predelay_seconds: f64,
+        #[serde(default = "two", deserialize_with = "seconds")]
+        decay_seconds: f64,
+        #[serde(default = "delay_damping", deserialize_with = "hertz")]
+        damping_hz: f64,
+        #[serde(default = "fade")]
+        retime_fade_frames: i64,
+        #[serde(default = "reverb_mix")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
+    TapDelay {
+        name: Identifier,
+        #[serde(deserialize_with = "seconds")]
+        delay_seconds: f64,
+        #[serde(deserialize_with = "seconds")]
+        maximum_delay_seconds: f64,
+        #[serde(default)]
+        feedback: f64,
+        #[serde(
+            default,
+            deserialize_with = "optional_hertz",
+            skip_serializing_if = "Option::is_none"
+        )]
+        damping_hz: Option<f64>,
+        #[serde(default = "fade")]
+        retime_fade_frames: i64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
+    MatrixDelay {
+        name: Identifier,
+        #[serde(deserialize_with = "seconds")]
+        delay_seconds: f64,
+        #[serde(deserialize_with = "seconds")]
+        maximum_delay_seconds: f64,
+        #[serde(default)]
+        feedback: f64,
+        #[serde(
+            default,
+            deserialize_with = "optional_hertz",
+            skip_serializing_if = "Option::is_none"
+        )]
+        damping_hz: Option<f64>,
+        #[serde(default = "fade")]
+        retime_fade_frames: i64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+        feedback_matrix: Vec<Vec<f64>>,
+    },
+    ResonantDelay {
+        name: Identifier,
+        #[serde(deserialize_with = "hertz")]
+        frequency_hz: f64,
+        #[serde(default = "delay_damping", deserialize_with = "hertz")]
+        damping_hz: f64,
+        #[serde(default = "one", deserialize_with = "seconds")]
+        decay_seconds: f64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
+    ModulatedDelay {
+        name: Identifier,
+        #[serde(deserialize_with = "seconds")]
+        base_delay_seconds: f64,
+        #[serde(default, deserialize_with = "seconds")]
+        depth_seconds: f64,
+        #[serde(deserialize_with = "seconds")]
+        maximum_delay_seconds: f64,
+        #[serde(deserialize_with = "hertz")]
+        rate_hz: f64,
+        #[serde(default)]
+        waveform: Waveform,
+        #[serde(default)]
+        channel_phase_offsets: Vec<f64>,
+        #[serde(default)]
+        feedback: f64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -478,6 +712,31 @@ impl TryFrom<Definition> for Processor {
                 mix,
                 bypass_fade_frames,
                 ..
+            }
+            | Definition::Reverb {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::TapDelay {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::MatrixDelay {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::ResonantDelay {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::ModulatedDelay {
+                mix,
+                bypass_fade_frames,
+                ..
             } => Some((*mix, *bypass_fade_frames)),
             Definition::Follower { .. } | Definition::MultibandCompressor { .. } => None,
         };
@@ -488,6 +747,12 @@ impl TryFrom<Definition> for Processor {
                     "effect bypass fade requires positive frames".into(),
                 ));
             }
+        }
+        if let Definition::MatrixDelay {
+            feedback_matrix, ..
+        } = &value
+        {
+            check_feedback_matrix(feedback_matrix)?;
         }
         let fields: &[&str] = match &value {
             Definition::Gain { .. } => &["gain_db"],
@@ -598,6 +863,66 @@ impl TryFrom<Definition> for Processor {
                 }
                 &[]
             }
+            Definition::Reverb {
+                retime_fade_frames,
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                check_retime(*retime_fade_frames)?;
+                check_tail(*tail_threshold, *state_floor)?;
+                &["predelay_seconds", "decay_seconds", "damping_hz"]
+            }
+            Definition::TapDelay {
+                retime_fade_frames,
+                damping_hz,
+                tail_threshold,
+                state_floor,
+                ..
+            }
+            | Definition::MatrixDelay {
+                retime_fade_frames,
+                damping_hz,
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                check_retime(*retime_fade_frames)?;
+                check_tail(*tail_threshold, *state_floor)?;
+                if damping_hz.is_some() {
+                    &["delay_seconds", "feedback", "damping_hz"]
+                } else {
+                    &["delay_seconds", "feedback"]
+                }
+            }
+            Definition::ResonantDelay {
+                frequency_hz,
+                damping_hz,
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                Domain::Positive.check(*frequency_hz)?;
+                Domain::Positive.check(*damping_hz)?;
+                check_tail(*tail_threshold, *state_floor)?;
+                &["decay_seconds"]
+            }
+            Definition::ModulatedDelay {
+                base_delay_seconds,
+                rate_hz,
+                channel_phase_offsets,
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                Domain::Positive.check(*base_delay_seconds)?;
+                Domain::Positive.check(*rate_hz)?;
+                check_tail(*tail_threshold, *state_floor)?;
+                for &phase in channel_phase_offsets {
+                    Domain::Closed(0.0, 1.0).check(phase)?;
+                }
+                &["depth_seconds", "feedback"]
+            }
         };
         let processor = Self(value);
         for field in fields {
@@ -629,8 +954,45 @@ fn check_tail(threshold: f64, floor: f64) -> Result<(), Error> {
     }
     Ok(())
 }
+fn check_retime(frames: i64) -> Result<(), Error> {
+    if frames < 1 {
+        return Err(Error::Invalid(
+            "effect retime fade requires positive frames".into(),
+        ));
+    }
+    Ok(())
+}
+fn check_feedback_matrix(rows: &[Vec<f64>]) -> Result<(), Error> {
+    if rows.is_empty() || rows.iter().any(|row| row.len() != rows.len()) {
+        return Err(Error::Invalid(
+            "delay feedback matrix must be nonempty and square".into(),
+        ));
+    }
+    let mut partials = vec![0.0; rows.len()];
+    for row in rows {
+        let mut count = 0;
+        for value in row {
+            Domain::Closed(-1.0, 1.0).check(*value)?;
+            add_partial(&mut partials, &mut count, value.abs())
+                .map_err(|error| Error::Invalid(error.to_string()))?;
+        }
+        let sum =
+            sum_partials(&partials[..count]).map_err(|error| Error::Invalid(error.to_string()))?;
+        if sum > 1.0 {
+            return Err(Error::Invalid(
+                "delay feedback matrix absolute row sums exceed one".into(),
+            ));
+        }
+    }
+    Ok(())
+}
 fn hertz<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
     quantity::deserialize_scalar(d, "hz")
+}
+fn optional_hertz<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
+    #[derive(Deserialize)]
+    struct Hertz(#[serde(deserialize_with = "hertz")] f64);
+    Option::<Hertz>::deserialize(d).map(|value| value.map(|hertz| hertz.0))
 }
 fn seconds<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
     quantity::deserialize_scalar(d, "seconds")
@@ -691,4 +1053,13 @@ fn lower_crossover() -> f64 {
 }
 fn upper_crossover() -> f64 {
     4000.0
+}
+fn reverb_predelay() -> f64 {
+    0.25
+}
+fn reverb_mix() -> f64 {
+    0.25
+}
+fn delay_damping() -> f64 {
+    6000.0
 }
