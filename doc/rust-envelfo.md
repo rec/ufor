@@ -4,9 +4,8 @@ The Rust `envelfo` module provides immutable generator definitions and structura
 validation. Python uses its existing models with `context={'portable': True}`.
 Both implement the [shared contract](rust-envelfo-contract.md). This module does
 not execute generators or render audio; execution belongs to `engelfo`. Enge now
-uses these definitions for native generator preparation. Consumer integration
-progress is tracked in
-[enge's plan](https://github.com/rec/enge/blob/main/plan/rust-ufor-integration.md).
+uses these definitions for native generator preparation. See
+[enge's integration record](https://github.com/rec/enge/blob/main/doc/rust-ufor-integration.md).
 
 Both JSON and TOML preserve declared output order. The TOML parser uses its
 approved `preserve_order` feature, with the existing locked dependency versions.

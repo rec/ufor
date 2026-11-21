@@ -19,10 +19,10 @@ are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
 supports Tuning and Envelfo; other score kinds remain unported.
 
-Generator execution belongs to the separate `engelfo` crate. Enge already uses
-Rust uFor for LFO, named-Envelope and main voice-amplitude preparation. Further
-graph, modulation and tuning adoption is tracked in
-[enge's integration plan](https://github.com/rec/enge/blob/main/plan/rust-ufor-integration.md).
+Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
+for supported generator, Patch, binding and modulation preparation, and resolves
+configured MIDI tunings to Hz before rendering. See
+[enge's integration record](https://github.com/rec/enge/blob/main/doc/rust-ufor-integration.md).
 Full instrument/effect documents, processing settings, resource resolution and
 TempoMap are separate milestones, not prerequisites for the completed APIs.
 
