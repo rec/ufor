@@ -3,7 +3,7 @@
 The Cargo workspace implements checked pitch numbers, expression evaluation,
 `Computed`, `RatioTable`, `IntervalPattern`, `FrequencyTable`, `Tuning`, and the
 `TuningScore` envelope in `crates/ufor`. JSON/TOML interchange supports those
-definitions. Scale, Scala, oscillators, Python bindings and WebAssembly remain
+definitions. Scale, Scala, Python bindings and WebAssembly remain
 outside this implementation.
 
 The crate also implements [modulation routes, control declarations and binding
@@ -21,6 +21,13 @@ supports Tuning and Envelfo; other score kinds remain unported.
 
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
+
+`codec::parse_oscillator` and `codec::oscillator_text` handle oscillator
+declarations in JSON and TOML with a checked exact duty cycle. The oscillator
+provides key-scaled linear gain, correctly rounded binary64 duty for
+renderers, and scalar sine, square and triangle shape observations.
+The [shared cases](../conformance/oscillator.json) cover gain, asymmetric
+and endpoint duty cycles, and rounding near a discontinuity.
 
 `ufor::fm::Fm` validates the authored two-to-six operator phase-modulation
 graph, its operator Envelopes, and its edge and carrier references. It exposes

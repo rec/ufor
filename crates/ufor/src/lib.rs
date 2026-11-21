@@ -15,6 +15,7 @@ mod identifier_ranges;
 pub mod modulation;
 pub mod musical;
 pub mod number;
+pub mod oscillator;
 pub mod quantity;
 pub mod samples;
 pub mod score;
