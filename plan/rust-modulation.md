@@ -101,8 +101,8 @@ cargo fmt --all
 The subsequent [generator milestone](rust-envelfo.md) implements generator
 definitions, Patch output resolution, releasing-envelope checks and known event
 ports/cues in its separate generator-aware binding API. These are no longer
-remaining shared-library work. Enge adoption is tracked in
-[its integration plan](https://github.com/rec/enge/blob/main/plan/rust-ufor-integration.md).
+remaining shared-library work. Enge's completed adoption is documented in
+[its integration record](https://github.com/rec/enge/blob/main/doc/rust-ufor-integration.md).
 
 Full `ModulationSettings`, processor capabilities and validation against actual
 instrument/processor target settings remain deferred. Local success and binding
