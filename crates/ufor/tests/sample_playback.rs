@@ -3,6 +3,35 @@ use ufor::codec::{self, Format};
 use ufor::samples::playback::{Direction, Playback, PlaybackMode};
 
 #[test]
+fn sample_crossfades_preserve_clipping_and_exact_endpoints() {
+    let data: Value =
+        serde_json::from_str(include_str!("../../../conformance/sample-crossfade.json")).unwrap();
+    let parse =
+        |name| codec::parse_sample_crossfade(&data[name].to_string(), Format::Json).unwrap();
+    let key = parse("key");
+    assert_eq!(key.onset_weight(Some(40), 0.0).unwrap(), Some(0.5));
+    assert_eq!(key.onset_weight(Some(i64::MAX), 0.0).unwrap(), Some(1.0));
+    assert!(key.onset_weight(None, 0.0).is_err());
+    let velocity = parse("velocity");
+    assert_eq!(velocity.onset_weight(None, 0.0).unwrap(), Some(1.0));
+    assert_eq!(velocity.onset_weight(None, 1.0).unwrap(), Some(0.0));
+    let control = parse("control");
+    assert_eq!(control.onset_weight(None, 0.0).unwrap(), None);
+    assert_eq!(control.control_route(), Some((-0.5, 0.5, true, true)));
+    assert_eq!(control.control_weight(-1.0).unwrap(), 0.0);
+    assert_eq!(control.control_weight(1.0).unwrap(), 1.0);
+    assert!((control.control_weight(0.0).unwrap() - 0.5_f64.sqrt()).abs() < 1e-15);
+    let text = toml::to_string(&control).unwrap();
+    assert_eq!(
+        codec::parse_sample_crossfade(&text, Format::Toml).unwrap(),
+        control
+    );
+    for rejected in data["rejected"].as_array().unwrap() {
+        assert!(codec::parse_sample_crossfade(&rejected.to_string(), Format::Json).is_err());
+    }
+}
+
+#[test]
 fn sample_traversal_matches_shared_authored_cases() {
     let data: Value =
         serde_json::from_str(include_str!("../../../conformance/sample-playback.json")).unwrap();

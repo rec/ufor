@@ -51,6 +51,18 @@ def test_sample_traversal_matches_the_shared_slice_cases() -> None:
         )
 
 
+def test_sample_crossfade_declarations_match_shared_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/sample-crossfade.json').read_text()
+    )
+    adapter = TypeAdapter(crossfade.LayerCrossfade)
+    for name in ('key', 'velocity', 'control'):
+        assert adapter.validate_python(data[name]).input == name
+    for rejected in data['rejected']:
+        with pytest.raises(ValidationError):
+            adapter.validate_python(rejected)
+
+
 def test_slot_playback_matches_shared_delay_cases() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/sample-playback.json').read_text()

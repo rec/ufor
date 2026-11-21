@@ -67,6 +67,10 @@ the sample's reference frequency. `Mapping::pitch_ratio` combines resolved
 `pitch_hz` with tuning and variation cents. Sample-rate conversion remains a
 renderer operation.
 
+`codec::parse_sample_crossfade` reads key, velocity, and control layer fades.
+The shared gain curve supports linear and equal-power fades with exact endpoint
+weights. Hosts retain control smoothing, event routing, and layer selection.
+
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
 with checked 64-bit rational arithmetic and rounds up once to an output frame.

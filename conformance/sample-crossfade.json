@@ -1,0 +1,13 @@
+{
+  "key": {"input": "key", "start": -20, "end": 100, "direction": "in"},
+  "velocity": {"input": "velocity", "start": 0.25, "end": 0.75, "direction": "out", "curve": "equal_power"},
+  "control": {"input": "control", "control": "expression", "scope": "trigger", "smoothing_seconds": "125 ms",
+              "start": -0.5, "end": 0.5, "direction": "in", "curve": "equal_power"},
+  "rejected": [
+    {"input": "key", "start": 0.5, "end": 100, "direction": "in"},
+    {"input": "velocity", "start": -0.1, "end": 1, "direction": "out"},
+    {"input": "control", "control": "expression", "start": 0, "end": 0, "direction": "in"},
+    {"input": "control", "control": "expression", "start": 0, "end": 1, "direction": "in", "smoothing_seconds": -1},
+    {"input": "key", "start": 0, "end": 100, "direction": "in", "control": "expression"}
+  ]
+}
