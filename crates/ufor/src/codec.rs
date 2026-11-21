@@ -3,6 +3,7 @@
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::control::tempo::TempoMap;
 use crate::effects::Processor;
 use crate::effects::actions::{Action, ActionBatch};
 use crate::effects::topology::Topology;
@@ -26,6 +27,18 @@ pub enum Format {
 
 pub fn parse_tuning(text: &str, format: Format) -> Result<Tuning, Error> {
     serde_json::from_value(parse_value(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
+}
+
+pub fn parse_tempo_map(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<TempoMap, Error> {
+    TempoMap::decode(parse_value(text, format)?, limits)
+}
+
+pub fn tempo_map_text(value: &TempoMap, format: Format) -> Result<String, Error> {
+    write(value, format)
 }
 
 pub fn tuning_text(value: &Tuning, format: Format) -> Result<String, Error> {

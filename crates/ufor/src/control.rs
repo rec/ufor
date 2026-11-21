@@ -1,4 +1,6 @@
 //! Declaration scopes and control polarity, without runtime state.
+pub mod tempo;
+
 use serde::{Deserialize, Serialize};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]

@@ -9,6 +9,7 @@ pub enum Error {
     DivisionByZero,
     NonpositiveResult,
     OutsideDomain,
+    TransportSeek,
     Limit(&'static str),
 }
 
@@ -20,6 +21,7 @@ impl fmt::Display for Error {
             Self::DivisionByZero => write!(f, "division by zero"),
             Self::NonpositiveResult => write!(f, "tuning result must be positive"),
             Self::OutsideDomain => write!(f, "note is outside the finite source domain"),
+            Self::TransportSeek => write!(f, "pending beat cancelled by transport seek"),
             Self::Limit(name) => write!(f, "{name} limit exceeded"),
         }
     }

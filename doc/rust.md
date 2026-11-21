@@ -51,12 +51,18 @@ one frame and strictly increasing ordinals, and callers supply their batch
 capacity. Enge retains frame windows, queue admission, and state-dependent
 checks.
 
+`codec::parse_tempo_map` and `codec::tempo_map_text` handle host-supplied tempo
+maps with exact rational seconds, beats, and BPM. `control::tempo::TempoMap`
+distinguishes transport position from elapsed running beats, resolves
+quantized targets, and reports seeks that invalidate pending beats. Enge uses
+its exact frame points for native beat-clock preparation.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See
 [enge's integration record](https://github.com/rec/enge/blob/main/doc/rust-ufor-integration.md).
-Full instrument/effect documents, processing settings, resource resolution and
-TempoMap are separate milestones, not prerequisites for the completed APIs.
+Full instrument/effect documents, processing settings, and resource resolution
+are separate milestones.
 
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:

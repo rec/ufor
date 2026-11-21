@@ -1,50 +1,53 @@
+import json
 from fractions import Fraction
+from pathlib import Path
 
 import pytest
 from pydantic import ValidationError
 
-from ufor.control import TempoMap
+from ufor.control import TempoMap, TransportSeekError
 
 
 def test_host_tempo_map_preserves_exact_beats_through_tempo_stop_and_seek() -> None:
-    clock = TempoMap.model_validate(
-        {
-            'points': [
-                {'at_seconds': '0', 'beat': '0', 'bpm': '120'},
-                {'at_seconds': '1', 'beat': '2', 'bpm': '60'},
-                {'at_seconds': '2', 'beat': '3', 'bpm': '60', 'running': False},
-                {'at_seconds': '3', 'beat': '8', 'bpm': '90'},
-            ]
-        }
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/tempo-map.json').read_text()
     )
+    clock = TempoMap.model_validate(data['map'])
     assert [clock.beat_at(Fraction(n, 2)) for n in range(9)] == [
-        Fraction(0),
-        Fraction(1),
-        Fraction(2),
-        Fraction(5, 2),
-        Fraction(3),
-        Fraction(3),
-        Fraction(8),
-        Fraction(35, 4),
-        Fraction(19, 2),
+        Fraction(v) for v in data['transport_beats']
     ]
     restored = TempoMap.model_validate_json(clock.model_dump_json())
     assert restored.beat_at(Fraction(7, 2)) == Fraction(35, 4)
     assert [clock.elapsed_beats(Fraction(0), Fraction(n)) for n in range(5)] == [
-        Fraction(0),
-        Fraction(2),
-        Fraction(3),
-        Fraction(3),
-        Fraction(9, 2),
+        Fraction(v) for v in data['elapsed_beats']
     ]
     assert clock.elapsed_beats(Fraction(1, 2), Fraction(7, 2)) == Fraction(11, 4)
     assert [clock.time_for_elapsed_beat(Fraction(n)) for n in range(5)] == [
-        Fraction(0),
-        Fraction(1, 2),
-        Fraction(1),
-        Fraction(2),
-        Fraction(11, 3),
+        Fraction(v) for v in data['elapsed_beat_times']
     ]
+    for at, division, expected in data['quantized_beats']:
+        assert clock.quantized_beat(Fraction(at), Fraction(division)) == Fraction(
+            expected
+        )
+    for beat, after, expected in data['pending_beats']:
+        if expected == 'seek':
+            with pytest.raises(TransportSeekError):
+                clock.time_for_beat(Fraction(beat), Fraction(after))
+        else:
+            assert clock.time_for_beat(Fraction(beat), Fraction(after)) == Fraction(
+                expected
+            )
+    rate = data['sample_rate']
+    frames = [
+        [
+            p.at_seconds * rate,
+            clock.elapsed_beats(Fraction(0), p.at_seconds),
+            p.beat,
+            p.bpm / (60 * rate) if p.running else Fraction(0),
+        ]
+        for p in clock.points
+    ]
+    assert frames == [[Fraction(v) for v in r] for r in data['frame_points']]
 
 
 def test_host_tempo_map_rejects_ambiguous_ordering_and_nonpositive_rate() -> None:

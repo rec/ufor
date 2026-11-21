@@ -35,6 +35,42 @@ impl Rational {
         self.denominator
     }
 
+    pub fn checked_add(self, other: Self) -> Result<Self, Error> {
+        self.combine(other, i64::checked_add)
+    }
+
+    pub fn checked_sub(self, other: Self) -> Result<Self, Error> {
+        self.combine(other, i64::checked_sub)
+    }
+
+    pub fn ceil(self) -> i64 {
+        self.numerator.div_euclid(self.denominator)
+            + i64::from(self.numerator.rem_euclid(self.denominator) != 0)
+    }
+
+    fn combine(self, other: Self, operation: fn(i64, i64) -> Option<i64>) -> Result<Self, Error> {
+        let common = gcd(self.denominator as u64, other.denominator as u64) as i64;
+        let left = self.denominator / common;
+        let right = other.denominator / common;
+        let first = self
+            .numerator
+            .checked_mul(right)
+            .ok_or(Error::ArithmeticRange)?;
+        let second = other
+            .numerator
+            .checked_mul(left)
+            .ok_or(Error::ArithmeticRange)?;
+        let numerator = operation(first, second).ok_or(Error::ArithmeticRange)?;
+        let reduction = gcd(numerator.unsigned_abs(), common as u64) as i64;
+        let denominator = left
+            .checked_mul(other.denominator / reduction)
+            .ok_or(Error::ArithmeticRange)?;
+        Ok(Self {
+            numerator: numerator / reduction,
+            denominator,
+        })
+    }
+
     pub fn checked_mul(self, other: Self) -> Result<Self, Error> {
         let a = gcd(self.numerator.unsigned_abs(), other.denominator as u64);
         let b = gcd(other.numerator.unsigned_abs(), self.denominator as u64);
@@ -183,6 +219,15 @@ impl Rational {
             },
             selected.denominator,
         )
+    }
+}
+
+impl From<i64> for Rational {
+    fn from(numerator: i64) -> Self {
+        Self {
+            numerator,
+            denominator: 1,
+        }
     }
 }
 
