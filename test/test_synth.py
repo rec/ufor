@@ -16,13 +16,25 @@ from ufor.instrument_trace import (
     RetirementCause,
     VoiceRetirement,
 )
-from ufor.synth import SynthInstrumentScore
+from ufor.synth import SynthInstrumentScore, frequency
 
 
 def fixture() -> dict[str, object]:
     return json.loads(
         (Path(__file__).parents[1] / 'conformance/synth-instrument.json').read_text()
     )
+
+
+def test_rendered_pitches_match_shared_vectors() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/synth-pitch.json').read_text()
+    )
+    for pitch, cents, expected in vectors['frequency']:
+        assert frequency(pitch, cents) == pytest.approx(expected, abs=1e-12, rel=0)
+    for pitch, ratio, cents, operator_cents, expected in vectors['operator']:
+        assert frequency(pitch * ratio, cents + operator_cents) == pytest.approx(
+            expected, abs=1e-12, rel=0
+        )
 
 
 def test_synth_instrument_conformance_round_trips_through_the_common_codec() -> None:

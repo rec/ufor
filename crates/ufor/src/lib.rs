@@ -19,6 +19,7 @@ pub mod oscillator;
 pub mod quantity;
 pub mod samples;
 pub mod score;
+pub mod synth_pitch;
 pub mod tuning;
 pub mod units;
 pub mod voice_admission;

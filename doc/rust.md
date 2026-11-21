@@ -29,6 +29,12 @@ renderers, and scalar sine, square and triangle shape observations.
 The [shared cases](../conformance/oscillator.json) cover gain, asymmetric
 and endpoint duty cycles, and rounding near a discontinuity.
 
+`synth_pitch` realizes routed oscillator pitch from onset `pitch_hz` and
+cents. FM multiplies the onset pitch by the operator ratio before applying
+the sum of voice and operator cents. Both functions reject nonfinite or
+nonpositive rendered frequencies with allocation-free errors. The
+[shared vectors](../conformance/synth-pitch.json) cover both calculations.
+
 `ufor::fm::Fm` validates the authored two-to-six operator phase-modulation
 graph, its operator Envelopes, and its edge and carrier references. It exposes
 the current-sample operator order and resolves operator ratios and tuning,
