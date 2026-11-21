@@ -40,7 +40,18 @@ impl Processor {
             | Definition::TapDelay { name, .. }
             | Definition::MatrixDelay { name, .. }
             | Definition::ResonantDelay { name, .. }
-            | Definition::ModulatedDelay { name, .. } => name,
+            | Definition::ModulatedDelay { name, .. }
+            | Definition::Waveshaper { name, .. }
+            | Definition::OctaveDivider { name, .. }
+            | Definition::Bitcrusher { name, .. }
+            | Definition::Phaser { name, .. }
+            | Definition::Highpass { name, .. }
+            | Definition::Mixer { name, .. }
+            | Definition::Crossfader { name, .. }
+            | Definition::Matrix { name, .. }
+            | Definition::Convolution { name, .. }
+            | Definition::CapturedBuffer { name, .. }
+            | Definition::Granulator { name, .. } => name,
         }
     }
 
@@ -67,6 +78,13 @@ impl Processor {
             | Definition::MatrixDelay { mix, .. }
             | Definition::ResonantDelay { mix, .. }
             | Definition::ModulatedDelay { mix, .. }
+            | Definition::Waveshaper { mix, .. }
+            | Definition::OctaveDivider { mix, .. }
+            | Definition::Bitcrusher { mix, .. }
+            | Definition::Phaser { mix, .. }
+            | Definition::Highpass { mix, .. }
+            | Definition::CapturedBuffer { mix, .. }
+            | Definition::Granulator { mix, .. }
                 if field == "mix" =>
             {
                 (Unit::Ratio, *mix, Domain::Closed(0.0, 1.0))
@@ -233,6 +251,90 @@ impl Processor {
                 "feedback" => (Unit::Ratio, *feedback, Domain::Feedback),
                 _ => return None,
             },
+            Definition::Waveshaper {
+                drive,
+                bias,
+                output_gain_db,
+                ..
+            } => match field {
+                "drive" => (Unit::Ratio, *drive, Domain::Positive),
+                "bias" => (Unit::Ratio, *bias, Domain::Finite),
+                "output_gain_db" => (Unit::Db, *output_gain_db, Domain::Finite),
+                _ => return None,
+            },
+            Definition::OctaveDivider {
+                threshold,
+                attack_seconds,
+                release_seconds,
+                ..
+            } => match field {
+                "threshold" => (Unit::Ratio, *threshold, Domain::Positive),
+                "attack_seconds" => (Unit::Seconds, *attack_seconds, Domain::AtLeast(0.0)),
+                "release_seconds" => (Unit::Seconds, *release_seconds, Domain::AtLeast(0.0)),
+                _ => return None,
+            },
+            Definition::Bitcrusher {
+                bits, hold_frames, ..
+            } => match field {
+                "bits" => (Unit::Ratio, *bits as f64, Domain::Integer(1.0, 24.0)),
+                "hold_frames" => (
+                    Unit::Ratio,
+                    *hold_frames as f64,
+                    Domain::Integer(1.0, 65536.0),
+                ),
+                _ => return None,
+            },
+            Definition::Phaser {
+                center_hz,
+                depth_cents,
+                sweep,
+                feedback,
+                ..
+            } => match field {
+                "center_hz" => (Unit::Hz, *center_hz, Domain::Positive),
+                "depth_cents" => (Unit::Cents, *depth_cents, Domain::AtLeast(0.0)),
+                "sweep" => (Unit::Ratio, *sweep, Domain::Closed(-1.0, 1.0)),
+                "feedback" => (Unit::Ratio, *feedback, Domain::Closed(-0.95, 0.95)),
+                _ => return None,
+            },
+            Definition::Highpass { cutoff_hz, .. } if field == "cutoff_hz" => {
+                (Unit::Hz, *cutoff_hz, Domain::Positive)
+            }
+            Definition::Mixer { inputs, .. } => {
+                let port = field.strip_suffix("-gain_db")?;
+                let input = inputs.iter().find(|input| input.name.as_str() == port)?;
+                (Unit::Db, input.gain_db, Domain::Finite)
+            }
+            Definition::Crossfader { position, .. }
+            | Definition::CapturedBuffer {
+                mode: CaptureMode::Scrub,
+                position,
+                ..
+            } if field == "position" => (Unit::Ratio, *position, Domain::Closed(0.0, 1.0)),
+            Definition::Granulator {
+                duration_seconds,
+                density_hz,
+                lookback_seconds,
+                playback_ratio,
+                position_jitter_seconds,
+                maximum_duration_seconds,
+                ..
+            } => match field {
+                "duration_seconds" => (
+                    Unit::Seconds,
+                    *duration_seconds,
+                    Domain::OpenClosed(0.0, (*maximum_duration_seconds)?),
+                ),
+                "density_hz" => (Unit::Hz, *density_hz, Domain::Positive),
+                "lookback_seconds" => (Unit::Seconds, *lookback_seconds, Domain::AtLeast(0.0)),
+                "playback_ratio" => (Unit::Ratio, *playback_ratio, Domain::Positive),
+                "position_jitter_seconds" => (
+                    Unit::Seconds,
+                    *position_jitter_seconds,
+                    Domain::AtLeast(0.0),
+                ),
+                _ => return None,
+            },
             _ => return None,
         };
         Some(TargetFacts {
@@ -299,6 +401,7 @@ enum Domain {
     AtMost(f64),
     Closed(f64, f64),
     OpenClosed(f64, f64),
+    Integer(f64, f64),
     Feedback,
     DelayDepth { base: f64, maximum: f64 },
 }
@@ -313,6 +416,9 @@ impl Domain {
             Self::AtMost(maximum) => value <= maximum,
             Self::Closed(minimum, maximum) => (minimum..=maximum).contains(&value),
             Self::OpenClosed(minimum, maximum) => minimum < value && value <= maximum,
+            Self::Integer(minimum, maximum) => {
+                value.fract() == 0.0 && (minimum..=maximum).contains(&value)
+            }
             Self::Feedback => (0.0..1.0).contains(&value),
             Self::DelayDepth { base, maximum } => {
                 (0.0..base).contains(&value) && base + value <= maximum
@@ -612,6 +718,192 @@ enum Definition {
         #[serde(default = "floor")]
         state_floor: f64,
     },
+    Waveshaper {
+        name: Identifier,
+        #[serde(default)]
+        curve: WaveshaperCurve,
+        #[serde(default = "one")]
+        drive: f64,
+        #[serde(default)]
+        bias: f64,
+        #[serde(default, deserialize_with = "decibels")]
+        output_gain_db: f64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+    },
+    OctaveDivider {
+        name: Identifier,
+        #[serde(default = "short_time")]
+        threshold: f64,
+        #[serde(default = "fast_attack", deserialize_with = "seconds")]
+        attack_seconds: f64,
+        #[serde(default = "short_release", deserialize_with = "seconds")]
+        release_seconds: f64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
+    Bitcrusher {
+        name: Identifier,
+        #[serde(default = "crusher_bits")]
+        bits: i64,
+        #[serde(default = "one_frame")]
+        hold_frames: i64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+    },
+    Phaser {
+        name: Identifier,
+        #[serde(default = "phaser_center", deserialize_with = "hertz")]
+        center_hz: f64,
+        #[serde(default = "phaser_depth", deserialize_with = "cents")]
+        depth_cents: f64,
+        #[serde(default)]
+        sweep: f64,
+        #[serde(default)]
+        feedback: f64,
+        #[serde(default = "half")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
+    Highpass {
+        name: Identifier,
+        #[serde(default = "highpass_cutoff", deserialize_with = "hertz")]
+        cutoff_hz: f64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+        #[serde(default = "threshold")]
+        tail_threshold: f64,
+        #[serde(default = "floor")]
+        state_floor: f64,
+    },
+    Mixer {
+        name: Identifier,
+        inputs: Vec<MixerInput>,
+        #[serde(default = "fade")]
+        switch_fade_frames: i64,
+    },
+    Crossfader {
+        name: Identifier,
+        law: CrossfadeLaw,
+        #[serde(default = "half")]
+        position: f64,
+    },
+    Matrix {
+        name: Identifier,
+        input_channels: Vec<Identifier>,
+        output_channels: Vec<Identifier>,
+        coefficients: Vec<Vec<f64>>,
+    },
+    Convolution {
+        name: Identifier,
+        input_channels: Vec<Identifier>,
+        output_channels: Vec<Identifier>,
+        kernels: Vec<ConvolutionKernel>,
+        #[serde(default = "partition_frames")]
+        partition_frames: i64,
+    },
+    CapturedBuffer {
+        name: Identifier,
+        mode: CaptureMode,
+        #[serde(default = "capture_window", deserialize_with = "seconds")]
+        window_seconds: f64,
+        #[serde(default)]
+        position: f64,
+        #[serde(default = "fade")]
+        maximum_pending_actions: i64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+    },
+    Granulator {
+        name: Identifier,
+        #[serde(deserialize_with = "seconds")]
+        duration_seconds: f64,
+        #[serde(deserialize_with = "hertz")]
+        density_hz: f64,
+        #[serde(default, deserialize_with = "seconds")]
+        lookback_seconds: f64,
+        #[serde(default = "one")]
+        playback_ratio: f64,
+        #[serde(default, deserialize_with = "seconds")]
+        position_jitter_seconds: f64,
+        #[serde(deserialize_with = "seconds")]
+        history_seconds: f64,
+        #[serde(default, deserialize_with = "authored_seconds")]
+        maximum_duration_seconds: Option<f64>,
+        maximum_grains: i64,
+        #[serde(default = "fade")]
+        freeze_crossfade_frames: i64,
+        #[serde(default = "one")]
+        mix: f64,
+        #[serde(default = "fade")]
+        bypass_fade_frames: i64,
+    },
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum WaveshaperCurve {
+    Hard,
+    #[default]
+    Soft,
+    Fold,
+    HalfWave,
+    FullWave,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum CrossfadeLaw {
+    Linear,
+    EqualPower,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum CaptureMode {
+    Reverse,
+    Scrub,
+    Stutter,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MixerInput {
+    name: Identifier,
+    #[serde(default, deserialize_with = "decibels")]
+    gain_db: f64,
+    #[serde(default)]
+    muted: bool,
+    #[serde(default)]
+    solo: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ConvolutionKernel {
+    input_channel: Identifier,
+    output_channel: Identifier,
+    asset: Identifier,
+    channel: Identifier,
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -661,7 +953,16 @@ impl CompressorBand {
 impl TryFrom<Definition> for Processor {
     type Error = Error;
 
-    fn try_from(value: Definition) -> Result<Self, Error> {
+    fn try_from(mut value: Definition) -> Result<Self, Error> {
+        if let Definition::Granulator {
+            duration_seconds,
+            history_seconds,
+            maximum_duration_seconds,
+            ..
+        } = &mut value
+        {
+            maximum_duration_seconds.get_or_insert(duration_seconds.max(*history_seconds));
+        }
         let bypass = match &value {
             Definition::Gain {
                 mix,
@@ -737,8 +1038,48 @@ impl TryFrom<Definition> for Processor {
                 mix,
                 bypass_fade_frames,
                 ..
+            }
+            | Definition::Waveshaper {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::OctaveDivider {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::Bitcrusher {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::Phaser {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::Highpass {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::CapturedBuffer {
+                mix,
+                bypass_fade_frames,
+                ..
+            }
+            | Definition::Granulator {
+                mix,
+                bypass_fade_frames,
+                ..
             } => Some((*mix, *bypass_fade_frames)),
-            Definition::Follower { .. } | Definition::MultibandCompressor { .. } => None,
+            Definition::Follower { .. }
+            | Definition::MultibandCompressor { .. }
+            | Definition::Mixer { .. }
+            | Definition::Crossfader { .. }
+            | Definition::Matrix { .. }
+            | Definition::Convolution { .. } => None,
         };
         if let Some((mix, frames)) = bypass {
             Domain::Closed(0.0, 1.0).check(mix)?;
@@ -923,6 +1264,151 @@ impl TryFrom<Definition> for Processor {
                 }
                 &["depth_seconds", "feedback"]
             }
+            Definition::Waveshaper { .. } => &["drive", "bias", "output_gain_db"],
+            Definition::OctaveDivider {
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                check_tail(*tail_threshold, *state_floor)?;
+                &["threshold", "attack_seconds", "release_seconds"]
+            }
+            Definition::Bitcrusher { .. } => &["bits", "hold_frames"],
+            Definition::Phaser {
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                check_tail(*tail_threshold, *state_floor)?;
+                &["center_hz", "depth_cents", "sweep", "feedback"]
+            }
+            Definition::Highpass {
+                tail_threshold,
+                state_floor,
+                ..
+            } => {
+                check_tail(*tail_threshold, *state_floor)?;
+                &["cutoff_hz"]
+            }
+            Definition::Mixer {
+                inputs,
+                switch_fade_frames,
+                ..
+            } => {
+                check_names(inputs.iter().map(|input| &input.name))?;
+                check_retime(*switch_fade_frames)?;
+                &[]
+            }
+            Definition::Crossfader { .. } => &["position"],
+            Definition::Matrix {
+                input_channels,
+                output_channels,
+                coefficients,
+                ..
+            } => {
+                check_names(input_channels)?;
+                check_names(output_channels)?;
+                if coefficients.len() != output_channels.len()
+                    || coefficients
+                        .iter()
+                        .any(|row| row.len() != input_channels.len())
+                {
+                    return Err(Error::Invalid(
+                        "matrix rows/columns must match output/input channels".into(),
+                    ));
+                }
+                for &coefficient in coefficients.iter().flatten() {
+                    quantity::finite(coefficient)?;
+                }
+                &[]
+            }
+            Definition::Convolution {
+                input_channels,
+                output_channels,
+                kernels,
+                partition_frames,
+                ..
+            } => {
+                check_names(input_channels)?;
+                check_names(output_channels)?;
+                if *partition_frames < 1 || partition_frames & (partition_frames - 1) != 0 {
+                    return Err(Error::Invalid(
+                        "convolution partition_frames must be a power of two".into(),
+                    ));
+                }
+                let mut pairs = BTreeSet::new();
+                for kernel in kernels {
+                    if !input_channels.contains(&kernel.input_channel)
+                        || !output_channels.contains(&kernel.output_channel)
+                        || !pairs.insert((&kernel.input_channel, &kernel.output_channel))
+                    {
+                        return Err(Error::Invalid(
+                            "convolution kernels require unique declared channel pairs".into(),
+                        ));
+                    }
+                }
+                if kernels.is_empty() {
+                    return Err(Error::Invalid(
+                        "convolution requires at least one kernel".into(),
+                    ));
+                }
+                &[]
+            }
+            Definition::CapturedBuffer {
+                mode,
+                window_seconds,
+                position,
+                maximum_pending_actions,
+                ..
+            } => {
+                Domain::OpenClosed(0.0, 2.0).check(*window_seconds)?;
+                if *mode != CaptureMode::Scrub && *position != 0.0 {
+                    return Err(Error::Invalid(
+                        "position is only authored in scrub mode".into(),
+                    ));
+                }
+                if *maximum_pending_actions < 1 {
+                    return Err(Error::Invalid(
+                        "captured buffer requires positive maximum_pending_actions".into(),
+                    ));
+                }
+                if *mode == CaptureMode::Scrub {
+                    &["position"]
+                } else {
+                    &[]
+                }
+            }
+            Definition::Granulator {
+                duration_seconds,
+                lookback_seconds,
+                playback_ratio,
+                position_jitter_seconds,
+                history_seconds,
+                maximum_grains,
+                freeze_crossfade_frames,
+                ..
+            } => {
+                Domain::Positive.check(*history_seconds)?;
+                let required =
+                    lookback_seconds + position_jitter_seconds + duration_seconds * playback_ratio;
+                if *history_seconds < required {
+                    return Err(Error::Invalid(
+                        "granulator history is too short for its read span".into(),
+                    ));
+                }
+                if *maximum_grains < 1 || *freeze_crossfade_frames < 1 {
+                    return Err(Error::Invalid(
+                        "granulator requires positive grain and fade counts".into(),
+                    ));
+                }
+                &[
+                    "duration_seconds",
+                    "density_hz",
+                    "lookback_seconds",
+                    "playback_ratio",
+                    "position_jitter_seconds",
+                ]
+            }
         };
         let processor = Self(value);
         for field in fields {
@@ -962,6 +1448,18 @@ fn check_retime(frames: i64) -> Result<(), Error> {
     }
     Ok(())
 }
+fn check_names<'a>(names: impl IntoIterator<Item = &'a Identifier>) -> Result<(), Error> {
+    let mut seen = BTreeSet::new();
+    for name in names {
+        if !seen.insert(name) {
+            return Err(Error::Invalid("effect requires unique names".into()));
+        }
+    }
+    if seen.is_empty() {
+        return Err(Error::Invalid("effect requires at least one name".into()));
+    }
+    Ok(())
+}
 fn check_feedback_matrix(rows: &[Vec<f64>]) -> Result<(), Error> {
     if rows.is_empty() || rows.iter().any(|row| row.len() != rows.len()) {
         return Err(Error::Invalid(
@@ -996,6 +1494,12 @@ fn optional_hertz<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Err
 }
 fn seconds<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
     quantity::deserialize_scalar(d, "seconds")
+}
+fn authored_seconds<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
+    seconds(d).map(Some)
+}
+fn cents<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+    quantity::deserialize_scalar(d, "cents")
 }
 fn one() -> f64 {
     1.0
@@ -1062,4 +1566,28 @@ fn reverb_mix() -> f64 {
 }
 fn delay_damping() -> f64 {
     6000.0
+}
+fn crusher_bits() -> i64 {
+    8
+}
+fn one_frame() -> i64 {
+    1
+}
+fn phaser_center() -> f64 {
+    800.0
+}
+fn phaser_depth() -> f64 {
+    2400.0
+}
+fn half() -> f64 {
+    0.5
+}
+fn highpass_cutoff() -> f64 {
+    20.0
+}
+fn partition_frames() -> i64 {
+    256
+}
+fn capture_window() -> f64 {
+    0.25
 }

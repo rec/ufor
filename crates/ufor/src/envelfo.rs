@@ -1021,6 +1021,7 @@ pub fn preparation_records(value: &Value, limits: PreparationLimits) -> Result<u
                 "segments" | "release" | "markers" | "stages" | "transitions" | "events"
                 | "event_connections" | "bindings" | "sources" | "routes" | "points"
                 | "parameters" | "equalizer" | "filters" | "operators" | "edges" | "processors"
+                | "kernels"
                     if child.is_array() =>
                 {
                     count = count

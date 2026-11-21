@@ -30,15 +30,13 @@ edge indices, and carrier level from the owning declarations. Use
 provides graph facts for consumer preparation. The renderer owns sample-rate
 conversion, voice state and execution.
 
-`ufor::effects::Processor` reads authored Gain, Multiply, FrequencyShifter,
-Filter, Gate, Expander, Compressor, Follower, Limiter, TransientShaper,
-DynamicEQ, MultibandCompressor, Reverb, TapDelay, MatrixDelay, ResonantDelay, and
-ModulatedDelay definitions through `codec::parse_effect_processor`. It resolves
-modulation units, defaults and
-parameter domains against the authored definition, including named filter stages
-and individual compressor bands. Use `Processor::validate_parameters` to check
-the combined base-delay and depth ranges of a modulated delay. Enge supplies
-graph topology, runtime slots and DSP preparation.
+`ufor::effects::Processor` reads all authored effect processor kinds through
+`codec::parse_effect_processor`. It resolves modulation units, defaults, and
+parameter domains from the authored definition, including named filter stages,
+compressor bands, and mixer inputs. Use `Processor::validate_parameters` to
+check combined base-delay and depth ranges. Matrix and convolution declarations
+have no modulation targets. Enge supplies graph topology, asset resolution,
+runtime slots, and DSP preparation.
 
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves

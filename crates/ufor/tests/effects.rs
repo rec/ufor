@@ -16,6 +16,9 @@ fn effect_processor_targets_match_the_shared_contract() {
         .map(|value| {
             let processor =
                 codec::parse_effect_processor(&value.to_string(), Format::Json, limits).unwrap();
+            let text = toml::to_string(&processor).unwrap();
+            let restored = codec::parse_effect_processor(&text, Format::Toml, limits).unwrap();
+            assert_eq!(restored, processor);
             (processor.name().as_str().to_owned(), processor)
         })
         .collect();
@@ -32,12 +35,6 @@ fn effect_processor_targets_match_the_shared_contract() {
                 accepted,
                 "{case}"
             );
-            if accepted {
-                let text = toml::to_string(&processor).unwrap();
-                let restored = codec::parse_effect_processor(&text, Format::Toml, limits).unwrap();
-                assert_eq!(&restored, processor);
-                restored.validate_parameter(&parameter).unwrap();
-            }
         }
     }
     for value in cases["invalid_processors"].as_array().unwrap() {
