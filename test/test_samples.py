@@ -25,6 +25,23 @@ def test_mirror_loop_rejects_crossfade() -> None:
         )
 
 
+def test_sample_traversal_matches_the_shared_slice_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/sample-playback.json').read_text()
+    )
+    selection = playback.Slice.model_validate(data['slice'])
+    traversal = playback.Playback.model_validate(data['playback'])
+    assert selection.model_dump(mode='json') == data['slice']
+    assert traversal.model_dump(mode='json') == data['playback']
+    for loop in data['rejected_loops']:
+        with pytest.raises(ValidationError):
+            playback.Slice.model_validate(data['slice'] | {'loop': loop})
+    loop = playback.Loop.model_validate(
+        data['slice']['loop'] | {'repeat_count': data['largest_repeat_count']}
+    )
+    assert loop.repeat_count == data['largest_repeat_count']
+
+
 def test_slot_playback_end_fade_round_trips() -> None:
     value = playback.SlotPlayback(end_fade_seconds=0.25)
 

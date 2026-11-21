@@ -1,0 +1,16 @@
+{
+  "slice": {
+    "name": "sustain", "asset": "piano", "start_frame": 2, "end_frame": 20,
+    "loop": {"start_frame": 4, "end_frame": 13, "mode": "through_release",
+             "direction": "backward", "crossfade_frames": 4, "repeat_count": 2}
+  },
+  "playback": {"direction": "backward", "mode": "while_held"},
+  "rejected_loops": [
+    {"start_frame": 4, "end_frame": 5},
+    {"start_frame": 4, "end_frame": 12, "crossfade_frames": 4},
+    {"start_frame": 4, "end_frame": 13, "direction": "mirror", "crossfade_frames": 2},
+    {"start_frame": 0, "end_frame": 13},
+    {"start_frame": 4, "end_frame": 21}
+  ],
+  "largest_repeat_count": 18446744073709551615
+}
