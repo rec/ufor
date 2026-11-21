@@ -1,4 +1,6 @@
 //! Portable effect processors and their modulation targets.
+pub mod topology;
+
 use crate::envelfo::Waveform;
 use crate::error::Error;
 use crate::identifier::Identifier;

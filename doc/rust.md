@@ -35,8 +35,14 @@ conversion, voice state and execution.
 parameter domains from the authored definition, including named filter stages,
 compressor bands, and mixer inputs. Use `Processor::validate_parameters` to
 check combined base-delay and depth ranges. Matrix and convolution declarations
-have no modulation targets. Enge supplies graph topology, asset resolution,
-runtime slots, and DSP preparation.
+have no modulation targets.
+
+`codec::parse_effect_topology` reads the authored graph fields for scope,
+owner, inputs, processors, connections, output, modulation, and bindings.
+It checks connections and named layouts, preserves Python's sorted order
+within each dependency layer, and includes follower edges in latency
+alignment. `Topology::latencies` uses checked 64-bit frames at the host
+sample rate. Enge resolves assets, assigns runtime slots, and prepares DSP.
 
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
