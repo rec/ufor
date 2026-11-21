@@ -77,8 +77,13 @@ trigger, note and velocity, articulation, resolved controls, held keys,
 previous key, sequence count, and random draw supplied by the caller.
 The [shared cases](../conformance/sample-eligibility.json) cover inclusive
 note and control bounds, half-open random ranges, and sustain event keys.
-Python trace preparation supplies these event facts and owns take selection
-and voice lifecycle.
+Python trace preparation supplies these event facts and owns voice lifecycle.
+
+`samples::selection::Sequence::advance` returns the next take and partition
+state for cycle, seeded random, and shuffle. It preserves the portable
+SHA-256 draw and selection snapshot fields. The
+[shared vectors](../conformance/selection.json) cover choices and continuation
+after restoring the partition. Rust uses a checked unsigned 64-bit counter.
 
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
@@ -180,7 +185,8 @@ are rejected. Multiple unit factors and general Pint syntax are outside this
 adapter. Unitless frequency strings retain their spelling.
 
 Python installation remains independent of Rust. The core uses Serde,
-`serde_json` and `toml` for document interchange and shared conformance cases,
+`serde_json` and `toml` for document interchange and `sha2` for deterministic
+sample take selection,
 without Python or host-library dependencies.
 
 Run the native checks from the repository root:

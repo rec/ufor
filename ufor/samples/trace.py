@@ -41,7 +41,7 @@ from .instrument import (
     effective_settings,
 )
 from .processing import ChannelRoute, SoundSettings
-from .selection import SelectionState, choose, random_range_value
+from .selection import AdvanceSelection, SelectionState, choose, random_range_value
 from .variation import ResolvedVariation, resolve
 
 
@@ -156,11 +156,13 @@ def prepare(
     seed: int,
     *,
     eligible_slots: Callable[[EligibilityContext], list[Identifier]] | None = None,
+    advance_selection: AdvanceSelection | None = None,
 ) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering.
 
     An optional eligibility evaluator returns matching slot names in declaration
-    order. Event state and selection are maintained by this function.
+    order. An optional selection evaluator advances a single take partition.
+    This function owns event state and the order of partitions in snapshots.
     """
     instrument = SampleInstrument.model_validate(instrument.model_dump())
     articulations = instrument.settings.articulations
@@ -249,6 +251,7 @@ def prepare(
                     kind,
                     key,
                     sorted({s.take or s.name for s in candidates}),
+                    advance=advance_selection,
                 )
                 selected.extend(s for s in candidates if (s.take or s.name) == choice)
         return selected

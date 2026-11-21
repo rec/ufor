@@ -233,7 +233,7 @@ def test_voice_policy_rejects_invalid_values(raw: dict[str, object]) -> None:
         selection.VoicePolicy.model_validate(raw)
 
 
-@pytest.mark.parametrize('mode', ['random', 'shuffle'])
+@pytest.mark.parametrize('mode', ['cycle', 'random', 'shuffle'])
 def test_selection_matches_portable_draw_vectors(mode: str) -> None:
     case = json.loads(
         (Path(__file__).parents[1] / 'conformance/selection.json').read_text()
@@ -251,7 +251,23 @@ def test_selection_matches_portable_draw_vectors(mode: str) -> None:
             case['candidates'],
         )
         choices.append(choice)
+        if len(choices) == 1:
+            assert (
+                state.sequences[0].model_dump(
+                    mode='json', include={'counter', 'remaining', 'previous'}
+                )
+                == case['after_first'][mode]
+            )
+            state = selection.SelectionState.model_validate_json(
+                state.model_dump_json()
+            )
     assert choices == case['choices'][mode]
+    assert (
+        state.sequences[0].model_dump(
+            mode='json', include={'counter', 'remaining', 'previous'}
+        )
+        == case['final'][mode]
+    )
 
 
 def test_random_selection_is_reproducible_and_part_local() -> None:

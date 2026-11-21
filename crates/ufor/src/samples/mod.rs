@@ -5,3 +5,4 @@ pub mod crossfade;
 pub mod eligibility;
 pub mod playback;
 pub mod processing;
+pub mod selection;

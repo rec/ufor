@@ -10,6 +10,11 @@
     "take-c"
   ],
   "choices": {
+    "cycle": [
+      "take-a", "take-b", "take-c",
+      "take-a", "take-b", "take-c",
+      "take-a", "take-b", "take-c"
+    ],
     "random": [
       "take-a",
       "take-a",
@@ -32,5 +37,15 @@
       "take-c",
       "take-a"
     ]
+  },
+  "after_first": {
+    "cycle": {"counter": 1, "remaining": [], "previous": null},
+    "random": {"counter": 1, "remaining": [], "previous": null},
+    "shuffle": {"counter": 2, "remaining": ["take-c", "take-a"], "previous": "take-b"}
+  },
+  "final": {
+    "cycle": {"counter": 9, "remaining": [], "previous": null},
+    "random": {"counter": 9, "remaining": [], "previous": null},
+    "shuffle": {"counter": 6, "remaining": [], "previous": "take-a"}
   }
 }

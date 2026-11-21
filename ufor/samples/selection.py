@@ -1,5 +1,6 @@
 """Alternate takes, choking, sustain, and deterministic selection state."""
 
+from collections.abc import Callable
 from hashlib import sha256
 from typing import Annotated, Self
 
@@ -102,6 +103,11 @@ class SelectionState(Model):
         return self
 
 
+AdvanceSelection = Callable[
+    [Selection, int, SelectionSequence], tuple[str, SelectionSequence]
+]
+
+
 def choose(
     selection: Selection,
     state: SelectionState,
@@ -109,6 +115,8 @@ def choose(
     trigger: enums.TriggerKind,
     key: int,
     candidates: list[str],
+    *,
+    advance: AdvanceSelection | None = None,
 ) -> tuple[str, SelectionState]:
     """Choose one stable candidate and return its replacement state."""
     ordered = sorted(candidates)
@@ -130,17 +138,27 @@ def choose(
             candidates=ordered,
         ),
     )
+    choice, next_sequence = (advance or _advance)(selection, state.seed, sequence)
+    sequences = [s for s in state.sequences if s != sequence]
+    sequences.append(next_sequence)
+    return choice, state.model_copy(update={'sequences': sequences})
+
+
+def _advance(
+    selection: Selection, seed: int, sequence: SelectionSequence
+) -> tuple[str, SelectionSequence]:
+    candidates = sequence.candidates
     if selection.mode == enums.SelectionMode.cycle:
-        choice = ordered[sequence.counter % len(ordered)]
+        choice = candidates[sequence.counter % len(candidates)]
         next_sequence = sequence.model_copy(update={'counter': sequence.counter + 1})
     elif selection.mode == enums.SelectionMode.random:
-        choice = ordered[_index(state.seed, sequence, len(ordered), sequence.counter)]
+        choice = candidates[_index(seed, sequence, len(candidates), sequence.counter)]
         next_sequence = sequence.model_copy(update={'counter': sequence.counter + 1})
     else:
         remaining = sequence.remaining
         counter = sequence.counter
         if not remaining:
-            remaining, counter = _shuffle(state.seed, sequence, counter)
+            remaining, counter = _shuffle(seed, sequence, counter)
         choice = remaining[0]
         next_sequence = sequence.model_copy(
             update={
@@ -149,9 +167,7 @@ def choose(
                 'previous': choice,
             }
         )
-    sequences = [s for s in state.sequences if s != sequence]
-    sequences.append(next_sequence)
-    return choice, state.model_copy(update={'sequences': sequences})
+    return choice, next_sequence
 
 
 def random_range_value(
