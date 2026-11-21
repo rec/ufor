@@ -9,5 +9,5 @@ license.workspace = true
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 
-serde_json = { version = "1.0", features = ["float_roundtrip"] }
+serde_json = { version = "1.0", features = ["float_roundtrip", "raw_value"] }
 toml = { version = "1.2", features = ["preserve_order"] }
