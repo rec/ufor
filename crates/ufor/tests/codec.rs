@@ -34,7 +34,7 @@ fn shared_python_document_roundtrips_json_and_toml() {
 
 #[test]
 fn headers_and_unknown_fields_use_the_same_validated_boundary() {
-    let valid = serde_json::json!({"kind":"tuning", "name":"a", "title":"A", "body":{"source":{"kind":"computed"}}});
+    let valid = serde_json::json!({"kind":"tuning", "name":"a", "title":"A", "body":{"source":{}}});
     for (key, value) in [
         ("name", serde_json::json!(" a")),
         ("name", serde_json::json!("a.*")),
@@ -72,22 +72,14 @@ fn headers_and_unknown_fields_use_the_same_validated_boundary() {
     );
     assert!(
         codec::parse_score(
-            "version = 4.0\nkind='tuning'\nname='a'\ntitle='A'\n[body.source]\nkind='computed'",
+            "version = 4.0\nkind='tuning'\nname='a'\ntitle='A'\n[body.source]\n",
             Format::Toml,
             PreparationLimits::default()
         )
         .is_err()
     );
-    assert!(
-        codec::parse_tuning(
-            "[source]\nkind='computed'\nnotes_per_octave=12.0",
-            Format::Toml
-        )
-        .is_err()
-    );
-    assert!(
-        codec::parse_tuning("detune_cents=nan\n[source]\nkind='computed'", Format::Toml).is_err()
-    );
+    assert!(codec::parse_tuning("[source]\nnotes_per_octave=12.0", Format::Toml).is_err());
+    assert!(codec::parse_tuning("detune_cents=nan\n[source]\n", Format::Toml).is_err());
 }
 
 #[test]

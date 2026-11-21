@@ -35,7 +35,7 @@ and tuning score envelopes:
 from ufor.tuning import Tuning
 
 tuning = Tuning.model_validate(
-    {'source': {'kind': 'computed'}, 'root_frequency': '1 kHz / 3'},
+    {'source': {}, 'root_frequency': '1 kHz / 3'},
     context={'portable': True},
 )
 ```

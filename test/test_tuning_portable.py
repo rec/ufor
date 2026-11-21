@@ -36,8 +36,8 @@ def test_portable_context_rejects_nonportable_integers_in_python_and_json(
 @pytest.mark.parametrize(
     'source',
     [
-        {'kind': 'computed', 'notes_per_octave': '12'},
-        {'kind': 'intervals', 'intervals': ['1'], 'repeat': 'false'},
+        {'notes_per_octave': '12'},
+        {'intervals': ['1'], 'repeat': 'false'},
     ],
 )
 def test_portable_context_reaches_nested_sources_and_score_codec(
@@ -52,26 +52,26 @@ def test_portable_context_reaches_nested_sources_and_score_codec(
     TuningScore.model_validate(value)
     with pytest.raises(ValueError):
         TuningScore.model_validate(value, context={'portable': True})
-    if source['kind'] == 'computed':
+    if 'notes_per_octave' in source:
         text = (
             "kind='tuning'\nname='test'\ntitle='Test'\n[body.source]\n"
-            "kind='computed'\nnotes_per_octave='12'"
+            "notes_per_octave='12'"
         )
     else:
         text = (
             "kind='tuning'\nname='test'\ntitle='Test'\n[body.source]\n"
-            "kind='intervals'\nintervals=['1']\nrepeat='false'"
+            "intervals=['1']\nrepeat='false'"
         )
     with pytest.raises(ValueError):
         parse_score(text)
 
 
 def test_portable_revalidation_checks_edited_instances_at_every_tuning_level() -> None:
-    table = RatioTable(values=['1'])
+    table = RatioTable(ratios=['1'])
     tuning = Tuning(source=table)
     score = TuningScore(name='edited', title='Edited', body=tuning)
     assert isinstance(score.body.source, RatioTable)
-    score.body.source.values[0] = '0'
+    score.body.source.ratios[0] = '0'
     for model, value in [
         (RatioTable, score.body.source),
         (Tuning, score.body),
@@ -95,18 +95,18 @@ def test_broader_python_units_compile_to_portable_canonical_values() -> None:
     for value in ('1 gigahertz', '1 / (3 kHz)', '1Hz / 1Hz', '1Hz^2', '1^(1Hz)'):
         with pytest.raises(ValueError):
             FrequencyTable.model_validate(
-                {'values': [value]}, context={'portable': True}
+                {'frequencies': [value]}, context={'portable': True}
             )
     with pytest.raises(ValueError):
         Tuning.model_validate(
-            {'source': {'kind': 'computed'}, 'detune_cents': '2 semitones'},
+            {'source': {}, 'detune_cents': '2 semitones'},
             context={'portable': True},
         )
 
 
 def test_mutated_tables_still_enforce_preparation_and_positive_pitch_limits() -> None:
-    table = RatioTable(values=['1'])
-    table.values.extend(['1'] * 10000)
+    table = RatioTable(ratios=['1'])
+    table.ratios.extend(['1'] * 10000)
     with pytest.raises(ValueError):
         table(0)
     intervals = IntervalPattern(intervals=['1'])
