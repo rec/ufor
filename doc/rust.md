@@ -113,6 +113,12 @@ after each layer. The [shared cases](../conformance/voice-release.json)
 cover deferred releases, duplicate releases, part isolation and threshold
 crossings.
 
+`voice_start::prepare_values` applies a voice's frequency offset to
+resolved pitch and derives EnveLFO and optional noise stream keys from the
+performance seed and voice ID. It preserves an absent pitch and rejects
+arithmetic overflow. The [shared vectors](../conformance/voice-start.json)
+pin both hash domains and the existing EnveLFO graph identity format.
+
 `codec::parse_slot_playback` resolves slot direction and mode overrides against
 instrument defaults. The prepared declaration sums slot and variation delays
 with checked 64-bit rational arithmetic and rounds up once to an output frame.

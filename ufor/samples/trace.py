@@ -7,7 +7,6 @@ from typing import Annotated, Literal, Self, TypedDict
 from pydantic import Field, model_validator
 from reccy.configuration import units
 
-from .. import envelfo_random
 from ..base import Identifier, Model, unique
 from ..events import (
     ControlChange,
@@ -42,6 +41,7 @@ from ..voice_release import (
     ReleaseRequest,
     plan_release,
 )
+from ..voice_start import PrepareVoiceStart, prepare_values
 from . import enums
 from .instrument import (
     SampleInstrument,
@@ -168,6 +168,7 @@ def prepare(
     advance_selection: AdvanceSelection | None = None,
     admit_voices: Callable[[VoiceAdmission], list[VoiceRetirement]] = plan_retirements,
     release_plan: Callable[[ReleaseRequest], ReleasePlan] = plan_release,
+    prepare_start: PrepareVoiceStart = prepare_values,
     draw_random_range: Callable[
         [int, str, str | None, int, int], float
     ] = random_range_value,
@@ -350,6 +351,9 @@ def prepare(
                 voice_pitch = slot.control_trigger.pitch_hz
             voice_id = f'voice-{next_voice}'
             next_voice += 1
+            voice_pitch, envelfo_key, _ = prepare_start(
+                seed, voice_id, voice_pitch, 0.0, False
+            )
             sample_slice = slices[slot.slice]
             resolved_variation = resolve_variation(
                 slot.variation,
@@ -381,7 +385,7 @@ def prepare(
                     channels=slot.channels,
                     settings=effective_settings(slot, groups.get(slot.group)),
                     variation=resolved_variation,
-                    envelfo_key=envelfo_random.stream_key(seed, voice_id),
+                    envelfo_key=envelfo_key,
                 )
             )
             voices.append(

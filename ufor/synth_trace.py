@@ -7,7 +7,6 @@ from typing import Annotated, Literal, Self
 
 from pydantic import Field, model_validator
 
-from . import envelfo_random
 from .base import Identifier, Model, UnitInterval, unique
 from .control import TempoMap, TransportSeekError
 from .events import (
@@ -34,7 +33,6 @@ from .instrument_trace import (
 from .instrument_trace import (
     VoiceStart as LifecycleVoiceStart,
 )
-from .noise import stream_key
 from .oscillator import Oscillator
 from .samples import enums
 from .samples.processing import ChannelRoute
@@ -53,6 +51,7 @@ from .voice_release import (
     ReleaseRequest,
     plan_release,
 )
+from .voice_start import PrepareVoiceStart, prepare_values
 
 
 class VoiceStart(LifecycleVoiceStart):
@@ -147,6 +146,7 @@ def prepare(
     release_plan: Callable[[ReleaseRequest], ReleasePlan] = plan_release,
     eligible_voices: Callable[[enums.TriggerKind, int, float], list[Identifier]]
     | None = None,
+    prepare_start: PrepareVoiceStart = prepare_values,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -267,6 +267,13 @@ def prepare(
         for template in selected:
             voice_id = f'voice-{next_voice}'
             next_voice += 1
+            voice_pitch, envelfo_key, noise_key = prepare_start(
+                seed,
+                voice_id,
+                pitch_hz,
+                template.frequency_offset_hz,
+                isinstance(template, NoiseVoice),
+            )
             actions.append(
                 VoiceStart(
                     tick=event.tick,
@@ -276,11 +283,7 @@ def prepare(
                     trigger_id=trigger_id,
                     template=template.name,
                     key=key,
-                    pitch_hz=(
-                        pitch_hz + template.frequency_offset_hz
-                        if pitch_hz is not None
-                        else None
-                    ),
+                    pitch_hz=voice_pitch,
                     oscillator=template.oscillator
                     if isinstance(template, SynthVoice)
                     else None,
@@ -289,10 +292,8 @@ def prepare(
                     velocity=velocity
                     if isinstance(template, YamahaVoiceTemplate)
                     else None,
-                    noise_key=stream_key(seed, voice_id)
-                    if isinstance(template, NoiseVoice)
-                    else None,
-                    envelfo_key=envelfo_random.stream_key(seed, voice_id),
+                    noise_key=noise_key,
+                    envelfo_key=envelfo_key,
                 )
             )
             voices.append(

@@ -1,0 +1,13 @@
+{
+  "starts": [
+    {
+      "seed": 0, "voice_id": "voice-0", "pitch_hz": 440, "frequency_offset_hz": -12.5, "noise": false,
+      "expected": {"pitch_hz": 427.5, "envelfo_key": "bcfa5c2957396b93", "noise_key": null}
+    },
+    {
+      "seed": 18446744073709551615, "voice_id": "voice-0", "pitch_hz": null, "frequency_offset_hz": 0, "noise": true,
+      "expected": {"pitch_hz": null, "envelfo_key": "2303a83161e3ddb5", "noise_key": 8322409229319871196}
+    }
+  ],
+  "graph_stream": {"seed": 0, "identity": "patch-patch-held:sample-hold", "key": "472c921ab0aaff7a"}
+}
