@@ -39,7 +39,10 @@ pub fn schedule_commands(
         return Err(Error::Invalid("duplicate event coordinate".into()));
     }
     // The highest authored ordinal is last in each tick of the sorted input.
-    let mut occupied: BTreeMap<_, _> = ordered.iter().map(|(_, e)| (e.tick, e.ordinal)).collect();
+    let mut occupied = BTreeMap::new();
+    for (_, event) in &ordered {
+        occupied.insert(event.tick, event.ordinal);
+    }
     let mut scheduled = Vec::with_capacity(events.len());
     for (index, event) in ordered {
         let tick = if let Some(division) = event.quantize_beats {
