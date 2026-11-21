@@ -1,0 +1,38 @@
+{
+  "graph": {
+    "operators": [
+      {"name":"a","ratio":1.5,"tuning_cents":"25 cents","phase_cycles":"90 deg","waveform":"triangle"},
+      {"name":"b"},
+      {"name":"carrier","envelope":{"segments":[{"duration":"1/7 s","to":1}],"release":[{"duration":"1/20 s","to":0}]}},
+      {"name":"spare"}
+    ],
+    "edges": [
+      {"source":"b","destination":"carrier","index":0.5},
+      {"name":"mod","source":"a","destination":"carrier","index":2},
+      {"source":"carrier","destination":"a","delayed":true}
+    ],
+    "carrier":"carrier",
+    "carrier_level":0.75
+  },
+  "execution_order":[3,1,0,2],
+  "targets":[
+    ["fm","carrier_level","ratio",0.75,"nonnegative"],
+    ["operator-a","ratio","ratio",1.5,"positive"],
+    ["operator-a","tuning_cents","cents",25,"unrestricted"],
+    ["operator-b","ratio","ratio",1,"positive"],
+    ["edge-b-carrier","index","radians",0.5,"nonnegative"],
+    ["edge-mod","index","radians",2,"nonnegative"]
+  ],
+  "rejected":[
+    {"operators":[{"name":"a"}],"carrier":"a"},
+    {"operators":[{"name":"a"},{"name":"a"}],"carrier":"a"},
+    {"operators":[{"name":"a"},{"name":"b"}],"carrier":"missing"},
+    {"operators":[{"name":"a"},{"name":"b"}],"carrier":"a","edges":[{"source":"a","destination":"missing"}]},
+    {"operators":[{"name":"a"},{"name":"b"}],"carrier":"a","edges":[{"source":"a","destination":"b"},{"source":"b","destination":"a"}]},
+    {"operators":[{"name":"a"},{"name":"b"}],"carrier":"a","edges":[{"source":"a","destination":"b"},{"name":"a-b","source":"b","destination":"a","delayed":true}]},
+    {"operators":[{"name":"a","ratio":0},{"name":"b"}],"carrier":"a"},
+    {"operators":[{"name":"a","phase_cycles":1},{"name":"b"}],"carrier":"a"},
+    {"operators":[{"name":"a"},{"name":"b"}],"carrier":"a","carrier_level":-1},
+    {"operators":[{"name":"a","envelope":{"polarity":"bipolar","segments":[{"duration":"0 s","to":1}]}},{"name":"b"}],"carrier":"a"}
+  ]
+}

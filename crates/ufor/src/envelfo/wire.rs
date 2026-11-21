@@ -770,6 +770,21 @@ impl RootWire {
     pub(crate) fn prepare(self) -> Result<Generator, Error> {
         prepare_root(self.0)
     }
+
+    pub(crate) fn envelope(mut value: Value) -> Result<Generator, Error> {
+        if let Some(fields) = value.as_object_mut() {
+            fields
+                .entry("kind")
+                .or_insert_with(|| Value::String("envelope".into()));
+        }
+        let value: Self =
+            serde_json::from_value(value).map_err(|error| invalid(&error.to_string()))?;
+        let generator = value.prepare()?;
+        if !matches!(generator.body(), Body::Envelope(_)) {
+            return Err(invalid("expected Envelope"));
+        }
+        Ok(generator)
+    }
 }
 
 fn markers(values: &[Marker]) -> Vec<MarkerWire> {

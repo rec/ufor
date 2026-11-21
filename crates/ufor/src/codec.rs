@@ -5,6 +5,7 @@ use serde_json::Value;
 
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
+use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::samples::processing::SoundSettings;
 use crate::score::Score;
@@ -33,6 +34,16 @@ pub fn parse_modulation(text: &str, format: Format) -> Result<Modulation, Error>
 }
 
 pub fn modulation_text(value: &Modulation, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
+pub fn parse_fm(text: &str, format: Format, limits: PreparationLimits) -> Result<Fm, Error> {
+    let value = parse_value(text, format)?;
+    crate::envelfo::preparation_records(&value, limits)?;
+    Fm::decode(value, limits).map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn fm_text(value: &Fm, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 

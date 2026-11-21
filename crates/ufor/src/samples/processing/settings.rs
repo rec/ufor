@@ -528,11 +528,8 @@ struct SoundWire {
 
 impl SoundWire {
     fn prepare(self, limits: PreparationLimits, records: usize) -> Result<SoundSettings, Error> {
-        let envelope = self.envelope.map(|mut value| {
-            if let Some(fields) = value.as_object_mut() {
-                fields.entry("kind").or_insert_with(|| serde_json::Value::String("envelope".into()));
-            }
-            let generator = serde_json::from_value::<RootWire>(value).map_err(|e| invalid(&e.to_string()))?.prepare()?;
+        let envelope = self.envelope.map(|value| {
+            let generator = RootWire::envelope(value)?;
             if !matches!(generator.body(), Body::Envelope(body) if body.polarity() == Polarity::Unipolar)
                 || generator.settings().scope() != Scope::Voice {
                 return Err(invalid("amplitude Envelope requires voice scope and unipolar levels"));

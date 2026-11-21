@@ -8,6 +8,7 @@ pub mod control;
 pub mod envelfo;
 pub mod error;
 pub mod expression;
+pub mod fm;
 pub mod identifier;
 mod identifier_ranges;
 pub mod modulation;

@@ -10,7 +10,7 @@ from . import base, control, dx7, modulation, tx81z, wt11
 from .base import Identifier, Model, unique
 from .envelfo import Envelope
 from .events import ControlChange, PerformanceEvent, Trigger
-from .fm import FM, edge_target_name
+from .fm import FM
 from .interface import AudioBinding, EventType, InterfaceScore, PerformanceBinding
 from .number import cents_to_ratio
 from .oscillator import Oscillator
@@ -116,20 +116,8 @@ class FMVoice(VoiceTemplate):
     def parameter_definition(
         self, target: modulation.Target
     ) -> tuple[modulation.Unit, float]:
-        if target.name == 'fm' and target.parameter == 'carrier_level':
-            return modulation.Unit.ratio, self.fm.carrier_level
-        for o in self.fm.operators:
-            if target.name == f'operator-{o.name}':
-                if target.parameter == 'ratio':
-                    return modulation.Unit.ratio, o.ratio
-                if target.parameter == 'tuning_cents':
-                    return modulation.Unit.cents, o.tuning_cents
-        for edge in self.fm.edges:
-            if (
-                target.name == f'edge-{edge_target_name(edge)}'
-                and target.parameter == 'index'
-            ):
-                return modulation.Unit.radians, edge.index
+        if (resolved := self.fm.resolve_target(target)) is not None:
+            return resolved.unit, resolved.default_value
         return super().parameter_definition(target)
 
 

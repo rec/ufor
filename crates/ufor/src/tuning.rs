@@ -43,7 +43,6 @@ impl Computed {
                 notes_per_octave,
                 octave_ratio,
                 denominator_limit,
-                ..Default::default()
             },
             period,
         })

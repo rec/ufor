@@ -1,3 +1,6 @@
+from json import loads
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -5,6 +8,7 @@ from ufor import synth_trace
 from ufor.codec import parse_score, score_toml
 from ufor.events import Release, Trigger
 from ufor.fm import FM, FMEdge, Operator
+from ufor.modulation import Target
 from ufor.oscillator import Waveform
 from ufor.synth import FMVoice, SynthInstrument, SynthInstrumentScore
 
@@ -39,6 +43,25 @@ def voice() -> FMVoice:
             },
         }
     )
+
+
+def test_fm_declarations_and_targets_match_the_shared_corpus() -> None:
+    corpus = loads(
+        (Path(__file__).parents[1] / 'conformance' / 'fm-graph.json').read_text()
+    )
+    graph = FM.model_validate(corpus['graph'])
+    assert graph.operators[0].phase_cycles == 0.25
+    for name, parameter, unit, default, minimum in corpus['targets']:
+        value = graph.resolve_target(Target(name=name, parameter=parameter))
+        assert value is not None
+        assert (value.unit, value.default_value, value.minimum) == (
+            unit,
+            default,
+            minimum,
+        )
+    for raw in corpus['rejected']:
+        with pytest.raises(ValueError):
+            FM.model_validate(raw)
 
 
 def test_fm_uses_shared_trigger_and_release_preparation() -> None:

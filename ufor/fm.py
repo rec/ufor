@@ -8,7 +8,9 @@ from reccy.configuration import units
 from . import control
 from .base import Identifier, Model, unique
 from .envelfo import Envelope
+from .modulation import Target, Unit
 from .oscillator import Waveform
+from .samples.processing import ResolvedTarget, TargetMinimum
 from .segments import Segment
 
 
@@ -48,6 +50,37 @@ class FM(Model):
     edges: list[FMEdge] = Field(default_factory=list)
     carrier: Identifier
     carrier_level: float = Field(default=1, ge=0)
+
+    def resolve_target(self, target: Target) -> ResolvedTarget | None:
+        """Resolve targets owned by this graph from its authored declarations."""
+        if target.name == 'fm' and target.parameter == 'carrier_level':
+            return ResolvedTarget(
+                unit=Unit.ratio,
+                default_value=self.carrier_level,
+                minimum=TargetMinimum.nonnegative,
+            )
+        for operator in self.operators:
+            if target.name != f'operator-{operator.name}':
+                continue
+            if target.parameter == 'ratio':
+                return ResolvedTarget(
+                    unit=Unit.ratio,
+                    default_value=operator.ratio,
+                    minimum=TargetMinimum.positive,
+                )
+            if target.parameter == 'tuning_cents':
+                return ResolvedTarget(
+                    unit=Unit.cents, default_value=operator.tuning_cents
+                )
+        if target.parameter == 'index':
+            for edge in self.edges:
+                if target.name == f'edge-{edge_target_name(edge)}':
+                    return ResolvedTarget(
+                        unit=Unit.radians,
+                        default_value=edge.index,
+                        minimum=TargetMinimum.nonnegative,
+                    )
+        return None
 
     @model_validator(mode='after')
     def topology(self) -> Self:

@@ -22,6 +22,14 @@ supports Tuning and Envelfo; other score kinds remain unported.
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
 
+`ufor::fm::Fm` validates the authored two-to-six operator phase-modulation
+graph, its operator Envelopes, and its edge and carrier references. It exposes
+the current-sample operator order and resolves operator ratios and tuning,
+edge indices, and carrier level from the owning declarations. Use
+`codec::parse_fm` and `codec::fm_text` for JSON or TOML FM bodies. This API
+provides graph facts for consumer preparation. The renderer owns sample-rate
+conversion, voice state and execution.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See
