@@ -19,6 +19,9 @@ are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
 supports Tuning and Envelfo; other score kinds remain unported.
 
+[Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
+base target resolution and contextual validation for the settings body.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See

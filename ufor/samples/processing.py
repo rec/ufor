@@ -41,12 +41,53 @@ from ..segments import Segment
 from . import enums
 from .controls import ControlDeclaration
 
+_PORTABLE_IDENTIFIER = pydantic.TypeAdapter(modulation_contract.Identifier)
 
-class EqualizerBand(Model):
+
+class _ProcessingDeclaration(Model):
+    _quantity_fields: ClassVar[dict[str, str]] = {}
+    _numeric_fields: ClassVar[tuple[str, ...]] = ()
+
+    @model_validator(mode='wrap')
+    @classmethod
+    def portable_declaration(
+        cls,
+        value: object,
+        handler: pydantic.ModelWrapValidatorHandler[Self],
+        info: pydantic.ValidationInfo,
+    ) -> Self:
+        if not (info.context and info.context.get('portable')):
+            return handler(value)
+        if isinstance(value, Model):
+            data = envelfo_contract.definition_data(value)
+            if 'tolerance' in data and envelfo_contract.omits_default_record(
+                value, 'tolerance'
+            ):
+                data.pop('tolerance')
+            value = data
+        if not isinstance(value, dict):
+            return handler(value)
+        data = dict(value)
+        if 'name' in data:
+            _PORTABLE_IDENTIFIER.validate_python(data['name'], context=info.context)
+        for field, unit in cls._quantity_fields.items():
+            if field in data:
+                data[field] = modulation_contract.scalar_quantity(data[field], unit)
+        for field in cls._numeric_fields:
+            if field in data:
+                data[field] = modulation_contract.scalar(data[field], info)
+        if 'stages' in data and type(data['stages']) is not int:
+            raise ValueError('Portable filter stages must be integers')
+        return handler(data)
+
+
+class EqualizerBand(_ProcessingDeclaration):
     name: Identifier
     frequency_hz: Frequency
     gain_db: Annotated[FiniteScalar, units.unit_validator('decibel')]
     resonance: Positive
+    _quantity_fields = {'frequency_hz': 'hz', 'gain_db': 'db'}
+    _numeric_fields = ('resonance',)
 
 
 class FilterResponse(enums.StrEnum):
@@ -71,12 +112,14 @@ class PanLaw(StrEnum):
     sfizz = auto()
 
 
-class FilterTolerance(Model):
+class FilterTolerance(_ProcessingDeclaration):
     coefficient: Positive = 1e-12
     response_db: Annotated[Positive, units.unit_validator('decibel')] = 1e-6
+    _quantity_fields = {'response_db': 'db'}
+    _numeric_fields = ('coefficient',)
 
 
-class ResonantFilter(Model):
+class ResonantFilter(_ProcessingDeclaration):
     name: Identifier
     response: FilterResponse
     cutoff_hz: Frequency
@@ -86,6 +129,8 @@ class ResonantFilter(Model):
     minimum_hz: Frequency = 1.0
     nyquist_ratio: float = Field(default=0.999, strict=True, gt=0, lt=1)
     tolerance: FilterTolerance = FilterTolerance()
+    _quantity_fields = {'cutoff_hz': 'hz', 'minimum_hz': 'hz'}
+    _numeric_fields = ('q', 'nyquist_ratio')
 
 
 class BiquadCoefficients(Model):
@@ -96,7 +141,7 @@ class BiquadCoefficients(Model):
     a2: FiniteScalar
 
 
-class Processing(Model):
+class Processing(_ProcessingDeclaration):
     volume_db: Annotated[FiniteScalar, units.unit_validator('decibel')] = 0.0
     invert_polarity: StrictBool = False
     tuning_cents: Annotated[FiniteScalar, units.unit_validator('musical_cent')] = 0.0
@@ -105,6 +150,8 @@ class Processing(Model):
     equalizer: list[EqualizerBand] = Field(default_factory=list)
     filters: list[ResonantFilter] = Field(default_factory=list)
     filter_order: FilterOrder = FilterOrder.before_amplitude
+    _quantity_fields = {'volume_db': 'db', 'tuning_cents': 'cents'}
+    _numeric_fields = ('pan', 'stereo_balance')
 
     @model_validator(mode='after')
     def unique_bands(self) -> Self:
@@ -315,6 +362,18 @@ def validate_generator_bindings(
     connections = pydantic.TypeAdapter(list[EnvelfoEventConnection]).validate_python(
         connections, context=context
     )
+    return _validate_available_bindings(
+        definition, bindings, controls, generators, connections
+    )
+
+
+def _validate_available_bindings(
+    definition: Modulation,
+    bindings: list[Binding],
+    controls: dict[str, ControlDeclaration] | None,
+    generators: dict[str, Generator],
+    connections: list[EnvelfoEventConnection],
+) -> BindingValidation:
     sources = _binding_sources(definition, bindings)
     _inline_generators(generators)
     unresolved: list[UnresolvedGeneratorBinding | FollowerBinding] = []
@@ -322,6 +381,10 @@ def validate_generator_bindings(
     for binding in bindings:
         source = sources[binding.name]
         if isinstance(binding, ControlBinding):
+            if source.scope == 'voice':
+                raise ValueError('Control source must not have voice scope')
+            if controls is None:
+                continue
             if binding.control not in controls:
                 raise ValueError(f'Unknown control: {binding.control}')
             _validate_control_source(source, controls[binding.control])
@@ -450,9 +513,89 @@ class ModulationSettings(Model):
         raise ValueError(f'Unknown modulation target {target.name}.{target.parameter}')
 
 
+class TargetMinimum(StrEnum):
+    unrestricted = auto()
+    nonnegative = auto()
+    positive = auto()
+
+    @classmethod
+    def for_field(cls, field: str) -> 'TargetMinimum':
+        if field == 'amplitude':
+            return cls.nonnegative
+        if field in ('resonance', 'q'):
+            return cls.positive
+        return cls.unrestricted
+
+    def validate(self, minimum: float) -> None:
+        if self == TargetMinimum.nonnegative and minimum < 0:
+            raise ValueError('Amplitude requires a nonnegative parameter domain')
+        if self == TargetMinimum.positive and minimum <= 0:
+            raise ValueError('Resonance requires a positive parameter domain')
+
+
+class ResolvedTarget(Model):
+    unit: Unit
+    default_value: float
+    duration: Fraction | None = None
+    scope: control.Scope | None = None
+    minimum: TargetMinimum = TargetMinimum.unrestricted
+
+
+class UnresolvedGeneratorTarget(Model):
+    scope: control.Scope
+
+
+class SoundValidation(BindingValidation):
+    unresolved_controls: list[modulation_contract.Identifier]
+
+    def is_complete(self) -> bool:
+        return not any(
+            (
+                self.unresolved_controls,
+                self.unresolved_bindings,
+                self.unresolved_connections,
+                self.unresolved_targets,
+            )
+        )
+
+    def require_complete(self) -> None:
+        if not self.is_complete():
+            raise ValueError('Sound settings need external context')
+
+
 class SoundSettings(ModulationSettings):
     processing: Processing = Processing()
     envelope: Envelope | None = None
+
+    @model_validator(mode='wrap')
+    @classmethod
+    def portable_sound_settings(
+        cls,
+        value: object,
+        handler: pydantic.ModelWrapValidatorHandler[Self],
+        info: pydantic.ValidationInfo,
+    ) -> Self:
+        if not (info.context and info.context.get('portable')):
+            return handler(value)
+        maximum = envelfo_contract.record_limit(info.context.get('max_records', 10000))
+        envelfo_contract.preparation_records(value, maximum)
+        if isinstance(value, Model):
+            data = envelfo_contract.definition_data(value)
+            for name in ('processing', 'modulation', 'envelope'):
+                if name in data and envelfo_contract.omits_default_record(value, name):
+                    data.pop(name)
+            value = data
+        result = handler(value)
+        for name in result.envelfos:
+            _PORTABLE_IDENTIFIER.validate_python(name, context=info.context)
+        sources = {s.name: s for s in result.modulation.sources}
+        for binding in result.bindings:
+            if (
+                isinstance(binding, ControlBinding)
+                and sources[binding.name].scope == 'voice'
+            ):
+                raise ValueError('Control source must not have voice scope')
+        return result
 
     @model_validator(mode='after')
     def sound_parameters(self) -> Self:
@@ -462,13 +605,9 @@ class SoundSettings(ModulationSettings):
         ):
             raise ValueError('Amplitude envelope must be unipolar and voice scoped')
         for parameter in self.modulation.parameters:
-            if parameter.target.parameter == 'amplitude' and parameter.minimum < 0:
-                raise ValueError('Amplitude requires a nonnegative parameter domain')
-            if (
-                parameter.target.parameter in ('resonance', 'q')
-                and parameter.minimum <= 0
-            ):
-                raise ValueError('Resonance requires a positive parameter domain')
+            TargetMinimum.for_field(parameter.target.parameter).validate(
+                parameter.minimum
+            )
             if parameter.target.name == 'envelope':
                 generator = self.envelope
             elif parameter.target.name.startswith('envelfo-'):
@@ -513,6 +652,66 @@ class SoundSettings(ModulationSettings):
                     sources[binding.name], controls[binding.control]
                 )
 
+    def resolve_target(
+        self, target: Target
+    ) -> ResolvedTarget | UnresolvedGeneratorTarget:
+        prefix = 'envelfo-'
+        if target.name.startswith(prefix) and isinstance(
+            generator := self.envelfos.get(target.name.removeprefix(prefix)),
+            envelfo.EnveLFOReference,
+        ):
+            return UnresolvedGeneratorTarget(scope=generator.scope)
+        timing = _envelope_target(self, target)
+        if timing is not None:
+            return timing
+        unit, default = self.parameter_definition(target)
+        return ResolvedTarget(
+            unit=unit,
+            default_value=default,
+            minimum=TargetMinimum.for_field(target.parameter),
+        )
+
+    def validate_context(
+        self,
+        controls: dict[str, ControlDeclaration] | None = None,
+        *,
+        max_records: int = 10000,
+    ) -> SoundValidation:
+        """Validate portable settings and report missing context."""
+        count = envelfo_contract.preparation_records(self, max_records)
+        envelfo_contract.check_records(
+            count + (len(controls) if controls is not None else 0), max_records
+        )
+        context = {'portable': True, 'max_records': max_records}
+        settings = type(self).model_validate(self, context=context)
+        if controls is not None:
+            controls = pydantic.TypeAdapter(
+                dict[modulation_contract.Identifier, ControlDeclaration]
+            ).validate_python(controls, context=context)
+        checks = _validate_available_bindings(
+            settings.modulation,
+            settings.bindings,
+            controls,
+            settings.envelfos,
+            settings.event_connections,
+        )
+        return SoundValidation(
+            unresolved_bindings=checks.unresolved_bindings,
+            unresolved_connections=checks.unresolved_connections,
+            unresolved_targets=[
+                p.target
+                for p in settings.modulation.parameters
+                if isinstance(
+                    settings.resolve_target(p.target), UnresolvedGeneratorTarget
+                )
+            ],
+            unresolved_controls=[
+                b.control
+                for b in settings.bindings
+                if controls is None and isinstance(b, ControlBinding)
+            ],
+        )
+
 
 def parameter_definition(
     settings: SoundSettings, target: modulation.Target
@@ -545,6 +744,13 @@ def parameter_definition(
             units = {'cutoff_hz': modulation.Unit.hz, 'q': modulation.Unit.ratio}
             if target.parameter in units:
                 return units[target.parameter], getattr(filter, target.parameter)
+    timing = _envelope_target(settings, target)
+    if timing is not None:
+        return timing.unit, timing.default_value
+    raise ValueError(f'Unknown local parameter: {target.name}.{target.parameter}')
+
+
+def _envelope_target(settings: SoundSettings, target: Target) -> ResolvedTarget | None:
     definition: Envelope | None = None
     clock: control.Clock | None = None
     if target.name == 'envelope' and settings.envelope is not None:
@@ -564,7 +770,11 @@ def parameter_definition(
                 if target.parameter == f'{phase}-{index}-time_constant' and isinstance(
                     segment, ExponentialApproach
                 ):
-                    return modulation.Unit.seconds, float(segment.time_constant)
+                    return ResolvedTarget(
+                        unit=Unit.seconds,
+                        default_value=float(segment.time_constant),
+                        scope=definition.scope,
+                    )
                 if target.parameter == f'{phase}-{index}-duration':
                     if not isinstance(segment, Segment):
                         raise ValueError(
@@ -575,8 +785,13 @@ def parameter_definition(
                         if clock == control.Clock.seconds
                         else modulation.Unit.beats
                     )
-                    return unit, float(segment.duration)
-    raise ValueError(f'Unknown local parameter: {target.name}.{target.parameter}')
+                    return ResolvedTarget(
+                        unit=unit,
+                        default_value=float(segment.duration),
+                        duration=segment.duration,
+                        scope=definition.scope,
+                    )
+    return None
 
 
 def spatial_bounds(settings: SoundSettings, target: str) -> tuple[float, float]:

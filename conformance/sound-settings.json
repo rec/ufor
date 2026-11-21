@@ -1,0 +1,102 @@
+{
+  "budget": {"band_count":10000,"records":10002},
+  "accepted": [
+    {"id":"defaults","input":{},"records":1,"targets":[
+      ["processing","amplitude","ratio",1],["processing","volume_db","db",0],
+      ["processing","tuning_cents","cents",0],["processing","pan","normalized",0],
+      ["processing","stereo_balance","normalized",0]
+    ]},
+    {"id":"explicit-null-envelope","input":{"envelope":null},"records":1},
+    {"id":"units-and-separate-namespaces","input":{"processing":{
+      "volume_db":"-6 dB","tuning_cents":"25 cents","pan":0.2,"stereo_balance":-0.1,
+      "invert_polarity":true,"filter_order":"after_amplitude",
+      "equalizer":[{"name":"main","frequency_hz":"1 kHz","gain_db":"3 dB","resonance":2}],
+      "filters":[{"name":"main","response":"notch","cutoff_hz":"500 kHz","q":3,
+        "stages":2,"boundary":"clamp","tolerance":{"coefficient":1e-10,"response_db":"1/100 dB"}},
+        {"name":"low","response":"lowpass","cutoff_hz":20},
+        {"name":"high","response":"highpass","cutoff_hz":21},
+        {"name":"band","response":"bandpass","cutoff_hz":22}]
+    }},"records":8,"filter_order":["main","low","high","band"],"targets":[
+      ["processing","volume_db","db",-6],["processing","tuning_cents","cents",25],
+      ["processing","pan","normalized",0.2],["processing","stereo_balance","normalized",-0.1],
+      ["eq-main","gain_db","db",3],["eq-main","frequency_hz","hz",1000],
+      ["eq-main","resonance","ratio",2],["filter-main","cutoff_hz","hz",500000],
+      ["filter-main","q","ratio",3]
+    ]},
+    {"id":"envelope-addresses","input":{
+      "envelope":{"segments":[{"duration":"1/3 s","to":1}],"release":[{"duration":"1/10 s","to":0}]},
+      "envelfos":{"z-beat":{"kind":"envelope","clock":"beats","segments":[{"duration":"3/7 beat","to":1}]},
+        "a-held":{"kind":"envelope","segments":[{"duration":null}]}}
+    },"records":8,"generator_order":["z-beat","a-held"],"targets":[
+      ["envelope","on-0-duration","seconds",0.3333333333333333,"1/3","voice"],
+      ["envelope","release-0-duration","seconds",0.1,"1/10","voice"],
+      ["envelfo-z-beat","on-0-duration","beats",0.42857142857142855,"3/7","voice"]
+    ],"unknown":[["envelope","on-00-duration"],["envelope","release-1-duration"],["envelfo-a-held","on-0-duration"]]},
+    {"id":"captured-approach-target","input":{"envelope":{"segments":[{"duration":"1 s","to":1}],
+      "release":[{"asymptote":0,"time_constant":0.1,"threshold":0.1,"transition_to":0,"transition_seconds":0.01}]}},
+      "targets":[["envelope","release-0-time_constant","seconds",0.1,null,"voice"]]},
+    {"id":"duration-default-is-rounded-once","input":{
+      "envelope":{"segments":[{"duration":"9007199254740993/9007199254740994 s","to":1}]},
+      "modulation":{"parameters":[{"target":{"name":"envelope","parameter":"on-0-duration"},"unit":"seconds","scope":"voice","minimum":0,"maximum":2,"default":0.9999999999999999}]}
+    },"targets":[["envelope","on-0-duration","seconds",0.9999999999999999,"9007199254740993/9007199254740994","voice"]]},
+    {"id":"velocity-latched-duration","input":{
+      "envelope":{"segments":[{"duration":"1/2 s","to":1}]},
+      "modulation":{"parameters":[{"target":{"name":"envelope","parameter":"on-0-duration"},"unit":"seconds","scope":"voice","minimum":0,"maximum":2,"default":0.5}],
+        "sources":[{"name":"strike","scope":"voice","minimum":0,"maximum":1}],
+        "routes":[{"name":"timing","source":"strike","target":{"name":"envelope","parameter":"on-0-duration"},"operation":"add","unit":"seconds","points":[{"input":0,"amount":-0.1}]}]},
+      "bindings":[{"kind":"velocity","name":"strike"}]
+    }},
+    {"id":"key-latched-duration","input":{
+      "envelope":{"segments":[{"duration":"1/2 s","to":1}]},
+      "modulation":{"parameters":[{"target":{"name":"envelope","parameter":"on-0-duration"},"unit":"seconds","scope":"voice","minimum":0,"maximum":2,"default":0.5}],
+        "sources":[{"name":"key","scope":"voice","minimum":0,"maximum":127}],
+        "routes":[{"name":"timing","source":"key","target":{"name":"envelope","parameter":"on-0-duration"},"operation":"add","unit":"seconds","points":[{"input":60,"amount":0.1}]}]},
+      "bindings":[{"kind":"key","name":"key"}]
+    }},
+    {"id":"reference-awaits-target","input":{
+      "envelfos":{"shape":{"kind":"reference","score":{"path":"shape.toml"}}},
+      "modulation":{"parameters":[{"target":{"name":"envelfo-shape","parameter":"on-0-duration"},"unit":"seconds","scope":"voice","minimum":0,"maximum":2,"default":0.5}]}
+    },"unresolved_targets":[["envelfo-shape","on-0-duration"]],
+      "materialized":{"shape":{"kind":"envelope","segments":[{"duration":"1/2 s","to":1}]}},
+      "incompatible":{"shape":{"kind":"envelope","segments":[{"duration":"3/4 s","to":1}]}}},
+    {"id":"controls-are-external","input":{
+      "modulation":{"sources":[{"name":"pedal","scope":"instrument","minimum":0,"maximum":1}]},
+      "bindings":[{"kind":"control","name":"pedal","control":"gain"}]
+    },"records":4,"unresolved_controls":["gain"],"controls":{"gain":{}},"wrong_controls":{"gain":{"polarity":"bipolar"}}}
+  ],
+  "rejected": [
+    {"id":"null-processing","input":{"processing":null}},
+    {"id":"nonboolean-polarity","input":{"processing":{"invert_polarity":1}}},
+    {"id":"nonportable-pan","input":{"processing":{"pan":"1/2"}}},
+    {"id":"unknown-field","input":{"processing":{"volume":1}}},
+    {"id":"wrong-unit","input":{"processing":{"volume_db":"1 Hz"}}},
+    {"id":"invalid-stages","input":{"processing":{"filters":[{"name":"main","response":"lowpass","cutoff_hz":440,"stages":true}]}}},
+    {"id":"invalid-nyquist","input":{"processing":{"filters":[{"name":"main","response":"lowpass","cutoff_hz":440,"nyquist_ratio":1}]}}},
+    {"id":"invalid-tolerance","input":{"processing":{"filters":[{"name":"main","response":"lowpass","cutoff_hz":440,"tolerance":{"coefficient":0}}]}}},
+    {"id":"duplicate-eq","input":{"processing":{"equalizer":[{"name":"a","frequency_hz":1,"gain_db":0,"resonance":1},{"name":"a","frequency_hz":2,"gain_db":0,"resonance":1}]}}},
+    {"id":"duplicate-filter","input":{"processing":{"filters":[{"name":"a","response":"lowpass","cutoff_hz":440},{"name":"a","response":"highpass","cutoff_hz":440}]}}},
+    {"id":"unknown-owner-target","input":{"modulation":{"parameters":[{"target":{"name":"fm","parameter":"carrier_level"},"unit":"ratio","scope":"voice","minimum":0,"maximum":2,"default":1}]}}},
+    {"id":"amplitude-negative-domain","input":{"modulation":{"parameters":[{"target":{"name":"processing","parameter":"amplitude"},"unit":"ratio","scope":"voice","minimum":-1,"maximum":2,"default":1}]}}},
+    {"id":"default-mismatch","input":{"modulation":{"parameters":[{"target":{"name":"processing","parameter":"amplitude"},"unit":"ratio","scope":"voice","minimum":0,"maximum":2,"default":0.5}]}}},
+    {"id":"unit-mismatch","input":{"modulation":{"parameters":[{"target":{"name":"processing","parameter":"amplitude"},"unit":"db","scope":"voice","minimum":0,"maximum":2,"default":1}]}}},
+    {"id":"q-requires-positive-minimum","input":{"processing":{"filters":[{"name":"a","response":"lowpass","cutoff_hz":440,"q":1}]},"modulation":{"parameters":[{"target":{"name":"filter-a","parameter":"q"},"unit":"ratio","scope":"voice","minimum":0,"maximum":2,"default":1}]}}},
+    {"id":"amplitude-envelope-scope","input":{"envelope":{"scope":"instrument","segments":[{"duration":"1 s","to":1}]}}},
+    {"id":"amplitude-envelope-polarity","input":{"envelope":{"polarity":"bipolar","segments":[{"duration":"1 s","to":1}]}}},
+    {"id":"reference-known-scope-mismatch","input":{
+      "envelfos":{"shape":{"kind":"reference","scope":"instrument","score":{"path":"shape.toml"}}},
+      "modulation":{"parameters":[{"target":{"name":"envelfo-shape","parameter":"on-0-duration"},"unit":"seconds","scope":"voice","minimum":0,"maximum":2,"default":0.5}]}
+    }},
+    {"id":"follower-requires-owner","input":{"modulation":{"sources":[{"name":"signal","scope":"voice","minimum":0,"maximum":1}]},"bindings":[{"kind":"follower","name":"signal","processor":"detector"}]}},
+    {"id":"missing-local-generator","input":{"modulation":{"sources":[{"name":"signal","scope":"voice","minimum":0,"maximum":1}]},"bindings":[{"kind":"envelfo","name":"signal","reference":"missing"}]}},
+    {"id":"negative-multiplier","input":{"modulation":{
+      "parameters":[{"target":{"name":"processing","parameter":"amplitude"},"unit":"ratio","scope":"voice","minimum":0,"maximum":2,"default":1}],
+      "sources":[{"name":"strike","scope":"voice","minimum":0,"maximum":1}],
+      "routes":[{"name":"gain","source":"strike","target":{"name":"processing","parameter":"amplitude"},"operation":"multiply","unit":"ratio","points":[{"input":0,"amount":-1}]}]},
+      "bindings":[{"kind":"velocity","name":"strike"}]}},
+    {"id":"control-cannot-latch-envelope","input":{"envelope":{"segments":[{"duration":"1/2 s","to":1}]},
+      "modulation":{"parameters":[{"target":{"name":"envelope","parameter":"on-0-duration"},"unit":"seconds","scope":"voice","minimum":0,"maximum":2,"default":0.5}],
+        "sources":[{"name":"pedal","scope":"instrument","minimum":0,"maximum":1}],
+        "routes":[{"name":"timing","source":"pedal","target":{"name":"envelope","parameter":"on-0-duration"},"operation":"add","unit":"seconds","points":[{"input":0,"amount":0.1}]}]},
+      "bindings":[{"kind":"control","name":"pedal","control":"gain"}]}}
+  ]
+}

@@ -1,10 +1,14 @@
 """Pure TOML interchange and schema for the implemented document profiles."""
 
 from copy import deepcopy
+from json import dumps, loads
+from typing import Literal
 
 import tomlkit
 from pydantic import TypeAdapter
 
+from .envelfo_contract import omits_default_record
+from .samples.processing import SoundSettings
 from .score_types import ScoreValue
 
 MAX_SCORE_CHARACTERS = 16 * 1024 * 1024
@@ -51,6 +55,45 @@ def score_toml(value: ScoreValue) -> str:
 
 def score_schema() -> dict[str, object]:
     return TypeAdapter(ScoreValue).json_schema()
+
+
+def parse_sound_settings(
+    text: str, format: Literal['json', 'toml'], *, max_records: int = 10000
+) -> SoundSettings:
+    """Decode a standalone portable settings body."""
+    if len(text) > MAX_SCORE_CHARACTERS:
+        raise ValueError('settings document exceeds 16777216 characters')
+    try:
+        data = loads(text) if format == 'json' else tomlkit.parse(text).unwrap()
+    except RecursionError as error:
+        raise ValueError('settings document is too deeply nested') from error
+    _check_document_budget(data)
+    return SoundSettings.model_validate(
+        data, context={'portable': True, 'max_records': max_records}
+    )
+
+
+def sound_settings_text(
+    value: SoundSettings, format: Literal['json', 'toml'], *, max_records: int = 10000
+) -> str:
+    """Write a canonical portable settings body."""
+    settings = SoundSettings.model_validate(
+        value, context={'portable': True, 'max_records': max_records}
+    )
+    data = settings.model_dump(mode='json', exclude_none=format == 'toml')
+    for key in ('processing', 'modulation', 'envelope'):
+        if omits_default_record(settings, key):
+            data.pop(key, None)
+    if 'processing' in data:
+        for filter, encoded in zip(
+            settings.processing.filters, data['processing']['filters'], strict=True
+        ):
+            if omits_default_record(filter, 'tolerance'):
+                del encoded['tolerance']
+    if format == 'json':
+        return dumps(data, ensure_ascii=False, allow_nan=False)
+    _check_toml_arrays(data)
+    return tomlkit.dumps(data)
 
 
 def _check_document_budget(value: object) -> None:

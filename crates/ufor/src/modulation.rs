@@ -666,7 +666,7 @@ impl From<Route> for RouteDefinition {
 }
 #[derive(Default, Clone, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
-struct ModulationDefinition {
+pub(crate) struct ModulationDefinition {
     parameters: Vec<ParameterDefinition>,
     sources: Vec<SourceDefinition>,
     routes: Vec<RouteDefinition>,
@@ -678,7 +678,7 @@ impl TryFrom<ModulationDefinition> for Modulation {
     }
 }
 impl ModulationDefinition {
-    fn prepare(self, maximum: usize) -> Result<Modulation, Error> {
+    pub(crate) fn prepare(self, maximum: usize) -> Result<Modulation, Error> {
         let mut count = 0_usize;
         for length in [self.parameters.len(), self.sources.len(), self.routes.len()] {
             count = count.checked_add(length).ok_or(Error::ArithmeticRange)?;

@@ -1,4 +1,5 @@
-//! Binding declarations and local checks; generator/processor resolution is external.
+//! Shared sound processing, local bindings and authored target resolution.
+mod settings;
 use super::controls::ControlDeclaration;
 use crate::control::Polarity;
 use crate::error::Error;
@@ -7,6 +8,11 @@ use crate::modulation::{Modulation, SourceScope};
 use crate::number::Rational;
 use crate::quantity::exact_seconds;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+pub use settings::{
+    EqualizerBand, FilterBoundary, FilterOrder, FilterResponse, FilterTolerance, Processing,
+    ResolvedTarget, ResonantFilter, SoundSettings, SoundValidation, TargetMinimum,
+    TargetResolution,
+};
 use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize, Deserialize)]
@@ -185,19 +191,24 @@ pub fn validate_local_bindings(
     bindings: &[Binding],
     controls: &BTreeMap<Identifier, ControlDeclaration>,
 ) -> Result<Vec<UnresolvedBinding>, Error> {
-    validate_local_with_limit(definition, bindings, controls, crate::quantity::MAX_RECORDS)
+    validate_local_with_limit(
+        definition,
+        bindings,
+        Some(controls),
+        crate::quantity::MAX_RECORDS,
+    )
 }
 pub(super) fn validate_local_with_limit(
     definition: &Modulation,
     bindings: &[Binding],
-    controls: &BTreeMap<Identifier, ControlDeclaration>,
+    controls: Option<&BTreeMap<Identifier, ControlDeclaration>>,
     maximum: usize,
 ) -> Result<Vec<UnresolvedBinding>, Error> {
     crate::quantity::record_budget(
         definition
             .record_count()
             .checked_add(bindings.len())
-            .and_then(|n| n.checked_add(controls.len()))
+            .and_then(|n| n.checked_add(controls.map_or(0, BTreeMap::len)))
             .ok_or(Error::ArithmeticRange)?,
         maximum,
     )?;
@@ -216,6 +227,12 @@ pub(super) fn validate_local_with_limit(
             .ok_or_else(|| invalid("unknown binding source"))?;
         match binding {
             Binding::Control(binding) => {
+                if source.scope() == SourceScope::Voice {
+                    return Err(invalid("control source must not have voice scope"));
+                }
+                let Some(controls) = controls else {
+                    continue;
+                };
                 let declaration = controls
                     .get(&binding.control)
                     .ok_or_else(|| invalid("unknown control declaration"))?;
@@ -224,10 +241,7 @@ pub(super) fn validate_local_with_limit(
                 } else {
                     0.0
                 };
-                if source.scope() == SourceScope::Voice
-                    || source.minimum() != minimum
-                    || source.maximum() != 1.0
-                {
+                if source.minimum() != minimum || source.maximum() != 1.0 {
                     return Err(invalid("control source must match declaration and scope"));
                 }
             }
