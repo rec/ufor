@@ -32,6 +32,17 @@ pub fn finite(value: f64) -> Result<f64, Error> {
     }
 }
 
+pub(crate) fn deserialize_optional_hertz<'de, D: Deserializer<'de>>(
+    d: D,
+) -> Result<Option<f64>, D::Error> {
+    #[derive(Deserialize)]
+    struct Hertz(#[serde(deserialize_with = "hertz")] f64);
+    fn hertz<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+        deserialize_scalar(d, "hz")
+    }
+    Option::<Hertz>::deserialize(d).map(|value| value.map(|hertz| hertz.0))
+}
+
 pub fn records(count: usize) -> Result<(), Error> {
     record_budget(count, MAX_RECORDS)
 }

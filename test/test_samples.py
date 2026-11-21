@@ -40,6 +40,13 @@ def test_sample_traversal_matches_the_shared_slice_cases() -> None:
         data['slice']['loop'] | {'repeat_count': data['largest_repeat_count']}
     )
     assert loop.repeat_count == data['largest_repeat_count']
+    mappings = {
+        n: playback.Mapping.model_validate(m) for n, m in data['mappings'].items()
+    }
+    for name, pitch, tuning, variation, expected in data['pitch_ratios']:
+        assert (
+            playback.pitch_ratio(mappings[name], pitch, tuning, variation) == expected
+        )
 
 
 def test_slot_playback_end_fade_round_trips() -> None:

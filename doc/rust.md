@@ -62,6 +62,10 @@ traversal declarations. `samples::playback::Slice` validates native frame
 intervals, loop crossfades, and resolved playback against decoded asset length.
 Loop repeat limits and the number of additional plays use unsigned 64-bit
 counts. The renderer owns the audio, traversal state, and interpolation.
+`codec::parse_sample_mapping` validates authored note and velocity ranges and
+the sample's reference frequency. `Mapping::pitch_ratio` combines resolved
+`pitch_hz` with tuning and variation cents. Sample-rate conversion remains a
+renderer operation.
 
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves

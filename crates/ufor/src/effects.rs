@@ -638,7 +638,7 @@ enum Definition {
         feedback: f64,
         #[serde(
             default,
-            deserialize_with = "optional_hertz",
+            deserialize_with = "quantity::deserialize_optional_hertz",
             skip_serializing_if = "Option::is_none"
         )]
         damping_hz: Option<f64>,
@@ -663,7 +663,7 @@ enum Definition {
         feedback: f64,
         #[serde(
             default,
-            deserialize_with = "optional_hertz",
+            deserialize_with = "quantity::deserialize_optional_hertz",
             skip_serializing_if = "Option::is_none"
         )]
         damping_hz: Option<f64>,
@@ -1489,11 +1489,6 @@ fn check_feedback_matrix(rows: &[Vec<f64>]) -> Result<(), Error> {
 }
 fn hertz<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
     quantity::deserialize_scalar(d, "hz")
-}
-fn optional_hertz<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
-    #[derive(Deserialize)]
-    struct Hertz(#[serde(deserialize_with = "hertz")] f64);
-    Option::<Hertz>::deserialize(d).map(|value| value.map(|hertz| hertz.0))
 }
 fn seconds<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
     quantity::deserialize_scalar(d, "seconds")
