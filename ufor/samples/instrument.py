@@ -5,6 +5,7 @@ from typing import Annotated, Literal, Self
 
 from pydantic import (
     Field,
+    SerializationInfo,
     SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
@@ -147,7 +148,7 @@ class SampleSlot(SoundSettings):
 
     @model_serializer(mode='wrap')
     def authored_settings(
-        self, handler: SerializerFunctionWrapHandler
+        self, handler: SerializerFunctionWrapHandler, info: SerializationInfo
     ) -> dict[str, object]:
         data = handler(self)
         if self.group is not None:
@@ -163,7 +164,13 @@ class SampleSlot(SoundSettings):
                 if name not in self.model_fields_set:
                     data.pop(name, None)
             if 'envelope' in self.model_fields_set and self.envelope is None:
-                data['envelope'] = False
+                excluded = info.exclude
+                if isinstance(excluded, dict):
+                    excluded = {k for k, v in excluded.items() if v is True or v is ...}
+                if (info.include is None or 'envelope' in info.include) and (
+                    excluded is None or 'envelope' not in excluded
+                ):
+                    data['envelope'] = False
         return data
 
     @model_validator(mode='after')

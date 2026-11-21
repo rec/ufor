@@ -417,6 +417,10 @@ def test_slot_categories_and_selection_match_shared_vectors() -> None:
         assert (settings.envelope is not None) == case['envelope']
         assert list(settings.envelfos) == case['envelfos']
         assert effective_selection(slot, inherited) == case['selection']
+        if case['grouped'] and 'envelope' in case['slot']:
+            assert slot.model_dump(exclude_none=True)['envelope'] is False
+            assert slot.model_dump(include={'name'}) == {'name': slot.name}
+            assert 'envelope' not in slot.model_dump(exclude={'envelope'})
 
 
 def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:
