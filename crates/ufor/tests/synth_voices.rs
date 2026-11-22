@@ -1,5 +1,5 @@
 use serde_json::{Value, json};
-use ufor::codec::{Format, parse_synth_voices};
+use ufor::codec::{Format, parse_synth_instrument, parse_synth_voices};
 use ufor::envelfo::{Body, PreparationLimits};
 use ufor::number::Rational;
 use ufor::samples::eligibility::Trigger;
@@ -102,4 +102,54 @@ fn synth_voices_keep_generator_order_and_share_one_record_budget() {
     let restored = parse_synth_voices(&toml, Format::Toml, limits).unwrap();
     assert_eq!(names(&restored), ["z", "a"]);
     assert!(parse_synth_voices(text, Format::Json, PreparationLimits::new(10).unwrap()).is_err());
+}
+
+#[test]
+fn synth_instrument_checks_voice_context() {
+    let vectors: Value = serde_json::from_str(include_str!(
+        "../../../conformance/synth-instrument-context.json"
+    ))
+    .unwrap();
+    let instrument = &vectors["instrument"];
+    let limits = PreparationLimits::default();
+    let parsed = parse_synth_instrument(&instrument.to_string(), Format::Json, limits).unwrap();
+    assert!(parsed.sustain_pressed());
+    let matches: Vec<_> = parsed
+        .voices()
+        .matching_voices(Trigger::SustainPress, 64, 1.0)
+        .map(|name| name.as_str())
+        .collect();
+    assert_eq!(matches, ["pedal-down"]);
+    let text = toml::to_string(&parsed).unwrap();
+    let restored = parse_synth_instrument(&text, Format::Toml, limits).unwrap();
+    assert_eq!(json!(parsed), json!(restored));
+    assert!(
+        parse_synth_instrument(
+            &instrument.to_string(),
+            Format::Json,
+            PreparationLimits::new(27).unwrap()
+        )
+        .is_ok()
+    );
+    assert!(
+        parse_synth_instrument(
+            &instrument.to_string(),
+            Format::Json,
+            PreparationLimits::new(26).unwrap()
+        )
+        .is_err()
+    );
+    for overrides in vectors["invalid_instrument_overrides"].as_array().unwrap() {
+        let mut edited = instrument.as_object().unwrap().clone();
+        edited.extend(overrides.as_object().unwrap().clone());
+        assert!(parse_synth_instrument(&json!(edited).to_string(), Format::Json, limits).is_err());
+    }
+    for overrides in vectors["invalid_voice_overrides"].as_array().unwrap() {
+        let mut edited = instrument.clone();
+        edited["voices"][0]
+            .as_object_mut()
+            .unwrap()
+            .extend(overrides.as_object().unwrap().clone());
+        assert!(parse_synth_instrument(&edited.to_string(), Format::Json, limits).is_err());
+    }
 }

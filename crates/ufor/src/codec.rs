@@ -26,7 +26,7 @@ use crate::samples::{assets::Inventory, crossfade::Crossfade};
 use crate::scale::Scale;
 use crate::score::Score;
 use crate::sequence::EventSequence;
-use crate::synth::{SynthVoices, VoiceTemplates};
+use crate::synth::{SynthInstrument, SynthVoices, VoiceTemplates};
 use crate::time::Timebase;
 use crate::tuning::Tuning;
 use crate::voice_admission::{Admission, Choke, VoicePolicy, VoicePool};
@@ -237,6 +237,24 @@ pub fn parse_synth_voices(
         }
         Format::Toml => SynthVoices::decode(
             toml::de::Deserializer::parse(text).map_err(|e| Error::Invalid(e.to_string()))?,
+            limits,
+        ),
+    }
+}
+
+pub fn parse_synth_instrument(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<SynthInstrument, Error> {
+    parse_value(text, format)?;
+    match format {
+        Format::Json => {
+            SynthInstrument::decode(&mut serde_json::Deserializer::from_str(text), limits)
+        }
+        Format::Toml => SynthInstrument::decode(
+            toml::de::Deserializer::parse(text)
+                .map_err(|error| Error::Invalid(error.to_string()))?,
             limits,
         ),
     }

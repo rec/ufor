@@ -156,7 +156,11 @@ voice-scoped unipolar envelope in `SynthVoice::settings()`. FM uses its
 operator envelopes. `SynthVoice::resolve_target` resolves FM graph targets
 against the voice's own graph and delegates the rest to SoundSettings.
 The preparation budget covers the template, source and settings together.
-Enge decodes these voices before matching native trace eligibility.
+`codec::parse_synth_instrument` adds the instrument's controls, voice policy,
+sustain declaration and articulations to that budget. It validates binding
+domains against the controls, note-key coverage against the mappings, and
+articulation and choke references against the instrument. The prepared body
+exposes the initial sustain state and ordered voice matching used by enge.
 
 `samples::selection::Sequence::advance` returns the next take and partition
 state for cycle, seeded random, and shuffle. It preserves the portable

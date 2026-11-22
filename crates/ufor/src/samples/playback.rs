@@ -28,12 +28,16 @@ pub fn sample_step(pitch_ratio: f64, native_rate: f64) -> Result<f64, Error> {
 pub struct Mapping(MappingDefinition);
 
 impl Mapping {
+    pub(crate) fn note_range(&self) -> std::ops::RangeInclusive<i64> {
+        self.0.lowest_key..=self.0.highest_key
+    }
+
     pub fn pitch_tracking(&self) -> bool {
         self.0.pitch_tracking
     }
 
     pub(super) fn accepts_note(&self, key: i64, velocity: f64) -> bool {
-        (self.0.lowest_key..=self.0.highest_key).contains(&key)
+        self.note_range().contains(&key)
             && (self.0.minimum_velocity..=self.0.maximum_velocity).contains(&velocity)
     }
 

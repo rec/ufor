@@ -1,6 +1,7 @@
 //! Shared synth-family voice metadata and mapped event selection.
 
-use crate::envelfo::{self, PreparationLimits};
+use crate::control::Scope;
+use crate::envelfo::{self, Body, PreparationLimits};
 use crate::error::Error;
 use crate::fm::Fm;
 use crate::identifier::Identifier;
@@ -8,14 +9,19 @@ use crate::modulation::Target;
 use crate::number::Rational;
 use crate::oscillator::Oscillator;
 use crate::quantity;
+use crate::samples::articulations::Articulations;
+use crate::samples::controls::ControlDeclaration;
 use crate::samples::eligibility::{Trigger, VoiceMapping};
 use crate::samples::playback::Mapping;
-use crate::samples::processing::{ResolvedTarget, SoundSettings, SoundWire, TargetResolution};
+use crate::samples::processing::{
+    Binding, EventKind, ResolvedTarget, SoundSettings, SoundWire, TargetResolution,
+};
 use crate::samples::routing::ChannelRoute;
-use crate::voice_admission::Choke;
+use crate::voice_admission::{Choke, VoicePolicy};
+use crate::voice_release::Sustain;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Value, json};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(try_from = "VoiceDefinition")]
@@ -268,10 +274,18 @@ impl SynthVoices {
     ) -> Result<Self, Error> {
         let definition = SynthVoicesDefinition::deserialize(decoder)
             .map_err(|error| invalid(error.to_string()))?;
-        let mut records = 1;
+        Self::prepare(definition.voices, limits, 1, None)
+    }
+
+    fn prepare(
+        definitions: Vec<SynthVoiceDefinition>,
+        limits: PreparationLimits,
+        mut records: usize,
+        controls: Option<&BTreeMap<Identifier, ControlDeclaration>>,
+    ) -> Result<Self, Error> {
         limits.check_records(records)?;
         let mut voices = Vec::new();
-        for voice in definition.voices {
+        for voice in definitions {
             let SynthVoiceDefinition {
                 template,
                 oscillator,
@@ -334,7 +348,8 @@ impl SynthVoices {
             limits.check_records(records)?;
             // The voice template already accounts for the flat settings root.
             let remaining = PreparationLimits::new(limits.max_records() - records + 1)?;
-            let settings = settings.prepare(remaining, |target| source.resolve_target(target))?;
+            let settings =
+                settings.prepare(remaining, controls, |target| source.resolve_target(target))?;
             if matches!(source, VoiceSource::Noise { .. })
                 && (settings.processing().tuning_cents() != 0.0
                     || settings.modulation().parameters().iter().any(|parameter| {
@@ -374,6 +389,189 @@ impl SynthVoices {
                 .then_some(template.name())
         })
     }
+}
+
+/// A synth instrument with authored oscillator, FM or noise voices.
+#[derive(Debug, Serialize)]
+pub struct SynthInstrument {
+    controls: BTreeMap<Identifier, ControlDeclaration>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    voice_policy: Option<VoicePolicy>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sustain: Option<Sustain>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    articulations: Option<Articulations>,
+    #[serde(flatten)]
+    voices: SynthVoices,
+    #[serde(skip)]
+    sustain_pressed: bool,
+}
+
+impl SynthInstrument {
+    pub(crate) fn decode<'de, D: Deserializer<'de>>(
+        decoder: D,
+        limits: PreparationLimits,
+    ) -> Result<Self, Error> {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Definition {
+            #[serde(default)]
+            controls: BTreeMap<Identifier, ControlDeclaration>,
+            voice_policy: Option<VoicePolicy>,
+            sustain: Option<Sustain>,
+            articulations: Option<Articulations>,
+            voices: Vec<SynthVoiceDefinition>,
+        }
+        let definition =
+            Definition::deserialize(decoder).map_err(|error| invalid(error.to_string()))?;
+        let mut records = 1
+            + definition.controls.len()
+            + usize::from(definition.voice_policy.is_some())
+            + usize::from(definition.sustain.is_some());
+        if let Some(articulations) = &definition.articulations {
+            records += 1
+                + articulations.ids().len()
+                + articulations.keys().len()
+                + articulations.controls().len();
+            articulations.validate_controls(&definition.controls)?;
+        }
+        let sustain_pressed = if let Some(sustain) = &definition.sustain {
+            let control = definition.controls.get(sustain.control()).ok_or_else(|| {
+                invalid(format!(
+                    "Unknown sustain control: {}",
+                    sustain.control().as_str()
+                ))
+            })?;
+            sustain.initially_pressed(control)?
+        } else {
+            false
+        };
+        let voices = SynthVoices::prepare(
+            definition.voices,
+            limits,
+            records,
+            Some(&definition.controls),
+        )?;
+        let choke_groups: BTreeSet<_> = voices
+            .voices()
+            .iter()
+            .filter_map(|voice| voice.template().choke_group())
+            .collect();
+        let articulations: BTreeSet<_> = definition
+            .articulations
+            .iter()
+            .flat_map(Articulations::ids)
+            .collect();
+        for voice in voices.voices() {
+            validate_instrument_voice(
+                voice,
+                definition.sustain.is_some(),
+                &articulations,
+                &choke_groups,
+            )?;
+        }
+        Ok(Self {
+            controls: definition.controls,
+            voice_policy: definition.voice_policy,
+            sustain: definition.sustain,
+            articulations: definition.articulations,
+            voices,
+            sustain_pressed,
+        })
+    }
+
+    pub fn controls(&self) -> &BTreeMap<Identifier, ControlDeclaration> {
+        &self.controls
+    }
+
+    pub fn voice_policy(&self) -> Option<&VoicePolicy> {
+        self.voice_policy.as_ref()
+    }
+
+    pub fn sustain(&self) -> Option<&Sustain> {
+        self.sustain.as_ref()
+    }
+
+    pub fn articulations(&self) -> Option<&Articulations> {
+        self.articulations.as_ref()
+    }
+
+    pub fn voices(&self) -> &SynthVoices {
+        &self.voices
+    }
+
+    pub fn sustain_pressed(&self) -> bool {
+        self.sustain_pressed
+    }
+}
+
+fn validate_instrument_voice(
+    voice: &SynthVoice,
+    has_sustain: bool,
+    articulations: &BTreeSet<&Identifier>,
+    choke_groups: &BTreeSet<&Identifier>,
+) -> Result<(), Error> {
+    let template = voice.template();
+    let settings = voice.settings();
+    let modulation = settings.modulation();
+    let sources: BTreeMap<_, _> = modulation.sources().iter().map(|s| (s.name(), s)).collect();
+    let keys = template.mapping().note_range();
+    for binding in settings.bindings() {
+        let binding = match binding {
+            Binding::Event(binding) if binding.kind() == EventKind::Key => binding,
+            _ => continue,
+        };
+        let source = sources[binding.name()];
+        // Key source bounds are already validated as integral binary64 values.
+        // Widen the integer keys to avoid rounding them before comparison.
+        if source.minimum() as i128 > i128::from(*keys.start())
+            || (source.maximum() as i128) < i128::from(*keys.end())
+        {
+            return Err(invalid(
+                "NoteKey source domain must cover the voice mapping",
+            ));
+        }
+    }
+    if modulation
+        .parameters()
+        .iter()
+        .any(|p| p.scope() != Scope::Voice)
+    {
+        return Err(invalid("Synth voice parameters must have voice scope"));
+    }
+    if settings
+        .envelfos()
+        .iter()
+        .any(|(_, g)| matches!(g.body(), Body::Envelope(_)) && g.settings().scope() != Scope::Voice)
+    {
+        return Err(invalid("Synth voice envelopes must have voice scope"));
+    }
+    if matches!(
+        template.trigger(),
+        Trigger::SustainPress | Trigger::SustainRelease
+    ) && !has_sustain
+    {
+        return Err(invalid("Sustain voices require a sustain control"));
+    }
+    for name in template.articulations() {
+        if !articulations.contains(name) {
+            return Err(invalid(format!(
+                "Synth voice {}: unknown articulation {}",
+                template.name().as_str(),
+                name.as_str()
+            )));
+        }
+    }
+    for choke in template.chokes() {
+        if !choke_groups.contains(choke.group()) {
+            return Err(invalid(format!(
+                "Synth voice {}: unknown choke group {}",
+                template.name().as_str(),
+                choke.group().as_str()
+            )));
+        }
+    }
+    Ok(())
 }
 
 #[derive(Deserialize)]

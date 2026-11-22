@@ -606,7 +606,7 @@ impl SoundSettings {
         engine: impl Fn(&Target) -> Option<ResolvedTarget>,
     ) -> Result<Self, D::Error> {
         SoundWire::deserialize(d)?
-            .prepare(limits, engine)
+            .prepare(limits, None, engine)
             .map_err(serde::de::Error::custom)
     }
 }
@@ -634,6 +634,7 @@ impl SoundWire {
     pub(crate) fn prepare(
         self,
         limits: PreparationLimits,
+        controls: Option<&BTreeMap<Identifier, ControlDeclaration>>,
         engine: impl Fn(&Target) -> Option<ResolvedTarget>,
     ) -> Result<SoundSettings, Error> {
         let data = serde_json::to_value(&self).map_err(|error| invalid(&error.to_string()))?;
@@ -664,7 +665,10 @@ impl SoundWire {
             event_connections: self.event_connections,
             records,
         };
-        value.validate_context_with_targets(None, limits, engine)?;
+        // The enclosing instrument has already budgeted its shared controls.
+        let context_limits =
+            PreparationLimits::new(limits.max_records() + controls.map_or(0, BTreeMap::len))?;
+        value.validate_context_with_targets(controls, context_limits, engine)?;
         Ok(value)
     }
 }

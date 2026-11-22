@@ -69,6 +69,27 @@ def test_shared_synth_sources_keep_order_and_validate_their_fields() -> None:
             adapter.validate_python(definitions[spec['voice']] | spec['data'])
 
 
+def test_synth_instrument_checks_voice_context() -> None:
+    vectors = json.loads(
+        (
+            Path(__file__).parents[1] / 'conformance/synth-instrument-context.json'
+        ).read_text()
+    )
+    instrument = vectors['instrument']
+    definition = SynthInstrument.model_validate(instrument)
+    assert definition.sustain is not None
+    assert definition.sustain.initially_pressed(definition.controls['pedal'])
+    for overrides in vectors['invalid_instrument_overrides']:
+        with pytest.raises(ValueError):
+            SynthInstrument.model_validate(instrument | overrides)
+    tone, pedal = instrument['voices']
+    for overrides in vectors['invalid_voice_overrides']:
+        with pytest.raises(ValueError):
+            SynthInstrument.model_validate(
+                instrument | {'voices': [tone | overrides, pedal]}
+            )
+
+
 def test_release_plans_match_shared_cases() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/voice-release.json').read_text()

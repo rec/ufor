@@ -1,0 +1,57 @@
+{
+  "instrument": {
+    "controls": {"pedal": {"default": 0.5}, "gain": {"default": 0.2}},
+    "sustain": {"control": "pedal"},
+    "voice_policy": {"maximum_voices": 8},
+    "articulations": {
+      "ids": ["open"],
+      "controls": [{"control": "gain", "minimum_value": 0, "maximum_value": 1, "articulation": "open"}]
+    },
+    "voices": [
+      {
+        "name": "tone",
+        "mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440},
+        "channels": [{"input": "mono", "output": "left", "gain": 1}],
+        "oscillator": {"waveform": "sine"},
+        "articulations": ["open"],
+        "chokes": [{"group": "hat", "mode": "release"}],
+        "modulation": {
+          "sources": [
+            {"name": "note", "scope": "voice", "minimum": 60, "maximum": 72},
+            {"name": "level", "scope": "instrument", "minimum": 0, "maximum": 1}
+          ]
+        },
+        "bindings": [{"kind": "key", "name": "note"}, {"kind": "control", "name": "level", "control": "gain"}]
+      },
+      {
+        "name": "pedal-down",
+        "mapping": {"lowest_key": 64, "highest_key": 64, "event_key": 64, "pitch_tracking": false},
+        "channels": [{"input": "mono", "output": "left", "gain": 1}],
+        "noise": "white",
+        "trigger": "sustain_press",
+        "choke_group": "hat"
+      }
+    ]
+  },
+  "invalid_instrument_overrides": [
+    {"sustain": null},
+    {"sustain": {"control": "missing"}},
+    {"controls": {"pedal": {"polarity": "bipolar"}, "gain": {}}},
+    {"articulations": {"ids": ["open"], "controls": [{"control": "missing", "minimum_value": 0, "maximum_value": 1, "articulation": "open"}]}},
+    {"controls": {"pedal": {}}}
+  ],
+  "invalid_voice_overrides": [
+    {"articulations": ["missing"]},
+    {"chokes": [{"group": "missing", "mode": "release"}]},
+    {"bindings": [{"kind": "key", "name": "note"}, {"kind": "control", "name": "level", "control": "missing"}]},
+    {"mapping": {"lowest_key": 59, "highest_key": 72, "reference_pitch_hz": 440}},
+    {
+      "mapping": {"lowest_key": 9007199254740992, "highest_key": 9007199254740993, "reference_pitch_hz": 440},
+      "modulation": {"sources": [
+        {"name": "note", "scope": "voice", "minimum": 9007199254740991, "maximum": 9007199254740992},
+        {"name": "level", "scope": "instrument", "minimum": 0, "maximum": 1}
+      ]}
+    },
+    {"envelfos": {"shape": {"kind": "envelope", "scope": "instrument", "segments": [{"duration": "0 s", "to": 1}]}}}
+  ]
+}
