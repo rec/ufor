@@ -9,9 +9,9 @@ use crate::number::Rational;
 use crate::quantity::exact_seconds;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub use settings::{
-    EqualizerBand, FilterBoundary, FilterOrder, FilterResponse, FilterTolerance, Processing,
-    ResolvedTarget, ResonantFilter, SoundSettings, SoundValidation, TargetMinimum,
-    TargetResolution,
+    BiquadCoefficients, EqualizerBand, FilterBoundary, FilterOrder, FilterResponse,
+    FilterTolerance, Processing, ResolvedTarget, ResonantFilter, SoundSettings, SoundValidation,
+    TargetMinimum, TargetResolution, biquad_coefficients,
 };
 use std::collections::{BTreeMap, BTreeSet};
 

@@ -31,6 +31,25 @@ pub enum FilterBoundary {
     Clamp,
 }
 
+impl FilterBoundary {
+    /// Resolve a cutoff against prepared inclusive bounds, without allocation.
+    pub fn resolve(self, cutoff_hz: f64, minimum_hz: f64, maximum_hz: f64) -> Option<f64> {
+        if !cutoff_hz.is_finite()
+            || minimum_hz
+                .partial_cmp(&maximum_hz)
+                .is_none_or(|o| o.is_gt())
+        {
+            return None;
+        }
+        match self {
+            Self::Clamp => Some(cutoff_hz.clamp(minimum_hz, maximum_hz)),
+            Self::Error => (minimum_hz..=maximum_hz)
+                .contains(&cutoff_hz)
+                .then_some(cutoff_hz),
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum FilterOrder {
@@ -119,6 +138,18 @@ pub struct ResonantFilter {
 }
 
 impl ResonantFilter {
+    /// Resolve the filter's authored cutoff bounds at the host's sample rate.
+    pub fn cutoff_bounds(&self, rate_hz: f64) -> Result<(f64, f64), Error> {
+        if !rate_hz.is_finite() || rate_hz <= 0.0 {
+            return Err(invalid("Filter sample rate must be positive and finite"));
+        }
+        let upper = rate_hz / 2.0 * self.nyquist_ratio;
+        if self.minimum_hz >= upper {
+            return Err(invalid("Filter minimum_hz must be below its Nyquist bound"));
+        }
+        Ok((self.minimum_hz, upper))
+    }
+
     pub fn name(&self) -> &Identifier {
         &self.name
     }
@@ -146,6 +177,44 @@ impl ResonantFilter {
     pub fn tolerance(&self) -> FilterTolerance {
         self.tolerance.clone().unwrap_or_default()
     }
+}
+
+/// One normalized RBJ Audio EQ Cookbook biquad, in direct-form coefficient order.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct BiquadCoefficients {
+    pub b0: f64,
+    pub b1: f64,
+    pub b2: f64,
+    pub a1: f64,
+    pub a2: f64,
+}
+
+pub fn biquad_coefficients(
+    filter: &ResonantFilter,
+    rate_hz: f64,
+) -> Result<BiquadCoefficients, Error> {
+    let (minimum, maximum) = filter.cutoff_bounds(rate_hz)?;
+    let cutoff = filter
+        .boundary
+        .resolve(filter.cutoff_hz, minimum, maximum)
+        .ok_or_else(|| invalid("Filter cutoff is outside its configured rate bounds"))?;
+    let omega = std::f64::consts::TAU * cutoff / rate_hz;
+    let alpha = omega.sin() / (2.0 * filter.q);
+    let cosine = omega.cos();
+    let (b0, b1, b2) = match filter.response {
+        FilterResponse::Lowpass => ((1.0 - cosine) / 2.0, 1.0 - cosine, (1.0 - cosine) / 2.0),
+        FilterResponse::Highpass => ((1.0 + cosine) / 2.0, -(1.0 + cosine), (1.0 + cosine) / 2.0),
+        FilterResponse::Bandpass => (alpha, 0.0, -alpha),
+        FilterResponse::Notch => (1.0, -2.0 * cosine, 1.0),
+    };
+    let a0 = 1.0 + alpha;
+    Ok(BiquadCoefficients {
+        b0: quantity::finite(b0 / a0)?,
+        b1: quantity::finite(b1 / a0)?,
+        b2: quantity::finite(b2 / a0)?,
+        a1: quantity::finite(-2.0 * cosine / a0)?,
+        a2: quantity::finite((1.0 - alpha) / a0)?,
+    })
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]

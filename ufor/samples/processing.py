@@ -2,7 +2,7 @@
 
 from enum import StrEnum, auto
 from fractions import Fraction
-from math import cos, pi, sin
+from math import cos, isfinite, pi, sin
 from typing import Annotated, ClassVar, Literal, Self
 
 import pydantic
@@ -132,6 +132,16 @@ class ResonantFilter(_ProcessingDeclaration):
     _quantity_fields = {'cutoff_hz': 'hz', 'minimum_hz': 'hz'}
     _numeric_fields = ('q', 'nyquist_ratio')
 
+    def cutoff_bounds(self, rate_hz: float) -> tuple[float, float]:
+        if not isfinite(rate_hz) or rate_hz <= 0:
+            raise ValueError('filter rate_hz must be positive and finite')
+        upper = rate_hz / 2 * self.nyquist_ratio
+        if self.minimum_hz >= upper:
+            raise ValueError(
+                'filter minimum_hz must be below the configured Nyquist bound'
+            )
+        return self.minimum_hz, upper
+
 
 class BiquadCoefficients(Model):
     b0: FiniteScalar
@@ -179,17 +189,12 @@ def pan_gains(position: float, law: PanLaw, *, stereo: bool) -> list[float]:
 
 def biquad_coefficients(filter: ResonantFilter, rate_hz: float) -> BiquadCoefficients:
     """Return one RBJ Audio EQ Cookbook biquad at the resolved cutoff."""
-    if rate_hz <= 0:
-        raise ValueError('filter rate_hz must be positive')
-    nyquist = rate_hz / 2
-    upper = nyquist * filter.nyquist_ratio
-    if filter.minimum_hz >= upper:
-        raise ValueError('filter minimum_hz must be below the configured Nyquist bound')
+    minimum, upper = filter.cutoff_bounds(rate_hz)
     cutoff = filter.cutoff_hz
-    if not filter.minimum_hz <= cutoff <= upper:
+    if not minimum <= cutoff <= upper:
         if filter.boundary == FilterBoundary.error:
             raise ValueError('filter cutoff is outside its configured rate bounds')
-        cutoff = min(max(cutoff, filter.minimum_hz), upper)
+        cutoff = min(max(cutoff, minimum), upper)
     omega = 2 * pi * cutoff / rate_hz
     alpha = sin(omega) / (2 * filter.q)
     cosine = cos(omega)

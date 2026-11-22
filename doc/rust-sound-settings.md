@@ -43,8 +43,12 @@ Envelope clock. Captured approaches expose a time constant in seconds.
 Indefinite holds have no duration target. Amplitude needs a nonnegative
 domain, resonance and Q need positive domains, and multiplicative route points
 must be nonnegative. Envelope timing routes latch from key or velocity.
-Filter defaults are authored values. Applying a sample rate and enforcing a
-renderer profile are preparation decisions owned by the host.
+Filter defaults are authored values. The host supplies the sample rate to
+`ResonantFilter::cutoff_bounds` and chooses its renderer profile.
+`FilterBoundary::resolve` applies error or clamp to the prepared inclusive
+bounds without allocating. `biquad_coefficients` matches Python's normalized
+RBJ reference coefficients. The [filter cases](../conformance/filter-cutoff.json)
+exercise all four responses and cutoff boundary handling.
 
 When a named generator is a reference, lookup returns an outstanding
 generator target with its known scope. Unknown local addresses fail.
@@ -96,7 +100,7 @@ supplied controls in that budget. Defaults omitted from the wire do not add
 singleton records. Text parsing also applies separate character, value and
 depth limits. See the [shared cases](../conformance/sound-settings.json).
 
-FM, Yamaha, sample inheritance and effect processor targets remain with the
-Python owner models. The shared body resolves the base families above. Biquad
-coefficients, pan gains, spatial bounds, host indices, renderer support,
-resource resolution and rendering stay outside this port.
+The shared body resolves the base families above. FM, sample inheritance,
+channel routing, and effect processor targets use their own Rust modules.
+Yamaha target resolution, spatial bounds, host indices, renderer support,
+resource resolution and rendering sit outside this body.

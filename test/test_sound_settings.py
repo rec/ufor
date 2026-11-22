@@ -8,10 +8,45 @@ import pytest
 from ufor.codec import parse_sound_settings, sound_settings_text
 from ufor.modulation import Target
 from ufor.samples.controls import ControlDeclaration
-from ufor.samples.processing import ResolvedTarget, SoundSettings
+from ufor.samples.processing import (
+    ResolvedTarget,
+    ResonantFilter,
+    SoundSettings,
+    biquad_coefficients,
+)
 
 CORPUS = Path(__file__).resolve().parents[1] / 'conformance'
 CASES = json.loads((CORPUS / 'sound-settings.json').read_text())
+
+
+@pytest.mark.parametrize(
+    'case', json.loads((CORPUS / 'filter-cutoff.json').read_text())
+)
+def test_biquad_respects_authored_cutoff_policy(case: dict) -> None:
+    definition = ResonantFilter.model_validate(
+        dict(
+            name='tone',
+            response=case['response'],
+            cutoff_hz=case['cutoff'],
+            q=1.0,
+            nyquist_ratio=0.5,
+            boundary=case['boundary'],
+        )
+    )
+    rate = case['rate']
+    if 'bounds' in case:
+        assert list(definition.cutoff_bounds(rate)) == case['bounds']
+    else:
+        with pytest.raises(ValueError):
+            definition.cutoff_bounds(rate)
+    if 'coefficients' in case:
+        coefficients = biquad_coefficients(definition, rate)
+        assert list(coefficients.model_dump().values()) == pytest.approx(
+            case['coefficients'], abs=1e-14
+        )
+    else:
+        with pytest.raises(ValueError):
+            biquad_coefficients(definition, rate)
 
 
 @pytest.mark.parametrize('case', CASES['rejected'], ids=lambda c: c['id'])

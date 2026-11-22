@@ -1,0 +1,9 @@
+[
+  {"response":"lowpass","cutoff":12000,"boundary":"error","rate":48000,"bounds":[1,12000],"coefficients":[0.3333333333333333,0.6666666666666666,0.3333333333333333,0,0.3333333333333333]},
+  {"response":"highpass","cutoff":18000,"boundary":"clamp","rate":48000,"bounds":[1,12000],"coefficients":[0.3333333333333333,-0.6666666666666666,0.3333333333333333,0,0.3333333333333333]},
+  {"response":"bandpass","cutoff":12000,"boundary":"error","rate":48000,"bounds":[1,12000],"coefficients":[0.3333333333333333,0,-0.3333333333333333,0,0.3333333333333333]},
+  {"response":"notch","cutoff":12000,"boundary":"error","rate":48000,"bounds":[1,12000],"coefficients":[0.6666666666666666,0,0.6666666666666666,0,0.3333333333333333]},
+  {"response":"notch","cutoff":18000,"boundary":"error","rate":48000,"bounds":[1,12000]},
+  {"response":"lowpass","cutoff":10,"boundary":"clamp","rate":4},
+  {"response":"lowpass","cutoff":10,"boundary":"clamp","rate":0}
+]

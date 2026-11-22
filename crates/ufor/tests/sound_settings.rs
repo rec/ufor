@@ -4,7 +4,44 @@ use ufor::codec::{self, Format};
 use ufor::envelfo::PreparationLimits;
 use ufor::identifier::Identifier;
 use ufor::modulation::Target;
-use ufor::samples::processing::{SoundSettings, TargetResolution};
+use ufor::samples::processing::{
+    FilterBoundary, ResonantFilter, SoundSettings, TargetResolution, biquad_coefficients,
+};
+
+#[test]
+fn biquad_respects_authored_cutoff_policy() {
+    let vectors: Vec<Value> =
+        serde_json::from_str(include_str!("../../../conformance/filter-cutoff.json")).unwrap();
+    for case in vectors {
+        let definition: ResonantFilter = serde_json::from_value(json!({
+            "name": "tone", "response": case["response"], "cutoff_hz": case["cutoff"],
+            "q": 1.0, "nyquist_ratio": 0.5, "boundary": case["boundary"],
+        }))
+        .unwrap();
+        let rate = case["rate"].as_f64().unwrap();
+        let bounds = definition.cutoff_bounds(rate).ok();
+        assert_eq!(
+            bounds,
+            case["bounds"]
+                .as_array()
+                .map(|b| (b[0].as_f64().unwrap(), b[1].as_f64().unwrap()))
+        );
+        let result = biquad_coefficients(&definition, rate);
+        if let Some(expected) = case["coefficients"].as_array() {
+            let c = result.unwrap();
+            for (actual, wanted) in [c.b0, c.b1, c.b2, c.a1, c.a2].into_iter().zip(expected) {
+                assert!((actual - wanted.as_f64().unwrap()).abs() < 1e-14);
+            }
+        } else {
+            assert!(result.is_err());
+        }
+    }
+    assert_eq!(FilterBoundary::Clamp.resolve(0.5, 1.0, 12000.0), Some(1.0));
+    assert_eq!(
+        FilterBoundary::Clamp.resolve(f64::INFINITY, 1.0, 12000.0),
+        None
+    );
+}
 
 fn target(pair: &[Value]) -> Target {
     Target::new(
