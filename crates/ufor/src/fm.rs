@@ -20,11 +20,82 @@ pub struct Fm {
     carrier: Identifier,
     carrier_level: f64,
     #[serde(skip)]
+    topology: FmTopology,
+}
+
+/// Validated operator and edge addresses for rendering an FM graph.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct FmTopology {
     order: Vec<usize>,
-    #[serde(skip)]
     carrier_index: usize,
-    #[serde(skip)]
     edge_endpoints: Vec<(usize, usize)>,
+    incoming: Vec<Vec<FmInput>>,
+}
+
+/// One incoming edge and the sample it reads during graph evaluation.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct FmInput {
+    edge_index: usize,
+    source: usize,
+    delayed: bool,
+}
+
+impl FmInput {
+    pub fn edge_index(self) -> usize {
+        self.edge_index
+    }
+
+    /// Read the current operator output or previous edge sample.
+    #[inline]
+    pub fn sample(self, outputs: &[f64], history: &[f64]) -> f64 {
+        if self.delayed {
+            history[self.edge_index]
+        } else {
+            outputs[self.source]
+        }
+    }
+}
+
+impl FmTopology {
+    pub fn order(&self) -> &[usize] {
+        &self.order
+    }
+
+    pub fn carrier_index(&self) -> usize {
+        self.carrier_index
+    }
+
+    /// Operator indices for each edge in authored edge order.
+    pub fn edge_endpoints(&self) -> &[(usize, usize)] {
+        &self.edge_endpoints
+    }
+
+    /// Sum one operator's incoming signals in authored edge order.
+    ///
+    /// The callback supplies the resolved edge index in radians and the
+    /// source sample. Operator and edge indices address the prepared graph.
+    #[inline]
+    pub fn phase_offset<E>(
+        &self,
+        operator: usize,
+        mut resolve: impl FnMut(FmInput) -> Result<(f64, f64), E>,
+    ) -> Result<f64, E> {
+        let mut offset = 0.0;
+        for &input in &self.incoming[operator] {
+            let (index, sample) = resolve(input)?;
+            offset += index * sample;
+        }
+        Ok(offset)
+    }
+
+    /// Capture one sample per authored edge for the next output frame.
+    /// History must have one entry per edge and outputs one per operator.
+    #[inline]
+    pub fn capture_feedback(&self, outputs: &[f64], history: &mut [f64]) {
+        for (index, &(source, _)) in self.edge_endpoints.iter().enumerate() {
+            history[index] = outputs[source];
+        }
+    }
 }
 
 impl Fm {
@@ -41,16 +112,20 @@ impl Fm {
         self.carrier_level
     }
     pub fn order(&self) -> &[usize] {
-        &self.order
+        self.topology.order()
     }
 
     pub fn carrier_index(&self) -> usize {
-        self.carrier_index
+        self.topology.carrier_index()
     }
 
     /// Operator indices for each edge in authored edge order.
     pub fn edge_endpoints(&self) -> &[(usize, usize)] {
-        &self.edge_endpoints
+        self.topology.edge_endpoints()
+    }
+
+    pub fn topology(&self) -> &FmTopology {
+        &self.topology
     }
 
     /// Resolve FM-owned addresses from the actual operator and edge declarations.
@@ -210,7 +285,8 @@ impl Definition {
         let mut edge_endpoints = Vec::with_capacity(self.edges.len());
         let mut pending = vec![0; operators.len()];
         let mut successors = vec![Vec::new(); operators.len()];
-        for edge in &self.edges {
+        let mut incoming = vec![Vec::new(); operators.len()];
+        for (edge_index, edge) in self.edges.iter().enumerate() {
             nonnegative(edge.index)?;
             let (Some(&source), Some(&destination)) =
                 (names.get(&edge.source), names.get(&edge.destination))
@@ -221,6 +297,11 @@ impl Definition {
                 return Err(invalid("duplicate FM edge target"));
             }
             edge_endpoints.push((source, destination));
+            incoming[destination].push(FmInput {
+                edge_index,
+                source,
+                delayed: edge.delayed,
+            });
             if !edge.delayed {
                 pending[destination] += 1;
                 successors[source].push(destination);
@@ -245,9 +326,12 @@ impl Definition {
             edges: self.edges,
             carrier: self.carrier,
             carrier_level: self.carrier_level,
-            order,
-            carrier_index,
-            edge_endpoints,
+            topology: FmTopology {
+                order,
+                carrier_index,
+                edge_endpoints,
+                incoming,
+            },
         })
     }
 }

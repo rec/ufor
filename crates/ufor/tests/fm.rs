@@ -1,4 +1,5 @@
 use serde_json::{Value, json};
+use std::convert::Infallible;
 use ufor::codec::{self, Format};
 use ufor::envelfo::{PreparationLimits, Waveform};
 use ufor::identifier::Identifier;
@@ -40,6 +41,41 @@ fn fm_graph_targets_and_order_follow_the_authored_definitions() {
     let text = corpus["graph"].to_string();
     assert!(codec::parse_fm(&text, Format::Json, PreparationLimits::new(11).unwrap()).is_ok());
     assert!(codec::parse_fm(&text, Format::Json, PreparationLimits::new(10).unwrap()).is_err());
+}
+
+#[test]
+fn fm_inputs_use_authored_order_and_capture_previous_frame_samples() {
+    let corpus: Value =
+        serde_json::from_str(include_str!("../../../conformance/fm-graph.json")).unwrap();
+    let graph = codec::parse_fm(
+        &corpus["graph"].to_string(),
+        Format::Json,
+        PreparationLimits::default(),
+    )
+    .unwrap();
+    let topology = graph.topology();
+    let outputs = [10.0, 20.0, 30.0, 40.0];
+    let mut history = [1.0, 2.0, 3.0];
+    let mut visited = Vec::new();
+    let carrier = topology
+        .phase_offset(topology.carrier_index(), |edge| {
+            visited.push(edge.edge_index());
+            Ok::<_, Infallible>((
+                graph.edges()[edge.edge_index()].index(),
+                edge.sample(&outputs, &history),
+            ))
+        })
+        .unwrap();
+    assert_eq!(visited, [0, 1]);
+    assert_eq!(carrier, 30.0);
+    let delayed = topology
+        .phase_offset(0, |edge| {
+            Ok::<_, Infallible>((2.0, edge.sample(&outputs, &history)))
+        })
+        .unwrap();
+    assert_eq!(delayed, 6.0);
+    topology.capture_feedback(&outputs, &mut history);
+    assert_eq!(history, [20.0, 10.0, 30.0]);
 }
 
 #[test]
