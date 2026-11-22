@@ -166,6 +166,14 @@ budget counts the root, timebases, assets and slices.
 referenced assets and resolves the output and native rates. Both rates must
 declare a denominator of one for that preparation profile.
 
+`codec::parse_timebase` reads a named physical timebase. Rates have positive
+signed-64-bit integer components and retain their declared denominator.
+`time::convert_tick` converts absolute coordinates exactly and rounds once
+with ties to even. Negative coordinates are supported and a rounded result
+outside the signed-64-bit domain returns an error. The
+[shared vectors](../conformance/physical-time.json) include conversions
+whose exact intermediate products exceed 128 bits.
+
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a

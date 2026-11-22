@@ -1,7 +1,12 @@
 //! Resolve declared sample extents and timebases before using decoded audio.
 
 use super::{playback::Slice, routing::check_layout};
-use crate::{envelfo::PreparationLimits, error::Error, identifier::Identifier};
+use crate::{
+    envelfo::PreparationLimits,
+    error::Error,
+    identifier::Identifier,
+    time::{Rate, Timebase},
+};
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet};
 
@@ -28,10 +33,7 @@ impl Inventory {
         check_layout(&authored.output.channels)?;
         let mut rates = BTreeMap::new();
         for timebase in &authored.timebases {
-            if timebase.rate.numerator <= 0 || timebase.rate.denominator <= 0 {
-                return Err(invalid("Timebase rate must be positive"));
-            }
-            if rates.insert(&timebase.name, timebase.rate).is_some() {
+            if rates.insert(timebase.name(), timebase.rate()).is_some() {
                 return Err(invalid("Duplicate timebase name"));
             }
         }
@@ -86,9 +88,10 @@ impl Inventory {
         &self,
         decoded_shapes: &BTreeMap<String, Vec<usize>>,
     ) -> Result<(i64, BTreeMap<String, i64>), Error> {
-        if self.output_rate.denominator != 1 {
-            return Err(invalid("Sampler output rate must be an integer"));
-        }
+        let output_rate = self
+            .output_rate
+            .integer_hz()
+            .ok_or_else(|| invalid("Sampler output rate must be an integer"))?;
         if !self.required.keys().eq(decoded_shapes.keys()) {
             return Err(invalid(
                 "Decoded assets must match the referenced asset IDs",
@@ -103,12 +106,13 @@ impl Inventory {
                     "Decoded asset {name} does not match its frame/channel layout"
                 )));
             }
-            if extent.rate.denominator != 1 {
-                return Err(invalid("Sampler native rate must be an integer"));
-            }
-            native_rates.insert(name.clone(), extent.rate.numerator);
+            let rate = extent
+                .rate
+                .integer_hz()
+                .ok_or_else(|| invalid("Sampler native rate must be an integer"))?;
+            native_rates.insert(name.clone(), rate);
         }
-        Ok((self.output_rate.numerator, native_rates))
+        Ok((output_rate, native_rates))
     }
 }
 
@@ -117,30 +121,6 @@ struct AssetExtent {
     rate: Rate,
     frames: i64,
     channels: usize,
-}
-
-#[derive(Clone, Copy, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Rate {
-    numerator: i64,
-    #[serde(default = "one")]
-    denominator: i64,
-}
-
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Timebase {
-    name: Identifier,
-    #[serde(default, rename = "kind")]
-    _kind: TimebaseKind,
-    rate: Rate,
-}
-
-#[derive(Default, Deserialize)]
-#[serde(rename_all = "snake_case")]
-enum TimebaseKind {
-    #[default]
-    Physical,
 }
 
 #[derive(Deserialize)]
@@ -172,10 +152,6 @@ struct Declaration {
     assets: Vec<Asset>,
     slices: Vec<Slice>,
     output: AudioLayout,
-}
-
-fn one() -> i64 {
-    1
 }
 
 fn invalid(message: impl Into<String>) -> Error {

@@ -19,6 +19,7 @@ use crate::samples::selection::Sequence;
 use crate::samples::variation::Variation;
 use crate::samples::{assets::Inventory, crossfade::Crossfade};
 use crate::score::Score;
+use crate::time::Timebase;
 use crate::tuning::Tuning;
 use crate::voice_admission::Admission;
 use crate::voice_release::ReleaseRequest;
@@ -52,6 +53,11 @@ pub fn parse_tempo_map(
     limits: PreparationLimits,
 ) -> Result<TempoMap, Error> {
     TempoMap::decode(parse_value(text, format)?, limits)
+}
+
+pub fn parse_timebase(text: &str, format: Format) -> Result<Timebase, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
 }
 
 pub fn parse_sample_slice(text: &str, format: Format) -> Result<Slice, Error> {

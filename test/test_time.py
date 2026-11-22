@@ -1,3 +1,6 @@
+import json
+from pathlib import Path
+
 import pytest
 from pydantic import ValidationError
 
@@ -6,26 +9,21 @@ from ufor.time import Rate, TickRange, Timebase, convert_tick
 
 @pytest.mark.parametrize(
     ('tick', 'source_rate', 'destination_rate', 'expected'),
-    [
-        (44100, 44100, 48000, 48000),
-        (88200, 44100, 48000, 96000),
-        (1, 2, 1, 0),
-        (3, 2, 1, 2),
-        (-3, 2, 1, -2),
-    ],
+    json.loads(
+        (Path(__file__).parents[1] / 'conformance/physical-time.json').read_text()
+    ),
 )
 def test_positions_convert_once_with_even_ties(
-    tick: int, source_rate: int, destination_rate: int, expected: int
+    tick: int, source_rate: list[int], destination_rate: list[int], expected: int
 ) -> None:
-    source = Timebase(name='source', rate=Rate(numerator=source_rate))
-    destination = Timebase(name='destination', rate=Rate(numerator=destination_rate))
+    source = Timebase(
+        name='source', rate=Rate(numerator=source_rate[0], denominator=source_rate[1])
+    )
+    destination = Timebase(
+        name='destination',
+        rate=Rate(numerator=destination_rate[0], denominator=destination_rate[1]),
+    )
     assert convert_tick(tick, source, destination) == expected
-
-
-def test_rational_rates_preserve_exact_positions() -> None:
-    source = Timebase(name='source', rate=Rate(numerator=30000, denominator=1001))
-    destination = Timebase(name='destination', rate=Rate(numerator=48000))
-    assert convert_tick(30000, source, destination) == 48048000
 
 
 @pytest.mark.parametrize('value', [0, -1, True, 1.5])
