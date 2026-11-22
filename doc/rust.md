@@ -221,6 +221,10 @@ outside the signed-64-bit domain returns an error. The
 [shared vectors](../conformance/physical-time.json) include conversions
 whose exact intermediate products exceed 128 bits.
 
+`time::duration_frames` converts nonnegative seconds at a positive integer
+sample rate to a checked rational frame duration. Enge uses it to prepare
+fractional minimum holds for its persistent synth, FM and noise renderers.
+
 `time::PpqnClock` converts ordered MIDI file ticks into sample frames at an
 integer rate. It keeps elapsed time exact across tempo changes and rounds
 each absolute frame once, with ties to even. Pass the new tempo with its

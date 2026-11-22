@@ -1,6 +1,23 @@
 use ufor::codec::{Format, parse_timebase};
 use ufor::identifier::Identifier;
-use ufor::time::{PpqnClock, Rate, Timebase, convert_tick};
+use ufor::number::Rational;
+use ufor::time::{PpqnClock, Rate, Timebase, convert_tick, duration_frames};
+
+#[test]
+fn frame_durations_preserve_fractional_holds_and_check_range() {
+    let seconds = Rational::new(1, 32000).unwrap();
+    assert_eq!(
+        duration_frames(seconds, 48000).unwrap(),
+        Rational::new(3, 2).unwrap()
+    );
+    assert_eq!(
+        duration_frames(Rational::new(i64::MAX, 48000).unwrap(), 48000).unwrap(),
+        i64::MAX.into()
+    );
+    assert!(duration_frames(i64::MAX.into(), 2).is_err());
+    assert!(duration_frames((-1).into(), 48000).is_err());
+    assert!(duration_frames(0.into(), 0).is_err());
+}
 
 #[test]
 fn tick_conversion_matches_exact_shared_vectors() {

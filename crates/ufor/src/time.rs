@@ -1,7 +1,18 @@
 //! Physical tick rates and exact conversion between native coordinates.
 
+use crate::number::Rational;
 use crate::{error::Error, identifier::Identifier};
 use serde::{Deserialize, Serialize};
+
+/// Convert nonnegative seconds to an exact fractional frame duration.
+pub fn duration_frames(seconds: Rational, sample_rate: i64) -> Result<Rational, Error> {
+    if seconds.numerator() < 0 || sample_rate <= 0 {
+        return Err(Error::Invalid(
+            "frame duration requires nonnegative seconds and a positive sample rate".into(),
+        ));
+    }
+    seconds.checked_mul(sample_rate.into())
+}
 
 /// Nonempty half-open interval in native ticks.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
