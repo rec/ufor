@@ -1,6 +1,8 @@
 use serde_json::{Value, json};
 use ufor::codec::{self, Format};
-use ufor::samples::playback::{Direction, Playback, PlaybackMode, sample_step, tuned_pitch_ratio};
+use ufor::samples::playback::{
+    Direction, Playback, PlaybackMode, onset_gain, sample_step, tuned_pitch_ratio,
+};
 
 #[test]
 fn sample_crossfades_preserve_clipping_and_exact_endpoints() {
@@ -21,6 +23,12 @@ fn sample_crossfades_preserve_clipping_and_exact_endpoints() {
     assert_eq!(control.control_weight(-1.0).unwrap(), 0.0);
     assert_eq!(control.control_weight(1.0).unwrap(), 1.0);
     assert!((control.control_weight(0.0).unwrap() - 0.5_f64.sqrt()).abs() < 1e-15);
+    let fades = [key, velocity, control.clone()];
+    let gain = onset_gain(&fades, Some(40), 0.5, [3.0, -6.0, -17.0]).unwrap();
+    assert!((gain - 0.05 * 0.5_f64.sqrt()).abs() < 1e-15);
+    assert_eq!(onset_gain(&fades, Some(40), 1.0, [0.0; 3]).unwrap(), 0.0);
+    assert!(onset_gain(&fades, None, 0.5, [0.0; 3]).is_err());
+    assert!(onset_gain(&[], None, 0.5, [1e10, 0.0, 0.0]).is_err());
     let text = toml::to_string(&control).unwrap();
     assert_eq!(
         codec::parse_sample_crossfade(&text, Format::Toml).unwrap(),

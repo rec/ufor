@@ -117,6 +117,8 @@ and its coordinates give the dispatch order. Ordinary events need no clock.
 `codec::parse_sample_slice` and `codec::parse_sample_playback` read sample
 traversal declarations. `samples::playback::Slice` validates native frame
 intervals, loop crossfades, and resolved playback against decoded asset length.
+`samples::playback::onset_gain` combines key and velocity crossfade weights with
+instrument, slot and variation decibels. Control fades remain time-varying.
 Loop repeat limits and the number of additional plays use unsigned 64-bit
 counts. The renderer owns the audio, traversal state, and interpolation.
 `codec::parse_sample_mapping` validates authored note and velocity ranges and

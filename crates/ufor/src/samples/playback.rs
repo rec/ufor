@@ -1,7 +1,27 @@
 //! Portable sample traversal declarations in native asset frames.
+use super::crossfade::Crossfade;
 use crate::{error::Error, identifier::Identifier, number::Rational, quantity};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
+
+/// Combine latched onset crossfades with instrument, slot and variation volume.
+/// The three decibel values are added in that order before conversion.
+pub fn onset_gain(
+    fades: &[Crossfade],
+    key: Option<i64>,
+    velocity: f64,
+    volume_db: [f64; 3],
+) -> Result<f64, Error> {
+    let mut gain = 1.0;
+    for fade in fades {
+        if let Some(weight) = fade.onset_weight(key, velocity)? {
+            gain *= weight;
+        }
+    }
+    let [instrument, slot, variation] = volume_db;
+    let db = quantity::finite(instrument + slot + variation)?;
+    quantity::finite(gain * 10_f64.powf(db / 20.0))
+}
 
 /// Apply two layers of cents to the base pitch ratio or an already scaled step.
 pub fn tuned_pitch_ratio(base: f64, tuning_cents: f64, layer_cents: f64) -> Result<f64, Error> {
