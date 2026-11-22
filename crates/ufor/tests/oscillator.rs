@@ -1,9 +1,24 @@
 use serde_json::Value;
+use std::f64::consts::TAU;
 use ufor::codec::{self, Format};
-use ufor::envelfo::PreparationLimits;
-use ufor::oscillator::{PhaseOrigin, phase_at_frame, shape_value};
+use ufor::envelfo::{PreparationLimits, Waveform};
+use ufor::oscillator::{PhaseOrigin, phase_at_frame, sample_at_angle, shape_value};
 use ufor::quantity;
 use ufor::score::Score;
+
+#[test]
+fn rendered_waveforms_wrap_and_preserve_duty_edges() {
+    let quarter = TAU / 4.0;
+    let below = f64::from_bits(quarter.to_bits() - 1);
+    assert_eq!(sample_at_angle(Waveform::Sine, -quarter, 0.25), -1.0);
+    assert_eq!(sample_at_angle(Waveform::Square, below, 0.25), 1.0);
+    assert_eq!(sample_at_angle(Waveform::Square, quarter, 0.25), -1.0);
+    assert_eq!(sample_at_angle(Waveform::Square, -quarter, 0.75), -1.0);
+    assert_eq!(sample_at_angle(Waveform::Triangle, quarter, 0.25), 1.0);
+    assert_eq!(sample_at_angle(Waveform::Triangle, quarter, 0.0), 0.5);
+    assert_eq!(sample_at_angle(Waveform::Triangle, quarter, 1.0), -0.5);
+    assert_eq!(sample_at_angle(Waveform::Triangle, -quarter, 0.5), 0.0);
+}
 
 #[test]
 fn transport_phase_reduces_the_exact_product_before_rounding() {

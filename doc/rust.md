@@ -42,6 +42,9 @@ supports Tuning, Scale, Oscillator, Envelfo, and Sequence.
 sample-rate units. It reduces the exact frame-frequency product modulo the
 sample rate before rounding to binary64. Whole frames retain signed 64-bit
 precision and fractional origins retain their binary64 value.
+`oscillator::sample_at_angle` evaluates sine, square and triangle render
+samples with a prepared binary64 duty value. Enge uses it for block and
+persistent synth oscillators and FM graph operators.
 
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.

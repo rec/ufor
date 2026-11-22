@@ -136,6 +136,29 @@ impl Oscillator {
     }
 }
 
+/// Evaluate a prepared oscillator waveform at an angle in radians.
+///
+/// The caller supplies a validated duty cycle in [0, 1]. For square and
+/// triangle waves, the angle is converted back to cycles before wrapping.
+#[inline]
+pub fn sample_at_angle(waveform: Waveform, angle: f64, duty: f64) -> f64 {
+    let phase = (angle / TAU).rem_euclid(1.0);
+    match waveform {
+        Waveform::Sine => angle.sin(),
+        Waveform::Square => {
+            if phase < duty {
+                1.0
+            } else {
+                -1.0
+            }
+        }
+        Waveform::Triangle if duty == 0.0 => 1.0 - 2.0 * phase,
+        Waveform::Triangle if duty == 1.0 => 2.0 * phase - 1.0,
+        Waveform::Triangle if phase < duty => 2.0 * phase / duty - 1.0,
+        Waveform::Triangle => (1.0 + duty - 2.0 * phase) / (1.0 - duty),
+    }
+}
+
 /// Evaluate one shape observation for an exact phase and duty cycle.
 pub fn shape_value(
     waveform: Waveform,
