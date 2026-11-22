@@ -242,6 +242,15 @@ pub fn parse_sample_inventory(
     Inventory::decode(parse_value(text, format)?, limits)
 }
 
+/// Prepare the assets, timebases and channel routes of a sampler score.
+pub fn parse_sample_score_inventory(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<Inventory, Error> {
+    Inventory::decode_score(parse_value(text, format)?, limits)
+}
+
 pub fn parse_sample_mapping(text: &str, format: Format) -> Result<Mapping, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))

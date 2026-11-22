@@ -314,11 +314,14 @@ with checked 64-bit rational arithmetic and rounds up once to an output frame.
 JSON preserves totals through `2^64` plays by storing the additional-play
 count. TOML integers use their signed 64-bit format domain.
 
-`codec::parse_sample_inventory` reads sampler metadata from JSON or TOML.
-It accepts `timebases`, `assets` projected to name and audio description,
-`slices`, and `output` projected to timebase and channel names. It checks
-references, native frame extents and channel layouts. The preparation
-budget counts the root, timebases, assets and slices.
+`codec::parse_sample_score_inventory` prepares the asset inventory directly
+from an authored sampler score in JSON or TOML. It checks the public
+performance and audio ports, finite source kinds, timebase and slice
+references, native frame extents, and slot channel routes. This is the
+inventory stage of sampler score preparation. Asset acquisition is the
+host's responsibility. `codec::parse_sample_inventory` also accepts
+standalone inventory declarations. Both entry points count the inventory
+root, timebases, assets and slices under the same record budget.
 `Inventory::integer_rates` checks the supplied decoded shapes against the
 referenced assets and resolves the output and native rates. Both rates must
 declare a denominator of one for that preparation profile.

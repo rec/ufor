@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use std::collections::BTreeMap;
-use ufor::codec::{Format, parse_sample_inventory};
+use ufor::codec::{Format, parse_sample_inventory, parse_sample_score_inventory};
 use ufor::envelfo::PreparationLimits;
 
 const INVENTORY: &str = r#"{
@@ -89,4 +89,104 @@ fn inventory_checks_timebases_slice_extents_and_channel_names() {
             .integer_rates(&BTreeMap::from([("clip".into(), vec![12, 2])]))
             .is_err()
     );
+}
+
+#[test]
+fn authored_sampler_score_prepares_the_same_inventory_in_both_formats() {
+    let score = sample_score();
+    let decoded = BTreeMap::from([("clip".into(), vec![12, 2])]);
+    let expected = (48000, BTreeMap::from([("clip".into(), 44100)]));
+    for (text, format) in [
+        (score.to_string(), Format::Json),
+        (toml::to_string(&score).unwrap(), Format::Toml),
+    ] {
+        let inventory =
+            parse_sample_score_inventory(&text, format, PreparationLimits::new(8).unwrap())
+                .unwrap();
+        assert_eq!(inventory.integer_rates(&decoded).unwrap(), expected);
+        assert!(
+            parse_sample_score_inventory(&text, format, PreparationLimits::new(7).unwrap())
+                .is_err()
+        );
+    }
+}
+
+#[test]
+fn authored_sampler_score_checks_finite_sources_and_port_connections() {
+    let score = sample_score();
+    let limits = PreparationLimits::default();
+    for (field, invalid, expected) in [
+        (
+            "/assets/0/location",
+            json!({"kind":"stream","url":"https://example.test/stream","transport":"https"}),
+            "finite, seekable",
+        ),
+        (
+            "/assets/1/location/delivery",
+            json!("callback"),
+            "finite, seekable",
+        ),
+        (
+            "/inputs/0/stream/timebase",
+            json!("missing"),
+            "unknown timebase",
+        ),
+        (
+            "/inputs/0/stream/kinds/2",
+            json!("key"),
+            "native performance events",
+        ),
+        ("/body/slots/0/slice", json!("missing"), "Unknown slice"),
+        (
+            "/body/slots/0/channels/0/input",
+            json!("mono"),
+            "Unknown channel",
+        ),
+        (
+            "/body/slots/0/channels/0/output",
+            json!("mono"),
+            "Unknown channel",
+        ),
+    ] {
+        let mut document = score.clone();
+        *document.pointer_mut(field).unwrap() = invalid;
+        let err = parse_sample_score_inventory(&document.to_string(), Format::Json, limits)
+            .err()
+            .unwrap();
+        assert!(err.to_string().contains(expected), "{err}");
+    }
+}
+
+fn sample_score() -> Value {
+    let mut inventory: Value = serde_json::from_str(INVENTORY).unwrap();
+    inventory["assets"][0]["location"] = json!({"kind":"relative_file","path":"clip.wav"});
+    inventory["assets"][1]["location"] =
+        json!({"kind":"python_provider","module":"kit","function":"clip","delivery":"buffer"});
+    json!({
+        "format":"recs",
+        "version":4,
+        "kind":"instrument",
+        "name":"demo",
+        "title":"Demo",
+        "timebases":inventory["timebases"],
+        "assets":inventory["assets"],
+        "inputs":[{
+            "name":"performance",
+            "binding":{"performance":true},
+            "stream":{"family":"event","timebase":"output","kinds":["trigger","release","control_change"]}
+        }],
+        "outputs":[{
+            "name":"audio",
+            "binding":{"audio":true},
+            "stream":inventory["output"]
+        }],
+        "body":{
+            "kind":"sample_instrument",
+            "slices":inventory["slices"],
+            "slots":[{
+                "name":"voice","slice":"start","channels":[{"input":"left","output":"left","gain":1}],
+                "mapping":{"reference_pitch_hz":440}
+            }]
+        }
+    })
 }

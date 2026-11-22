@@ -170,39 +170,7 @@ impl ScoreWire {
         let tags = header(&self.name, &self.title, self.tags)?;
         let [input] = &self.inputs;
         let [output] = &self.outputs;
-        let clocks: BTreeSet<_> = self.timebases.iter().map(Timebase::name).collect();
-        if clocks.len() != self.timebases.len() {
-            return Err(invalid("duplicate timebase name"));
-        }
-        if !clocks.contains(&input.stream.timebase) || !clocks.contains(&output.stream.timebase) {
-            return Err(invalid(
-                "public input/output references an unknown timebase",
-            ));
-        }
-        let kinds: BTreeSet<_> = input.stream.kinds.iter().copied().collect();
-        if !input.binding.performance
-            || input.stream.kinds.len() != 3
-            || kinds
-                != BTreeSet::from([
-                    EventKind::Trigger,
-                    EventKind::Release,
-                    EventKind::ControlChange,
-                ])
-        {
-            return Err(invalid(
-                "synth instrument input must accept native performance events",
-            ));
-        }
-        let channels: BTreeSet<_> = output.stream.channels.iter().map(String::as_str).collect();
-        if !output.binding.audio
-            || output.stream.channels.is_empty()
-            || channels.contains("")
-            || channels.len() != output.stream.channels.len()
-        {
-            return Err(invalid(
-                "synth audio output requires distinct nonempty channel names",
-            ));
-        }
+        let channels = validate_instrument_ports(&self.timebases, input, output)?;
         // The score and two port, stream and binding records share the body's budget.
         let remaining = limits
             .max_records()
@@ -241,6 +209,47 @@ impl ScoreWire {
             body,
         })
     }
+}
+
+pub(crate) fn validate_instrument_ports<'a>(
+    timebases: &[Timebase],
+    input: &PerformanceInput,
+    output: &'a AudioOutput,
+) -> Result<BTreeSet<&'a str>, Error> {
+    let clocks: BTreeSet<_> = timebases.iter().map(Timebase::name).collect();
+    if clocks.len() != timebases.len() {
+        return Err(invalid("duplicate timebase name"));
+    }
+    if !clocks.contains(&input.stream.timebase) || !clocks.contains(&output.stream.timebase) {
+        return Err(invalid(
+            "public input/output references an unknown timebase",
+        ));
+    }
+    let kinds: BTreeSet<_> = input.stream.kinds.iter().copied().collect();
+    if !input.binding.performance
+        || input.stream.kinds.len() != 3
+        || kinds
+            != BTreeSet::from([
+                EventKind::Trigger,
+                EventKind::Release,
+                EventKind::ControlChange,
+            ])
+    {
+        return Err(invalid(
+            "instrument input must accept native performance events",
+        ));
+    }
+    let channels: BTreeSet<_> = output.stream.channels.iter().map(String::as_str).collect();
+    if !output.binding.audio
+        || output.stream.channels.is_empty()
+        || channels.contains("")
+        || channels.len() != output.stream.channels.len()
+    {
+        return Err(invalid(
+            "audio output requires distinct nonempty channel names",
+        ));
+    }
+    Ok(channels)
 }
 
 fn format() -> String {

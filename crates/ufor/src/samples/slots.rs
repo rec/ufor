@@ -86,7 +86,7 @@ struct Declaration<'a> {
 
 #[derive(Default, Deserialize)]
 #[serde(rename_all = "snake_case")]
-enum Kind {
+pub(super) enum Kind {
     #[default]
     SampleInstrument,
 }
