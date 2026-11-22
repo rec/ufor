@@ -2,9 +2,21 @@ use serde_json::Value;
 use std::f64::consts::TAU;
 use ufor::codec::{self, Format};
 use ufor::envelfo::{PreparationLimits, Waveform};
-use ufor::oscillator::{PhaseOrigin, phase_at_frame, sample_at_angle, shape_value};
+use ufor::oscillator::{PhaseOrigin, advance_phase, phase_at_frame, sample_at_angle, shape_value};
 use ufor::quantity;
 use ufor::score::Score;
+
+#[test]
+fn phase_advance_carries_compensation_across_a_wrap() {
+    let before_wrap = f64::from_bits(1.0_f64.to_bits() - 1);
+    let quarter_ulp = 2.0_f64.powi(-54);
+    let (wrapped, carry) = advance_phase(before_wrap, 0.0, 3.0 * quarter_ulp, 1.0);
+    assert_eq!((wrapped, carry), (0.0, -quarter_ulp));
+    assert_eq!(
+        advance_phase(wrapped, carry, quarter_ulp, 1.0),
+        (2.0 * quarter_ulp, 0.0)
+    );
+}
 
 #[test]
 fn rendered_waveforms_wrap_and_preserve_duty_edges() {

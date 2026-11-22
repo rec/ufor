@@ -136,6 +136,24 @@ impl Oscillator {
     }
 }
 
+/// Advance a prepared oscillator by one output frame.
+///
+/// The caller supplies a positive sample rate. The phase and compensation
+/// are in sample-rate units. Keep the compensation across both wraps and
+/// rendering blocks so partitioning does not change the result.
+#[inline]
+pub fn advance_phase(
+    position: f64,
+    compensation: f64,
+    frequency_hz: f64,
+    sample_rate: f64,
+) -> (f64, f64) {
+    let increment = frequency_hz - compensation;
+    let total = position + increment;
+    let compensation = (total - position) - increment;
+    (total.rem_euclid(sample_rate), compensation)
+}
+
 /// Evaluate a prepared oscillator waveform at an angle in radians.
 ///
 /// The caller supplies a validated duty cycle in [0, 1]. For square and

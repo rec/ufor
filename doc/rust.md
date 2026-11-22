@@ -45,6 +45,8 @@ precision and fractional origins retain their binary64 value.
 `oscillator::sample_at_angle` evaluates sine, square and triangle render
 samples with a prepared binary64 duty value. Enge uses it for block and
 persistent synth oscillators and FM graph operators.
+`oscillator::advance_phase` carries the compensated-addition error through
+phase wraps and block boundaries. Both values are in sample-rate units.
 
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
