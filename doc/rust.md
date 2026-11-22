@@ -28,6 +28,15 @@ declarations.
 
 ## Preparation and evaluation APIs
 
+`codec::parse_yamaha_patch` and `codec::yamaha_patch_text` read and write the
+hexadecimal edit buffers used by DX7, TX81Z, and WT11 voice declarations.
+DX7 supports both packed and unpacked voice data. TX81Z and WT11 preserve the
+additional operator buffers, including WT11's aftertouch record and reserved
+bytes. `yamaha::Patch::parameter_diagnostic` reports invalid decoded parameters
+in front-panel operator order. Structurally valid buffers retain their raw
+bytes even when they have a diagnostic. The patch codec covers the Yamaha
+discriminator and edit buffers within an authored voice.
+
 `scala::parse_scala` and `scala::scala_text` interchange repeating ratio
 tables. Imports use an ASCII integer pitch count, implicit unison and the
 last pitch as the repeat ratio. A decimal pitch is read in cents. Exports keep

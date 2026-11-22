@@ -36,3 +36,4 @@ pub mod units;
 pub mod voice_admission;
 pub mod voice_release;
 pub mod voice_start;
+pub mod yamaha;

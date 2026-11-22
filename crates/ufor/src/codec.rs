@@ -34,6 +34,7 @@ use crate::time::Timebase;
 use crate::tuning::Tuning;
 use crate::voice_admission::{Admission, Choke, VoicePolicy, VoicePool};
 use crate::voice_release::{ReleaseRequest, Sustain};
+use crate::yamaha::Patch;
 
 pub const MAX_SCORE_CHARACTERS: usize = 16 * 1024 * 1024;
 pub const MAX_DOCUMENT_VALUES: usize = 100_000;
@@ -141,6 +142,15 @@ pub fn parse_oscillator(text: &str, format: Format) -> Result<Oscillator, Error>
 }
 
 pub fn oscillator_text(value: &Oscillator, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
+pub fn parse_yamaha_patch(text: &str, format: Format) -> Result<Patch, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn yamaha_patch_text(value: &Patch, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 
