@@ -36,7 +36,7 @@ configurable preparation limits, graph ranges and captured-approach mathematics.
 Envelfo scores, public rate parameters and materialization are implemented, as
 are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
-supports Tuning, Scale, Envelfo, and Sequence.
+supports Tuning, Scale, Oscillator, Envelfo, and Sequence.
 
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
@@ -54,7 +54,8 @@ routes. The [shared vectors](../conformance/channel-routing.json) cover
 layout order, signed gains, and the pan endpoints.
 
 `codec::parse_oscillator` and `codec::oscillator_text` handle oscillator
-declarations in JSON and TOML with a checked exact duty cycle. The oscillator
+declarations in JSON and TOML with a checked exact duty cycle. The common
+score codec also reads and writes version 4 oscillator scores. The oscillator
 provides key-scaled linear gain, correctly rounded binary64 duty for
 renderers, and scalar sine, square and triangle shape observations.
 The [shared cases](../conformance/oscillator.json) cover gain, asymmetric

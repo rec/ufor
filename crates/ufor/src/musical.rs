@@ -5,6 +5,7 @@ use std::collections::HashSet;
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
+use crate::oscillator::Oscillator;
 use crate::scale::Scale;
 use crate::tuning::Tuning;
 
@@ -91,6 +92,87 @@ impl TryFrom<ScaleScoreDefinition> for ScaleScore {
 
 fn scale_kind() -> String {
     "scale".into()
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "OscillatorScoreDefinition")]
+pub struct OscillatorScore {
+    format: String,
+    version: i64,
+    kind: String,
+    name: String,
+    title: String,
+    tags: Vec<String>,
+    body: Oscillator,
+}
+
+impl OscillatorScore {
+    pub fn new(
+        name: String,
+        title: String,
+        tags: Vec<String>,
+        body: Oscillator,
+    ) -> Result<Self, Error> {
+        let tags = header(&name, &title, tags)?;
+        Ok(Self {
+            format: format(),
+            version: version(),
+            kind: oscillator_kind(),
+            name,
+            title,
+            tags,
+            body,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    pub fn body(&self) -> &Oscillator {
+        &self.body
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct OscillatorScoreDefinition {
+    #[serde(default = "format")]
+    format: String,
+    #[serde(default = "version")]
+    version: i64,
+    #[serde(default = "oscillator_kind")]
+    kind: String,
+    name: String,
+    title: String,
+    #[serde(default)]
+    tags: Vec<String>,
+    body: Oscillator,
+}
+
+impl TryFrom<OscillatorScoreDefinition> for OscillatorScore {
+    type Error = Error;
+
+    fn try_from(value: OscillatorScoreDefinition) -> Result<Self, Error> {
+        if value.format != "recs" || value.version != 4 || value.kind != "oscillator" {
+            return Err(Error::Invalid(
+                "expected a recs version 4 oscillator score".into(),
+            ));
+        }
+        Self::new(value.name, value.title, value.tags, value.body)
+    }
+}
+
+fn oscillator_kind() -> String {
+    "oscillator".into()
 }
 
 impl TuningScore {

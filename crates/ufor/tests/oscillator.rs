@@ -1,7 +1,9 @@
 use serde_json::Value;
 use ufor::codec::{self, Format};
+use ufor::envelfo::PreparationLimits;
 use ufor::oscillator::shape_value;
 use ufor::quantity;
+use ufor::score::Score;
 
 #[test]
 fn declarations_and_shapes_match_shared_vectors() {
@@ -43,5 +45,40 @@ fn declarations_and_shapes_match_shared_vectors() {
     for duty in vectors["invalid_duties"].as_array().unwrap() {
         let text = serde_json::json!({"duty_cycle": duty}).to_string();
         assert!(codec::parse_oscillator(&text, Format::Json).is_err());
+    }
+}
+
+#[test]
+fn oscillator_score_preserves_its_header_and_exact_body() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../../../conformance/oscillator.json")).unwrap();
+    let input = &vectors["score"];
+    let limits = PreparationLimits::default();
+    let score = codec::parse_score(&input.to_string(), Format::Json, limits).unwrap();
+    let Score::Oscillator(oscillator) = &score else {
+        panic!("expected oscillator score");
+    };
+    assert_eq!(score.name(), "asymmetric pulse");
+    assert_eq!(score.title(), "Asymmetric pulse");
+    assert_eq!(score.tags(), ["#oscillator", "#square"]);
+    assert_eq!(
+        oscillator.body().duty_cycle().to_string(),
+        input["body"]["duty_cycle"].as_str().unwrap()
+    );
+    assert_eq!(oscillator.body().gain(72).unwrap(), 10.0);
+    for format in [Format::Json, Format::Toml] {
+        let text = codec::score_text(&score, format).unwrap();
+        assert_eq!(codec::parse_score(&text, format, limits).unwrap(), score);
+    }
+    for overrides in vectors["invalid_score_overrides"].as_array().unwrap() {
+        let mut document = input.clone();
+        document
+            .as_object_mut()
+            .unwrap()
+            .extend(overrides.as_object().unwrap().clone());
+        assert!(
+            codec::parse_score(&document.to_string(), Format::Json, limits).is_err(),
+            "{overrides}"
+        );
     }
 }

@@ -1,6 +1,6 @@
 //! The implemented score kinds, sharing the existing version 4 envelope.
 use crate::envelfo::{self, EnvelfoScore, PreparationLimits};
-use crate::musical::{ScaleScore, TuningScore};
+use crate::musical::{OscillatorScore, ScaleScore, TuningScore};
 use crate::sequence::SequenceScore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -8,6 +8,7 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 pub enum Score {
     Tuning(TuningScore),
     Scale(ScaleScore),
+    Oscillator(OscillatorScore),
     Envelfo(EnvelfoScore),
     Sequence(SequenceScore),
 }
@@ -16,6 +17,7 @@ impl Score {
         match self {
             Self::Tuning(v) => v.name(),
             Self::Scale(v) => v.name(),
+            Self::Oscillator(v) => v.name(),
             Self::Envelfo(v) => v.name(),
             Self::Sequence(v) => v.name(),
         }
@@ -24,6 +26,7 @@ impl Score {
         match self {
             Self::Tuning(v) => v.title(),
             Self::Scale(v) => v.title(),
+            Self::Oscillator(v) => v.title(),
             Self::Envelfo(v) => v.title(),
             Self::Sequence(v) => v.title(),
         }
@@ -32,6 +35,7 @@ impl Score {
         match self {
             Self::Tuning(v) => v.tags(),
             Self::Scale(v) => v.tags(),
+            Self::Oscillator(v) => v.tags(),
             Self::Envelfo(v) => v.tags(),
             Self::Sequence(v) => v.tags(),
         }
@@ -43,6 +47,7 @@ impl Score {
         match ScoreDefinition::deserialize(d)? {
             ScoreDefinition::Tuning(v) => Ok(Self::Tuning(v)),
             ScoreDefinition::Scale(v) => Ok(Self::Scale(v)),
+            ScoreDefinition::Oscillator(v) => Ok(Self::Oscillator(v)),
             ScoreDefinition::Envelfo(v) => v
                 .prepare(limits)
                 .map(Self::Envelfo)
@@ -64,6 +69,7 @@ impl Serialize for Score {
         match self {
             Self::Tuning(v) => v.serialize(s),
             Self::Scale(v) => v.serialize(s),
+            Self::Oscillator(v) => v.serialize(s),
             Self::Envelfo(v) => v.serialize(s),
             Self::Sequence(v) => v.serialize(s),
         }
@@ -74,6 +80,7 @@ impl Serialize for Score {
 enum ScoreDefinition {
     Tuning(TuningScore),
     Scale(ScaleScore),
+    Oscillator(OscillatorScore),
     Envelfo(envelfo::wire::ScoreWire),
     Sequence(SequenceScore),
 }
