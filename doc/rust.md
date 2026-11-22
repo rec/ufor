@@ -152,6 +152,12 @@ chokes, per-part voice pools in name order, and the global voice policy.
 The [shared case](../conformance/voice-admission.json) covers choke
 precedence, same-key retriggers and oldest-first retirement across parts.
 
+`codec::parse_choke`, `parse_voice_policy`, and `parse_voice_pool` read the
+same declarations used in admission requests. Fade mode requires a positive
+duration, which can use portable seconds units, and each voice limit must
+be positive. Enge's existing native admission path uses these validators
+when decoding each batch.
+
 `codec::parse_voice_release` reads a key release or a per-part sustain
 change with its ordered trigger state. `ReleaseRequest::plan` identifies
 physical and logical releases and pedal transitions. Hosts use the returned

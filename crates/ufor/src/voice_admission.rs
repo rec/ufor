@@ -1,8 +1,9 @@
 //! Ordered retirement actions for a selected batch of instrument voices.
 
 use crate::{error::Error, identifier::Identifier, samples::eligibility::Trigger};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Deserializer, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
+use std::num::NonZeroU64;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -14,11 +15,11 @@ pub struct Admission {
     voices: Vec<ActiveVoice>,
     chokes: Vec<Choke>,
     count: u64,
-    policy: Option<Policy>,
+    policy: Option<VoicePolicy>,
     #[serde(default)]
     pool_counts: BTreeMap<Identifier, u64>,
     #[serde(default)]
-    pools: BTreeMap<Identifier, Policy>,
+    pools: BTreeMap<Identifier, VoicePolicy>,
     #[serde(default)]
     pool_by_template: BTreeMap<Identifier, Option<Identifier>>,
 }
@@ -37,44 +38,108 @@ struct ActiveVoice {
     _template_trigger: Trigger,
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Choke {
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "ChokeDefinition")]
+pub struct Choke {
     group: Identifier,
     mode: ChokeMode,
     fade_seconds: Option<f64>,
 }
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+impl Choke {
+    pub fn new(
+        group: Identifier,
+        mode: ChokeMode,
+        fade_seconds: Option<f64>,
+    ) -> Result<Self, Error> {
+        match (mode, fade_seconds) {
+            (ChokeMode::Fade, Some(seconds)) if seconds.is_finite() && seconds > 0.0 => {}
+            (ChokeMode::Immediate | ChokeMode::Release, None) => {}
+            _ => return Err(Error::Invalid("invalid choke fade duration".into())),
+        }
+        Ok(Self {
+            group,
+            mode,
+            fade_seconds,
+        })
+    }
+
+    pub fn group(&self) -> &Identifier {
+        &self.group
+    }
+
+    pub fn mode(&self) -> ChokeMode {
+        self.mode
+    }
+
+    pub fn fade_seconds(&self) -> Option<f64> {
+        self.fade_seconds
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ChokeDefinition {
+    group: Identifier,
+    mode: ChokeMode,
+    #[serde(default, deserialize_with = "optional_seconds")]
+    fade_seconds: Option<f64>,
+}
+
+impl TryFrom<ChokeDefinition> for Choke {
+    type Error = Error;
+
+    fn try_from(value: ChokeDefinition) -> Result<Self, Error> {
+        Self::new(value.group, value.mode, value.fade_seconds)
+    }
+}
+
+fn optional_seconds<'de, D: Deserializer<'de>>(d: D) -> Result<Option<f64>, D::Error> {
+    #[derive(Deserialize)]
+    struct Seconds(#[serde(deserialize_with = "seconds")] f64);
+    fn seconds<'de, D: Deserializer<'de>>(d: D) -> Result<f64, D::Error> {
+        crate::quantity::deserialize_scalar(d, "seconds")
+    }
+    Option::<Seconds>::deserialize(d).map(|value| value.map(|seconds| seconds.0))
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum ChokeMode {
+pub enum ChokeMode {
     Immediate,
     Release,
     Fade,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct Policy {
-    maximum_voices: u64,
+pub struct VoicePolicy {
+    pub maximum_voices: NonZeroU64,
     #[serde(default)]
-    same_key: SameKey,
+    pub same_key: SameKey,
     #[serde(default)]
-    overflow: Overflow,
+    pub overflow: Overflow,
 }
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Deserialize)]
+#[derive(Clone, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct VoicePool {
+    pub name: Identifier,
+    pub policy: VoicePolicy,
+}
+
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum SameKey {
+pub enum SameKey {
     #[default]
     Stack,
     Release,
     Replace,
 }
 
-#[derive(Clone, Copy, Debug, Default, Deserialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum Overflow {
+pub enum Overflow {
     #[default]
     ReleaseOldest,
     ReplaceOldest,
@@ -113,13 +178,6 @@ impl Admission {
         let mut ids = BTreeSet::new();
         if self.voices.iter().any(|voice| !ids.insert(&voice.voice_id)) {
             return Err(Error::Invalid("duplicate active voice ID".into()));
-        }
-        for choke in &self.chokes {
-            match (choke.mode, choke.fade_seconds) {
-                (ChokeMode::Fade, Some(seconds)) if seconds.is_finite() && seconds > 0.0 => {}
-                (ChokeMode::Immediate | ChokeMode::Release, None) => {}
-                _ => return Err(Error::Invalid("invalid choke fade duration".into())),
-            }
         }
         let mut plan = Plan {
             batch: self,
@@ -181,19 +239,20 @@ struct Plan<'a> {
 impl Plan<'_> {
     fn apply_policy(
         &mut self,
-        policy: &Policy,
+        policy: &VoicePolicy,
         count: u64,
         pool: Option<&Identifier>,
     ) -> Result<(), Error> {
-        if policy.maximum_voices == 0 {
-            return Err(Error::Invalid("maximum_voices must be positive".into()));
-        }
-        let capacity = policy.maximum_voices.checked_sub(count).ok_or_else(|| {
-            Error::Invalid(pool.map_or_else(
-                || "trigger batch exceeds maximum_voices".into(),
-                |name| format!("trigger batch exceeds voice pool {} limit", name.as_str()),
-            ))
-        })?;
+        let capacity = policy
+            .maximum_voices
+            .get()
+            .checked_sub(count)
+            .ok_or_else(|| {
+                Error::Invalid(pool.map_or_else(
+                    || "trigger batch exceeds maximum_voices".into(),
+                    |name| format!("trigger batch exceeds voice pool {} limit", name.as_str()),
+                ))
+            })?;
         let mut scoped = Vec::new();
         for &voice in &self.remaining {
             if let Some(pool) = pool {

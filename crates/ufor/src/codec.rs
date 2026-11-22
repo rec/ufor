@@ -27,7 +27,7 @@ use crate::score::Score;
 use crate::sequence::EventSequence;
 use crate::time::Timebase;
 use crate::tuning::Tuning;
-use crate::voice_admission::Admission;
+use crate::voice_admission::{Admission, Choke, VoicePolicy, VoicePool};
 use crate::voice_release::{ReleaseRequest, Sustain};
 
 pub const MAX_SCORE_CHARACTERS: usize = 16 * 1024 * 1024;
@@ -233,6 +233,21 @@ pub fn parse_sample_variation(text: &str, format: Format) -> Result<Variation, E
 }
 
 pub fn parse_voice_admission(text: &str, format: Format) -> Result<Admission, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_choke(text: &str, format: Format) -> Result<Choke, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_voice_policy(text: &str, format: Format) -> Result<VoicePolicy, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_voice_pool(text: &str, format: Format) -> Result<VoicePool, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
 }

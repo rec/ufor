@@ -17,7 +17,7 @@
       {"group": "fast", "mode": "release"},
       {"group": "slow", "mode": "fade", "fade_seconds": 0.25},
       {"group": "fast", "mode": "immediate"},
-      {"group": "slow", "mode": "fade", "fade_seconds": 0.125}
+      {"group": "slow", "mode": "fade", "fade_seconds": "125 ms"}
     ],
     "count": 3,
     "policy": {"maximum_voices": 3, "same_key": "release"},
@@ -36,5 +36,21 @@
     ["z-key", "same_key", "stop", null],
     ["other-old", "voice_limit", "release", null],
     ["z-old", "voice_limit", "release", null]
+  ],
+  "chokes": [
+    {"input":{"group":"fast","mode":"immediate"},"fade_seconds":null},
+    {"input":{"group":"fast","mode":"release","fade_seconds":null},"fade_seconds":null},
+    {"input":{"group":"slow","mode":"fade","fade_seconds":"125 ms"},"fade_seconds":0.125},
+    {"input":{"group":"slow","mode":"fade"},"invalid":true},
+    {"input":{"group":"slow","mode":"fade","fade_seconds":"0 s"},"invalid":true},
+    {"input":{"group":"slow","mode":"fade","fade_seconds":"1 Hz"},"invalid":true},
+    {"input":{"group":"slow","mode":"release","fade_seconds":0.125},"invalid":true}
+  ],
+  "voice_policies": [
+    {"input":{"maximum_voices":1},"expected":{"maximum_voices":1,"same_key":"stack","overflow":"release_oldest"}},
+    {"input":{"maximum_voices":4,"same_key":"replace","overflow":"replace_oldest"},"expected":{"maximum_voices":4,"same_key":"replace","overflow":"replace_oldest"}},
+    {"input":{"maximum_voices":0},"invalid":true},
+    {"input":{"maximum_voices":-1},"invalid":true},
+    {"input":{"maximum_voices":1.0},"invalid":true}
   ]
 }

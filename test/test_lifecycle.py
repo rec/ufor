@@ -10,7 +10,7 @@ from ufor.instrument_trace import TriggerContext, TriggerRelease, VoiceRetiremen
 from ufor.samples import trace
 from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import SampleInstrument
-from ufor.samples.selection import Sustain
+from ufor.samples.selection import Choke, Sustain, VoicePolicy, VoicePool
 from ufor.synth import SynthInstrument
 from ufor.voice_admission import VoiceAdmission, plan_retirements
 from ufor.voice_release import ReleasePlan, ReleaseRequest, plan_release
@@ -77,6 +77,31 @@ def test_admission_applies_chokes_pools_and_global_limit_in_order() -> None:
     assert [[a.voice_id, a.cause, a.action, a.fade_seconds] for a in actions] == data[
         'retirements'
     ]
+
+
+def test_shared_voice_declarations_validate_in_python() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/voice-admission.json').read_text()
+    )
+    for case in data['chokes']:
+        if case.get('invalid'):
+            with pytest.raises(ValueError):
+                Choke.model_validate(case['input'])
+        else:
+            choke = Choke.model_validate(case['input'])
+            assert choke.fade_seconds == case['fade_seconds']
+    for case in data['voice_policies']:
+        pool = {'name': 'lead', 'policy': case['input']}
+        if case.get('invalid'):
+            with pytest.raises(ValueError):
+                VoicePolicy.model_validate(case['input'])
+            with pytest.raises(ValueError):
+                VoicePool.model_validate(pool)
+        else:
+            assert (
+                VoicePool.model_validate(pool).policy.model_dump(mode='json')
+                == case['expected']
+            )
 
 
 @pytest.mark.parametrize('kind', ['sample', 'synth'])
