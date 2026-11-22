@@ -89,6 +89,30 @@ class EqualizerBand(_ProcessingDeclaration):
     _quantity_fields = {'frequency_hz': 'hz', 'gain_db': 'db'}
     _numeric_fields = ('resonance',)
 
+    def biquad_coefficients(self, rate_hz: float) -> 'BiquadCoefficients':
+        """Return the normalized RBJ peaking EQ with resonance expressed as Q."""
+        if not isfinite(rate_hz) or not 0 < self.frequency_hz < rate_hz / 2:
+            raise ValueError('EQ frequency must lie strictly below Nyquist')
+        try:
+            gain = 10 ** (self.gain_db / 40)
+        except OverflowError:
+            raise ValueError(
+                'EQ gain cannot be represented by finite coefficients'
+            ) from None
+        if not gain:
+            raise ValueError('EQ gain cannot be represented by finite coefficients')
+        omega = 2 * pi * (self.frequency_hz / rate_hz)
+        alpha = (sin(omega) / 2) / self.resonance
+        a0 = 1 + alpha / gain
+        b1 = -2 * cos(omega) / a0
+        return BiquadCoefficients(
+            b0=(1 + alpha * gain) / a0,
+            b1=b1,
+            b2=(1 - alpha * gain) / a0,
+            a1=b1,
+            a2=(1 - alpha / gain) / a0,
+        )
+
 
 class FilterResponse(enums.StrEnum):
     lowpass = 'lowpass'

@@ -11,6 +11,10 @@ JSON or TOML. Instrument and effect scores keep their existing formats.
 An omitted `processing` uses zero volume adjustment, tuning, pan and stereo
 balance, normal polarity, no EQ or filters, and filters before amplitude.
 EQ bands require a name, positive frequency and resonance, and finite gain.
+An EQ band defines an RBJ peaking biquad at a requested output rate. Resonance
+is the Cookbook Q and the center response is the authored gain in decibels.
+Coefficient preparation requires a frequency strictly below Nyquist and
+rejects results outside finite arithmetic.
 Resonant filters require a name, response and positive cutoff. They default to
 one stage, Q of `1 / sqrt(2)`, error at the cutoff boundary, minimum 1 Hz,
 Nyquist ratio 0.999 and tolerances of `1e-12` for coefficients and `1e-6` dB

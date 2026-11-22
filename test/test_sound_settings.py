@@ -1,6 +1,8 @@
 """Verify the settings body and authored target contract in both formats."""
 
 import json
+from cmath import exp
+from math import tau
 from pathlib import Path
 
 import pytest
@@ -9,6 +11,7 @@ from ufor.codec import parse_sound_settings, sound_settings_text
 from ufor.modulation import Target
 from ufor.samples.controls import ControlDeclaration
 from ufor.samples.processing import (
+    EqualizerBand,
     ResolvedTarget,
     ResonantFilter,
     SoundSettings,
@@ -17,6 +20,19 @@ from ufor.samples.processing import (
 
 CORPUS = Path(__file__).resolve().parents[1] / 'conformance'
 CASES = json.loads((CORPUS / 'sound-settings.json').read_text())
+
+
+@pytest.mark.parametrize('rate', [44100, 96000])
+@pytest.mark.parametrize('gain', [-12, 0, 12])
+def test_peaking_eq_has_unity_dc_and_authored_center_gain(rate: int, gain: int) -> None:
+    band = EqualizerBand(name='peak', frequency_hz=7500, gain_db=gain, resonance=1.5)
+    c = band.biquad_coefficients(rate)
+    assert (c.b0 + c.b1 + c.b2) / (1 + c.a1 + c.a2) == pytest.approx(1)
+    z = exp(-1j * tau * 7500 / rate)
+    response = (c.b0 + c.b1 * z + c.b2 * z**2) / (1 + c.a1 * z + c.a2 * z**2)
+    assert abs(response) == pytest.approx(10 ** (gain / 20))
+    with pytest.raises(ValueError, match='Nyquist'):
+        band.biquad_coefficients(15000)
 
 
 @pytest.mark.parametrize(

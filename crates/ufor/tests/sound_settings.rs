@@ -5,8 +5,32 @@ use ufor::envelfo::PreparationLimits;
 use ufor::identifier::Identifier;
 use ufor::modulation::Target;
 use ufor::samples::processing::{
-    FilterBoundary, ResonantFilter, SoundSettings, TargetResolution, biquad_coefficients,
+    EqualizerBand, FilterBoundary, ResonantFilter, SoundSettings, TargetResolution,
+    biquad_coefficients,
 };
+
+#[test]
+fn peaking_eq_has_unity_dc_and_authored_center_gain() {
+    for rate in [44100.0, 96000.0] {
+        for gain in [-12.0, 0.0, 12.0] {
+            let band: EqualizerBand = serde_json::from_value(json!({
+                "name": "peak", "frequency_hz": 7500.0, "gain_db": gain, "resonance": 1.5,
+            }))
+            .unwrap();
+            let c = band.biquad_coefficients(rate).unwrap();
+            let dc = (c.b0 + c.b1 + c.b2) / (1.0 + c.a1 + c.a2);
+            assert!((dc - 1.0).abs() < 1e-12);
+            let omega = std::f64::consts::TAU * 7500.0 / rate;
+            let magnitude = |a: f64, b: f64, c: f64| {
+                (a + b * omega.cos() + c * (2.0 * omega).cos())
+                    .hypot(b * omega.sin() + c * (2.0 * omega).sin())
+            };
+            let center = magnitude(c.b0, c.b1, c.b2) / magnitude(1.0, c.a1, c.a2);
+            assert!((center - 10_f64.powf(gain / 20.0)).abs() < 1e-12);
+            assert!(band.biquad_coefficients(15000.0).is_err());
+        }
+    }
+}
 
 #[test]
 fn biquad_respects_authored_cutoff_policy() {

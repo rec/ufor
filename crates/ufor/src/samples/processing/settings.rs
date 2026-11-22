@@ -83,6 +83,30 @@ impl EqualizerBand {
     pub fn resonance(&self) -> f64 {
         self.resonance
     }
+
+    /// Return the normalized RBJ peaking EQ with resonance expressed as Q.
+    pub fn biquad_coefficients(&self, rate_hz: f64) -> Result<BiquadCoefficients, Error> {
+        if !rate_hz.is_finite() || !(0.0 < self.frequency_hz && self.frequency_hz < rate_hz / 2.0) {
+            return Err(invalid("EQ frequency must lie strictly below Nyquist"));
+        }
+        let gain = 10_f64.powf(self.gain_db / 40.0);
+        if !gain.is_finite() || gain == 0.0 {
+            return Err(invalid(
+                "EQ gain cannot be represented by finite coefficients",
+            ));
+        }
+        let omega = std::f64::consts::TAU * (self.frequency_hz / rate_hz);
+        let alpha = (omega.sin() / 2.0) / self.resonance;
+        let a0 = 1.0 + alpha / gain;
+        let b1 = quantity::finite(-2.0 * omega.cos() / a0)?;
+        Ok(BiquadCoefficients {
+            b0: quantity::finite((1.0 + alpha * gain) / a0)?,
+            b1,
+            b2: quantity::finite((1.0 - alpha * gain) / a0)?,
+            a1: b1,
+            a2: quantity::finite((1.0 - alpha / gain) / a0)?,
+        })
+    }
 }
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
