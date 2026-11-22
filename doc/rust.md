@@ -157,6 +157,15 @@ with checked 64-bit rational arithmetic and rounds up once to an output frame.
 JSON preserves totals through `2^64` plays by storing the additional-play
 count. TOML integers use their signed 64-bit format domain.
 
+`codec::parse_sample_inventory` reads sampler metadata from JSON or TOML.
+It accepts `timebases`, `assets` projected to name and audio description,
+`slices`, and `output` projected to timebase and channel names. It checks
+references, native frame extents and channel layouts. The preparation
+budget counts the root, timebases, assets and slices.
+`Inventory::integer_rates` checks the supplied decoded shapes against the
+referenced assets and resolves the output and native rates. Both rates must
+declare a denominator of one for that preparation profile.
+
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a

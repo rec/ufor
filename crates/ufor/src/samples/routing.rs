@@ -201,7 +201,7 @@ pub fn sampler_matrix(
     Ok(matrix)
 }
 
-fn check_layout(channels: &[String]) -> Result<(), Error> {
+pub(super) fn check_layout(channels: &[String]) -> Result<(), Error> {
     let mut seen = BTreeSet::new();
     if channels.is_empty()
         || channels

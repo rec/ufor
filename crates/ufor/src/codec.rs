@@ -12,12 +12,12 @@ use crate::error::Error;
 use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::oscillator::Oscillator;
-use crate::samples::crossfade::Crossfade;
 use crate::samples::eligibility::{Context as EligibilityContext, Eligibility, VoiceEligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
 use crate::samples::selection::Sequence;
 use crate::samples::variation::Variation;
+use crate::samples::{assets::Inventory, crossfade::Crossfade};
 use crate::score::Score;
 use crate::tuning::Tuning;
 use crate::voice_admission::Admission;
@@ -57,6 +57,14 @@ pub fn parse_tempo_map(
 pub fn parse_sample_slice(text: &str, format: Format) -> Result<Slice, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_sample_inventory(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<Inventory, Error> {
+    Inventory::decode(parse_value(text, format)?, limits)
 }
 
 pub fn parse_sample_mapping(text: &str, format: Format) -> Result<Mapping, Error> {
