@@ -118,9 +118,18 @@ preparation.
 ## Verification and boundaries
 
 [conformance/automation.json](../conformance/automation.json) contains portable
-queries and expected values for the three TOML examples. Tests also cover editing
+queries and expected values for the three TOML examples. Python and Rust both
+run these queries through their score codecs and evaluators. Tests also cover editing
 and serialization, invalid units and domains, competing writers, explicit
 combination, and large timestamps.
+
+Rust reads and writes automation scores through `codec::parse_score` and
+`codec::score_text`. Evaluate the score with
+`score.body().evaluate(tick, base_override)` on its native timebase. Rust uses
+signed 64-bit ticks and segment durations and accepts numeric values, booleans
+for gates, and numeric text using the shared scalar unit syntax. The codec's
+preparation budget counts the body, curves, and segments, plus the score
+envelope, timebase and output when parsing a score.
 
 [conformance/control-clips.json](../conformance/control-clips.json) gives an
 exact source/timeline interval conversion vector for a 1 kHz control score in a

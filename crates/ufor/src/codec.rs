@@ -3,6 +3,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
+use crate::automation::Automation;
 use crate::control::tempo::TempoMap;
 use crate::effects::Processor;
 use crate::effects::actions::{Action, ActionBatch};
@@ -147,6 +148,21 @@ pub fn parse_tempo_map(
     limits: PreparationLimits,
 ) -> Result<TempoMap, Error> {
     TempoMap::decode(parse_value(text, format)?, limits)
+}
+
+pub fn parse_automation(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<Automation, Error> {
+    let automation: Automation = serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))?;
+    automation.check_records(limits, 0)?;
+    Ok(automation)
+}
+
+pub fn automation_text(value: &Automation, format: Format) -> Result<String, Error> {
+    write(value, format)
 }
 
 pub fn parse_timebase(text: &str, format: Format) -> Result<Timebase, Error> {

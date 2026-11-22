@@ -4,6 +4,7 @@
 #![doc = include_str!("../../../doc/rust.md")]
 
 pub mod accidentals;
+pub mod automation;
 pub mod codec;
 pub mod control;
 pub mod effects;

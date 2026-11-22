@@ -36,7 +36,12 @@ configurable preparation limits, graph ranges and captured-approach mathematics.
 Envelfo scores, public rate parameters and materialization are implemented, as
 are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
-supports Tuning, Scale, Oscillator, Envelfo, and Sequence.
+supports Tuning, Scale, Oscillator, Envelfo, Sequence, and Automation.
+
+`automation::Automation` evaluates gain, frequency, and gate curves at signed
+64-bit ticks in the declared timebase. Use `codec::parse_automation` for a standalone
+body or `codec::parse_score` to validate its control output and timebase together.
+The [automation format](automation-format.md) defines the scalar and timing rules.
 
 `oscillator::phase_at_frame` computes transport-synchronized starting phase in
 sample-rate units. It reduces the exact frame-frequency product modulo the
