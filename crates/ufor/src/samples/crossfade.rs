@@ -1,11 +1,12 @@
 //! Sample layer fades for keys, velocity, and resolved controls.
 use super::controls::ControlDeclaration;
+use super::playback::Mapping;
 use crate::control::Polarity;
 use crate::number::Rational;
 use crate::time::duration_frames;
 use crate::{error::Error, identifier::Identifier, quantity};
 use serde::{Deserialize, Deserializer, Serialize};
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, BTreeSet};
 use std::f64::consts::PI;
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
@@ -13,6 +14,50 @@ use std::f64::consts::PI;
 pub struct Crossfade(Definition);
 
 impl Crossfade {
+    pub(super) fn validate_slot(
+        fades: &[Self],
+        mapping: &Mapping,
+        controls: &BTreeMap<Identifier, ControlDeclaration>,
+    ) -> Result<(), Error> {
+        let mut identities = BTreeSet::new();
+        let keys = mapping.note_range();
+        for fade in fades {
+            let identity = match &fade.0 {
+                Definition::Key { start, end, shape } => {
+                    if !keys.contains(start) || !keys.contains(end) {
+                        return Err(invalid("Mapping must cover the key crossfade interval"));
+                    }
+                    ("key", None, shape.direction)
+                }
+                Definition::Velocity { start, end, shape } => {
+                    if !mapping.accepts_note(*keys.start(), *start)
+                        || !mapping.accepts_note(*keys.start(), *end)
+                    {
+                        return Err(invalid(
+                            "Mapping must cover the velocity crossfade interval",
+                        ));
+                    }
+                    ("velocity", None, shape.direction)
+                }
+                Definition::Control {
+                    start,
+                    end,
+                    shape,
+                    control,
+                    scope,
+                    ..
+                } => {
+                    control_declaration(controls, control, *start, *end)?;
+                    ("control", Some((control, *scope)), shape.direction)
+                }
+            };
+            if !identities.insert(identity) {
+                return Err(invalid("duplicate crossfade"));
+            }
+        }
+        Ok(())
+    }
+
     /// An onset weight for latched fades. Control fades are evaluated separately.
     pub fn onset_weight(&self, key: Option<i64>, velocity: f64) -> Result<Option<f64>, Error> {
         let (position, shape) = match &self.0 {
@@ -58,11 +103,7 @@ impl Crossfade {
         else {
             return Ok(None);
         };
-        let declaration = controls
-            .get(control)
-            .ok_or_else(|| invalid(format!("Unknown crossfade control: {}", control.as_str())))?;
-        declaration.validate_value(*start)?;
-        declaration.validate_value(*end)?;
+        let declaration = control_declaration(controls, control, *start, *end)?;
         let seconds = quantity::exact(&smoothing_seconds.to_string(), "seconds")?;
         let smoothing_frames = duration_frames(seconds, sample_rate)?;
         Ok(Some(PreparedControlFade {
@@ -200,7 +241,7 @@ impl Shape {
     }
 }
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 enum Direction {
     In,
@@ -215,13 +256,27 @@ enum Curve {
     EqualPower,
 }
 
-#[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum ControlScope {
     Instrument,
     #[default]
     Part,
     Trigger,
+}
+
+fn control_declaration<'a>(
+    controls: &'a BTreeMap<Identifier, ControlDeclaration>,
+    control: &Identifier,
+    start: f64,
+    end: f64,
+) -> Result<&'a ControlDeclaration, Error> {
+    let declaration = controls
+        .get(control)
+        .ok_or_else(|| invalid(format!("Unknown crossfade control: {}", control.as_str())))?;
+    declaration.validate_value(start)?;
+    declaration.validate_value(end)?;
+    Ok(declaration)
 }
 
 fn bounded_interval(start: f64, end: f64, minimum: f64) -> bool {

@@ -1,4 +1,4 @@
-use serde_json::Value;
+use serde_json::{Value, json};
 use ufor::codec::{self, Format};
 use ufor::envelfo::PreparationLimits;
 use ufor::modulation::Target;
@@ -32,7 +32,7 @@ fn slot_categories_and_selection_match_shared_vectors() {
             "[]".into()
         };
         let body = format!(
-            r#"{{"kind":"sample_instrument","slices":[{{"name":"audio","asset":"clip","end_frame":16}}],"slots":[{slot}],"groups":{groups}}}"#,
+            r#"{{"kind":"sample_instrument","slices":[{{"name":"audio","asset":"clip","end_frame":16}}],"slots":[{slot}],"groups":{groups},"settings":{{"selections":[{{"name":"takes","mode":"cycle"}},{{"name":"alternate","mode":"random"}}]}}}}"#,
         );
         let prepared = PreparedSlots::from_json(&body, PreparationLimits::new(1).unwrap()).unwrap();
         let resolved = prepared.settings().values().next().unwrap();
@@ -143,6 +143,85 @@ fn authored_sampler_slots_reject_incompatible_playback_and_slice_declarations() 
     ] {
         looped["slots"][0]["playback"] = playback;
         let error = PreparedSlots::from_json(&looped.to_string(), PreparationLimits::default())
+            .unwrap_err();
+        assert!(error.to_string().contains(expected), "{error}");
+    }
+}
+
+#[test]
+fn authored_sampler_slots_check_references_and_prepare_controls() {
+    let document = json!({
+        "slices": [{"name": "audio", "asset": "clip", "end_frame": 16}],
+        "settings": {
+            "controls": {"pedal": {"default": 1.0}},
+            "sustain": {"control": "pedal"},
+            "articulations": {"ids": ["open"], "keys": [{"key": 24, "articulation": "open"}]},
+            "selections": [{"name": "takes", "mode": "cycle"}]
+        },
+        "groups": [{"name": "kit", "selection": "takes"}],
+        "slots": [{
+            "name": "first", "slice": "audio", "group": "kit",
+            "take": "a", "microphone": "room",
+            "mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440},
+            "articulations": ["open"],
+            "control_conditions": [{"control": "pedal", "minimum_value": 0.5}],
+            "choke_group": "previous",
+            "chokes": [{"group": "previous", "mode": "immediate"}]
+        }, {
+            "name": "second", "slice": "audio", "group": "kit",
+            "take": "b", "microphone": "room",
+            "mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440}
+        }]
+    });
+    let prepared =
+        PreparedSlots::from_json(&document.to_string(), PreparationLimits::default()).unwrap();
+    assert!(prepared.sustain_pressed());
+    assert_eq!(prepared.latched_keys().unwrap()[0].key, 24);
+    for (index, field, value, expected) in [
+        (0, "selection", json!("missing"), "unknown selection"),
+        (0, "voice_pool", json!("missing"), "unknown voice pool"),
+        (
+            0,
+            "chokes",
+            json!([{"group": "missing", "mode": "immediate"}]),
+            "unknown choke group",
+        ),
+        (
+            0,
+            "articulations",
+            json!(["missing"]),
+            "unknown articulation",
+        ),
+        (
+            0,
+            "control_conditions",
+            json!([{"control": "missing"}]),
+            "Unknown control",
+        ),
+        (
+            0,
+            "control_conditions",
+            json!([{"control": "pedal", "minimum_value": -0.5}]),
+            "outside polarity domain",
+        ),
+        (
+            0,
+            "crossfades",
+            json!([{"input": "key", "direction": "in", "start": 59, "end": 64}]),
+            "Mapping must cover",
+        ),
+        (
+            0,
+            "crossfades",
+            json!([{"input": "control", "control": "missing", "direction": "in", "start": 0.0, "end": 1.0}]),
+            "Unknown crossfade control",
+        ),
+        (1, "take", json!("a"), "duplicate microphone"),
+        (1, "microphone", json!("close"), "different microphones"),
+    ] {
+        let mut invalid = document.clone();
+        invalid["slots"][index][field] = value;
+        let error = PreparedSlots::from_json(&invalid.to_string(), PreparationLimits::default())
             .unwrap_err();
         assert!(error.to_string().contains(expected), "{error}");
     }

@@ -30,6 +30,16 @@ pub(super) struct Layer {
     selection: Option<Selection>,
 }
 
+impl Layer {
+    pub(super) fn group_selection(&self) -> Result<Option<&Identifier>, Error> {
+        match &self.selection {
+            Some(Selection::Named(value)) => Ok(Some(value)),
+            None => Ok(None),
+            Some(Selection::Switch(_)) => Err(invalid("group selection must be a name or null")),
+        }
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ResolvedSlotSettings {
     /// Canonical field fragments in their original nested declaration order.
@@ -57,13 +67,7 @@ pub(super) fn resolve_layers(
 ) -> Result<ResolvedSlotSettings, Error> {
     let default_group = Layer::default();
     let group = group.unwrap_or(&default_group);
-    let inherited_selection = match &group.selection {
-        Some(Selection::Named(value)) => Some(value.clone()),
-        None => None,
-        Some(Selection::Switch(_)) => {
-            return Err(invalid("group selection must be a name or null"));
-        }
-    };
+    let inherited_selection = group.group_selection()?.cloned();
     let selection = match slot.selection {
         Some(Selection::Named(value)) => Some(value),
         Some(Selection::Switch(false)) => None,

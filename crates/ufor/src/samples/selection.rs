@@ -164,8 +164,8 @@ struct Definition {
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Selection {
-    name: Identifier,
+pub(super) struct Selection {
+    pub(super) name: Identifier,
     mode: Mode,
 }
 

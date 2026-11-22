@@ -1,5 +1,5 @@
 //! Ordered mapping and sampler predicates against an already-resolved event.
-use super::playback::Mapping;
+use super::{controls::ControlDeclaration, playback::Mapping};
 use crate::{error::Error, identifier::Identifier, quantity};
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet};
@@ -106,7 +106,7 @@ pub struct Context {
 #[serde(deny_unknown_fields)]
 pub(super) struct Slot {
     pub(super) name: Identifier,
-    mapping: Mapping,
+    pub(super) mapping: Mapping,
     #[serde(default)]
     pub(super) trigger: Trigger,
     #[serde(default)]
@@ -123,6 +123,42 @@ pub(super) struct Slot {
     sequence: Option<Sequence>,
     #[serde(default)]
     random_range: Option<RandomRange>,
+}
+
+impl Slot {
+    pub(super) fn validate_references(
+        &self,
+        controls: &BTreeMap<Identifier, ControlDeclaration>,
+        articulations: &[Identifier],
+    ) -> Result<(), Error> {
+        if self
+            .articulations
+            .iter()
+            .any(|name| !articulations.contains(name))
+        {
+            return Err(invalid(format!(
+                "Slot {}: unknown articulation",
+                self.name.as_str()
+            )));
+        }
+        for (name, minimum, maximum) in self
+            .control_conditions
+            .iter()
+            .map(|value| (&value.control, value.minimum_value, value.maximum_value))
+            .chain(
+                self.control_trigger
+                    .iter()
+                    .map(|value| (&value.control, value.minimum_value, value.maximum_value)),
+            )
+        {
+            let control = controls
+                .get(name)
+                .ok_or_else(|| invalid(format!("Unknown control: {}", name.as_str())))?;
+            control.validate_value(minimum)?;
+            control.validate_value(maximum)?;
+        }
+        Ok(())
+    }
 }
 
 #[derive(Debug, Deserialize)]

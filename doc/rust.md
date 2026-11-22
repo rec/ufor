@@ -118,6 +118,10 @@ directly from an authored sampler body. It prepares the eligibility
 predicates and resolves each slot's settings and selection with its group.
 It resolves each slot's playback against the instrument defaults and checks
 trigger and loop compatibility against the referenced slice.
+It validates slot references to controls, articulations, selections, voice
+pools, and choke groups, including the microphone sets of linked takes.
+Prepared slots expose the control domains, initial sustain state, and
+latched keyswitches for the consumer's event preparation.
 It preserves nested declaration order for decoding with SoundSettings.
 `samples::inheritance::resolve_slot_settings` applies the same inheritance
 rules to individual setting fragments.
