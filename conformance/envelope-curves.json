@@ -1,0 +1,45 @@
+{
+  "cases": [
+    {
+      "name": "zero-duration-segment-and-final-hold",
+      "curve": {
+        "initial": 0.25,
+        "segments": [
+          {"duration": "0 s", "to": 0.5},
+          {"duration": "1/2 s", "to": 2.5},
+          {"duration": "0 s", "to": -1.0}
+        ]
+      },
+      "queries": [
+        {"at": "0", "value": 0.5},
+        {"at": "1/4", "value": 1.5},
+        {"at": "1/2", "value": -1.0},
+        {"at": "3/2", "value": -1.0}
+      ]
+    },
+    {
+      "name": "whole-curve-repeat",
+      "curve": {
+        "segments": [{"duration": "1/2 s", "to": 2.0}],
+        "repeat": true
+      },
+      "queries": [
+        {"at": "1/4", "value": 1.0},
+        {"at": "1/2", "value": 0.0},
+        {"at": "7/8", "value": 1.5},
+        {"at": "9223372036854775807", "value": 0.0}
+      ]
+    },
+    {
+      "name": "negative-exponential-and-gate-endpoint",
+      "curve": {
+        "segments": [{"duration": "1 beat", "to": true, "curve": -2.0}]
+      },
+      "queries": [
+        {"at": "0", "value": 0.0},
+        {"at": "1/2", "value": 0.7310585786300049},
+        {"at": "1", "value": 1.0}
+      ]
+    }
+  ]
+}

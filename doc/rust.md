@@ -50,6 +50,13 @@ the source interval needed to reconstruct the curve for a render window.
 used by authored envelope segments. Positive and negative coefficients use
 stable exponential forms, with exact endpoints and linear interpolation when
 the coefficient is zero.
+`codec::parse_curve` and `codec::curve_text` read and write standalone
+`envelope::Curve` bodies. `Curve::at` takes a nonnegative rational distance from
+activation. It uses the durations' magnitudes, leaving clock conversion to the
+caller. The evaluator checks the signed 64-bit rational domain and finite
+scalar result. The budget counts the curve and its segments. The
+[shared curve cases](../conformance/envelope-curves.json) cover jumps, wrapping,
+final hold and signed exponential interpolation.
 
 `oscillator::phase_at_frame` computes transport-synchronized starting phase in
 sample-rate units. It reduces the exact frame-frequency product modulo the

@@ -10,6 +10,7 @@ use crate::effects::Processor;
 use crate::effects::actions::{Action, ActionBatch};
 use crate::effects::topology::Topology;
 use crate::envelfo::{Generator, PreparationLimits};
+use crate::envelope::Curve;
 use crate::error::Error;
 use crate::events::captured::JsonCapture;
 use crate::events::{EventKind, PerformanceEvent, PerformancePayload, StoredEvent};
@@ -169,6 +170,19 @@ pub fn automation_text(value: &Automation, format: Format) -> Result<String, Err
 pub fn parse_control_clip(text: &str, format: Format) -> Result<ControlClip, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_curve(text: &str, format: Format, limits: PreparationLimits) -> Result<Curve, Error> {
+    let curve: Curve = serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))?;
+    if 1 + curve.segments().len() > limits.max_records() {
+        return Err(Error::Limit("curve records"));
+    }
+    Ok(curve)
+}
+
+pub fn curve_text(value: &Curve, format: Format) -> Result<String, Error> {
+    write(value, format)
 }
 
 pub fn parse_timebase(text: &str, format: Format) -> Result<Timebase, Error> {

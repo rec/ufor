@@ -115,6 +115,27 @@ impl Rational {
         Self::magnitudes(n, d, (self.numerator < 0) != (other.numerator < 0))
     }
 
+    pub(crate) fn checked_rem(self, other: Self) -> Result<Self, Error> {
+        if other.numerator == 0 {
+            return Err(Error::DivisionByZero);
+        }
+        // The intermediate quotient can exceed i64 even when the phase is
+        // representable. Reduce the cross-product remainder before narrowing.
+        let left = i128::from(self.numerator) * i128::from(other.denominator);
+        let right = i128::from(other.numerator) * i128::from(self.denominator);
+        let remainder = left % right;
+        let denominator = (i128::from(self.denominator) * i128::from(other.denominator)) as u128;
+        let (mut common, mut tail) = (denominator, remainder.unsigned_abs());
+        while tail != 0 {
+            (common, tail) = (tail, common % tail);
+        }
+        Ok(Self {
+            numerator: i64::try_from(remainder / common as i128)
+                .map_err(|_| Error::ArithmeticRange)?,
+            denominator: i64::try_from(denominator / common).map_err(|_| Error::ArithmeticRange)?,
+        })
+    }
+
     pub fn checked_pow(self, exponent: i64) -> Result<Self, Error> {
         let mut base = if exponent < 0 {
             Self::new(self.denominator, self.numerator)?
