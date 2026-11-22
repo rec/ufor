@@ -2,8 +2,32 @@
 
 use super::playback::{Direction, LoopMode, Playback, Slice};
 use crate::error::Error;
+use crate::number::{Rational, round_binary_ratio};
 
 type Selection = (i64, i64, bool, Option<(i64, i64, i64, bool)>);
+
+/// Return the advances on either side of a release inside an output frame.
+///
+/// Each part is rounded once, from the exact binary64 step times its fraction.
+pub fn split_step(step: f64, fraction: Rational) -> Result<(f64, f64), Error> {
+    let numerator = fraction.numerator();
+    let denominator = fraction.denominator();
+    if !step.is_finite() || step <= 0.0 || numerator <= 0 || numerator >= denominator {
+        return Err(Error::ArithmeticRange);
+    }
+    let bits = step.to_bits();
+    let encoded_exponent = ((bits >> 52) & 0x7ff) as i32;
+    let mut significand = (bits & ((1 << 52) - 1)) as u128;
+    let exponent = if encoded_exponent == 0 {
+        -1074
+    } else {
+        significand |= 1 << 52;
+        encoded_exponent - 1023 - 52
+    };
+    let scaled =
+        |part| round_binary_ratio(significand * part as u128, denominator as u128, exponent);
+    Ok((scaled(numerator), scaled(denominator - numerator)))
+}
 
 /// Copyable continuation state in native asset frames and output-frame time.
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -499,6 +523,23 @@ impl Cursor {
                     return Ok(());
                 }
             }
+        }
+        Ok(())
+    }
+
+    /// Advance across a release strictly inside the frame.
+    pub fn advance_with_release(
+        &mut self,
+        step: f64,
+        fraction: Rational,
+        next_frame: i64,
+    ) -> Result<(), Error> {
+        let (before, after) = split_step(step, fraction)?;
+        self.advance(before, next_frame)?;
+        if self.state.exhausted.is_none() {
+            self.release();
+            self.settle(next_frame);
+            self.advance(after, next_frame)?;
         }
         Ok(())
     }

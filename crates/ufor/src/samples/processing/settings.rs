@@ -452,7 +452,7 @@ impl SoundSettings {
                     Clock::Seconds => Unit::Seconds,
                     Clock::Beats => Unit::Beats,
                 };
-                (unit, duration_default(duration), Some(duration))
+                (unit, duration.to_f64(), Some(duration))
             }
             ("time_constant", EnvelopeSegment::Approach(segment)) => {
                 (Unit::Seconds, segment.time_constant(), None)
@@ -634,33 +634,6 @@ fn unknown(target: &Target) -> Error {
         target.name().as_str(),
         target.parameter().as_str()
     ))
-}
-
-// Match Python's float(Fraction) without rounding the integer operands first.
-// Envelope durations are nonnegative, with signed-64-bit rational components.
-fn duration_default(value: Rational) -> f64 {
-    let numerator = value.numerator() as u128;
-    if numerator == 0 {
-        return 0.0;
-    }
-    let denominator = value.denominator() as u128;
-    let estimate = denominator.leading_zeros() as i32 - numerator.leading_zeros() as i32;
-    let below = if estimate >= 0 {
-        numerator < denominator << estimate
-    } else {
-        numerator << -estimate < denominator
-    };
-    let exponent = estimate - i32::from(below);
-    let shift = 52 - exponent;
-    let (n, d) = if shift >= 0 {
-        (numerator << shift, denominator)
-    } else {
-        (numerator, denominator << -shift)
-    };
-    let significand = n / d;
-    let remainder = n % d;
-    let round_up = 2 * remainder > d || (2 * remainder == d && significand % 2 != 0);
-    (significand + u128::from(round_up)) as f64 * 2.0_f64.powi(-shift)
 }
 
 fn default_q() -> f64 {

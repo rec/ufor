@@ -163,6 +163,10 @@ fades. The host can copy the cursor for interpolation lookahead and restore a
 `CursorState` for continuation. It supplies audio and applies the returned
 taps and gains. `Cursor::active_prefix` bounds control batches with the
 maximum cursor step, the remaining traversal, and any latched end fade.
+`Cursor::advance_with_release` splits a step at a fractional frame using a
+signed-64-bit rational. Each side is rounded once from its exact share of
+the binary64 step. A release coincident with an uncommitted boundary takes
+effect before the cursor chooses whether to turn or wrap.
 The playback module applies layered cents with `tuned_pitch_ratio` and
 converts a ratio into cursor units with `sample_step`. Both check the
 positive finite result. The [shared playback cases](../conformance/sample-playback.json)

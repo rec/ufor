@@ -38,7 +38,7 @@ impl Oscillator {
 
     /// Round the exact duty cycle to the renderer's binary64 value.
     pub fn duty_cycle_f64(&self) -> f64 {
-        as_f64(self.duty_cycle)
+        self.duty_cycle.to_f64()
     }
 
     /// Convert authored dB per octave into a linear gain at this note.
@@ -65,7 +65,7 @@ pub fn shape_value(
         ));
     }
     match waveform {
-        Waveform::Sine => Ok((TAU * as_f64(phase)).sin()),
+        Waveform::Sine => Ok((TAU * phase.to_f64()).sin()),
         Waveform::Square => Ok(if phase < duty_cycle { 1.0 } else { -1.0 }),
         Waveform::Triangle => {
             let twice = phase.checked_mul(2.into())?;
@@ -77,41 +77,8 @@ pub fn shape_value(
                     .checked_sub(twice)?
                     .checked_div(Rational::from(1).checked_sub(duty_cycle)?)?
             };
-            Ok(as_f64(value))
+            Ok(value.to_f64())
         }
-    }
-}
-
-fn as_f64(value: Rational) -> f64 {
-    // Scale to a 53-bit significand before rounding. Rounding the numerator
-    // and denominator separately can move a discontinuous edge by one sample.
-    let mut numerator = u128::from(value.numerator().unsigned_abs());
-    if numerator == 0 {
-        return 0.0;
-    }
-    let mut denominator = value.denominator() as u128;
-    let mut exponent = denominator.leading_zeros() as i32 - numerator.leading_zeros() as i32;
-    let below = if exponent >= 0 {
-        numerator < denominator << exponent
-    } else {
-        numerator << -exponent < denominator
-    };
-    exponent -= i32::from(below);
-    let shift = 52 - exponent;
-    if shift >= 0 {
-        numerator <<= shift;
-    } else {
-        denominator <<= -shift;
-    }
-    let significand = numerator / denominator;
-    let remainder = numerator % denominator;
-    let round_up =
-        remainder * 2 > denominator || remainder * 2 == denominator && significand % 2 != 0;
-    let magnitude = (significand + u128::from(round_up)) as f64 * 2_f64.powi(-shift);
-    if value.numerator() < 0 {
-        -magnitude
-    } else {
-        magnitude
     }
 }
 

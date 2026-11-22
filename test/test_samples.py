@@ -76,6 +76,10 @@ def test_sample_traversal_matches_the_shared_slice_cases() -> None:
     for base, tuning, layer, rate in data['invalid_rendered_steps']:
         with pytest.raises(ValueError):
             playback.sample_step(playback.tuned_pitch_ratio(base, tuning, layer), rate)
+    for step, numerator, denominator, before, after in data['release_splits']:
+        exact = Fraction(step)
+        first = exact * Fraction(numerator, denominator)
+        assert (float(first), float(exact - first)) == (before, after)
 
 
 def test_sample_crossfade_declarations_match_shared_cases() -> None:

@@ -35,6 +35,20 @@ impl Rational {
         self.denominator
     }
 
+    /// Round the fraction to binary64 without rounding its integer operands.
+    pub fn to_f64(self) -> f64 {
+        let magnitude = round_binary_ratio(
+            self.numerator.unsigned_abs() as u128,
+            self.denominator as u128,
+            0,
+        );
+        if self.numerator < 0 {
+            -magnitude
+        } else {
+            magnitude
+        }
+    }
+
     pub fn checked_add(self, other: Self) -> Result<Self, Error> {
         self.combine(other, i64::checked_add)
     }
@@ -220,6 +234,37 @@ impl Rational {
             selected.denominator,
         )
     }
+}
+
+// Denominator fits 63 bits. Callers supply a numerator at most 116 bits
+// and a binary exponent such that the exact quotient is finite in binary64.
+pub(crate) fn round_binary_ratio(mut n: u128, mut d: u128, binary_exponent: i32) -> f64 {
+    if n == 0 {
+        return 0.0;
+    }
+    let estimate = d.leading_zeros() as i32 - n.leading_zeros() as i32;
+    let below = if estimate >= 0 {
+        n < d << estimate
+    } else {
+        n << -estimate < d
+    };
+    let exponent = estimate - i32::from(below) + binary_exponent;
+    let unit_exponent = (exponent - 52).max(-1074);
+    let shift = binary_exponent - unit_exponent;
+    if shift >= 0 {
+        n <<= shift;
+    } else {
+        d <<= -shift;
+    }
+    let significand = n / d;
+    let remainder = n % d;
+    let round_up = 2 * remainder > d || (2 * remainder == d && significand % 2 != 0);
+    let scale = if unit_exponent >= -1022 {
+        f64::from_bits(((unit_exponent + 1023) as u64) << 52)
+    } else {
+        f64::from_bits(1 << (unit_exponent + 1074))
+    };
+    (significand + u128::from(round_up)) as f64 * scale
 }
 
 impl From<i64> for Rational {

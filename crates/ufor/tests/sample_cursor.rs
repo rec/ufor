@@ -1,8 +1,29 @@
 use ufor::codec::{Format, parse_sample_slice};
-use ufor::samples::cursor::Cursor;
+use ufor::number::Rational;
+use ufor::samples::cursor::{Cursor, split_step};
 use ufor::samples::playback::Playback;
 
 const RATE: f64 = 48000.0;
+
+#[test]
+fn release_split_rounds_each_exact_product_once() {
+    let vectors: serde_json::Value =
+        serde_json::from_str(include_str!("../../../conformance/sample-playback.json")).unwrap();
+    for row in vectors["release_splits"].as_array().unwrap() {
+        let fraction = Rational::new(row[1].as_i64().unwrap(), row[2].as_i64().unwrap()).unwrap();
+        let split = split_step(row[0].as_f64().unwrap(), fraction).unwrap();
+        assert_eq!(split, (row[3].as_f64().unwrap(), row[4].as_f64().unwrap()));
+    }
+    let half = Rational::new(1, 2).unwrap();
+    assert_eq!(split_step(f64::from_bits(1), half).unwrap(), (0.0, 0.0));
+    let even = f64::from_bits(2);
+    assert_eq!(split_step(f64::from_bits(3), half).unwrap(), (even, even));
+    assert_eq!(
+        split_step(f64::MAX, half).unwrap(),
+        (f64::MAX / 2.0, f64::MAX / 2.0)
+    );
+    assert!(split_step(1.0, Rational::from(1)).is_err());
+}
 
 #[test]
 fn release_can_cancel_a_wrap_pending_at_an_exact_boundary() {
