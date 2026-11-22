@@ -108,7 +108,7 @@ pub(super) struct Slot {
     pub(super) name: Identifier,
     mapping: Mapping,
     #[serde(default)]
-    trigger: Trigger,
+    pub(super) trigger: Trigger,
     #[serde(default)]
     articulations: Vec<Identifier>,
     #[serde(default)]

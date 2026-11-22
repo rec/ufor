@@ -31,7 +31,9 @@ fn slot_categories_and_selection_match_shared_vectors() {
         } else {
             "[]".into()
         };
-        let body = format!(r#"{{"kind":"sample_instrument","slots":[{slot}],"groups":{groups}}}"#);
+        let body = format!(
+            r#"{{"kind":"sample_instrument","slices":[{{"name":"audio","asset":"clip","end_frame":16}}],"slots":[{slot}],"groups":{groups}}}"#,
+        );
         let prepared = PreparedSlots::from_json(&body, PreparationLimits::new(1).unwrap()).unwrap();
         let resolved = prepared.settings().values().next().unwrap();
         assert_eq!(
@@ -71,6 +73,78 @@ fn slot_categories_and_selection_match_shared_vectors() {
             .map(|(name, _)| name.as_str())
             .collect();
         assert_eq!(serde_json::json!(names), case["envelfos"]);
+    }
+}
+
+#[test]
+fn authored_sampler_slots_preserve_exact_play_count_and_delay() {
+    let document = r#"{
+        "slices":[{"name":"audio","asset":"clip","end_frame":16}],
+        "settings":{"playback":{"direction":"backward","mode":"one_shot"}},
+        "slots":[{
+            "name":"voice","slice":"audio",
+            "mapping":{"lowest_key":60,"highest_key":72,"reference_pitch_hz":440},
+            "playback":{"play_count":18446744073709551616,"start_delay_seconds":"1/100000 s","end_fade_seconds":0.001}
+        }]
+    }"#;
+    let slots = PreparedSlots::from_json(document, PreparationLimits::default()).unwrap();
+    let playback = slots.playback("voice").unwrap();
+    assert_eq!(
+        playback.playback.mode,
+        ufor::samples::playback::PlaybackMode::OneShot
+    );
+    assert_eq!(
+        playback.playback.direction,
+        ufor::samples::playback::Direction::Backward
+    );
+    assert_eq!(playback.additional_plays, u64::MAX);
+    assert_eq!(
+        playback
+            .delay_frames(ufor::number::Rational::new(1, 100000).unwrap(), 48000)
+            .unwrap(),
+        1
+    );
+    assert_eq!(playback.end_fade_seconds, 0.001);
+}
+
+#[test]
+fn authored_sampler_slots_reject_incompatible_playback_and_slice_declarations() {
+    let body = serde_json::json!({
+        "slices":[{"name":"audio","asset":"clip","end_frame":16}],
+        "slots":[{"name":"voice","slice":"audio","mapping":{"lowest_key":60,"highest_key":72,"reference_pitch_hz":440}}]
+    });
+    for (field, value, expected) in [
+        ("slice", serde_json::json!("absent"), "Unknown slice"),
+        ("trigger", serde_json::json!("release"), "require one_shot"),
+        (
+            "playback",
+            serde_json::json!({"play_count":1}),
+            "play_count requires one_shot",
+        ),
+    ] {
+        let mut document = body.clone();
+        document["slots"][0][field] = value;
+        let error = PreparedSlots::from_json(&document.to_string(), PreparationLimits::default())
+            .unwrap_err();
+        assert!(error.to_string().contains(expected), "{error}");
+    }
+    let mut looped = body;
+    looped["slices"][0]["loop"] =
+        serde_json::json!({"start_frame":2,"end_frame":12,"crossfade_frames":2});
+    for (playback, expected) in [
+        (
+            serde_json::json!({"mode":"one_shot"}),
+            "loops require while_held",
+        ),
+        (
+            serde_json::json!({"direction":"mirror"}),
+            "Mirror loops cannot crossfade",
+        ),
+    ] {
+        looped["slots"][0]["playback"] = playback;
+        let error = PreparedSlots::from_json(&looped.to_string(), PreparationLimits::default())
+            .unwrap_err();
+        assert!(error.to_string().contains(expected), "{error}");
     }
 }
 

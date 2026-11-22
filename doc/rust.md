@@ -116,6 +116,8 @@ base target resolution and contextual validation for the settings body.
 `samples::slots::PreparedSlots::from_json` reads the slots and groups
 directly from an authored sampler body. It prepares the eligibility
 predicates and resolves each slot's settings and selection with its group.
+It resolves each slot's playback against the instrument defaults and checks
+trigger and loop compatibility against the referenced slice.
 It preserves nested declaration order for decoding with SoundSettings.
 `samples::inheritance::resolve_slot_settings` applies the same inheritance
 rules to individual setting fragments.

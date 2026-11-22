@@ -214,6 +214,18 @@ pub struct SlotPlayback {
     end_fade_seconds: f64,
 }
 
+impl Default for SlotPlayback {
+    fn default() -> Self {
+        Self {
+            direction: None,
+            mode: None,
+            additional_plays: None,
+            start_delay: 0.into(),
+            end_fade_seconds: 0.0,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct ResolvedSlotPlayback {
     pub playback: Playback,
