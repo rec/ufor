@@ -116,10 +116,11 @@ def _inherited_data(value: object, parent: dict[str, object]) -> object:
             or getattr(value, 'origin', None) is not None
         ):
             raise ValueError('Child generator settings must match their parent')
-    data = definition_data(value)
-    for field in ('scope', 'clock', 'position_driver', 'origin'):
-        data.pop(field, None)
-    return data
+        data = definition_data(value)
+        for field in ('scope', 'clock', 'position_driver', 'origin'):
+            data.pop(field, None)
+        return data
+    return definition_data(value)
 
 
 def duration_quantity(value: object) -> tuple[Fraction, str]:

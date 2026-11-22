@@ -22,6 +22,8 @@ def test_quantize_origin_and_range_do_not_clip() -> None:
     assert body.signal_ranges['steps'] == (-0.625, 0.875)
     assert body.signal_order == ['wave', 'steps']
     assert Patch.model_validate_json(body.model_dump_json()) == body
+    assert Patch.model_validate(body) == body
+    assert Patch.model_validate(body, context={'portable': True}) == body
     node = Quantize(input='wave', step=0.75, origin=0.125)
     assert quantize_value(node, 1.3) == 1.625
     raw = body.model_dump()
