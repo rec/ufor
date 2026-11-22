@@ -197,6 +197,20 @@ using the supplied channel policy and requires explicit restart after loss.
 Restart retains the trigger ID counter. The host supplies event coordinates
 and order.
 
+`codec::parse_performance_event` and `codec::performance_event_text` handle
+trigger, release, scoped control change, LFO change, and Envelfo change
+records in JSON and TOML. Performance ticks are signed 64-bit. Ordinals are
+nonnegative and use unsigned 64-bit in Rust, with TOML limited to its signed
+integer domain. Beat divisions are positive exact rationals. The
+[shared cases](../conformance/performance-events.json) cover command payloads,
+control addressing, and pitch units.
+
+`codec::parse_performance_payload` validates the same records without
+coordinates. `PerformancePayload::validate_controls` checks trigger overrides
+and control changes against host-supplied instrument declarations. Enge uses
+this payload boundary in native instrument traces and retains its existing
+host event coordinates.
+
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a

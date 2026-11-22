@@ -179,6 +179,7 @@ def prepare(
         [Variation, int, Identifier, Identifier | None, int, int, Identifier],
         ResolvedVariation,
     ] = resolve,
+    validate_event: Callable[[PerformanceEvent], None] | None = None,
 ) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering.
 
@@ -188,6 +189,7 @@ def prepare(
     This function owns event state and the order of partitions in snapshots.
     """
     instrument = SampleInstrument.model_validate(instrument.model_dump())
+    validate_event = validate_event or instrument.validate_event
     articulations = instrument.settings.articulations
     if articulations is not None:
         if articulations.controls:
@@ -457,7 +459,7 @@ def prepare(
         update_trigger(trigger, logical_released=True)
 
     for event in events:
-        instrument.validate_event(event)
+        validate_event(event)
         if isinstance(event, LFOChange):
             actions.append(
                 LFOObservation(

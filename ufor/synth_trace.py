@@ -147,9 +147,11 @@ def prepare(
     | None = None,
     prepare_start: PrepareVoiceStart = prepare_values,
     schedule: ScheduleCommands = schedule_commands,
+    validate_event: Callable[[PerformanceEvent], None] | None = None,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
+    validate_event = validate_event or instrument.validate_event
     if instrument.articulations is not None:
         raise ValueError('articulation preparation is unsupported')
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))
@@ -167,7 +169,7 @@ def prepare(
                 event.quantize_beats if isinstance(event, EnvelfoChange) else None
             )
             if division is not None:
-                instrument.validate_event(event)
+                validate_event(event)
             coordinates.append((event.tick, event.ordinal, division))
         scheduled: list[PerformanceEvent] = []
         for index, tick, ordinal in schedule(tempo_map, sample_rate, coordinates):
@@ -346,7 +348,7 @@ def prepare(
         update_trigger(trigger, logical_released=True)
 
     for event in events:
-        instrument.validate_event(event)
+        validate_event(event)
         if isinstance(event, LFOChange):
             actions.append(
                 LFOObservation(

@@ -233,7 +233,7 @@ fn seconds<'de, D: Deserializer<'de>>(d: D) -> Result<Rational, D::Error> {
     read_ratio(d, "seconds")
 }
 
-fn beats<'de, D: Deserializer<'de>>(d: D) -> Result<Rational, D::Error> {
+pub(crate) fn beats<'de, D: Deserializer<'de>>(d: D) -> Result<Rational, D::Error> {
     read_ratio(d, "beats")
 }
 

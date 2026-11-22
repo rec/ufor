@@ -1,0 +1,27 @@
+{
+  "valid": [
+    {"kind":"trigger","tick":-1,"ordinal":2,"part":"lead","trigger_id":"note-1","key":69,"pitch_hz":"0.432 kHz","controls":{"bend":-0.25}},
+    {"kind":"release","tick":2,"ordinal":0,"part":"lead","trigger_id":"note-1"},
+    {"kind":"control_change","tick":2,"ordinal":1,"control":"volume","value":1,"scope":"instrument"},
+    {"kind":"control_change","tick":2,"ordinal":2,"control":"bend","value":-1,"scope":"trigger","part":"lead","trigger_id":"note-1"},
+    {"kind":"lfo_change","tick":3,"ordinal":0,"name":"vibrato","action":"rate","rate":0},
+    {"kind":"lfo_change","tick":3,"ordinal":1,"name":"vibrato","action":"seek","position":1},
+    {"kind":"envelfo_change","tick":3,"ordinal":2,"part":"lead","trigger_id":"note-1","name":"shape","action":"shift","offset":-0.5,"quantize_beats":"1/4 beat"},
+    {"kind":"envelfo_change","tick":3,"ordinal":3,"part":"lead","trigger_id":"note-1","target":"envelope","op":"carrier","action":"advance"}
+  ],
+  "invalid": [
+    {"kind":"release","tick":0,"ordinal":-1,"part":"lead","trigger_id":"note-1"},
+    {"kind":"release","tick":0,"ordinal":1,"part":"lead","trigger_id":"note-1","key":69},
+    {"kind":"trigger","tick":0,"ordinal":0,"part":"lead","trigger_id":"note-1","key":69,"pitch_hz":0},
+    {"kind":"trigger","tick":0,"ordinal":0,"part":"lead","trigger_id":"note-1","key":69,"velocity":1.1},
+    {"kind":"control_change","tick":0,"ordinal":0,"control":"bend","value":0,"scope":"part"},
+    {"kind":"control_change","tick":0,"ordinal":0,"control":"bend","value":0,"scope":"instrument","part":"lead"},
+    {"kind":"control_change","tick":0,"ordinal":0,"control":"bend","value":0,"scope":"trigger","part":"lead"},
+    {"kind":"lfo_change","tick":0,"ordinal":0,"name":"vibrato","action":"rate","rate":-1},
+    {"kind":"lfo_change","tick":0,"ordinal":0,"name":"vibrato","action":"seek"},
+    {"kind":"lfo_change","tick":0,"ordinal":0,"name":"vibrato","action":"pause","offset":0},
+    {"kind":"envelfo_change","tick":0,"ordinal":0,"part":"lead","trigger_id":"note-1","name":"shape","op":"carrier","action":"pause"},
+    {"kind":"envelfo_change","tick":0,"ordinal":0,"part":"lead","trigger_id":"note-1","name":"shape","action":"pause","quantize_beats":"0"},
+    {"kind":"envelfo_change","tick":0,"ordinal":0,"part":"lead","trigger_id":"note-1","name":"shape","action":"shift"}
+  ]
+}

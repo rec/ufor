@@ -9,6 +9,7 @@ use crate::effects::actions::{Action, ActionBatch};
 use crate::effects::topology::Topology;
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
+use crate::events::{PerformanceEvent, PerformancePayload};
 use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::oscillator::Oscillator;
@@ -37,6 +38,20 @@ pub enum Format {
 
 pub fn parse_tuning(text: &str, format: Format) -> Result<Tuning, Error> {
     serde_json::from_value(parse_value(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
+}
+
+pub fn parse_performance_event(text: &str, format: Format) -> Result<PerformanceEvent, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn performance_event_text(value: &PerformanceEvent, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
+pub fn parse_performance_payload(text: &str, format: Format) -> Result<PerformancePayload, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
 }
 
 pub fn parse_oscillator(text: &str, format: Format) -> Result<Oscillator, Error> {

@@ -1,3 +1,6 @@
+from json import loads
+from pathlib import Path
+
 import pytest
 from pydantic import TypeAdapter, ValidationError
 
@@ -8,11 +11,24 @@ from ufor.events import (
     MidiEvent,
     OscEvent,
     OscMessage,
+    PerformanceEvent,
     StoredEvent,
 )
 from ufor.interface import EventType, Output, SequenceBinding
 from ufor.sequence import EventSequence, SequenceScore
 from ufor.time import Rate, Timebase
+
+
+def test_shared_performance_events_validate_and_round_trip() -> None:
+    path = Path(__file__).resolve().parents[1] / 'conformance/performance-events.json'
+    vectors = loads(path.read_text())
+    adapter = TypeAdapter(PerformanceEvent)
+    for spec in vectors['valid']:
+        event = adapter.validate_python(spec)
+        assert adapter.validate_json(adapter.dump_json(event)) == event
+    for spec in vectors['invalid']:
+        with pytest.raises(ValidationError):
+            adapter.validate_python(spec)
 
 
 def test_raw_events_preserve_timestamp_order_and_payload() -> None:
