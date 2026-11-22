@@ -157,6 +157,12 @@ with checked 64-bit rational arithmetic and rounds up once to an output frame.
 JSON preserves totals through `2^64` plays by storing the additional-play
 count. TOML integers use their signed 64-bit format domain.
 
+`samples::cursor::Cursor` advances a validated slice in native frames. It
+handles pending loop boundaries, release, overlap taps, whole plays, and end
+fades. The host can copy the cursor for interpolation lookahead and restore a
+`CursorState` for continuation. It supplies audio and applies the returned
+taps and gains.
+
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See

@@ -2,6 +2,7 @@
 pub mod bindings;
 pub mod controls;
 pub mod crossfade;
+pub mod cursor;
 pub mod eligibility;
 pub mod inheritance;
 pub mod playback;
