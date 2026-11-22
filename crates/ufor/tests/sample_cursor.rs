@@ -57,8 +57,29 @@ fn overlap_taps_are_linear_without_advancing_the_cursor() {
     cursor.advance(7.5 * RATE, 8).unwrap();
     assert_eq!(cursor.overlap_tap(), Some((3, 0.0)));
     assert_eq!(cursor.following(8).overlap_tap(), Some((4, 0.5)));
+    let audio = [0.0, 1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0, 128.0, 256.0];
+    let read = cursor.read_plan(8).unwrap();
+    // The overlap knots are 64 and (128 + 8) / 2.
+    assert_eq!(read.sample(|index| audio[index as usize]), 66.0);
     assert_eq!(cursor.state().index, 7);
     assert_eq!(cursor.state().position, RATE / 2.0);
+}
+
+#[test]
+fn linear_read_holds_the_final_value_until_the_cursor_exhausts() {
+    let slice = parse_sample_slice(
+        r#"{"asset":"clip","name":"section","end_frame":2}"#,
+        Format::Json,
+    )
+    .unwrap();
+    let mut cursor = Cursor::new(&slice, Playback::default(), 2, RATE, 0, 0.0).unwrap();
+    cursor.advance(1.5 * RATE, 1).unwrap();
+    let read = cursor.read_plan(1).unwrap();
+    assert_eq!(read.sample(|index| [0.0, 0.75][index as usize]), 0.75);
+    assert!(cursor.state().exhausted.is_none());
+    cursor.advance(0.5 * RATE, 2).unwrap();
+    cursor.settle(2);
+    assert!(cursor.read_plan(2).is_none());
 }
 
 #[test]

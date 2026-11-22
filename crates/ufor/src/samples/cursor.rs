@@ -54,6 +54,42 @@ pub struct Cursor {
     state: CursorState,
 }
 
+/// One settled cursor observation, reusable across all source channels.
+#[derive(Clone, Copy, Debug)]
+pub struct SampleRead {
+    first: Tap,
+    interpolation: Option<(Option<Tap>, f64)>,
+}
+
+impl SampleRead {
+    /// Fetch decoded values by native frame index and apply the read weights.
+    #[inline]
+    pub fn sample(&self, mut at: impl FnMut(i64) -> f64) -> f64 {
+        let first = self.first.sample(&mut at);
+        if let Some((following, fraction)) = self.interpolation {
+            let last = following.map_or(first, |tap| tap.sample(&mut at));
+            first + fraction * (last - first)
+        } else {
+            first
+        }
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+struct Tap {
+    index: i64,
+    overlap: Option<(i64, f64)>,
+}
+
+impl Tap {
+    fn sample(self, at: &mut impl FnMut(i64) -> f64) -> f64 {
+        let first = at(self.index);
+        self.overlap.map_or(first, |(incoming, weight)| {
+            (1.0 - weight) * first + weight * at(incoming)
+        })
+    }
+}
+
 impl Cursor {
     pub fn new(
         slice: &Slice,
@@ -178,6 +214,34 @@ impl Cursor {
             self.settle(frame);
         }
         self
+    }
+
+    /// Plan a read after settling the current frame.
+    ///
+    /// Lookahead uses a copy, so a pending release can still cancel the next
+    /// wrap or turn. If lookahead exhausts the source, hold the current value.
+    pub fn read_plan(&self, frame: i64) -> Option<SampleRead> {
+        let first = self.tap()?;
+        let interpolation = (self.state.position != 0.0).then(|| {
+            let following = self.following(frame).tap();
+            (following, self.state.position / self.rate)
+        });
+        Some(SampleRead {
+            first,
+            interpolation,
+        })
+    }
+
+    fn tap(&self) -> Option<Tap> {
+        if self.state.exhausted.is_some()
+            || !(self.selection.0..self.selection.1).contains(&self.state.index)
+        {
+            return None;
+        }
+        Some(Tap {
+            index: self.state.index,
+            overlap: self.overlap_tap(),
+        })
     }
 
     /// Bound a control batch before a predicted exhaustion or end fade.

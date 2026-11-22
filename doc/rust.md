@@ -160,8 +160,10 @@ count. TOML integers use their signed 64-bit format domain.
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a
-`CursorState` for continuation. It supplies audio and applies the returned
-taps and gains. `Cursor::active_prefix` bounds control batches with the
+`CursorState` for continuation. `Cursor::read_plan` prepares interpolation
+knots and their loop overlap weights. The host can reuse the plan across
+channels by supplying decoded values by native frame index.
+`Cursor::active_prefix` bounds control batches with the
 maximum cursor step, the remaining traversal, and any latched end fade.
 `Cursor::advance_with_release` splits a step at a fractional frame using a
 signed-64-bit rational. Each side is rounded once from its exact share of
