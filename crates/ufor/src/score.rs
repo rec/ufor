@@ -2,6 +2,7 @@
 use crate::automation::AutomationScore;
 use crate::envelfo::{self, EnvelfoScore, PreparationLimits};
 use crate::musical::{OscillatorScore, ScaleScore, TuningScore};
+use crate::performance_binding::PerformanceBindingScore;
 use crate::sequence::SequenceScore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
@@ -13,6 +14,7 @@ pub enum Score {
     Envelfo(EnvelfoScore),
     Sequence(SequenceScore),
     Automation(AutomationScore),
+    PerformanceBinding(PerformanceBindingScore),
 }
 impl Score {
     pub fn name(&self) -> &str {
@@ -23,6 +25,7 @@ impl Score {
             Self::Envelfo(v) => v.name(),
             Self::Sequence(v) => v.name(),
             Self::Automation(v) => v.name(),
+            Self::PerformanceBinding(v) => v.name(),
         }
     }
     pub fn title(&self) -> &str {
@@ -33,6 +36,7 @@ impl Score {
             Self::Envelfo(v) => v.title(),
             Self::Sequence(v) => v.title(),
             Self::Automation(v) => v.title(),
+            Self::PerformanceBinding(v) => v.title(),
         }
     }
     pub fn tags(&self) -> &[String] {
@@ -43,6 +47,7 @@ impl Score {
             Self::Envelfo(v) => v.tags(),
             Self::Sequence(v) => v.tags(),
             Self::Automation(v) => v.tags(),
+            Self::PerformanceBinding(v) => v.tags(),
         }
     }
     pub(crate) fn decode<'de, D: Deserializer<'de>>(
@@ -68,6 +73,10 @@ impl Score {
                     .map_err(serde::de::Error::custom)?;
                 Ok(Self::Automation(v))
             }
+            ScoreDefinition::PerformanceBinding(v) => {
+                v.check_records(limits).map_err(serde::de::Error::custom)?;
+                Ok(Self::PerformanceBinding(v))
+            }
         }
     }
 }
@@ -85,6 +94,7 @@ impl Serialize for Score {
             Self::Envelfo(v) => v.serialize(s),
             Self::Sequence(v) => v.serialize(s),
             Self::Automation(v) => v.serialize(s),
+            Self::PerformanceBinding(v) => v.serialize(s),
         }
     }
 }
@@ -97,4 +107,5 @@ enum ScoreDefinition {
     Envelfo(envelfo::wire::ScoreWire),
     Sequence(SequenceScore),
     Automation(AutomationScore),
+    PerformanceBinding(PerformanceBindingScore),
 }

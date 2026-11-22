@@ -300,6 +300,24 @@ pub(super) struct ReferenceWire {
     sha256: Option<String>,
 }
 
+impl TryFrom<ReferenceWire> for ScoreReference {
+    type Error = Error;
+
+    fn try_from(value: ReferenceWire) -> Result<Self, Error> {
+        let score = Self {
+            path: value.path,
+            selector: value
+                .selector
+                .as_deref()
+                .map(validation::selector)
+                .transpose()?,
+            sha256: value.sha256,
+        };
+        validation::score_reference(&score)?;
+        Ok(score)
+    }
+}
+
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case", deny_unknown_fields)]
 pub(super) enum Raw {
@@ -418,7 +436,7 @@ pub(super) enum Raw {
         position_driver: Authored<PositionDriver>,
         #[serde(default, skip_serializing_if = "Authored::absent")]
         origin: Authored<Option<OriginWire>>,
-        score: ReferenceWire,
+        score: ScoreReference,
         #[serde(default)]
         parameters: Ordered<ParameterValue>,
     },
@@ -683,23 +701,13 @@ impl Raw {
                 origin,
                 score,
                 parameters,
-            } => {
-                let selector = score
-                    .selector
-                    .map(|v| validation::selector(&v))
-                    .transpose()?;
-                (
-                    settings(scope, clock, position_driver, origin, parent)?,
-                    Body::Reference(Reference {
-                        score: ScoreReference {
-                            path: score.path,
-                            selector,
-                            sha256: score.sha256,
-                        },
-                        parameters: parameters.0,
-                    }),
-                )
-            }
+            } => (
+                settings(scope, clock, position_driver, origin, parent)?,
+                Body::Reference(Reference {
+                    score,
+                    parameters: parameters.0,
+                }),
+            ),
             _ => return Err(invalid("expected a concrete generator")),
         };
         Ok(Generator { settings, body })
@@ -1010,11 +1018,7 @@ pub(super) fn definition(value: &Generator, inherited: bool) -> Raw {
             clock,
             position_driver,
             origin,
-            score: ReferenceWire {
-                path: v.score.path.clone(),
-                selector: v.score.selector.clone(),
-                sha256: v.score.sha256.clone(),
-            },
+            score: v.score.clone(),
             parameters: Ordered(v.parameters.clone()),
         },
     }

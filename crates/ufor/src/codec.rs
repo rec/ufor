@@ -191,11 +191,17 @@ pub fn parse_timebase(text: &str, format: Format) -> Result<Timebase, Error> {
 }
 
 pub fn parse_midi_bindings(
-    text: &str,
+    score: &str,
+    context: &str,
     format: Format,
     limits: PreparationLimits,
 ) -> Result<MidiBindings, Error> {
-    MidiBindings::decode(parse_value(text, format)?, limits)
+    let Score::PerformanceBinding(score) = parse_score(score, format, limits)? else {
+        return Err(Error::Invalid(
+            "expected a performance binding score".into(),
+        ));
+    };
+    MidiBindings::decode(score, parse_value(context, format)?, limits)
 }
 
 pub fn parse_sample_slice(text: &str, format: Format) -> Result<Slice, Error> {

@@ -632,7 +632,8 @@ pub enum ParameterValue {
     Number(f64),
     Text(String),
 }
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
+#[serde(try_from = "wire::ReferenceWire")]
 pub struct ScoreReference {
     path: Option<String>,
     selector: Option<String>,
@@ -647,6 +648,14 @@ impl ScoreReference {
     }
     pub fn sha256(&self) -> Option<&str> {
         self.sha256.as_deref()
+    }
+
+    pub fn key(&self) -> String {
+        match (&self.path, &self.selector) {
+            (Some(path), _) => path.clone(),
+            (_, Some(selector)) => format!("selector:{selector}"),
+            _ => unreachable!("validated references have one selection"),
+        }
     }
 }
 #[derive(Clone, Debug, PartialEq)]

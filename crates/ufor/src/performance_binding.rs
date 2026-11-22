@@ -1,15 +1,139 @@
 //! Prepared MIDI 1 channel assignments and control mappings.
 
-use crate::{envelfo::PreparationLimits, error::Error, identifier::Identifier};
+use crate::envelfo::{PreparationLimits, ScoreReference};
+use crate::musical::header;
+use crate::{error::Error, identifier::Identifier};
 use crate::{samples::controls::ControlDeclaration, tuning::Tuning};
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RepeatedKeyRelease {
     Oldest,
     Newest,
+}
+
+/// An authored MIDI performance binding with unresolved resource references.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "ScoreDefinition")]
+pub struct PerformanceBindingScore {
+    format: String,
+    version: i64,
+    kind: String,
+    name: String,
+    title: String,
+    tags: Vec<String>,
+    body: PerformanceInputBinding,
+    #[serde(skip)]
+    channels: [Option<usize>; 16],
+}
+
+impl PerformanceBindingScore {
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    pub fn instrument(&self) -> &ScoreReference {
+        &self.body.instrument
+    }
+
+    pub fn tuning_references(&self) -> impl Iterator<Item = &ScoreReference> {
+        self.body
+            .midi
+            .iter()
+            .filter_map(|input| input.tuning.as_ref())
+    }
+
+    pub(crate) fn check_records(&self, limits: PreparationLimits) -> Result<(), Error> {
+        if self.records() > limits.max_records() {
+            return Err(Error::Limit("MIDI binding records"));
+        }
+        Ok(())
+    }
+
+    fn records(&self) -> usize {
+        // The score, body and instrument reference precede the MIDI records.
+        3 + self
+            .body
+            .midi
+            .iter()
+            .map(|input| {
+                1 + input.channels.len()
+                    + input.controllers.len()
+                    + usize::from(input.pitch_bend.is_some())
+                    + usize::from(input.tuning.is_some())
+            })
+            .sum::<usize>()
+    }
+}
+
+impl TryFrom<ScoreDefinition> for PerformanceBindingScore {
+    type Error = Error;
+
+    fn try_from(value: ScoreDefinition) -> Result<Self, Error> {
+        if value.format != "recs" || value.version != 4 || value.kind != "performance_binding" {
+            return Err(invalid(
+                "expected a recs version 4 performance binding score",
+            ));
+        }
+        if value.body.midi.is_empty() {
+            return Err(invalid("MIDI bindings require at least one input"));
+        }
+        let tags = header(&value.name, &value.title, value.tags)?;
+        let mut channels = [None; 16];
+        for (index, input) in value.body.midi.iter().enumerate() {
+            if input.channels.is_empty() {
+                return Err(invalid("MIDI input requires at least one channel"));
+            }
+            for &channel in &input.channels {
+                let slot = channel_index(channel)
+                    .ok_or_else(|| invalid("MIDI channel must be in [1, 16]"))?;
+                if channels[slot].replace(index).is_some() {
+                    return Err(invalid("Duplicate MIDI channel"));
+                }
+            }
+            let mut numbers = BTreeSet::new();
+            for controller in &input.controllers {
+                if controller.number > 127 || !numbers.insert(controller.number) {
+                    return Err(invalid("Invalid or duplicate MIDI controller number"));
+                }
+                if !bipolar_range(controller.minimum, controller.maximum) {
+                    return Err(invalid(
+                        "MIDI controller output range must increase within [-1, 1]",
+                    ));
+                }
+            }
+            if let Some(bend) = &input.pitch_bend {
+                if !(bipolar_range(bend.minimum, bend.maximum)
+                    && bend.minimum < bend.center
+                    && bend.center < bend.maximum)
+                {
+                    return Err(invalid(
+                        "MIDI pitch-bend minimum < center < maximum required within [-1, 1]",
+                    ));
+                }
+            }
+        }
+        Ok(Self {
+            format: value.format,
+            version: value.version,
+            kind: value.kind,
+            name: value.name,
+            title: value.title,
+            tags,
+            body: value.body,
+            channels,
+        })
+    }
 }
 
 /// Resolved facts for a note onset, before host coordinates are attached.
@@ -161,54 +285,30 @@ pub struct ControlValue<'a> {
 pub struct MidiBindings {
     inputs: Vec<Input>,
     channels: [Option<usize>; 16],
-    tunings: BTreeMap<String, Tuning>,
+    tuning_indices: [Option<usize>; 16],
+    tunings: Vec<Tuning>,
 }
 
 impl MidiBindings {
     pub(crate) fn decode(
+        score: PerformanceBindingScore,
         value: serde_json::Value,
         limits: PreparationLimits,
     ) -> Result<Self, Error> {
         let Definitions {
-            midi: inputs,
             controls,
             tunings: mut tuning_definitions,
         } = serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
-        if inputs.is_empty() {
-            return Err(invalid("MIDI bindings require at least one input"));
+        let mut records = score.records() + controls.as_ref().map_or(0, BTreeMap::len);
+        if records > limits.max_records() {
+            return Err(Error::Limit("MIDI binding records"));
         }
-        let mut records = 1 + controls.as_ref().map_or(0, BTreeMap::len);
-        let mut channels = [None; 16];
-        let mut tunings = BTreeMap::new();
-        for (index, input) in inputs.iter().enumerate() {
-            records += 1
-                + input.channels.len()
-                + input.controllers.len()
-                + usize::from(input.pitch_bend.is_some());
-            if records > limits.max_records() {
-                return Err(Error::Limit("MIDI binding records"));
-            }
-            if input.channels.is_empty() {
-                return Err(invalid("MIDI input requires at least one channel"));
-            }
-            for &channel in &input.channels {
-                let slot = channel_index(channel)
-                    .ok_or_else(|| invalid("MIDI channel must be in [1, 16]"))?;
-                if channels[slot].replace(index).is_some() {
-                    return Err(invalid("Duplicate MIDI channel"));
-                }
-            }
-            let mut numbers = BTreeSet::new();
-            for controller in &input.controllers {
-                if controller.number > 127 || !numbers.insert(controller.number) {
-                    return Err(invalid("Invalid or duplicate MIDI controller number"));
-                }
-                if !bipolar_range(controller.minimum, controller.maximum) {
-                    return Err(invalid(
-                        "MIDI controller output range must increase within [-1, 1]",
-                    ));
-                }
-                if let Some(controls) = &controls {
+        let mut tuning_indices = [None; 16];
+        let mut indices = BTreeMap::new();
+        let mut tunings = Vec::new();
+        for input in &score.body.midi {
+            if let Some(controls) = &controls {
+                for controller in &input.controllers {
                     validate_control(
                         controls,
                         &controller.control,
@@ -216,40 +316,39 @@ impl MidiBindings {
                         controller.maximum,
                     )?;
                 }
-            }
-            if let Some(bend) = &input.pitch_bend {
-                if !(bipolar_range(bend.minimum, bend.maximum)
-                    && bend.minimum < bend.center
-                    && bend.center < bend.maximum)
-                {
-                    return Err(invalid(
-                        "MIDI pitch-bend minimum < center < maximum required within [-1, 1]",
-                    ));
-                }
-                if let Some(controls) = &controls {
+                if let Some(bend) = &input.pitch_bend {
                     validate_control(controls, &bend.control, bend.minimum, bend.maximum)?;
                 }
             }
-            if let Some(key) = input
-                .tuning
-                .as_ref()
-                .filter(|key| !tunings.contains_key(*key))
-            {
-                records += 1;
-                if records > limits.max_records() {
-                    return Err(Error::Limit("MIDI binding records"));
+            if let Some(reference) = &input.tuning {
+                let key = reference.key();
+                let index = if let Some(&index) = indices.get(&key) {
+                    index
+                } else {
+                    records += 1;
+                    if records > limits.max_records() {
+                        return Err(Error::Limit("MIDI binding records"));
+                    }
+                    let definition = tuning_definitions
+                        .remove(&key)
+                        .ok_or_else(|| invalid(format!("Unresolved tuning: {key}")))?;
+                    let tuning = serde_json::from_value(definition).map_err(|error| {
+                        invalid(format!("Cannot prepare tuning {key}: {error}"))
+                    })?;
+                    let index = tunings.len();
+                    tunings.push(tuning);
+                    indices.insert(key, index);
+                    index
+                };
+                for &channel in &input.channels {
+                    tuning_indices[usize::from(channel - 1)] = Some(index);
                 }
-                let definition = tuning_definitions
-                    .remove(key)
-                    .ok_or_else(|| invalid(format!("Unresolved tuning: {key}")))?;
-                let tuning = serde_json::from_value(definition)
-                    .map_err(|error| invalid(format!("Cannot prepare tuning {key}: {error}")))?;
-                tunings.insert(key.clone(), tuning);
             }
         }
         Ok(Self {
-            inputs,
-            channels,
+            inputs: score.body.midi,
+            channels: score.channels,
+            tuning_indices,
             tunings,
         })
     }
@@ -268,7 +367,8 @@ impl MidiBindings {
     }
 
     pub fn tuning(&self, channel: u8) -> Option<&Tuning> {
-        self.tunings.get(self.input(channel)?.tuning.as_ref()?)
+        self.tunings
+            .get(self.tuning_indices[channel_index(channel)?]?)
     }
 
     pub fn control_change(
@@ -324,7 +424,7 @@ impl MidiBindings {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Controller {
     number: u8,
@@ -335,7 +435,7 @@ struct Controller {
     maximum: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct PitchBend {
     control: Identifier,
@@ -347,7 +447,7 @@ struct PitchBend {
     maximum: f64,
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Input {
     channels: Vec<u8>,
@@ -357,16 +457,50 @@ struct Input {
     controllers: Vec<Controller>,
     #[serde(default)]
     pitch_bend: Option<PitchBend>,
-    tuning: Option<String>,
+    tuning: Option<ScoreReference>,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct PerformanceInputBinding {
+    instrument: ScoreReference,
+    midi: Vec<Input>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ScoreDefinition {
+    #[serde(default = "format")]
+    format: String,
+    #[serde(default = "version")]
+    version: i64,
+    #[serde(default = "kind")]
+    kind: String,
+    name: String,
+    title: String,
+    #[serde(default)]
+    tags: Vec<String>,
+    body: PerformanceInputBinding,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Definitions {
-    midi: Vec<Input>,
     controls: Option<BTreeMap<Identifier, ControlDeclaration>>,
     #[serde(default)]
     tunings: BTreeMap<String, serde_json::Value>,
+}
+
+fn format() -> String {
+    "recs".into()
+}
+
+fn version() -> i64 {
+    4
+}
+
+fn kind() -> String {
+    "performance_binding".into()
 }
 
 fn validate_control(

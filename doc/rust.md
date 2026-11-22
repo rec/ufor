@@ -21,7 +21,7 @@ declarations.
 | `automation` | JSON/TOML score, control curves, and scalar evaluation |
 | `synth_instrument` | `parse_synth_instrument` validates the prepared body, including voices, settings, controls, articulation, and voice policy |
 | `instrument` | Sampler preparation APIs for asset inventory, slot settings, eligibility, selection, and traversal |
-| `performance_binding` | `parse_midi_bindings` validates channel assignments against supplied control declarations and resolved tuning definitions |
+| `performance_binding` | JSON/TOML score, MIDI channel assignments, and contextual preparation against supplied controls and resolved tunings |
 | `arrangement` | `parse_control_clip` prepares automation placement and exact source requests |
 | `animation` | Standalone envelope curves and LFO definitions |
 | `arpeggiator`, `binding`, `broadcast`, `fixture`, `preset`, `recording`, `slideshow` | Python score models |
@@ -318,15 +318,16 @@ event tick in microseconds per quarter note. It applies to subsequent
 intervals. The clock accepts synchronous PPQN timing and leaves file decoding
 and MIDI dispatch to the host.
 
-`codec::parse_midi_bindings` reads the projected `midi` entries of a
-performance binding. Each entry supplies its channels, part, repeated-key
-release policy and optional controller and bend declarations. The prepared bindings
-retain part order and map primitive MIDI values to configured control
-ranges, including both asymmetric bend endpoints. The host resolves the
-instrument and tuning references. When the host supplies a `controls` map,
-preparation checks every mapping against those declarations. An entry can
-name a resolved tuning key in `tuning`. Preparation decodes each referenced
-body from the `tunings` map once and makes it available by channel.
+`codec::parse_midi_bindings` takes an authored performance binding score and
+a separate context document in the same format. The prepared bindings retain
+part order and map primitive MIDI values to configured control ranges,
+including both asymmetric bend endpoints. The host resolves the instrument
+and tuning references. When the host supplies a `controls` map, preparation
+checks every mapping against those declarations. The `tunings` map uses
+relative paths or `selector:` followed by the canonical selector as keys.
+Preparation decodes each referenced tuning body once and makes it available
+by channel. The record limit covers the authored score, reference records,
+supplied control declarations, and used tuning definitions.
 `performance_binding::HeldNotes` owns one source's held-note queues,
 admission limit, and trigger IDs. It resolves a note against the supplied
 tuning or 12-tone equal temperament with A4 at 440 Hz. It pairs releases
@@ -462,10 +463,11 @@ assert_eq!(codec::parse_tuning(&text, Format::Toml)?, tuning);
 `score::Score` enum described in [Score coverage](#score-coverage). Select JSON
 or TOML with `Format`. The score codec requires an explicit supported `kind`.
 Deserializing a concrete score type can supply its default `kind`.
-`PreparationLimits` controls record budgets for EnveLFO, sequence, and automation
-scores. Tuning has fixed table and materialization bounds. Direct Serde use
-also validates models. The codec additionally enforces the Python codec's
-16,777,216-character, 100,000-value, and 64-level document budgets.
+`PreparationLimits` controls record budgets for EnveLFO, sequence, automation,
+and performance binding scores. Tuning has fixed table and materialization
+bounds. Direct Serde use also validates models. The codec additionally enforces
+the Python codec's 16,777,216-character, 100,000-value, and 64-level document
+budgets.
 
 `codec::parse_value` applies those same document budgets to generic JSON/TOML
 values, allowing consumers to decode preparation declarations with existing uFor

@@ -82,8 +82,7 @@ pub(super) fn selector(value: &str) -> Result<String, Error> {
     }
     Ok(result)
 }
-fn reference(value: &Reference) -> Result<(), Error> {
-    let r = &value.score;
+pub(super) fn score_reference(r: &ScoreReference) -> Result<(), Error> {
     if r.path.is_some() == r.selector.is_some() {
         return Err(invalid("reference requires one path or selector"));
     }
@@ -110,6 +109,9 @@ fn reference(value: &Reference) -> Result<(), Error> {
             return Err(invalid("score path must be relative POSIX"));
         }
     }
+    Ok(())
+}
+fn reference(value: &Reference) -> Result<(), Error> {
     for (_, value) in &value.parameters {
         match value {
             ParameterValue::Number(v) => {
