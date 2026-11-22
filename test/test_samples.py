@@ -70,6 +70,12 @@ def test_sample_traversal_matches_the_shared_slice_cases() -> None:
         assert (
             playback.pitch_ratio(mappings[name], pitch, tuning, variation) == expected
         )
+    for base, tuning, layer, rate, expected in data['rendered_steps']:
+        ratio = playback.tuned_pitch_ratio(base, tuning, layer)
+        assert playback.sample_step(ratio, rate) == expected
+    for base, tuning, layer, rate in data['invalid_rendered_steps']:
+        with pytest.raises(ValueError):
+            playback.sample_step(playback.tuned_pitch_ratio(base, tuning, layer), rate)
 
 
 def test_sample_crossfade_declarations_match_shared_cases() -> None:

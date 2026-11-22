@@ -3,6 +3,25 @@ use crate::{error::Error, identifier::Identifier, number::Rational, quantity};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 
+/// Apply two layers of cents to the base pitch ratio or an already scaled step.
+pub fn tuned_pitch_ratio(base: f64, tuning_cents: f64, layer_cents: f64) -> Result<f64, Error> {
+    let cents = quantity::finite(tuning_cents + layer_cents)?;
+    let result = quantity::finite(base * (cents / 1200.0).exp2())?;
+    if result <= 0.0 {
+        return Err(Error::NonpositiveResult);
+    }
+    Ok(result)
+}
+
+/// Convert a pitch ratio into cursor units using the decoded asset rate.
+pub fn sample_step(pitch_ratio: f64, native_rate: f64) -> Result<f64, Error> {
+    let step = quantity::finite(pitch_ratio * native_rate)?;
+    if step <= 0.0 || native_rate <= 0.0 {
+        return Err(Error::NonpositiveResult);
+    }
+    Ok(step)
+}
+
 /// Authored note and velocity ranges with an optional sample pitch reference.
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(try_from = "MappingDefinition", into = "MappingDefinition")]
@@ -47,12 +66,7 @@ impl Mapping {
         } else {
             1.0
         };
-        let cents = quantity::finite(tuning_cents + variation_cents)?;
-        let result = quantity::finite(ratio * (cents / 1200.0).exp2())?;
-        if result <= 0.0 {
-            return Err(invalid("Sample pitch ratio must be positive"));
-        }
-        Ok(result)
+        tuned_pitch_ratio(ratio, tuning_cents, variation_cents)
     }
 }
 

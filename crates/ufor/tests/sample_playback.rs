@@ -1,6 +1,6 @@
 use serde_json::{Value, json};
 use ufor::codec::{self, Format};
-use ufor::samples::playback::{Direction, Playback, PlaybackMode};
+use ufor::samples::playback::{Direction, Playback, PlaybackMode, sample_step, tuned_pitch_ratio};
 
 #[test]
 fn sample_crossfades_preserve_clipping_and_exact_endpoints() {
@@ -28,6 +28,26 @@ fn sample_crossfades_preserve_clipping_and_exact_endpoints() {
     );
     for rejected in data["rejected"].as_array().unwrap() {
         assert!(codec::parse_sample_crossfade(&rejected.to_string(), Format::Json).is_err());
+    }
+}
+
+#[test]
+fn rendered_sample_steps_match_shared_vectors() {
+    let data: Value =
+        serde_json::from_str(include_str!("../../../conformance/sample-playback.json")).unwrap();
+    for row in data["rendered_steps"].as_array().unwrap() {
+        let [base, cents, layer, rate, expected]: [f64; 5] =
+            serde_json::from_value(row.clone()).unwrap();
+        let ratio = tuned_pitch_ratio(base, cents, layer).unwrap();
+        assert_eq!(sample_step(ratio, rate).unwrap(), expected);
+    }
+    for row in data["invalid_rendered_steps"].as_array().unwrap() {
+        let [base, cents, layer, rate]: [f64; 4] = serde_json::from_value(row.clone()).unwrap();
+        assert!(
+            tuned_pitch_ratio(base, cents, layer)
+                .and_then(|ratio| sample_step(ratio, rate))
+                .is_err()
+        );
     }
 }
 

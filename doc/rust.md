@@ -163,6 +163,10 @@ fades. The host can copy the cursor for interpolation lookahead and restore a
 `CursorState` for continuation. It supplies audio and applies the returned
 taps and gains. `Cursor::active_prefix` bounds control batches with the
 maximum cursor step, the remaining traversal, and any latched end fade.
+The playback module applies layered cents with `tuned_pitch_ratio` and
+converts a ratio into cursor units with `sample_step`. Both check the
+positive finite result. The [shared playback cases](../conformance/sample-playback.json)
+exercise the conversion and its numeric limits.
 
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves

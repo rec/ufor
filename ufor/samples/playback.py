@@ -1,5 +1,6 @@
 """Sample mappings, traversal settings, and modulation-source definitions."""
 
+from math import isfinite
 from typing import Self
 
 from pydantic import Field, StrictBool, model_validator
@@ -101,4 +102,26 @@ def pitch_ratio(
             raise ValueError('Pitch-tracked sample requires resolved pitch_hz')
         assert mapping.reference_pitch_hz is not None
         ratio = pitch_hz / mapping.reference_pitch_hz
-    return ratio * cents_to_ratio(tuning_cents + variation_cents)
+    return tuned_pitch_ratio(ratio, tuning_cents, variation_cents)
+
+
+def tuned_pitch_ratio(base: float, tuning_cents: float, layer_cents: float) -> float:
+    """Apply two layers of cents to a base ratio or an already scaled step."""
+    cents = tuning_cents + layer_cents
+    if not isfinite(cents):
+        raise ValueError('Sample tuning must be finite')
+    try:
+        ratio = base * cents_to_ratio(cents)
+    except OverflowError as error:
+        raise ValueError('Sample pitch ratio must be positive and finite') from error
+    if not isfinite(ratio) or ratio <= 0:
+        raise ValueError('Sample pitch ratio must be positive and finite')
+    return ratio
+
+
+def sample_step(pitch_ratio: float, native_rate: float) -> float:
+    """Convert a pitch ratio into cursor units using the decoded asset rate."""
+    step = pitch_ratio * native_rate
+    if not isfinite(step) or step <= 0 or native_rate <= 0:
+        raise ValueError('Sample rate-adjusted pitch step must be positive and finite')
+    return step
