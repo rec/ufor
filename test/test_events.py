@@ -31,6 +31,27 @@ def test_shared_performance_events_validate_and_round_trip() -> None:
             adapter.validate_python(spec)
 
 
+def test_shared_mixed_event_sequence_preserves_capture_and_validates_extent() -> None:
+    path = Path(__file__).resolve().parents[1] / 'conformance/event-sequence.json'
+    vectors = loads(path.read_text())
+    score = SequenceScore.model_validate(vectors['score'])
+    assert score.tags == ['#test', '#sequence']
+    assert SequenceScore.model_validate_json(score.model_dump_json()) == score
+    with pytest.raises(ValueError, match='null array arguments'):
+        score_toml(score)
+    definition = vectors['score']
+    definition['body']['events'][3]['decoded'][0]['args'].pop()
+    score = SequenceScore.model_validate(definition)
+    assert parse_score(score_toml(score)) == score
+    adapter = TypeAdapter(StoredEvent)
+    for event in vectors['invalid_events']:
+        with pytest.raises(ValidationError):
+            adapter.validate_python(event)
+    for sequence in vectors['invalid_sequences']:
+        with pytest.raises(ValidationError):
+            EventSequence.model_validate(sequence)
+
+
 def test_raw_events_preserve_timestamp_order_and_payload() -> None:
     event = MidiEvent(tick=-1, ordinal=2, data=[144, 60, 100])
     adapter = TypeAdapter(StoredEvent)

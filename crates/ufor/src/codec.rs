@@ -1,6 +1,6 @@
 //! UTF-8 JSON/TOML interchange for the implemented bodies and score kinds.
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::control::tempo::TempoMap;
@@ -9,7 +9,8 @@ use crate::effects::actions::{Action, ActionBatch};
 use crate::effects::topology::Topology;
 use crate::envelfo::{Generator, PreparationLimits};
 use crate::error::Error;
-use crate::events::{PerformanceEvent, PerformancePayload};
+use crate::events::captured::JsonCapture;
+use crate::events::{EventKind, PerformanceEvent, PerformancePayload, StoredEvent};
 use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::oscillator::Oscillator;
@@ -21,6 +22,7 @@ use crate::samples::selection::Sequence;
 use crate::samples::variation::Variation;
 use crate::samples::{assets::Inventory, crossfade::Crossfade};
 use crate::score::Score;
+use crate::sequence::EventSequence;
 use crate::time::Timebase;
 use crate::tuning::Tuning;
 use crate::voice_admission::Admission;
@@ -52,6 +54,60 @@ pub fn performance_event_text(value: &PerformanceEvent, format: Format) -> Resul
 pub fn parse_performance_payload(text: &str, format: Format) -> Result<PerformancePayload, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_stored_event(text: &str, format: Format) -> Result<StoredEvent, Error> {
+    let value = parse_value(text, format)?;
+    match format {
+        Format::Json => {
+            let event: StoredEvent =
+                serde_json::from_value(value).map_err(|error| Error::Invalid(error.to_string()))?;
+            if event.payload.kind() == EventKind::Osc {
+                let capture: JsonCapture<'_> = serde_json::from_str(text)
+                    .map_err(|error| Error::Invalid(error.to_string()))?;
+                capture.check_integers()?;
+            }
+            Ok(event)
+        }
+        Format::Toml => toml::from_str(text).map_err(|error| Error::Invalid(error.to_string())),
+    }
+}
+
+pub fn stored_event_text(value: &StoredEvent, format: Format) -> Result<String, Error> {
+    if matches!(format, Format::Toml) {
+        value.payload.check_toml()?;
+    }
+    write(value, format)
+}
+
+pub fn parse_event_sequence(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<EventSequence, Error> {
+    let value = parse_value(text, format)?;
+    let sequence: EventSequence = match format {
+        Format::Json => {
+            serde_json::from_value(value).map_err(|error| Error::Invalid(error.to_string()))?
+        }
+        Format::Toml => toml::from_str(text).map_err(|error| Error::Invalid(error.to_string()))?,
+    };
+    if 1 + sequence.events().len() > limits.max_records() {
+        return Err(Error::Limit("event sequence records"));
+    }
+    if matches!(format, Format::Json) && sequence_has_osc(&sequence) {
+        let sequence: JsonSequence<'_> =
+            serde_json::from_str(text).map_err(|error| Error::Invalid(error.to_string()))?;
+        sequence.check_integers()?;
+    }
+    Ok(sequence)
+}
+
+pub fn event_sequence_text(value: &EventSequence, format: Format) -> Result<String, Error> {
+    if matches!(format, Format::Toml) {
+        value.check_toml()?;
+    }
+    write(value, format)
 }
 
 pub fn parse_oscillator(text: &str, format: Format) -> Result<Oscillator, Error> {
@@ -287,6 +343,16 @@ pub fn parse_score(text: &str, format: Format, limits: PreparationLimits) -> Res
             let value =
                 Score::decode(&mut decoder, limits).map_err(|e| Error::Invalid(e.to_string()))?;
             decoder.end().map_err(|e| Error::Invalid(e.to_string()))?;
+            if matches!(&value, Score::Sequence(sequence) if sequence_has_osc(sequence.body())) {
+                #[derive(Deserialize)]
+                struct JsonSequenceScore<'a> {
+                    #[serde(borrow)]
+                    body: JsonSequence<'a>,
+                }
+                let score: JsonSequenceScore<'_> = serde_json::from_str(text)
+                    .map_err(|error| Error::Invalid(error.to_string()))?;
+                score.body.check_integers()?;
+            }
             Ok(value)
         }
         Format::Toml => Score::decode(
@@ -298,6 +364,9 @@ pub fn parse_score(text: &str, format: Format, limits: PreparationLimits) -> Res
 }
 
 pub fn score_text(value: &Score, format: Format) -> Result<String, Error> {
+    if let (Format::Toml, Score::Sequence(sequence)) = (format, value) {
+        sequence.body().check_toml()?;
+    }
     write(value, format)
 }
 
@@ -341,4 +410,23 @@ fn write<T: Serialize>(value: &T, format: Format) -> Result<String, Error> {
         }
         Format::Toml => toml::to_string_pretty(value).map_err(|e| Error::Invalid(e.to_string())),
     }
+}
+
+#[derive(Deserialize)]
+struct JsonSequence<'a> {
+    #[serde(default, borrow)]
+    events: Vec<JsonCapture<'a>>,
+}
+
+impl JsonSequence<'_> {
+    fn check_integers(&self) -> Result<(), Error> {
+        self.events.iter().try_for_each(JsonCapture::check_integers)
+    }
+}
+
+fn sequence_has_osc(sequence: &EventSequence) -> bool {
+    sequence
+        .events()
+        .iter()
+        .any(|e| e.payload.kind() == EventKind::Osc)
 }

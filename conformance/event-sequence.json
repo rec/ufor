@@ -1,0 +1,47 @@
+{
+  "score": {
+    "kind": "sequence",
+    "name": "Captured take",
+    "title": "Mixed native events",
+    "tags": ["#test", "#test", "#sequence"],
+    "timebases": [{"name": "clock", "rate": {"numerator": 48000}}],
+    "outputs": [{
+      "name": "events",
+      "stream": {"timebase": "clock", "kinds": ["midi", "ump", "key", "osc", "trigger", "release"]},
+      "binding": {"sequence": true}
+    }],
+    "body": {
+      "timebase": "clock",
+      "start": -4,
+      "end": 10,
+      "events": [
+        {"kind": "midi", "tick": -4, "ordinal": 10, "data": [144, 60, 127]},
+        {"kind": "ump", "tick": 0, "ordinal": 2, "words": [1073741824, 4294967295]},
+        {"kind": "key", "tick": 0, "ordinal": 3, "key": "A", "action": "press", "text": "a", "modifiers": ["shift"]},
+        {"kind": "osc", "tick": 2, "ordinal": 0, "direction": "in", "data_b64": "/w==", "source_time": "1/2", "endpoint": {"host": "localhost", "port": 65535}, "decoded": [
+          {"path": "/test", "types": ",siftN", "args": ["text", 7, 0.5, true, null]},
+          {"error": "diagnostic retained"}
+        ]},
+        {"kind": "trigger", "tick": 4, "ordinal": 4, "part": "lead", "trigger_id": "note", "key": 69, "pitch_hz": 432},
+        {"kind": "release", "tick": 9, "ordinal": 5, "part": "lead", "trigger_id": "note"}
+      ]
+    }
+  },
+  "invalid_events": [
+    {"kind": "midi", "tick": 0, "ordinal": 0, "data": []},
+    {"kind": "midi", "tick": 0, "ordinal": 0, "data": [256]},
+    {"kind": "ump", "tick": 0, "ordinal": 0, "words": [1073741824]},
+    {"kind": "ump", "tick": 0, "ordinal": 0, "words": [4294967296]},
+    {"kind": "ump", "tick": 0, "ordinal": 0, "words": []},
+    {"kind": "key", "tick": 0, "ordinal": 0, "key": "", "action": "release"},
+    {"kind": "osc", "tick": 0, "ordinal": 0, "direction": "out", "data_b64": "AA=A"},
+    {"kind": "osc", "tick": 0, "ordinal": 0, "direction": "in", "data_b64": "A==="},
+    {"kind": "osc", "tick": 0, "ordinal": 0, "direction": "in", "data_b64": "", "endpoint": {"host": "localhost", "port": 65536}}
+  ],
+  "invalid_sequences": [
+    {"timebase": "clock", "start": 2, "end": 1},
+    {"timebase": "clock", "end": 1, "events": [{"kind": "midi", "tick": 1, "ordinal": 0, "data": [248]}]},
+    {"timebase": "clock", "end": 3, "events": [{"kind": "midi", "tick": 0, "ordinal": 1, "data": [248]}, {"kind": "midi", "tick": 2, "ordinal": 1, "data": [248]}]},
+    {"timebase": "clock", "end": 3, "events": [{"kind": "midi", "tick": 2, "ordinal": 1, "data": [248]}, {"kind": "midi", "tick": 0, "ordinal": 0, "data": [248]}]}
+  ]
+}

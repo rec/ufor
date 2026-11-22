@@ -1,4 +1,6 @@
-//! Portable performance event declarations.
+//! Portable performance and capture event declarations.
+
+pub mod captured;
 
 use crate::control::tempo;
 use crate::error::Error;
@@ -8,6 +10,64 @@ use crate::quantity;
 use crate::samples::controls::ControlDeclaration;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use std::collections::BTreeMap;
+
+use captured::{Capture, CapturedPayload};
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+pub struct StoredEvent {
+    pub tick: i64,
+    pub ordinal: u64,
+    #[serde(flatten)]
+    pub payload: StoredPayload,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(untagged)]
+pub enum StoredPayload {
+    Performance(PerformancePayload),
+    Captured(CapturedPayload),
+}
+
+impl StoredPayload {
+    pub fn kind(&self) -> EventKind {
+        match self {
+            Self::Performance(payload) => match payload.action() {
+                Action::Trigger { .. } => EventKind::Trigger,
+                Action::Release { .. } => EventKind::Release,
+                Action::ControlChange { .. } => EventKind::ControlChange,
+                Action::LfoChange { .. } => EventKind::LfoChange,
+                Action::EnvelfoChange { .. } => EventKind::EnvelfoChange,
+            },
+            Self::Captured(payload) => match payload.capture() {
+                Capture::Midi { .. } => EventKind::Midi,
+                Capture::Ump { .. } => EventKind::Ump,
+                Capture::Osc { .. } => EventKind::Osc,
+                Capture::Key { .. } => EventKind::Key,
+            },
+        }
+    }
+
+    pub(crate) fn check_toml(&self) -> Result<(), Error> {
+        if let Self::Captured(payload) = self {
+            payload.check_toml()?;
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Ord, PartialEq, PartialOrd, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum EventKind {
+    Midi,
+    Ump,
+    Osc,
+    Key,
+    Trigger,
+    Release,
+    ControlChange,
+    LfoChange,
+    EnvelfoChange,
+}
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 pub struct PerformanceEvent {

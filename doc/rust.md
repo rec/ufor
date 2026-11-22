@@ -17,7 +17,7 @@ configurable preparation limits, graph ranges and captured-approach mathematics.
 Envelfo scores, public rate parameters and materialization are implemented, as
 are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
-supports Tuning and Envelfo; other score kinds remain unported.
+supports Tuning, Envelfo, and Sequence.
 
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
@@ -210,6 +210,21 @@ coordinates. `PerformancePayload::validate_controls` checks trigger overrides
 and control changes against host-supplied instrument declarations. Enge uses
 this payload boundary in native instrument traces and retains its existing
 host event coordinates.
+
+`codec::parse_stored_event` also reads captured MIDI bytes, complete UMP
+packets, OSC packets with decoded messages and diagnostics, and key events.
+It preserves the capture payload without interpreting it as performance
+instructions. Decoded OSC integer arguments use signed 64-bit values.
+JSON preserves null OSC arguments, and TOML export rejects them because
+TOML has no null array element.
+
+`codec::parse_event_sequence` checks unique ordinals, order by tick and
+ordinal, and membership in the half-open sequence extent. The extent is
+independent of the event count. Version 4 sequence scores use the same body
+and validate the declared timebase and event output kinds. The preparation
+budget counts the root and events, plus timebases and output declarations
+for a score. Python and Rust exercise the
+[shared sequence cases](../conformance/event-sequence.json).
 
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
