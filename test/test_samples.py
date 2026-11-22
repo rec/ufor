@@ -436,6 +436,23 @@ def test_pan_and_routes_match_shared_vectors() -> None:
             assert row == pytest.approx(expected, abs=1e-14, rel=0)
 
 
+def test_sampler_spatial_bounds_include_activation_and_layering() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/sampler-spatial.json').read_text()
+    )
+    settings = SampleSettings.model_validate(vectors['instrument'])
+    for target in ('pan', 'stereo_balance'):
+        assert processing.spatial_bounds(settings, target) == tuple(vectors[target])
+    for case in vectors['slots']:
+        authored = document({'processing': case['processing']})
+        authored['settings'] = vectors['instrument']
+        if case['valid']:
+            SampleInstrument.model_validate(authored)
+        else:
+            with pytest.raises(ValueError, match=r'combined .* exceeds \[-1, 1\]'):
+                SampleInstrument.model_validate(authored)
+
+
 def test_slot_categories_and_selection_match_shared_vectors() -> None:
     vectors = json.loads(
         (Path(__file__).parents[1] / 'conformance/slot-settings.json').read_text()

@@ -102,5 +102,12 @@ depth limits. See the [shared cases](../conformance/sound-settings.json).
 
 The shared body resolves the base families above. FM, sample inheritance,
 channel routing, and effect processor targets use their own Rust modules.
-Yamaha target resolution, spatial bounds, host indices, renderer support,
+Use `samples::routing::spatial_bounds` to compute each pan or balance range
+from an instrument or effective slot settings layer. Delayed or fading inline
+LFOs include the neutral route contribution during activation. Materialize
+generator references before using these bounds for playback.
+`validate_sampler_spatial` checks that the combined ranges stay within
+`[-1, 1]`. See the [shared sampler cases](../conformance/sampler-spatial.json).
+
+Yamaha target resolution, host indices, renderer support,
 resource resolution and rendering sit outside this body.

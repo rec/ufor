@@ -1,0 +1,36 @@
+{
+  "instrument": {
+    "processing": {"pan":-0.25,"stereo_balance":0.5},
+    "envelfos": {
+      "delayed":{"kind":"lfo","rate":1,"delay":1},
+      "fading":{"kind":"lfo","rate":2,"fade_in":1}
+    },
+    "bindings": [
+      {"kind":"envelfo","name":"add","reference":"delayed"},
+      {"kind":"envelfo","name":"scale","reference":"fading"}
+    ],
+    "modulation": {
+      "parameters": [
+        {"target":{"name":"processing","parameter":"pan"},"unit":"normalized","scope":"voice","minimum":-1,"maximum":1,"default":-0.25},
+        {"target":{"name":"processing","parameter":"stereo_balance"},"unit":"normalized","scope":"voice","minimum":-1,"maximum":1,"default":0.5}
+      ],
+      "sources": [
+        {"name":"add","scope":"voice","minimum":-1,"maximum":1},
+        {"name":"scale","scope":"voice","minimum":-1,"maximum":1}
+      ],
+      "routes": [
+        {"name":"multiply-pan","source":"scale","target":{"name":"processing","parameter":"pan"},"operation":"multiply","unit":"ratio","points":[{"input":0,"amount":3}]},
+        {"name":"offset-pan","source":"add","target":{"name":"processing","parameter":"pan"},"operation":"add","unit":"normalized","points":[{"input":-1,"amount":0.125},{"input":1,"amount":0.5}]},
+        {"name":"multiply-balance","source":"scale","target":{"name":"processing","parameter":"stereo_balance"},"operation":"multiply","unit":"ratio","points":[{"input":0,"amount":0.25}]}
+      ]
+    }
+  },
+  "pan": [-0.75,0.75],
+  "stereo_balance": [0.125,0.5],
+  "slots": [
+    {"processing":{"pan":0.25,"stereo_balance":0.5},"valid":true},
+    {"processing":{"pan":0.375},"valid":false},
+    {"processing":{"pan":-0.375},"valid":false},
+    {"processing":{"stereo_balance":0.625},"valid":false}
+  ]
+}

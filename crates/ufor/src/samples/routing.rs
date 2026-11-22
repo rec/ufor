@@ -1,6 +1,7 @@
 //! Portable channel routes and static sampler pan laws.
 
-use crate::{error::Error, quantity};
+use super::processing::{Binding, SoundSettings};
+use crate::{envelfo::Body, error::Error, modulation::Operation, quantity};
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeSet;
 use std::f64::consts::{FRAC_1_SQRT_2, PI, SQRT_2};
@@ -11,6 +12,110 @@ pub enum PanLaw {
     #[default]
     Native,
     Sfizz,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Deserialize, Serialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpatialTarget {
+    Pan,
+    StereoBalance,
+}
+
+impl SpatialTarget {
+    fn parameter(self) -> &'static str {
+        match self {
+            Self::Pan => "pan",
+            Self::StereoBalance => "stereo_balance",
+        }
+    }
+}
+
+/// Conservative range of a pan or balance parameter in one settings layer.
+///
+/// Materialize generator references before using these bounds for playback.
+/// A delayed or fading inline LFO includes the neutral value of each route.
+pub fn spatial_bounds(
+    settings: &SoundSettings,
+    target: SpatialTarget,
+) -> Result<(f64, f64), Error> {
+    let base = match target {
+        SpatialTarget::Pan => settings.processing().pan(),
+        SpatialTarget::StereoBalance => settings.processing().stereo_balance(),
+    };
+    let fading: BTreeSet<_> = settings
+        .envelfos()
+        .iter()
+        .filter_map(|(name, generator)| match generator.body() {
+            Body::Lfo(lfo) if lfo.delay().numerator() != 0 || lfo.fade_in().numerator() != 0 => {
+                Some(name)
+            }
+            _ => None,
+        })
+        .collect();
+    let weighted: BTreeSet<_> = settings
+        .bindings()
+        .iter()
+        .filter_map(|binding| match binding {
+            Binding::Generator(binding) if fading.contains(binding.reference()) => {
+                Some(binding.name())
+            }
+            _ => None,
+        })
+        .collect();
+    let mut low = base;
+    let mut high = base;
+    let mut multipliers = Vec::new();
+    for route in settings.modulation().routes().iter().filter(|route| {
+        route.target().name().as_str() == "processing"
+            && route.target().parameter().as_str() == target.parameter()
+    }) {
+        let neutral = match route.operation() {
+            Operation::Add => 0.0,
+            Operation::Multiply => 1.0,
+        };
+        let amounts = route
+            .points()
+            .iter()
+            .map(|point| point.amount())
+            .chain(weighted.contains(route.source()).then_some(neutral));
+        let (minimum, maximum) = amounts.fold(
+            (f64::INFINITY, f64::NEG_INFINITY),
+            |(minimum, maximum), amount| (minimum.min(amount), maximum.max(amount)),
+        );
+        match route.operation() {
+            Operation::Add => {
+                low = quantity::finite(low + minimum)?;
+                high = quantity::finite(high + maximum)?;
+            }
+            Operation::Multiply => multipliers.push((minimum, maximum)),
+        }
+    }
+    for (minimum, maximum) in multipliers {
+        let bounds = [low * minimum, low * maximum, high * minimum, high * maximum];
+        low = quantity::finite(bounds.into_iter().fold(f64::INFINITY, f64::min))?;
+        high = quantity::finite(bounds.into_iter().fold(f64::NEG_INFINITY, f64::max))?;
+    }
+    Ok((low, high))
+}
+
+/// Validate the composed instrument and effective slot ranges for both axes.
+pub fn validate_sampler_spatial(
+    instrument: &SoundSettings,
+    slot: &SoundSettings,
+) -> Result<(), Error> {
+    for target in [SpatialTarget::Pan, SpatialTarget::StereoBalance] {
+        let (instrument_low, instrument_high) = spatial_bounds(instrument, target)?;
+        let (slot_low, slot_high) = spatial_bounds(slot, target)?;
+        let low = instrument_low + slot_low;
+        let high = instrument_high + slot_high;
+        if low < -1.0 || high > 1.0 {
+            return Err(invalid(format!(
+                "combined {} range [{low}, {high}] exceeds [-1, 1]",
+                target.parameter()
+            )));
+        }
+    }
+    Ok(())
 }
 
 #[derive(Debug, Deserialize, Serialize)]
