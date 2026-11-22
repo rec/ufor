@@ -144,6 +144,12 @@ the declared event key for sustain triggers. The
 [shared cases](../conformance/voice-eligibility.json) cover layering in
 declaration order, boundary velocities and synth sustain mappings.
 
+`codec::parse_synth_voice_templates` reads a `voices` list containing mapped
+voice metadata. It validates route names, finite gains, exact minimum holds,
+and unique route, choke and articulation entries. Enge passes this
+projection to its native trace matcher. The preparation budget counts the
+root, voices, routes, chokes and articulation references.
+
 `samples::selection::Sequence::advance` returns the next take and partition
 state for cycle, seeded random, and shuffle. It preserves the portable
 SHA-256 draw and selection snapshot fields. The

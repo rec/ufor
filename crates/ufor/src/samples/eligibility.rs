@@ -28,18 +28,31 @@ impl Trigger {
         }
     }
 
-    fn is_sustain(self) -> bool {
+    pub(crate) fn is_sustain(self) -> bool {
         matches!(self, Self::SustainPress | Self::SustainRelease)
     }
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-struct VoiceMapping {
-    name: Identifier,
-    mapping: Mapping,
+pub(crate) struct VoiceMapping {
+    pub(crate) name: Identifier,
+    pub(crate) mapping: Mapping,
     #[serde(default)]
-    trigger: Trigger,
+    pub(crate) trigger: Trigger,
+}
+
+impl VoiceMapping {
+    pub(crate) fn validate(&self) -> Result<(), Error> {
+        if self.trigger.is_sustain() != self.mapping.event_key().is_some() {
+            return Err(invalid("event_key is required only for sustain voices"));
+        }
+        Ok(())
+    }
+
+    pub(crate) fn matches(&self, trigger: Trigger, key: i64, velocity: f64) -> bool {
+        self.trigger == trigger && matches_note(&self.mapping, trigger, Some(key), velocity)
+    }
 }
 
 /// Synth-family voice mappings in instrument declaration order.
@@ -56,9 +69,7 @@ impl VoiceEligibility {
             if !names.insert(&voice.name) {
                 return Err(invalid("duplicate voice name"));
             }
-            if voice.trigger.is_sustain() != voice.mapping.event_key().is_some() {
-                return Err(invalid("event_key is required only for sustain voices"));
-            }
+            voice.validate()?;
         }
         Ok(Self(voices))
     }
@@ -70,10 +81,9 @@ impl VoiceEligibility {
         key: i64,
         velocity: f64,
     ) -> impl Iterator<Item = &Identifier> {
-        self.0.iter().filter_map(move |voice| {
-            (voice.trigger == trigger && matches_note(&voice.mapping, trigger, Some(key), velocity))
-                .then_some(&voice.name)
-        })
+        self.0
+            .iter()
+            .filter_map(move |voice| voice.matches(trigger, key, velocity).then_some(&voice.name))
     }
 }
 

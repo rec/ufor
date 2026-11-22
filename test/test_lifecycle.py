@@ -1,4 +1,5 @@
 import json
+from fractions import Fraction
 from pathlib import Path
 
 import pytest
@@ -26,11 +27,7 @@ def test_synth_mapping_matches_shared_cases() -> None:
     )
     voices: list[synth.SynthSource] = [
         synth.SynthVoice.model_validate(
-            v
-            | {
-                'channels': [{'input': 'mono', 'output': 'left', 'gain': 1}],
-                'oscillator': {'waveform': 'triangle'},
-            }
+            v | data['template_fields'] | {'oscillator': {'waveform': 'triangle'}}
         )
         for v in data['voices']
     ]
@@ -39,6 +36,18 @@ def test_synth_mapping_matches_shared_cases() -> None:
             voices, case['trigger'], case['key'], case['velocity']
         )
         assert [v.name for v in matches] == case['matches']
+    first = voices[0]
+    assert first.frequency_offset_hz == 1000
+    assert first.minimum_hold_seconds == Fraction(1, 32000)
+    assert first.chokes[0].fade_seconds == 0.125
+    for overrides in data['invalid_template_overrides']:
+        with pytest.raises(ValueError):
+            synth.SynthVoice.model_validate(
+                data['voices'][0]
+                | data['template_fields']
+                | {'oscillator': {'waveform': 'triangle'}}
+                | overrides
+            )
 
 
 def test_release_plans_match_shared_cases() -> None:

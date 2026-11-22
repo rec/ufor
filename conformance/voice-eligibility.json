@@ -1,4 +1,22 @@
 {
+  "template_fields": {
+    "channels": [{"input":"mono","output":"left","gain":1}],
+    "frequency_offset_hz": "1 kHz",
+    "minimum_hold_seconds": "1/32000 s",
+    "choke_group": "mute",
+    "chokes": [{"group":"mute","mode":"fade","fade_seconds":"125 ms"}],
+    "articulations": ["soft"]
+  },
+  "invalid_template_overrides": [
+    {"channels":[]},
+    {"channels":[{"input":"","output":"left","gain":1}]},
+    {"channels":[{"input":"mono","output":"left","gain":1},{"input":"mono","output":"left","gain":0.5}]},
+    {"frequency_offset_hz":"1 beat"},
+    {"minimum_hold_seconds":"-1 s"},
+    {"chokes":[{"group":"mute","mode":"release"},{"group":"mute","mode":"immediate"}]},
+    {"articulations":["soft","soft"]},
+    {"trigger":"sustain_press"}
+  ],
   "voices": [
     {"name": "z-wide", "mapping": {"lowest_key": 48, "highest_key": 72, "pitch_tracking": false}},
     {"name": "a-layer", "mapping": {"lowest_key": 60, "highest_key": 60, "minimum_velocity": 0.5, "maximum_velocity": 0.75, "pitch_tracking": false}},

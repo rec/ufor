@@ -26,6 +26,7 @@ pub mod scala;
 pub mod scale;
 pub mod score;
 pub mod sequence;
+pub mod synth;
 pub mod synth_pitch;
 pub mod time;
 pub mod tuning;
