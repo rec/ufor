@@ -47,5 +47,49 @@
     "cycle": {"counter": 9, "remaining": [], "previous": null},
     "random": {"counter": 9, "remaining": [], "previous": null},
     "shuffle": {"counter": 6, "remaining": [], "previous": "take-a"}
+  },
+  "take_selector": {
+    "definition": {
+      "selections": [
+        {"name": "z-takes", "mode": "cycle"},
+        {"name": "a-takes", "mode": "cycle"}
+      ],
+      "slots": [
+        {"name":"alpha-close","selection":"z-takes","take":"alpha"},
+        {"name":"alpha-room","selection":"z-takes","take":"alpha"},
+        {"name":"beta-close","selection":"z-takes","take":"beta"},
+        {"name":"beta-room","selection":"z-takes","take":"beta"},
+        {"name":"second","selection":"a-takes"},
+        {"name":"overlay"}
+      ]
+    },
+    "steps": [
+      {
+        "part":"left","key":60,"trigger":"start",
+        "eligible":["beta-close","alpha-room","second","overlay","alpha-close","beta-room"],
+        "selected":["overlay","alpha-room","alpha-close","second"]
+      },
+      {
+        "part":"left","key":60,"trigger":"start",
+        "eligible":["beta-close","second","beta-room"],
+        "selected":["beta-close","beta-room","second"]
+      },
+      {
+        "part":"right","key":60,"trigger":"start",
+        "eligible":["alpha-close","beta-close","alpha-room","beta-room"],
+        "selected":["alpha-close","alpha-room"]
+      },
+      {
+        "part":"left","key":60,"trigger":"start",
+        "eligible":["alpha-close","beta-close","alpha-room","beta-room"],
+        "selected":["beta-close","beta-room"]
+      }
+    ],
+    "final": [
+      {"part":"left","selection":"z-takes","trigger":"start","key":60,"candidates":["beta"],"counter":1,"remaining":[],"previous":null},
+      {"part":"left","selection":"a-takes","trigger":"start","key":60,"candidates":["second"],"counter":2,"remaining":[],"previous":null},
+      {"part":"right","selection":"z-takes","trigger":"start","key":60,"candidates":["alpha","beta"],"counter":1,"remaining":[],"previous":null},
+      {"part":"left","selection":"z-takes","trigger":"start","key":60,"candidates":["alpha","beta"],"counter":2,"remaining":[],"previous":null}
+    ]
   }
 }

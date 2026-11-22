@@ -522,6 +522,48 @@ def test_slot_group_inherits_whole_sound_settings_and_selection() -> None:
     )
 
 
+def test_shared_take_selector_keeps_linked_slots_and_snapshot_order() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/selection.json').read_text()
+    )['take_selector']
+    raw = document(instrument={'selections': data['definition']['selections']})
+    template = raw['slots'][0]
+    raw['slots'] = [
+        template
+        | s
+        | ({'microphone': s['name'].rsplit('-', 1)[1]} if 'take' in s else {})
+        for s in data['definition']['slots']
+    ]
+    steps = iter(data['steps'])
+
+    def eligible_slots(_: trace.EligibilityContext) -> list[str]:
+        return next(steps)['eligible']
+
+    result = trace.prepare(
+        SampleInstrument.model_validate(raw),
+        [
+            Trigger(
+                tick=i,
+                ordinal=i,
+                part=s['part'],
+                trigger_id=f'note-{i}',
+                key=s['key'],
+            )
+            for i, s in enumerate(data['steps'])
+        ],
+        seed=42,
+        eligible_slots=eligible_slots,
+    )
+    starts = [a for a in result.actions if isinstance(a, trace.VoiceStart)]
+    assert [
+        [a.template for a in starts if a.tick == i] for i in range(len(data['steps']))
+    ] == [s['selected'] for s in data['steps']]
+    assert (
+        result.snapshots[-1].selection.model_dump(mode='json')['sequences']
+        == data['final']
+    )
+
+
 def test_linked_microphone_takes_share_a_selection_identity() -> None:
     raw = document(instrument={'selections': [{'name': 'takes', 'mode': 'cycle'}]})
     slots = []

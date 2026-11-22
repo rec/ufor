@@ -1,11 +1,12 @@
-//! Deterministic advancement of one sampler take-selection partition.
+//! Deterministic sampler take selection and partition advancement.
 
 use super::eligibility::Trigger;
 use super::random::{hash_field, uniform_integer};
+use crate::envelfo::PreparationLimits;
 use crate::{error::Error, identifier::Identifier};
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroU64;
 
 #[derive(Clone, Copy, Debug, Deserialize)]
@@ -14,6 +15,195 @@ pub enum Mode {
     Cycle,
     Random,
     Shuffle,
+}
+
+/// One preparation's take choices and their state, independent of voice lifetime.
+pub struct TakeSelector {
+    seed: u64,
+    selections: Vec<Selection>,
+    slots: BTreeMap<Identifier, Slot>,
+    partitions: BTreeMap<Partition, (u64, Sequence)>,
+    use_count: u64,
+}
+
+impl TakeSelector {
+    pub(crate) fn decode(
+        value: serde_json::Value,
+        seed: u64,
+        limits: PreparationLimits,
+    ) -> Result<Self, Error> {
+        let definition: Definition =
+            serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
+        if 1 + definition.selections.len() + definition.slots.len() > limits.max_records() {
+            return Err(Error::Limit("sample take selector records"));
+        }
+        let mut selections = BTreeMap::new();
+        for (index, selection) in definition.selections.iter().enumerate() {
+            if selections.insert(selection.name.clone(), index).is_some() {
+                return Err(invalid("duplicate selection ID"));
+            }
+        }
+        let mut slots = BTreeMap::new();
+        for slot in definition.slots {
+            let group = slot
+                .selection
+                .as_ref()
+                .map(|name| {
+                    selections.get(name).copied().ok_or_else(|| {
+                        invalid(format!(
+                            "Slot {}: unknown selection {}",
+                            slot.name.as_str(),
+                            name.as_str()
+                        ))
+                    })
+                })
+                .transpose()?;
+            if group.is_none() && slot.take.is_some() {
+                return Err(invalid("linked take requires a selection"));
+            }
+            if slots
+                .insert(
+                    slot.name,
+                    Slot {
+                        group,
+                        take: slot.take,
+                    },
+                )
+                .is_some()
+            {
+                return Err(invalid("duplicate sample slot name"));
+            }
+        }
+        Ok(Self {
+            seed,
+            selections: definition.selections,
+            slots,
+            partitions: BTreeMap::new(),
+            use_count: 0,
+        })
+    }
+
+    /// Keep ungrouped slots, then the chosen take of each group in declaration order.
+    pub fn select(
+        &mut self,
+        eligible: &[Identifier],
+        part: &Identifier,
+        trigger: Trigger,
+        key: Option<i64>,
+    ) -> Result<Vec<Identifier>, Error> {
+        let mut selected = Vec::new();
+        let mut groups = BTreeMap::<usize, Vec<_>>::new();
+        let mut seen = BTreeSet::new();
+        for name in eligible {
+            if !seen.insert(name) {
+                return Err(invalid("duplicate eligible slot"));
+            }
+            let slot = self
+                .slots
+                .get(name)
+                .ok_or_else(|| invalid(format!("Unknown eligible slot: {}", name.as_str())))?;
+            if let Some(group) = slot.group {
+                groups
+                    .entry(group)
+                    .or_default()
+                    .push((name, slot.take.as_ref().unwrap_or(name)));
+            } else {
+                selected.push(name.clone());
+            }
+        }
+
+        // Commit all group choices together, including the snapshot order.
+        let mut pending = Vec::with_capacity(groups.len());
+        let mut use_count = self.use_count;
+        for (group, slots) in groups {
+            let selection = &self.selections[group];
+            let key = key.ok_or_else(|| invalid("a take selection requires an event key"))?;
+            let candidates: BTreeSet<_> = slots.iter().map(|(_, take)| *take).collect();
+            let partition = Partition {
+                part: part.clone(),
+                selection: selection.name.clone(),
+                trigger,
+                key,
+                candidates: candidates.into_iter().cloned().collect(),
+            };
+            let sequence = self
+                .partitions
+                .get(&partition)
+                .map_or_else(|| partition.sequence(), |(_, state)| state.clone());
+            let (choice, next) = sequence.advance(selection.mode, self.seed)?;
+            selected.extend(
+                slots
+                    .into_iter()
+                    .filter(|(_, take)| **take == choice)
+                    .map(|(name, _)| name.clone()),
+            );
+            pending.push((partition, (use_count, next)));
+            use_count = use_count
+                .checked_add(1)
+                .ok_or(Error::Limit("sample take selection order"))?;
+        }
+        self.partitions.extend(pending);
+        self.use_count = use_count;
+        Ok(selected)
+    }
+
+    /// Snapshot partitions in the order of their latest successful choice.
+    pub fn sequences(&self) -> impl Iterator<Item = &Sequence> {
+        let mut entries: Vec<_> = self.partitions.values().collect();
+        entries.sort_unstable_by_key(|(index, _)| *index);
+        entries.into_iter().map(|(_, state)| state)
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Definition {
+    selections: Vec<Selection>,
+    slots: Vec<SlotSelection>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct Selection {
+    name: Identifier,
+    mode: Mode,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SlotSelection {
+    name: Identifier,
+    selection: Option<Identifier>,
+    take: Option<Identifier>,
+}
+
+struct Slot {
+    group: Option<usize>,
+    take: Option<Identifier>,
+}
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+struct Partition {
+    part: Identifier,
+    selection: Identifier,
+    trigger: Trigger,
+    key: i64,
+    candidates: Vec<Identifier>,
+}
+
+impl Partition {
+    fn sequence(&self) -> Sequence {
+        Sequence {
+            part: self.part.clone(),
+            selection: self.selection.clone(),
+            trigger: self.trigger,
+            key: self.key,
+            candidates: self.candidates.clone(),
+            counter: 0,
+            remaining: Vec::new(),
+            previous: None,
+        }
+    }
 }
 
 /// One partition of the sampler's serializable take-selection state.
@@ -128,4 +318,8 @@ impl Sequence {
         let bound = NonZeroU64::new(bound as u64).expect("positive take count");
         Ok(uniform_integer(digest, bound)? as usize)
     }
+}
+
+fn invalid(message: impl Into<String>) -> Error {
+    Error::Invalid(message.into())
 }

@@ -20,7 +20,7 @@ use crate::samples::articulations::Articulations;
 use crate::samples::eligibility::{Context as EligibilityContext, Eligibility, VoiceEligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
-use crate::samples::selection::Sequence;
+use crate::samples::selection::{Sequence, TakeSelector};
 use crate::samples::variation::Variation;
 use crate::samples::{assets::Inventory, crossfade::Crossfade};
 use crate::score::Score;
@@ -216,6 +216,15 @@ pub fn parse_sample_eligibility_context(
 pub fn parse_sample_selection_sequence(text: &str, format: Format) -> Result<Sequence, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_sample_take_selector(
+    text: &str,
+    format: Format,
+    seed: u64,
+    limits: PreparationLimits,
+) -> Result<TakeSelector, Error> {
+    TakeSelector::decode(parse_value(text, format)?, seed, limits)
 }
 
 pub fn parse_sample_variation(text: &str, format: Format) -> Result<Variation, Error> {

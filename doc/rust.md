@@ -130,6 +130,14 @@ SHA-256 draw and selection snapshot fields. The
 [shared vectors](../conformance/selection.json) cover choices and continuation
 after restoring the partition. Rust uses a checked unsigned 64-bit counter.
 
+`codec::parse_sample_take_selector` prepares named selection groups and
+the resolved selection and take identity of each slot. Given eligible slots
+in declaration order, `TakeSelector::select` keeps ungrouped slots first,
+then advances each eligible group in selection declaration order. Slots
+sharing the chosen take stay together. The snapshot contains partitions in
+order of their latest successful choice, matching the Python trace format.
+The preparation limit counts the root, selection declarations and slots.
+
 `samples::variation::DrawEvent` derives the shared random-range draw for
 an event. `Variation::resolve` uses that event and the supplied take or slot
 identity to resolve independent delay, frame offset, pitch and gain draws.
