@@ -186,7 +186,10 @@ performance binding. Each entry supplies its channels, part, repeated-key
 release policy and optional controller and bend declarations. The prepared bindings
 retain part order and map primitive MIDI values to configured control
 ranges, including both asymmetric bend endpoints. The host resolves the
-instrument and tuning references and checks the mapped control ranges.
+instrument and tuning references. When the host supplies a `controls` map,
+preparation checks every mapping against those declarations. An entry can
+name a resolved tuning key in `tuning`. Preparation decodes each referenced
+body from the `tunings` map once and makes it available by channel.
 `performance_binding::HeldNotes` owns one source's held-note queues,
 admission limit, and trigger IDs. It resolves a note against the supplied
 tuning or 12-tone equal temperament with A4 at 440 Hz. It pairs releases

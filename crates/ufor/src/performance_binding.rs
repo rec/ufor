@@ -1,7 +1,7 @@
 //! Prepared MIDI 1 channel assignments and control mappings.
 
-use crate::tuning::Tuning;
 use crate::{envelfo::PreparationLimits, error::Error, identifier::Identifier};
+use crate::{samples::controls::ControlDeclaration, tuning::Tuning};
 use serde::Deserialize;
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
@@ -161,6 +161,7 @@ pub struct ControlValue<'a> {
 pub struct MidiBindings {
     inputs: Vec<Input>,
     channels: [Option<usize>; 16],
+    tunings: BTreeMap<String, Tuning>,
 }
 
 impl MidiBindings {
@@ -168,13 +169,17 @@ impl MidiBindings {
         value: serde_json::Value,
         limits: PreparationLimits,
     ) -> Result<Self, Error> {
-        let Definitions { midi: inputs } =
-            serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
+        let Definitions {
+            midi: inputs,
+            controls,
+            tunings: mut tuning_definitions,
+        } = serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
         if inputs.is_empty() {
             return Err(invalid("MIDI bindings require at least one input"));
         }
-        let mut records = 1;
+        let mut records = 1 + controls.as_ref().map_or(0, BTreeMap::len);
         let mut channels = [None; 16];
+        let mut tunings = BTreeMap::new();
         for (index, input) in inputs.iter().enumerate() {
             records += 1
                 + input.channels.len()
@@ -203,6 +208,14 @@ impl MidiBindings {
                         "MIDI controller output range must increase within [-1, 1]",
                     ));
                 }
+                if let Some(controls) = &controls {
+                    validate_control(
+                        controls,
+                        &controller.control,
+                        controller.minimum,
+                        controller.maximum,
+                    )?;
+                }
             }
             if let Some(bend) = &input.pitch_bend {
                 if !(bipolar_range(bend.minimum, bend.maximum)
@@ -213,9 +226,32 @@ impl MidiBindings {
                         "MIDI pitch-bend minimum < center < maximum required within [-1, 1]",
                     ));
                 }
+                if let Some(controls) = &controls {
+                    validate_control(controls, &bend.control, bend.minimum, bend.maximum)?;
+                }
+            }
+            if let Some(key) = input
+                .tuning
+                .as_ref()
+                .filter(|key| !tunings.contains_key(*key))
+            {
+                records += 1;
+                if records > limits.max_records() {
+                    return Err(Error::Limit("MIDI binding records"));
+                }
+                let definition = tuning_definitions
+                    .remove(key)
+                    .ok_or_else(|| invalid(format!("Unresolved tuning: {key}")))?;
+                let tuning = serde_json::from_value(definition)
+                    .map_err(|error| invalid(format!("Cannot prepare tuning {key}: {error}")))?;
+                tunings.insert(key.clone(), tuning);
             }
         }
-        Ok(Self { inputs, channels })
+        Ok(Self {
+            inputs,
+            channels,
+            tunings,
+        })
     }
 
     pub fn parts(&self) -> impl Iterator<Item = &Identifier> {
@@ -229,6 +265,10 @@ impl MidiBindings {
     pub fn note_route(&self, channel: u8) -> Option<(&Identifier, RepeatedKeyRelease)> {
         let input = self.input(channel)?;
         Some((&input.part, input.repeated_key_release))
+    }
+
+    pub fn tuning(&self, channel: u8) -> Option<&Tuning> {
+        self.tunings.get(self.input(channel)?.tuning.as_ref()?)
     }
 
     pub fn control_change(
@@ -317,12 +357,32 @@ struct Input {
     controllers: Vec<Controller>,
     #[serde(default)]
     pitch_bend: Option<PitchBend>,
+    tuning: Option<String>,
 }
 
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Definitions {
     midi: Vec<Input>,
+    controls: Option<BTreeMap<Identifier, ControlDeclaration>>,
+    #[serde(default)]
+    tunings: BTreeMap<String, serde_json::Value>,
+}
+
+fn validate_control(
+    controls: &BTreeMap<Identifier, ControlDeclaration>,
+    control: &Identifier,
+    minimum: f64,
+    maximum: f64,
+) -> Result<(), Error> {
+    let name = control.as_str();
+    let declaration = controls
+        .get(control)
+        .ok_or_else(|| invalid(format!("Unknown control: {name}")))?;
+    declaration
+        .validate_value(minimum)
+        .and_then(|()| declaration.validate_value(maximum))
+        .map_err(|error| invalid(format!("MIDI control {name}: {error}")))
 }
 
 fn channel_index(channel: u8) -> Option<usize> {

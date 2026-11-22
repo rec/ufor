@@ -65,6 +65,42 @@ fn midi_control_mapping_preserves_endpoints_and_absent_routes() {
 }
 
 #[test]
+fn midi_preparation_checks_instrument_domains_and_resolves_channel_tunings() {
+    let mut document: Value = serde_json::from_str(BINDINGS).unwrap();
+    document["controls"] = json!({"volume": {"polarity": "bipolar"}, "bend": {}});
+    document["midi"][0]["tuning"] = json!("concert");
+    document["midi"][2]["tuning"] = json!("concert");
+    let prepare = |document: &Value| {
+        parse_midi_bindings(
+            &document.to_string(),
+            Format::Json,
+            PreparationLimits::default(),
+        )
+    };
+    assert!(
+        matches!(prepare(&document), Err(error) if error.to_string().contains("MIDI control bend"))
+    );
+    document["controls"]["bend"]["polarity"] = json!("bipolar");
+    assert!(
+        matches!(prepare(&document), Err(error) if error.to_string().contains("Unresolved tuning: concert"))
+    );
+    document["tunings"] = json!({"concert": {"source": {}, "root_frequency": "432"}});
+    let bindings = prepare(&document).unwrap();
+    for channel in [1, 4, 16] {
+        assert_eq!(
+            bindings
+                .tuning(channel)
+                .unwrap()
+                .evaluate(69)
+                .unwrap()
+                .as_f64(),
+            432.0
+        );
+    }
+    assert!(bindings.tuning(3).is_none());
+}
+
+#[test]
 fn portable_bindings_reject_ambiguous_routes_and_invalid_ranges() {
     let original: Value = serde_json::from_str(BINDINGS).unwrap();
     for (path, value) in [
