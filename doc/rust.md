@@ -38,6 +38,11 @@ are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
 supports Tuning, Scale, Oscillator, Envelfo, and Sequence.
 
+`oscillator::phase_at_frame` computes transport-synchronized starting phase in
+sample-rate units. It reduces the exact frame-frequency product modulo the
+sample rate before rounding to binary64. Whole frames retain signed 64-bit
+precision and fractional origins retain their binary64 value.
+
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
 

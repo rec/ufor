@@ -2,7 +2,7 @@
 
 use super::playback::{Direction, LoopMode, Playback, Slice};
 use crate::error::Error;
-use crate::number::{Rational, round_binary_ratio};
+use crate::number::{Rational, binary_parts, round_binary_ratio};
 
 type Selection = (i64, i64, bool, Option<(i64, i64, i64, bool)>);
 
@@ -15,17 +15,14 @@ pub fn split_step(step: f64, fraction: Rational) -> Result<(f64, f64), Error> {
     if !step.is_finite() || step <= 0.0 || numerator <= 0 || numerator >= denominator {
         return Err(Error::ArithmeticRange);
     }
-    let bits = step.to_bits();
-    let encoded_exponent = ((bits >> 52) & 0x7ff) as i32;
-    let mut significand = (bits & ((1 << 52) - 1)) as u128;
-    let exponent = if encoded_exponent == 0 {
-        -1074
-    } else {
-        significand |= 1 << 52;
-        encoded_exponent - 1023 - 52
+    let (significand, exponent) = binary_parts(step);
+    let scaled = |part| {
+        round_binary_ratio(
+            u128::from(significand) * part as u128,
+            denominator as u128,
+            exponent,
+        )
     };
-    let scaled =
-        |part| round_binary_ratio(significand * part as u128, denominator as u128, exponent);
     Ok((scaled(numerator), scaled(denominator - numerator)))
 }
 

@@ -1,9 +1,23 @@
 use serde_json::Value;
 use ufor::codec::{self, Format};
 use ufor::envelfo::PreparationLimits;
-use ufor::oscillator::shape_value;
+use ufor::oscillator::{PhaseOrigin, phase_at_frame, shape_value};
 use ufor::quantity;
 use ufor::score::Score;
+
+#[test]
+fn transport_phase_reduces_the_exact_product_before_rounding() {
+    let phase = |origin, frequency, rate| phase_at_frame(origin, frequency, rate).unwrap();
+    assert_eq!(phase(PhaseOrigin::Whole((1 << 53) + 1), 0.5, 4), 0.5);
+    assert_eq!(phase(PhaseOrigin::Whole(-(1 << 53) - 1), 0.5, 4), 3.5);
+    assert_eq!(phase(PhaseOrigin::Fractional(-0.5), 3.0, 10), 8.5);
+    let huge = 2.0_f64.powi(900);
+    assert_eq!(phase(PhaseOrigin::Fractional(huge), huge, 3), 1.0);
+    let subnormal = f64::from_bits(1);
+    assert_eq!(phase(PhaseOrigin::Fractional(subnormal), 0.5, 3), 0.0);
+    assert_eq!(phase(PhaseOrigin::Fractional(-subnormal), 0.5, 3), 3.0);
+    assert!(phase_at_frame(PhaseOrigin::Whole(1), f64::INFINITY, 48_000).is_err());
+}
 
 #[test]
 fn declarations_and_shapes_match_shared_vectors() {

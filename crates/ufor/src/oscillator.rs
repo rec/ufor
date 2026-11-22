@@ -1,9 +1,92 @@
 //! Portable oscillator declarations and scalar shape mathematics.
 
+use crate::number::{binary_parts, round_binary_ratio};
 use crate::{envelfo::Waveform, error::Error, number::Rational, quantity};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::Value;
 use std::f64::consts::TAU;
+
+/// Transport position in output frames, before conversion to oscillator phase.
+#[derive(Clone, Copy, Debug)]
+pub enum PhaseOrigin {
+    Whole(i64),
+    Fractional(f64),
+}
+
+/// Compute the exact product modulo the sample rate, rounded once to binary64.
+/// The returned phase is in sample-rate units.
+pub fn phase_at_frame(
+    origin: PhaseOrigin,
+    frequency_hz: f64,
+    sample_rate: i64,
+) -> Result<f64, Error> {
+    if sample_rate <= 0 {
+        return Err(Error::NonpositiveResult);
+    }
+    let frequency_hz = quantity::finite(frequency_hz)?;
+    let (frame, exponent, negative) = match origin {
+        PhaseOrigin::Whole(frame) => (frame.unsigned_abs(), 0, frame < 0),
+        PhaseOrigin::Fractional(frame) => {
+            let frame = quantity::finite(frame)?;
+            let (significand, exponent) = binary_parts(frame);
+            (significand, exponent, frame.is_sign_negative())
+        }
+    };
+    let (frequency, frequency_exponent) = binary_parts(frequency_hz);
+    let numerator = u128::from(frame) * u128::from(frequency);
+    let negative = negative ^ frequency_hz.is_sign_negative();
+    Ok(wrap_phase(
+        numerator,
+        exponent + frequency_exponent,
+        sample_rate as u128,
+        negative,
+    ))
+}
+
+fn wrap_phase(numerator: u128, exponent: i32, rate: u128, negative: bool) -> f64 {
+    if numerator == 0 {
+        return 0.0;
+    }
+    if exponent >= 0 {
+        let mut remainder = numerator % rate;
+        for _ in 0..exponent {
+            remainder = (remainder << 1) % rate;
+        }
+        return if negative && remainder != 0 {
+            rate - remainder
+        } else {
+            remainder
+        } as f64;
+    }
+    let shift = exponent.unsigned_abs();
+    if shift <= rate.leading_zeros() {
+        let modulus = rate << shift;
+        let remainder = numerator % modulus;
+        let wrapped = if negative && remainder != 0 {
+            modulus - remainder
+        } else {
+            remainder
+        };
+        return round_binary_ratio(wrapped, 1, exponent);
+    }
+    // The full modulus exceeds u128, so the numerator is already reduced.
+    if !negative {
+        return round_binary_ratio(numerator, 1, exponent);
+    }
+    // For the negative case, retain 127 high bits and whether any lower bit
+    // was set. The result is close to rate, so binary64 rounding midpoints
+    // are on the retained grid. Any interior point of the final bin rounds
+    // the same way as the exact result.
+    let retained = rate.leading_zeros() - 1;
+    let dropped = shift - retained;
+    let high = numerator.checked_shr(dropped).unwrap_or(0);
+    let complement = (rate << retained) - high;
+    if high.checked_shl(dropped) == Some(numerator) {
+        round_binary_ratio(complement, 1, -(retained as i32))
+    } else {
+        round_binary_ratio((complement << 1) - 1, 1, -(retained as i32) - 1)
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]

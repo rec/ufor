@@ -236,8 +236,19 @@ impl Rational {
     }
 }
 
-// Denominator fits 63 bits. Callers supply a numerator at most 116 bits
-// and a binary exponent such that the exact quotient is finite in binary64.
+/// Exact significand and power of two for a finite binary64 magnitude.
+pub(crate) fn binary_parts(value: f64) -> (u64, i32) {
+    let bits = value.to_bits();
+    let encoded = ((bits >> 52) & 0x7ff) as i32;
+    let fraction = bits & ((1 << 52) - 1);
+    if encoded == 0 {
+        (fraction, -1074)
+    } else {
+        (fraction | (1 << 52), encoded - 1023 - 52)
+    }
+}
+
+// Callers ensure the shifted arguments and twice the remainder fit u128.
 pub(crate) fn round_binary_ratio(mut n: u128, mut d: u128, binary_exponent: i32) -> f64 {
     if n == 0 {
         return 0.0;
@@ -249,6 +260,9 @@ pub(crate) fn round_binary_ratio(mut n: u128, mut d: u128, binary_exponent: i32)
         n << -estimate < d
     };
     let exponent = estimate - i32::from(below) + binary_exponent;
+    if exponent < -1075 {
+        return 0.0;
+    }
     let unit_exponent = (exponent - 52).max(-1074);
     let shift = binary_exponent - unit_exponent;
     if shift >= 0 {
