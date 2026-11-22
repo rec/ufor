@@ -174,6 +174,13 @@ outside the signed-64-bit domain returns an error. The
 [shared vectors](../conformance/physical-time.json) include conversions
 whose exact intermediate products exceed 128 bits.
 
+`time::PpqnClock` converts ordered MIDI file ticks into sample frames at an
+integer rate. It keeps elapsed time exact across tempo changes and rounds
+each absolute frame once, with ties to even. Pass the new tempo with its
+event tick in microseconds per quarter note. It applies to subsequent
+intervals. The clock accepts synchronous PPQN timing and leaves file decoding
+and MIDI dispatch to the host.
+
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a

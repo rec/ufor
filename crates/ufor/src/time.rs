@@ -69,13 +69,60 @@ pub fn convert_tick(tick: i64, source: &Timebase, destination: &Timebase) -> Res
     let left = tick.unsigned_abs() as u128 * source.rate.denominator as u128;
     let right = destination.rate.numerator as u128;
     let divisor = source.rate.numerator as u128 * destination.rate.denominator as u128;
-    let (quotient, remainder) = divide_product(left, right, divisor)?;
-    let round_up = remainder * 2 > divisor || (remainder * 2 == divisor && quotient % 2 != 0);
-    let magnitude = quotient
-        .checked_add(u128::from(round_up))
-        .and_then(|value| i128::try_from(value).ok())
-        .ok_or(Error::ArithmeticRange)?;
+    let magnitude =
+        i128::try_from(round_product(left, right, divisor)?).map_err(|_| Error::ArithmeticRange)?;
     i64::try_from(if tick < 0 { -magnitude } else { magnitude }).map_err(|_| Error::ArithmeticRange)
+}
+
+/// Exact frame clock for an ordered sequence of PPQN MIDI file events.
+#[derive(Clone, Debug)]
+pub struct PpqnClock {
+    tick: i64,
+    elapsed: u128,
+    tempo: u32,
+    sample_rate: i64,
+    divisor: u128,
+}
+
+impl PpqnClock {
+    pub fn new(ticks_per_quarter: u16, sample_rate: i64) -> Result<Self, Error> {
+        if !(1..=0x7fff).contains(&ticks_per_quarter) || sample_rate <= 0 {
+            return Err(Error::Invalid(
+                "MIDI requires positive PPQN and integer sample rate".into(),
+            ));
+        }
+        Ok(Self {
+            tick: 0,
+            elapsed: 0,
+            tempo: 500_000,
+            sample_rate,
+            divisor: u128::from(ticks_per_quarter) * 1_000_000,
+        })
+    }
+
+    /// Round the absolute event position to a frame. A tempo at this tick
+    /// applies only to intervals that follow it.
+    pub fn advance(&mut self, tick: i64, next_tempo: Option<u32>) -> Result<i64, Error> {
+        if tick < self.tick {
+            return Err(Error::Invalid("MIDI ticks must not move backward".into()));
+        }
+        if next_tempo.is_some_and(|tempo| tempo > 0xff_ffff) {
+            return Err(Error::Invalid("MIDI tempo exceeds 24 bits".into()));
+        }
+        // The carried numerator is bounded by the current i64 tick times
+        // the largest 24-bit tempo, regardless of the number of segments.
+        let elapsed = self.elapsed + (tick - self.tick) as u128 * u128::from(self.tempo);
+        let frame = i64::try_from(round_product(
+            elapsed,
+            self.sample_rate as u128,
+            self.divisor,
+        )?)
+        .map_err(|_| Error::ArithmeticRange)?;
+        self.tick = tick;
+        self.elapsed = elapsed;
+        self.tempo = next_tempo.unwrap_or(self.tempo);
+        Ok(frame)
+    }
 }
 
 #[derive(Deserialize)]
@@ -103,6 +150,14 @@ enum TimebaseKind {
 
 fn one() -> i64 {
     1
+}
+
+fn round_product(left: u128, right: u128, divisor: u128) -> Result<u128, Error> {
+    let (quotient, remainder) = divide_product(left, right, divisor)?;
+    let round_up = remainder * 2 > divisor || (remainder * 2 == divisor && quotient % 2 != 0);
+    quotient
+        .checked_add(u128::from(round_up))
+        .ok_or(Error::ArithmeticRange)
 }
 
 fn divide_product(left: u128, right: u128, divisor: u128) -> Result<(u128, u128), Error> {

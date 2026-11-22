@@ -1,6 +1,6 @@
 use ufor::codec::{Format, parse_timebase};
 use ufor::identifier::Identifier;
-use ufor::time::{Rate, Timebase, convert_tick};
+use ufor::time::{PpqnClock, Rate, Timebase, convert_tick};
 
 #[test]
 fn tick_conversion_matches_exact_shared_vectors() {
@@ -35,6 +35,33 @@ fn wire_rate_preserves_the_declared_denominator() {
         )
         .is_err()
     );
+}
+
+#[test]
+fn ppqn_clock_rounds_absolute_frames_across_ordered_tempo_changes() {
+    let mut clock = PpqnClock::new(1000, 1000).unwrap();
+    for (tick, next_tempo, frame) in [
+        (1, None, 0),
+        (3, Some(250_000), 2),
+        (3, Some(1_000_000), 2),
+        (4, Some(250_000), 2),
+        (6, None, 3),
+        (8, None, 4),
+    ] {
+        assert_eq!(clock.advance(tick, next_tempo).unwrap(), frame);
+    }
+}
+
+#[test]
+fn ppqn_clock_keeps_its_state_after_rejected_advances() {
+    let mut clock = PpqnClock::new(1, i64::MAX).unwrap();
+    assert!(clock.advance(3, Some(100_000)).is_err());
+    assert_eq!(clock.advance(1, None).unwrap(), 4_611_686_018_427_387_904);
+    assert!(clock.advance(0, None).is_err());
+    assert!(clock.advance(1, Some(0x100_0000)).is_err());
+    assert_eq!(clock.advance(2, None).unwrap(), i64::MAX);
+    assert!(PpqnClock::new(0, 48000).is_err());
+    assert!(PpqnClock::new(0x8000, 48000).is_err());
 }
 
 fn timebase(name: &str, numerator: i64, denominator: i64) -> Timebase {
