@@ -1,0 +1,24 @@
+{
+  "template": {
+    "mapping": {"lowest_key": 60, "highest_key": 72, "pitch_tracking": false},
+    "channels": [{"input": "mono", "output": "left", "gain": 1}]
+  },
+  "sources": [
+    {"name": "osc", "oscillator": {"waveform": "square", "duty_cycle": "1/3"}, "synchronize_oscillator": true},
+    {"name": "noise", "noise": "white", "envelope": {"segments": [{"duration": "1/7 s", "to": 1}], "release": [{"duration": "1/20 s", "to": 0}]}},
+    {"name": "fm", "fm": {"operators": [{"name": "a"}, {"name": "b"}], "edges": [{"source": "a", "destination": "b"}], "carrier": "b"}}
+  ],
+  "invalid_overrides": [
+    {"voice": 0, "data": {"noise": "white"}},
+    {"voice": 0, "data": {"envelope": null}},
+    {"voice": 0, "data": {"envelope": {"scope": "instrument", "segments": [{"duration": "0 s", "to": 1}]}}},
+    {"voice": 0, "data": {"envelope": {"polarity": "bipolar", "segments": [{"duration": "0 s", "to": 1}]}}},
+    {"voice": 0, "data": {"oscillator": {"duty_cycle": "5/4"}}},
+    {"voice": 1, "data": {"noise": "pink"}},
+    {"voice": 1, "data": {"frequency_offset_hz": "1 Hz"}},
+    {"voice": 1, "data": {"mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440}}},
+    {"voice": 1, "data": {"synchronize_oscillator": false}},
+    {"voice": 2, "data": {"envelope": {"segments": [{"duration": "0 s", "to": 1}]}}},
+    {"voice": 2, "data": {"fm": {"operators": [{"name": "a"}], "carrier": "a"}}}
+  ]
+}

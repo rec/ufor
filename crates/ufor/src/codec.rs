@@ -26,7 +26,7 @@ use crate::samples::{assets::Inventory, crossfade::Crossfade};
 use crate::scale::Scale;
 use crate::score::Score;
 use crate::sequence::EventSequence;
-use crate::synth::VoiceTemplates;
+use crate::synth::{SynthVoices, VoiceTemplates};
 use crate::time::Timebase;
 use crate::tuning::Tuning;
 use crate::voice_admission::{Admission, Choke, VoicePolicy, VoicePool};
@@ -222,6 +222,14 @@ pub fn parse_synth_voice_templates(
     limits: PreparationLimits,
 ) -> Result<VoiceTemplates, Error> {
     VoiceTemplates::decode(parse_value(text, format)?, limits)
+}
+
+pub fn parse_synth_voices(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<SynthVoices, Error> {
+    SynthVoices::decode(parse_value(text, format)?, limits)
 }
 
 pub fn parse_sample_eligibility_context(

@@ -50,6 +50,25 @@ def test_synth_mapping_matches_shared_cases() -> None:
             )
 
 
+def test_shared_synth_sources_keep_order_and_validate_their_fields() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/synth-voice-sources.json').read_text()
+    )
+    adapter = TypeAdapter(synth.SynthSource)
+    definitions = [vectors['template'] | v for v in vectors['sources']]
+    voices = [adapter.validate_python(v) for v in definitions]
+    matches = synth_trace.matching_voices(voices, 'start', 60, 1.0)
+    assert [v.name for v in matches] == ['osc', 'noise', 'fm']
+    first = voices[0]
+    assert isinstance(first, synth.SynthVoice)
+    assert first.synchronize_oscillator
+    assert first.oscillator.duty_cycle == Fraction(1, 3)
+    assert len(first.envelope.segments) == len(first.envelope.release) == 1
+    for spec in vectors['invalid_overrides']:
+        with pytest.raises(ValueError):
+            adapter.validate_python(definitions[spec['voice']] | spec['data'])
+
+
 def test_release_plans_match_shared_cases() -> None:
     data = json.loads(
         (Path(__file__).parents[1] / 'conformance/voice-release.json').read_text()

@@ -150,6 +150,12 @@ and unique route, choke and articulation entries. Enge passes this
 projection to its native trace matcher. The preparation budget counts the
 root, voices, routes, chokes and articulation references.
 
+`codec::parse_synth_voices` adds oscillator, white-noise or FM source
+definitions to the template projection. Oscillator and noise sources own a
+voice-scoped unipolar amplitude envelope. FM uses its operator envelopes.
+The same preparation budget also counts the source and envelope declarations.
+Enge uses this projection for native trace eligibility.
+
 `samples::selection::Sequence::advance` returns the next take and partition
 state for cycle, seeded random, and shuffle. It preserves the portable
 SHA-256 draw and selection snapshot fields. The
