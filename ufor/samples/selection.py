@@ -16,7 +16,9 @@ from ..base import (
     UnitInterval,
     unique,
 )
+from ..control import Polarity
 from . import enums
+from .controls import ControlDeclaration
 
 
 class Selection(Model):
@@ -275,6 +277,14 @@ class VoicePool(Model):
 class Sustain(Model):
     control: Identifier
     threshold: UnitInterval = Field(default=0.5, gt=0)
+
+    def validate_control(self, declaration: ControlDeclaration) -> None:
+        if declaration.polarity != Polarity.unipolar:
+            raise ValueError('Sustain requires a unipolar control')
+
+    def initially_pressed(self, declaration: ControlDeclaration) -> bool:
+        self.validate_control(declaration)
+        return declaration.default >= self.threshold
 
 
 class KeySwitch(Model):

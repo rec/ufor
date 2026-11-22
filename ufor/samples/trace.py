@@ -43,6 +43,7 @@ from ..voice_release import (
 )
 from ..voice_start import PrepareVoiceStart, prepare_values
 from . import enums
+from .controls import ControlDeclaration
 from .instrument import (
     ResolvedSlotSettings,
     SampleInstrument,
@@ -54,6 +55,7 @@ from .selection import (
     AdvanceSelection,
     Articulations,
     SelectionState,
+    Sustain,
     choose,
     random_range_value,
 )
@@ -190,6 +192,9 @@ def prepare(
         [Articulations], dict[int, tuple[Identifier | None, bool]]
     ]
     | None = None,
+    prepare_sustain: Callable[
+        [Sustain, ControlDeclaration], bool
+    ] = Sustain.initially_pressed,
 ) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering.
 
@@ -235,9 +240,8 @@ def prepare(
     slots_by_name = {s.name: s for s in instrument.slots}
     control_defaults = {n: c.default for n, c in instrument.settings.controls.items()}
     sustain_definition = instrument.settings.sustain
-    initially_pressed = (
-        sustain_definition is not None
-        and control_defaults[sustain_definition.control] >= sustain_definition.threshold
+    initially_pressed = sustain_definition is not None and prepare_sustain(
+        sustain_definition, instrument.settings.controls[sustain_definition.control]
     )
     playback_modes = {
         s.name: s.playback.mode or instrument.settings.playback.mode

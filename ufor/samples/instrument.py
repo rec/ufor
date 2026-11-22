@@ -79,9 +79,7 @@ class SampleSettings(SoundSettings):
                         'Instrument processing is per voice, before mixing'
                     )
         if self.sustain is not None:
-            declared = self.require_control(self.sustain.control)
-            if declared.polarity != control.Polarity.unipolar:
-                raise ValueError('Sustain requires a unipolar control')
+            self.sustain.validate_control(self.require_control(self.sustain.control))
         if self.articulations is not None:
             for switch in self.articulations.controls:
                 declared = self.require_control(switch.control)

@@ -160,6 +160,12 @@ after each layer. The [shared cases](../conformance/voice-release.json)
 cover deferred releases, duplicate releases, part isolation and threshold
 crossings.
 
+`codec::parse_sustain` reads the named sustain control and its positive
+threshold. `Sustain::initially_pressed` checks the resolved unipolar control
+declaration and compares its default to the threshold, including equality.
+Enge uses it to initialize each part's pedal state when preparing native
+sampler and synth-family traces.
+
 `voice_start::prepare_values` applies a voice's frequency offset to
 resolved pitch and derives EnveLFO and optional noise stream keys from the
 performance seed and voice ID. It preserves an absent pitch and rejects

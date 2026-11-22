@@ -1,7 +1,62 @@
 //! Physical key release and per-part sustain transitions for semantic traces.
 
+use crate::control::Polarity;
+use crate::samples::controls::ControlDeclaration;
 use crate::{error::Error, identifier::Identifier, samples::eligibility::Trigger};
 use serde::{Deserialize, Serialize};
+
+/// Authored sustain control and its strictly positive threshold.
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "SustainDefinition")]
+pub struct Sustain {
+    control: Identifier,
+    threshold: f64,
+}
+
+impl Sustain {
+    pub fn new(control: Identifier, threshold: f64) -> Result<Self, Error> {
+        if !(0.0 < threshold && threshold <= 1.0) {
+            return Err(Error::Invalid("sustain threshold must be in (0, 1]".into()));
+        }
+        Ok(Self { control, threshold })
+    }
+
+    pub fn control(&self) -> &Identifier {
+        &self.control
+    }
+
+    pub fn threshold(&self) -> f64 {
+        self.threshold
+    }
+
+    /// Resolve the starting pedal state from the named instrument control.
+    pub fn initially_pressed(&self, declaration: &ControlDeclaration) -> Result<bool, Error> {
+        if declaration.polarity() != Polarity::Unipolar {
+            return Err(Error::Invalid("Sustain requires a unipolar control".into()));
+        }
+        Ok(declaration.default_value() >= self.threshold)
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SustainDefinition {
+    control: Identifier,
+    #[serde(default = "half")]
+    threshold: f64,
+}
+
+impl TryFrom<SustainDefinition> for Sustain {
+    type Error = Error;
+
+    fn try_from(value: SustainDefinition) -> Result<Self, Error> {
+        Self::new(value.control, value.threshold)
+    }
+}
+
+fn half() -> f64 {
+    0.5
+}
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -34,7 +34,9 @@ from .instrument_trace import (
 )
 from .oscillator import Oscillator
 from .samples import enums
+from .samples.controls import ControlDeclaration
 from .samples.processing import ChannelRoute
+from .samples.selection import Sustain
 from .synth import (
     NoiseVoice,
     SynthInstrument,
@@ -148,6 +150,9 @@ def prepare(
     prepare_start: PrepareVoiceStart = prepare_values,
     schedule: ScheduleCommands = schedule_commands,
     validate_event: Callable[[PerformanceEvent], None] | None = None,
+    prepare_sustain: Callable[
+        [Sustain, ControlDeclaration], bool
+    ] = Sustain.initially_pressed,
 ) -> SynthTrace:
     """Resolve synth voice lifecycle without rendering audio."""
     instrument = SynthInstrument.model_validate(instrument.model_dump())
@@ -183,10 +188,8 @@ def prepare(
     triggers: list[ActiveTrigger] = []
     sustain: dict[Identifier, bool] = {}
     sustain_definition = instrument.sustain
-    initially_pressed = (
-        sustain_definition is not None
-        and instrument.controls[sustain_definition.control].default
-        >= sustain_definition.threshold
+    initially_pressed = sustain_definition is not None and prepare_sustain(
+        sustain_definition, instrument.controls[sustain_definition.control]
     )
     next_voice = 0
     voices_by_name = {v.name: v for v in instrument.voices}

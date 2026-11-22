@@ -1,4 +1,12 @@
 {
+  "initial_sustain": [
+    {"sustain":{"control":"pedal"},"declaration":{"default":0.5},"pressed":true},
+    {"sustain":{"control":"pedal"},"declaration":{"default":0.499},"pressed":false},
+    {"sustain":{"control":"pedal","threshold":1},"declaration":{"default":1},"pressed":true},
+    {"sustain":{"control":"pedal"},"declaration":{"polarity":"bipolar"},"invalid":true},
+    {"sustain":{"control":"pedal","threshold":0},"declaration":{},"invalid":true},
+    {"sustain":{"control":"pedal","threshold":1.1},"declaration":{},"invalid":true}
+  ],
   "triggers": [
     {"part": "left", "trigger_id": "first", "physically_released": true},
     {"part": "right", "trigger_id": "first", "physically_released": true},

@@ -8,7 +8,9 @@ from ufor import modulation, synth, synth_trace
 from ufor.events import ControlChange, PerformanceEvent, Release, Trigger
 from ufor.instrument_trace import TriggerContext, TriggerRelease, VoiceRetirement
 from ufor.samples import trace
+from ufor.samples.controls import ControlDeclaration
 from ufor.samples.instrument import SampleInstrument
+from ufor.samples.selection import Sustain
 from ufor.synth import SynthInstrument
 from ufor.voice_admission import VoiceAdmission, plan_retirements
 from ufor.voice_release import ReleasePlan, ReleaseRequest, plan_release
@@ -49,6 +51,20 @@ def test_release_plans_match_shared_cases() -> None:
             {'event': case['event'], 'triggers': triggers}
         )
         assert plan_release(request) == ReleasePlan.model_validate(case['expected'])
+
+
+def test_initial_sustain_matches_shared_cases() -> None:
+    data = json.loads(
+        (Path(__file__).parents[1] / 'conformance/voice-release.json').read_text()
+    )
+    for case in data['initial_sustain']:
+        declaration = ControlDeclaration.model_validate(case['declaration'])
+        if case.get('invalid'):
+            with pytest.raises(ValueError):
+                Sustain.model_validate(case['sustain']).initially_pressed(declaration)
+        else:
+            sustain = Sustain.model_validate(case['sustain'])
+            assert sustain.initially_pressed(declaration) is case['pressed']
 
 
 def test_admission_applies_chokes_pools_and_global_limit_in_order() -> None:

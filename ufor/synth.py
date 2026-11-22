@@ -357,9 +357,7 @@ class SynthInstrument(Model):
         if any(not v.channels and v.name not in members for v in self.voices):
             raise ValueError('Unrouted TX81Z voices require output membership')
         if self.sustain is not None:
-            declared = self.require_control(self.sustain.control)
-            if declared.polarity != control.Polarity.unipolar:
-                raise ValueError('Sustain requires a unipolar control')
+            self.sustain.validate_control(self.require_control(self.sustain.control))
         articulations = set(self.articulations.ids) if self.articulations else set()
         if self.articulations is not None:
             for switch in self.articulations.controls:
