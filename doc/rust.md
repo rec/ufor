@@ -109,6 +109,11 @@ drops pending commands invalidated by a seek or an unreachable beat.
 The [shared cases](../conformance/command-schedule.json) cover these rules
 including a tempo change and multiple commands arriving on the same tick.
 
+`events::prepare_performance` applies that scheduler to typed performance
+events, checks duplicate coordinates and validates controls against the
+instrument's declarations. Its indices refer to the original event slice
+and its coordinates give the dispatch order. Ordinary events need no clock.
+
 `codec::parse_sample_slice` and `codec::parse_sample_playback` read sample
 traversal declarations. `samples::playback::Slice` validates native frame
 intervals, loop crossfades, and resolved playback against decoded asset length.

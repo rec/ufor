@@ -1,6 +1,6 @@
-use serde_json::Value;
+use serde_json::{Value, json};
 use ufor::codec::{Format, parse_performance_event, performance_event_text};
-use ufor::events::Action;
+use ufor::events::{Action, PerformanceEvent, prepare_performance};
 use ufor::number::Rational;
 
 #[test]
@@ -37,4 +37,31 @@ fn shared_performance_events_validate_and_round_trip() {
             "{spec}"
         );
     }
+}
+
+#[test]
+fn ordinary_performance_checks_coordinates_and_control_domains_without_a_clock() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../../../conformance/performance-events.json")).unwrap();
+    let valid = vectors["valid"].as_array().unwrap();
+    let mut events: Vec<PerformanceEvent> = [2, 1, 0, 3]
+        .into_iter()
+        .map(|index| serde_json::from_value(valid[index].clone()).unwrap())
+        .collect();
+    let controls =
+        serde_json::from_value(json!({"bend":{"polarity":"bipolar"}, "volume":{}})).unwrap();
+    let ordered = prepare_performance(&events, &controls, None).unwrap();
+    assert_eq!(
+        ordered.iter().map(|event| event.index).collect::<Vec<_>>(),
+        [2, 1, 0, 3]
+    );
+    let incomplete = serde_json::from_value(json!({"bend":{"polarity":"bipolar"}})).unwrap();
+    let error = prepare_performance(&events, &incomplete, None).unwrap_err();
+    assert!(error.to_string().contains("Unknown control: volume"));
+    let unipolar = serde_json::from_value(json!({"bend":{}, "volume":{}})).unwrap();
+    let error = prepare_performance(&events, &unipolar, None).unwrap_err();
+    assert!(error.to_string().contains("Control bend"));
+    events.push(events[0].clone());
+    let error = prepare_performance(&events, &controls, None).unwrap_err();
+    assert!(error.to_string().contains("duplicate event coordinate"));
 }

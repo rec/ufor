@@ -30,6 +30,13 @@ pub fn schedule_commands(
     if sample_rate <= 0 {
         return Err(Error::Invalid("sample rate must be positive".into()));
     }
+    schedule_coordinates(events, Some((tempo_map, sample_rate)))
+}
+
+pub(crate) fn schedule_coordinates(
+    events: &[EventCoordinate],
+    clock: Option<(&TempoMap, i64)>,
+) -> Result<Vec<ScheduledEvent>, Error> {
     let mut ordered: Vec<_> = events.iter().enumerate().collect();
     ordered.sort_unstable_by_key(|(_, event)| (event.tick, event.ordinal));
     if ordered
@@ -38,6 +45,19 @@ pub fn schedule_commands(
     {
         return Err(Error::Invalid("duplicate event coordinate".into()));
     }
+    if events.iter().all(|event| event.quantize_beats.is_none()) {
+        return Ok(ordered
+            .into_iter()
+            .map(|(index, event)| ScheduledEvent {
+                index,
+                tick: event.tick,
+                ordinal: event.ordinal,
+            })
+            .collect());
+    }
+    let (tempo_map, sample_rate) = clock.filter(|(_, rate)| *rate > 0).ok_or_else(|| {
+        Error::Invalid("quantized Envelfo commands require a host tempo map and sample rate".into())
+    })?;
     // The highest authored ordinal is last in each tick of the sorted input.
     let mut occupied = BTreeMap::new();
     for (_, event) in &ordered {

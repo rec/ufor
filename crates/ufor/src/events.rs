@@ -2,7 +2,8 @@
 
 pub mod captured;
 
-use crate::control::tempo;
+use crate::control::schedule::{EventCoordinate, ScheduledEvent, schedule_coordinates};
+use crate::control::tempo::{self, TempoMap};
 use crate::error::Error;
 use crate::identifier::Identifier;
 use crate::number::Rational;
@@ -75,6 +76,33 @@ pub struct PerformanceEvent {
     pub ordinal: u64,
     #[serde(flatten)]
     pub payload: PerformancePayload,
+}
+
+/// Validate control values and return execution coordinates in trace order.
+///
+/// The indices refer to the original event slice. Quantized commands require
+/// a host clock and may be dropped if a transport seek cancels them.
+pub fn prepare_performance(
+    events: &[PerformanceEvent],
+    controls: &BTreeMap<Identifier, ControlDeclaration>,
+    clock: Option<(&TempoMap, i64)>,
+) -> Result<Vec<ScheduledEvent>, Error> {
+    let coordinates: Vec<_> = events
+        .iter()
+        .map(|event| EventCoordinate {
+            tick: event.tick,
+            ordinal: event.ordinal,
+            quantize_beats: match event.payload.action() {
+                Action::EnvelfoChange { quantize_beats, .. } => *quantize_beats,
+                _ => None,
+            },
+        })
+        .collect();
+    let scheduled = schedule_coordinates(&coordinates, clock)?;
+    for event in &scheduled {
+        events[event.index].payload.validate_controls(controls)?;
+    }
+    Ok(scheduled)
 }
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
