@@ -192,6 +192,14 @@ impl Cursor {
         Ok(self)
     }
 
+    /// Combine asset alignment and variation measured along the playback direction.
+    pub fn start_offset(&self, alignment: i64, variation: i64) -> Result<i64, Error> {
+        variation
+            .checked_mul(self.state.direction)
+            .and_then(|offset| alignment.checked_add(offset))
+            .ok_or(Error::ArithmeticRange)
+    }
+
     /// Apply a native-frame start offset and mark exhaustion when it leaves the slice.
     pub fn offset_start(&mut self, offset: i64, frame: i64) -> Result<bool, Error> {
         self.state.index = self

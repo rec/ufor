@@ -326,6 +326,9 @@ fades. The host can copy the cursor for interpolation lookahead and restore a
 `CursorState` for continuation. `Cursor::read_plan` prepares interpolation
 knots and their loop overlap weights. The host can reuse the plan across
 channels by supplying decoded values by native frame index.
+`Cursor::start_offset` combines signed asset alignment with variation measured
+in the initial playback direction. `Cursor::offset_start` marks exhaustion
+when the resulting position lies outside the slice.
 `Cursor::active_prefix` bounds control batches with the
 maximum cursor step, the remaining traversal, and any latched end fade.
 `Cursor::advance_with_release` splits a step at a fractional frame using a

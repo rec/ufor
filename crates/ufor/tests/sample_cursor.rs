@@ -1,9 +1,37 @@
 use ufor::codec::{Format, parse_sample_slice};
 use ufor::number::Rational;
 use ufor::samples::cursor::{Cursor, split_step};
-use ufor::samples::playback::Playback;
+use ufor::samples::playback::{Direction, Playback};
 
 const RATE: f64 = 48000.0;
+
+#[test]
+fn onset_offsets_follow_direction_and_exhaust_outside_the_slice() {
+    let slice = parse_sample_slice(
+        r#"{"asset":"clip","name":"section","start_frame":3,"end_frame":12}"#,
+        Format::Json,
+    )
+    .unwrap();
+    for (direction, expected) in [
+        (Direction::Forward, 6),
+        (Direction::Backward, 10),
+        (Direction::Mirror, 6),
+    ] {
+        let playback = Playback {
+            direction,
+            ..Playback::default()
+        };
+        let mut cursor = Cursor::new(&slice, playback, 12, RATE, 0, 0.0).unwrap();
+        let offset = cursor.start_offset(1, 2).unwrap();
+        assert!(cursor.offset_start(offset, 0).unwrap());
+        assert_eq!(cursor.state().index, expected);
+    }
+    let mut cursor = Cursor::new(&slice, Playback::default(), 12, RATE, 0, 0.0).unwrap();
+    assert!(cursor.start_offset(i64::MAX, 1).is_err());
+    assert!(cursor.offset_start(i64::MAX, 0).is_err());
+    assert!(!cursor.offset_start(12, 0).unwrap());
+    assert_eq!(cursor.state().exhausted, Some(0));
+}
 
 #[test]
 fn release_split_rounds_each_exact_product_once() {
