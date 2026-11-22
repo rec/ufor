@@ -23,6 +23,7 @@ use crate::samples::processing::SoundSettings;
 use crate::samples::selection::{Sequence, TakeSelector};
 use crate::samples::variation::Variation;
 use crate::samples::{assets::Inventory, crossfade::Crossfade};
+use crate::scale::Scale;
 use crate::score::Score;
 use crate::sequence::EventSequence;
 use crate::time::Timebase;
@@ -42,6 +43,15 @@ pub enum Format {
 
 pub fn parse_tuning(text: &str, format: Format) -> Result<Tuning, Error> {
     serde_json::from_value(parse_value(text, format)?).map_err(|e| Error::Invalid(e.to_string()))
+}
+
+pub fn parse_scale(text: &str, format: Format) -> Result<Scale, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn scale_text(value: &Scale, format: Format) -> Result<String, Error> {
+    write(value, format)
 }
 
 pub fn parse_performance_event(text: &str, format: Format) -> Result<PerformanceEvent, Error> {

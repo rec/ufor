@@ -1,12 +1,13 @@
 //! The implemented score kinds, sharing the existing version 4 envelope.
 use crate::envelfo::{self, EnvelfoScore, PreparationLimits};
-use crate::musical::TuningScore;
+use crate::musical::{ScaleScore, TuningScore};
 use crate::sequence::SequenceScore;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Score {
     Tuning(TuningScore),
+    Scale(ScaleScore),
     Envelfo(EnvelfoScore),
     Sequence(SequenceScore),
 }
@@ -14,6 +15,7 @@ impl Score {
     pub fn name(&self) -> &str {
         match self {
             Self::Tuning(v) => v.name(),
+            Self::Scale(v) => v.name(),
             Self::Envelfo(v) => v.name(),
             Self::Sequence(v) => v.name(),
         }
@@ -21,6 +23,7 @@ impl Score {
     pub fn title(&self) -> &str {
         match self {
             Self::Tuning(v) => v.title(),
+            Self::Scale(v) => v.title(),
             Self::Envelfo(v) => v.title(),
             Self::Sequence(v) => v.title(),
         }
@@ -28,6 +31,7 @@ impl Score {
     pub fn tags(&self) -> &[String] {
         match self {
             Self::Tuning(v) => v.tags(),
+            Self::Scale(v) => v.tags(),
             Self::Envelfo(v) => v.tags(),
             Self::Sequence(v) => v.tags(),
         }
@@ -38,6 +42,7 @@ impl Score {
     ) -> Result<Self, D::Error> {
         match ScoreDefinition::deserialize(d)? {
             ScoreDefinition::Tuning(v) => Ok(Self::Tuning(v)),
+            ScoreDefinition::Scale(v) => Ok(Self::Scale(v)),
             ScoreDefinition::Envelfo(v) => v
                 .prepare(limits)
                 .map(Self::Envelfo)
@@ -58,6 +63,7 @@ impl Serialize for Score {
     fn serialize<S: Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
         match self {
             Self::Tuning(v) => v.serialize(s),
+            Self::Scale(v) => v.serialize(s),
             Self::Envelfo(v) => v.serialize(s),
             Self::Sequence(v) => v.serialize(s),
         }
@@ -67,6 +73,7 @@ impl Serialize for Score {
 #[serde(tag = "kind", rename_all = "snake_case")]
 enum ScoreDefinition {
     Tuning(TuningScore),
+    Scale(ScaleScore),
     Envelfo(envelfo::wire::ScoreWire),
     Sequence(SequenceScore),
 }

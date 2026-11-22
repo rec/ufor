@@ -3,6 +3,7 @@
 #![forbid(unsafe_code)]
 #![doc = include_str!("../../../doc/rust.md")]
 
+pub mod accidentals;
 pub mod codec;
 pub mod control;
 pub mod effects;
@@ -22,6 +23,7 @@ pub mod playback;
 pub mod quantity;
 pub mod samples;
 pub mod scala;
+pub mod scale;
 pub mod score;
 pub mod sequence;
 pub mod synth_pitch;

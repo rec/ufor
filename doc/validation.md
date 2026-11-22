@@ -64,7 +64,8 @@ Python and Rust Scala import/export use the checked pitch parser. Out-of-range
 exact Scala ratios fail during preparation. Scale naming, interval calculations,
 oscillator phase/duty/gain and general synth cents helpers retain their separate
 Python arithmetic. `Scale.frequency()` propagates the supplied tuning's range
-and arithmetic errors.
+and arithmetic errors. Rust Scale uses checked signed 64-bit note and tuning
+coordinates and permits editable definitions with no playable positions.
 
 Recursive composition models support direct construction, validation, and schema
 generation from their defining modules. Their model rebuild loads the supported

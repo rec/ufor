@@ -3,7 +3,7 @@
 The Cargo workspace implements checked pitch numbers, expression evaluation,
 `Computed`, `RatioTable`, `IntervalPattern`, `FrequencyTable`, `Tuning`, and the
 `TuningScore` envelope in `crates/ufor`. JSON/TOML interchange supports those
-definitions. Scale, Python bindings and WebAssembly remain
+definitions. Python bindings and WebAssembly remain
 outside this implementation.
 
 `scala::parse_scala` and `scala::scala_text` interchange repeating ratio
@@ -13,6 +13,17 @@ exact ratios as fractions and write approximate pitches to twelve decimal
 places in cents. Import uses the tuning table entry and document text
 limits. The [shared Scala cases](../conformance/scala.json) verify both
 languages against the same examples.
+
+`codec::parse_scale` reads scale definitions and `Scale` maps note names,
+note numbers and tuning coordinates. Rust supports whole-step and half-step
+accidentals, compact interval strings, and integer steps with the portable
+semitone, cent and octave aliases. Rust uses ASCII octave numbers in note
+names. Scale preparation permits up to 10,000 spellable positions and uses
+the document character limit for generated spellings. Zero intervals and
+partial note filters can be stored and edited. Naming or tuning lookup
+returns an error when the scale has no playable positions.
+The [shared scale cases](../conformance/scale.json) cover negative notes,
+filtered scales and aliases.
 
 The crate also implements [modulation routes, control declarations and binding
 value types](rust-modulation.md), including scalar reference evaluation and
@@ -25,7 +36,7 @@ configurable preparation limits, graph ranges and captured-approach mathematics.
 Envelfo scores, public rate parameters and materialization are implemented, as
 are generator-aware binding checks with typed outstanding requirements for
 unresolved references, followers and target compatibility. The native score enum
-supports Tuning, Envelfo, and Sequence.
+supports Tuning, Scale, Envelfo, and Sequence.
 
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.

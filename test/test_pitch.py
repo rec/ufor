@@ -230,6 +230,28 @@ def test_scale_names_and_pitch_mapping_include_negative_notes() -> None:
     assert half.to_number('D♭0') == 3
 
 
+def test_shared_scales_preserve_names_and_tuning_coordinates() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/scale.json').read_text()
+    )
+    for case in vectors['valid']:
+        scale = Scale.model_validate(case['input'])
+        assert scale.names == case['names']
+        assert scale.octave_length == case['octave_length']
+        assert scale.note_count == case['note_count']
+        for lookup in case['lookups']:
+            number = lookup['number']
+            assert scale.to_name(number) == lookup['sharp']
+            assert scale.to_name(number, use_sharp=False) == lookup['flat']
+            assert scale.tuning_number(number) == lookup['tuning']
+            for name in ('sharp', 'flat', 'alias'):
+                if name in lookup:
+                    assert scale.to_number(lookup[name]) == number
+    for case in vectors['invalid']:
+        with pytest.raises(ValueError):
+            Scale.model_validate(case)
+
+
 @pytest.mark.parametrize(
     'table, field, note, replacement, expected',
     [

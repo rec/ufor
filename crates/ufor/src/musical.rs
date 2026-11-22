@@ -1,10 +1,11 @@
-//! The tuning-only score envelope, using the common uFor header rules.
+//! Musical score envelopes using the common uFor header rules.
 
 use std::collections::HashSet;
 
 use serde::{Deserialize, Serialize};
 
 use crate::error::Error;
+use crate::scale::Scale;
 use crate::tuning::Tuning;
 
 #[derive(Clone, Debug, PartialEq, Serialize, Deserialize)]
@@ -14,6 +15,82 @@ pub struct TuningScore {
     title: String,
     tags: Vec<String>,
     body: Tuning,
+}
+
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "ScaleScoreDefinition")]
+pub struct ScaleScore {
+    format: String,
+    version: i64,
+    kind: String,
+    name: String,
+    title: String,
+    tags: Vec<String>,
+    body: Scale,
+}
+
+impl ScaleScore {
+    pub fn new(name: String, title: String, tags: Vec<String>, body: Scale) -> Result<Self, Error> {
+        let tags = header(&name, &title, tags)?;
+        Ok(Self {
+            format: format(),
+            version: version(),
+            kind: scale_kind(),
+            name,
+            title,
+            tags,
+            body,
+        })
+    }
+
+    pub fn name(&self) -> &str {
+        &self.name
+    }
+
+    pub fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub fn tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    pub fn body(&self) -> &Scale {
+        &self.body
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ScaleScoreDefinition {
+    #[serde(default = "format")]
+    format: String,
+    #[serde(default = "version")]
+    version: i64,
+    #[serde(default = "scale_kind")]
+    kind: String,
+    name: String,
+    title: String,
+    #[serde(default)]
+    tags: Vec<String>,
+    body: Scale,
+}
+
+impl TryFrom<ScaleScoreDefinition> for ScaleScore {
+    type Error = Error;
+
+    fn try_from(value: ScaleScoreDefinition) -> Result<Self, Error> {
+        if value.format != "recs" || value.version != 4 || value.kind != "scale" {
+            return Err(Error::Invalid(
+                "expected a recs version 4 scale score".into(),
+            ));
+        }
+        Self::new(value.name, value.title, value.tags, value.body)
+    }
+}
+
+fn scale_kind() -> String {
+    "scale".into()
 }
 
 impl TuningScore {

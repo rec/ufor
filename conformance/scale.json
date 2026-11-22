@@ -1,0 +1,53 @@
+{
+  "valid": [
+    {
+      "input": {},
+      "names": "CDEFGAB", "octave_length": 12, "note_count": 12,
+      "lookups": [
+        {"number": -1, "sharp": "B-1", "flat": "B-1", "tuning": -1},
+        {"number": 1, "sharp": "C♯0", "flat": "D♭0", "alias": "C#0", "tuning": 1},
+        {"number": 12, "sharp": "C1", "flat": "C1", "tuning": 12}
+      ]
+    },
+    {
+      "input": {"notes": "CDEFGAB", "intervals": "221 2221", "offset": "12 semitone"},
+      "names": "CDEFGAB", "octave_length": 12, "note_count": 7,
+      "lookups": [
+        {"number": 11, "sharp": "B-1", "flat": "B-1", "tuning": 11},
+        {"number": 19, "sharp": "C1", "flat": "C1", "tuning": 24}
+      ]
+    },
+    {
+      "input": {"note_names": "CD", "begin": "C", "root": "C", "end": "D", "intervals": ["5 semitone", 5], "accidentals": "half"},
+      "names": "CD", "octave_length": 10, "note_count": 10,
+      "lookups": [
+        {"number": 1, "sharp": "C^0", "flat": "D♭♭0", "tuning": 1},
+        {"number": 3, "sharp": "D♭0", "flat": "C♯^0", "alias": "Db0", "tuning": 3}
+      ]
+    },
+    {
+      "input": {"notes": "nonsense"},
+      "names": "CDEFGAB", "octave_length": 12, "note_count": 7,
+      "lookups": [{"number": 0, "sharp": "C0", "flat": "C0", "tuning": 0}]
+    },
+    {
+      "input": {"notes": "C nonsense"},
+      "names": "CDEFGAB", "octave_length": 12, "note_count": 1,
+      "lookups": [{"number": 2, "sharp": "C2", "flat": "C2", "tuning": 24}]
+    },
+    {
+      "input": {"intervals": [0]},
+      "names": "CDEFGAB", "octave_length": 0, "note_count": 0,
+      "lookups": []
+    }
+  ],
+  "invalid": [
+    {"begin": "Z"},
+    {"begin": "D"},
+    {"intervals": []},
+    {"intervals": [-1]},
+    {"intervals": [1.0]},
+    {"intervals": [true]},
+    {"intervals": ["1/2 semitone"]}
+  ]
+}
