@@ -79,8 +79,9 @@ nonpositive rendered frequencies with allocation-free errors. The
 
 `ufor::fm::Fm` validates the authored two-to-six operator phase-modulation
 graph, its operator Envelopes, and its edge and carrier references. It exposes
-the current-sample operator order and resolves operator ratios and tuning,
-edge indices, and carrier level from the owning declarations. Use
+the current-sample operator order, carrier position, and edge endpoints in
+declaration order. It also resolves operator ratios and tuning, edge indices,
+and carrier level from the owning declarations. Use
 `codec::parse_fm` and `codec::fm_text` for JSON or TOML FM bodies. This API
 provides graph facts for consumer preparation. The renderer owns sample-rate
 conversion, voice state and execution.

@@ -12,6 +12,8 @@ fn fm_graph_targets_and_order_follow_the_authored_definitions() {
     let limits = PreparationLimits::default();
     let graph = codec::parse_fm(&corpus["graph"].to_string(), Format::Json, limits).unwrap();
     assert_eq!(json!(graph.order()), corpus["execution_order"]);
+    assert_eq!(graph.carrier_index(), 2);
+    assert_eq!(graph.edge_endpoints(), [(1, 2), (0, 2), (2, 0)]);
     assert_eq!(graph.operators()[0].phase_cycles(), 0.25);
     assert_eq!(graph.operators()[1].waveform(), Waveform::Sine);
     for row in corpus["targets"].as_array().unwrap() {

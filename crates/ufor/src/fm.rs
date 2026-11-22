@@ -21,6 +21,10 @@ pub struct Fm {
     carrier_level: f64,
     #[serde(skip)]
     order: Vec<usize>,
+    #[serde(skip)]
+    carrier_index: usize,
+    #[serde(skip)]
+    edge_endpoints: Vec<(usize, usize)>,
 }
 
 impl Fm {
@@ -38,6 +42,15 @@ impl Fm {
     }
     pub fn order(&self) -> &[usize] {
         &self.order
+    }
+
+    pub fn carrier_index(&self) -> usize {
+        self.carrier_index
+    }
+
+    /// Operator indices for each edge in authored edge order.
+    pub fn edge_endpoints(&self) -> &[(usize, usize)] {
+        &self.edge_endpoints
     }
 
     /// Resolve FM-owned addresses from the actual operator and edge declarations.
@@ -190,10 +203,11 @@ impl Definition {
         if names.len() != operators.len() {
             return Err(invalid("duplicate FM operator name"));
         }
-        if !names.contains_key(&self.carrier) {
-            return Err(invalid("FM carrier must name an operator"));
-        }
+        let carrier_index = *names
+            .get(&self.carrier)
+            .ok_or_else(|| invalid("FM carrier must name an operator"))?;
         let mut edge_names = BTreeSet::new();
+        let mut edge_endpoints = Vec::with_capacity(self.edges.len());
         let mut pending = vec![0; operators.len()];
         let mut successors = vec![Vec::new(); operators.len()];
         for edge in &self.edges {
@@ -206,6 +220,7 @@ impl Definition {
             if !edge_names.insert(edge.target_name()) {
                 return Err(invalid("duplicate FM edge target"));
             }
+            edge_endpoints.push((source, destination));
             if !edge.delayed {
                 pending[destination] += 1;
                 successors[source].push(destination);
@@ -231,6 +246,8 @@ impl Definition {
             carrier: self.carrier,
             carrier_level: self.carrier_level,
             order,
+            carrier_index,
+            edge_endpoints,
         })
     }
 }
