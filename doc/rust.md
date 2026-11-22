@@ -6,6 +6,28 @@ The Cargo workspace implements checked pitch numbers, expression evaluation,
 definitions. Python bindings and WebAssembly remain
 outside this implementation.
 
+## Score coverage
+
+These are the version 4 kinds in Python's `ScoreValue` union. The Rust
+`codec::parse_score` and `codec::score_text` APIs cover the rows marked
+JSON/TOML score. Preparation APIs accept the indicated body or resolved
+declarations.
+
+| Kind | Rust coverage |
+| --- | --- |
+| `tuning`, `scale`, `oscillator` | JSON/TOML score and standalone musical definitions |
+| `envelfo` | JSON/TOML score, generator definitions, parameter materialization, and binding checks |
+| `sequence` | JSON/TOML score, ordered event body, and sequence playback planning |
+| `automation` | JSON/TOML score, control curves, and scalar evaluation |
+| `synth_instrument` | `parse_synth_instrument` validates the prepared body, including voices, settings, controls, articulation, and voice policy |
+| `instrument` | Sampler preparation APIs for asset inventory, slot settings, eligibility, selection, and traversal |
+| `performance_binding` | `parse_midi_bindings` validates channel assignments against supplied control declarations and resolved tuning definitions |
+| `arrangement` | `parse_control_clip` prepares automation placement and exact source requests |
+| `animation` | Standalone envelope curves and LFO definitions |
+| `arpeggiator`, `binding`, `broadcast`, `fixture`, `preset`, `recording`, `slideshow` | Python score models |
+
+## Preparation and evaluation APIs
+
 `scala::parse_scala` and `scala::scala_text` interchange repeating ratio
 tables. Imports use an ASCII integer pitch count, implicit unison and the
 last pitch as the repeat ratio. A decimal pitch is read in cents. Exports keep
@@ -35,8 +57,7 @@ Stages, Patch and unresolved reference models, portable JSON/TOML bodies,
 configurable preparation limits, graph ranges and captured-approach mathematics.
 Envelfo scores, public rate parameters and materialization are implemented, as
 are generator-aware binding checks with typed outstanding requirements for
-unresolved references, followers and target compatibility. The native score enum
-supports Tuning, Scale, Oscillator, Envelfo, Sequence, and Automation.
+unresolved references, followers and target compatibility.
 
 `automation::Automation` evaluates gain, frequency, and gate curves at signed
 64-bit ticks in the declared timebase. Use `codec::parse_automation` for a standalone
@@ -381,8 +402,8 @@ Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves
 configured MIDI tunings to Hz before rendering. See
 [enge's integration record](https://github.com/rec/enge/blob/main/doc/rust-ufor-integration.md).
-Full instrument/effect documents, processing settings, and resource resolution
-are separate milestones.
+Rust decodes processor and SoundSettings bodies. Full instrument and effect
+documents and resource resolution are separate milestones.
 
 The crate uses Rust 2024 with a minimum compiler version of 1.85. Import symbols
 from their defining modules:
@@ -436,16 +457,15 @@ assert_eq!(codec::parse_tuning(&text, Format::Toml)?, tuning);
 # Ok::<(), ufor::error::Error>(())
 ```
 
-`codec::parse_tuning` / `tuning_text` handle tuning bodies;
-`codec::parse_score(text, format, limits)` / `score_text` handle the typed
-`score::Score` enum with `Tuning` and `Envelfo` variants. Select JSON or TOML
-with `Format`. Both operate on supplied UTF-8 strings and preserve expression
-spelling except unit normalization. The score codec requires an explicit supported
-`kind`; typed `TuningScore` and `EnvelfoScore` deserialization can supply their
-respective defaults. `PreparationLimits` configures EnveLFO preparation; tuning's
-fixed table/materialization bounds remain unchanged. Direct Serde use
-also validates models, while the codec additionally enforces the Python codec's
-16,777,216-character, 100,000-value and 64-level document budgets.
+`codec::parse_tuning` and `tuning_text` handle tuning bodies.
+`codec::parse_score(text, format, limits)` and `score_text` handle the typed
+`score::Score` enum described in [Score coverage](#score-coverage). Select JSON
+or TOML with `Format`. The score codec requires an explicit supported `kind`.
+Deserializing a concrete score type can supply its default `kind`.
+`PreparationLimits` controls record budgets for EnveLFO, sequence, and automation
+scores. Tuning has fixed table and materialization bounds. Direct Serde use
+also validates models. The codec additionally enforces the Python codec's
+16,777,216-character, 100,000-value, and 64-level document budgets.
 
 `codec::parse_value` applies those same document budgets to generic JSON/TOML
 values, allowing consumers to decode preparation declarations with existing uFor
