@@ -4,6 +4,7 @@ use crate::envelfo::{self, EnvelfoScore, PreparationLimits};
 use crate::musical::{OscillatorScore, ScaleScore, TuningScore};
 use crate::performance_binding::PerformanceBindingScore;
 use crate::sequence::SequenceScore;
+use crate::synth::score::{ScoreWire as SynthScoreWire, SynthInstrumentScore};
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Clone, Debug, PartialEq)]
@@ -15,6 +16,7 @@ pub enum Score {
     Sequence(SequenceScore),
     Automation(AutomationScore),
     PerformanceBinding(PerformanceBindingScore),
+    SynthInstrument(Box<SynthInstrumentScore>),
 }
 impl Score {
     pub fn name(&self) -> &str {
@@ -26,6 +28,7 @@ impl Score {
             Self::Sequence(v) => v.name(),
             Self::Automation(v) => v.name(),
             Self::PerformanceBinding(v) => v.name(),
+            Self::SynthInstrument(v) => v.name(),
         }
     }
     pub fn title(&self) -> &str {
@@ -37,6 +40,7 @@ impl Score {
             Self::Sequence(v) => v.title(),
             Self::Automation(v) => v.title(),
             Self::PerformanceBinding(v) => v.title(),
+            Self::SynthInstrument(v) => v.title(),
         }
     }
     pub fn tags(&self) -> &[String] {
@@ -48,6 +52,7 @@ impl Score {
             Self::Sequence(v) => v.tags(),
             Self::Automation(v) => v.tags(),
             Self::PerformanceBinding(v) => v.tags(),
+            Self::SynthInstrument(v) => v.tags(),
         }
     }
     pub(crate) fn decode<'de, D: Deserializer<'de>>(
@@ -77,6 +82,11 @@ impl Score {
                 v.check_records(limits).map_err(serde::de::Error::custom)?;
                 Ok(Self::PerformanceBinding(v))
             }
+            ScoreDefinition::SynthInstrument(v) => v
+                .prepare(limits)
+                .map(Box::new)
+                .map(Self::SynthInstrument)
+                .map_err(serde::de::Error::custom),
         }
     }
 }
@@ -95,6 +105,7 @@ impl Serialize for Score {
             Self::Sequence(v) => v.serialize(s),
             Self::Automation(v) => v.serialize(s),
             Self::PerformanceBinding(v) => v.serialize(s),
+            Self::SynthInstrument(v) => v.serialize(s),
         }
     }
 }
@@ -108,4 +119,5 @@ enum ScoreDefinition {
     Sequence(SequenceScore),
     Automation(AutomationScore),
     PerformanceBinding(PerformanceBindingScore),
+    SynthInstrument(SynthScoreWire),
 }

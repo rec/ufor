@@ -41,7 +41,7 @@ impl Default for Dx7Performance {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tx81zOutput {
     name: Identifier,
@@ -82,7 +82,7 @@ pub enum Tx81zLfoSelection {
     Vibrato,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct Tx81zLfoGroup {
     name: Identifier,

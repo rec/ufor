@@ -24,10 +24,11 @@ use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
 
+pub mod score;
 pub mod yamaha;
 use yamaha::{Dx7Performance, Tx81zLfoGroup, Tx81zOutput, YamahaWire};
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(try_from = "VoiceDefinition")]
 pub struct VoiceTemplate {
     #[serde(flatten)]
@@ -206,7 +207,7 @@ impl TryFrom<VoiceTemplatesDefinition> for VoiceTemplates {
 }
 
 /// One mapped voice with its source and sound settings.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SynthVoice {
     #[serde(flatten)]
     template: VoiceTemplate,
@@ -235,7 +236,7 @@ impl SynthVoice {
     }
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 #[serde(untagged)]
 pub enum VoiceSource {
     Oscillator {
@@ -295,7 +296,7 @@ pub enum NoiseKind {
 }
 
 /// Mapped synth voices in instrument declaration order.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SynthVoices {
     voices: Vec<SynthVoice>,
 }
@@ -455,7 +456,7 @@ impl SynthVoices {
 }
 
 /// A synth instrument with authored oscillator, FM or noise voices.
-#[derive(Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SynthInstrument {
     controls: BTreeMap<Identifier, ControlDeclaration>,
     #[serde(skip_serializing_if = "Option::is_none")]
@@ -479,22 +480,12 @@ impl SynthInstrument {
         decoder: D,
         limits: PreparationLimits,
     ) -> Result<Self, Error> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Definition {
-            #[serde(default)]
-            controls: BTreeMap<Identifier, ControlDeclaration>,
-            voice_policy: Option<VoicePolicy>,
-            sustain: Option<Sustain>,
-            articulations: Option<Articulations>,
-            voices: Vec<SynthVoiceDefinition>,
-            #[serde(default)]
-            tx81z_outputs: Vec<Tx81zOutput>,
-            #[serde(default)]
-            tx81z_lfos: Vec<Tx81zLfoGroup>,
-        }
-        let definition =
-            Definition::deserialize(decoder).map_err(|error| invalid(error.to_string()))?;
+        let definition = InstrumentDefinition::deserialize(decoder)
+            .map_err(|error| invalid(error.to_string()))?;
+        Self::prepare(definition, limits)
+    }
+
+    fn prepare(definition: InstrumentDefinition, limits: PreparationLimits) -> Result<Self, Error> {
         if definition.voices.is_empty() {
             return Err(invalid("synth instrument requires at least one voice"));
         }
@@ -598,6 +589,21 @@ impl SynthInstrument {
     pub fn sustain_pressed(&self) -> bool {
         self.sustain_pressed
     }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct InstrumentDefinition {
+    #[serde(default)]
+    controls: BTreeMap<Identifier, ControlDeclaration>,
+    voice_policy: Option<VoicePolicy>,
+    sustain: Option<Sustain>,
+    articulations: Option<Articulations>,
+    voices: Vec<SynthVoiceDefinition>,
+    #[serde(default)]
+    tx81z_outputs: Vec<Tx81zOutput>,
+    #[serde(default)]
+    tx81z_lfos: Vec<Tx81zLfoGroup>,
 }
 
 fn validate_instrument_voice(

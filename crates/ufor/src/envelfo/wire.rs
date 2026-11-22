@@ -5,7 +5,7 @@ use serde::de::{MapAccess, Visitor};
 use serde::ser::SerializeMap;
 use std::marker::PhantomData;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub(crate) struct Ordered<T>(pub Vec<(Identifier, T)>);
 impl<T> Default for Ordered<T> {
     fn default() -> Self {

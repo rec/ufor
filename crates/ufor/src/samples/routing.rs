@@ -118,7 +118,7 @@ pub fn validate_sampler_spatial(
     Ok(())
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct ChannelRoute {
     pub input: String,

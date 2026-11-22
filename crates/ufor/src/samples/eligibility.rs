@@ -33,7 +33,7 @@ impl Trigger {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub(crate) struct VoiceMapping {
     pub(crate) name: Identifier,

@@ -19,7 +19,7 @@ declarations.
 | `envelfo` | JSON/TOML score, generator definitions, parameter materialization, and binding checks |
 | `sequence` | JSON/TOML score, ordered event body, and sequence playback planning |
 | `automation` | JSON/TOML score, control curves, and scalar evaluation |
-| `synth_instrument` | JSON/TOML body, including oscillator, FM, noise and Yamaha voices, voice policy, and shared TX81Z output and LFO routing |
+| `synth_instrument` | JSON/TOML score and standalone body, including public ports, timebases, and oscillator, FM, noise and Yamaha voices |
 | `instrument` | Sampler preparation APIs for asset inventory, slot settings, eligibility, selection, and traversal |
 | `performance_binding` | JSON/TOML score, MIDI channel assignments, and contextual preparation against supplied controls and resolved tunings |
 | `arrangement` | `parse_control_clip` prepares automation placement and exact source requests |
@@ -42,6 +42,12 @@ complete synth instrument bodies. For Yamaha voices this includes DX7
 performance controls, per-voice modulation targets, and TX81Z shared outputs
 and LFO owners. The shared preparation record budget covers the voice
 definitions and group declarations together.
+
+`codec::parse_score` and `codec::score_text` handle the version 4 synth
+instrument document. They validate its performance input, sampled audio
+output, timebase references, and mono voice routes to the declared channels.
+Shared TX81Z output routes are checked against the same audio port. The
+score envelope and instrument body share one preparation record budget.
 
 `scala::parse_scala` and `scala::scala_text` interchange repeating ratio
 tables. Imports use an ASCII integer pitch count, implicit unison and the

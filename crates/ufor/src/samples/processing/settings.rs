@@ -288,7 +288,7 @@ impl Processing {
 }
 
 /// A base SoundSettings body with authored declarations in wire order.
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, PartialEq, Serialize)]
 pub struct SoundSettings {
     #[serde(skip_serializing_if = "Option::is_none")]
     processing: Option<Processing>,

@@ -3,6 +3,7 @@ use ufor::codec::{
     Format, parse_synth_instrument, parse_yamaha_patch, synth_instrument_text, yamaha_patch_text,
 };
 use ufor::envelfo::PreparationLimits;
+use ufor::score::Score;
 use ufor::synth::VoiceSource;
 use ufor::yamaha::Patch;
 
@@ -170,6 +171,92 @@ fn tx81z_instruments_require_valid_output_membership_and_lfo_owners() {
         )
         .unwrap_err();
         assert!(error.to_string().contains(expected), "{error}");
+    }
+}
+
+#[test]
+fn shared_synth_scores_preserve_the_port_contract_and_body() {
+    let limits = PreparationLimits::default();
+    for text in [
+        include_str!("../../../conformance/tx81z-output.json"),
+        include_str!("../../../conformance/tx81z-lfo.json"),
+        include_str!("../../../conformance/wt11-instrument.json"),
+    ] {
+        let score = ufor::codec::parse_score(text, Format::Json, limits).unwrap();
+        let Score::SynthInstrument(instrument) = &score else {
+            panic!("expected a synth instrument score");
+        };
+        assert_eq!(instrument.output().stream.channels, ["left", "right"]);
+        assert_eq!(
+            instrument.timebases()[0].name(),
+            &instrument.input().stream.timebase
+        );
+        for format in [Format::Json, Format::Toml] {
+            let serialized = ufor::codec::score_text(&score, format).unwrap();
+            assert_eq!(
+                ufor::codec::parse_score(&serialized, format, limits).unwrap(),
+                score
+            );
+        }
+    }
+}
+
+#[test]
+fn synth_scores_reject_inconsistent_ports_and_shared_output_routes() {
+    let score: Value =
+        serde_json::from_str(include_str!("../../../conformance/tx81z-output.json")).unwrap();
+    let limits = PreparationLimits::default();
+    for (field, invalid, expected) in [
+        (
+            "/inputs/0/stream/timebase",
+            json!("missing"),
+            "unknown timebase",
+        ),
+        (
+            "/inputs/0/stream/kinds/0",
+            json!("release"),
+            "native performance events",
+        ),
+        (
+            "/outputs/0/stream/channels",
+            json!(["left", "left"]),
+            "distinct nonempty channel names",
+        ),
+        (
+            "/body/tx81z_outputs/0/channels/0/output",
+            json!("center"),
+            "mono input and known outputs",
+        ),
+    ] {
+        let mut document = score.clone();
+        *document.pointer_mut(field).unwrap() = invalid;
+        let error =
+            ufor::codec::parse_score(&document.to_string(), Format::Json, limits).unwrap_err();
+        assert!(error.to_string().contains(expected), "{error}");
+    }
+}
+
+#[test]
+fn synth_scores_count_the_envelope_and_body_under_one_budget() {
+    let text = include_str!("../../../conformance/tx81z-output.json");
+    let score: Value = serde_json::from_str(text).unwrap();
+    let body = score["body"].to_string();
+    let required = (1..100)
+        .find(|&records| {
+            parse_synth_instrument(
+                &body,
+                Format::Json,
+                PreparationLimits::new(records).unwrap(),
+            )
+            .is_ok()
+        })
+        .unwrap();
+    for (records, accepted) in [(required + 7, false), (required + 8, true)] {
+        assert_eq!(
+            ufor::codec::parse_score(text, Format::Json, PreparationLimits::new(records).unwrap())
+                .is_ok(),
+            accepted,
+        );
     }
 }
 
