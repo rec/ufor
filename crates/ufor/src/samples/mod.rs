@@ -1,4 +1,5 @@
 //! Shared declaration types; no sample acquisition or audio execution.
+pub mod articulations;
 pub mod assets;
 pub mod bindings;
 pub mod controls;

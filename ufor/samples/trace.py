@@ -50,7 +50,13 @@ from .instrument import (
     resolve_slots,
 )
 from .processing import ChannelRoute, SoundSettings
-from .selection import AdvanceSelection, SelectionState, choose, random_range_value
+from .selection import (
+    AdvanceSelection,
+    Articulations,
+    SelectionState,
+    choose,
+    random_range_value,
+)
 from .variation import ResolvedVariation, Variation, resolve
 
 
@@ -180,22 +186,34 @@ def prepare(
         ResolvedVariation,
     ] = resolve,
     validate_event: Callable[[PerformanceEvent], None] | None = None,
+    prepare_keyswitches: Callable[
+        [Articulations], dict[int, tuple[Identifier | None, bool]]
+    ]
+    | None = None,
 ) -> SampleTrace:
     """Resolve selection, linked takes, releases, and chokes without rendering.
 
     An optional eligibility evaluator returns matching slot names in declaration
     order. An optional selection evaluator advances a single take partition.
     The supplied draw functions resolve stateless event and per-voice values.
+    A keyswitch preparer validates the latched profile and returns its lookup.
     This function owns event state and the order of partitions in snapshots.
     """
     instrument = SampleInstrument.model_validate(instrument.model_dump())
     validate_event = validate_event or instrument.validate_event
     articulations = instrument.settings.articulations
+    keyswitches: dict[int, tuple[Identifier | None, bool]] = {}
     if articulations is not None:
-        if articulations.controls:
+        if prepare_keyswitches is not None:
+            keyswitches = prepare_keyswitches(articulations)
+        elif articulations.controls:
             raise ValueError('control-driven articulations are unsupported')
-        if any(k.behavior != enums.KeyBehavior.latched for k in articulations.keys):
+        elif any(k.behavior != enums.KeyBehavior.latched for k in articulations.keys):
             raise ValueError('momentary keyswitches are unsupported')
+        else:
+            keyswitches = {
+                k.key: (k.articulation, k.consume) for k in articulations.keys
+            }
     events = sorted(events, key=lambda e: (e.tick, e.ordinal))
     unique(((e.tick, e.ordinal) for e in events), 'event coordinate')
     actions: list[Action] = []
@@ -234,7 +252,6 @@ def prepare(
         event: PerformanceEvent,
     ) -> list[SampleSlot]:
         nonlocal state
-        articulations = instrument.settings.articulations
         active = (
             state.articulations.get(part, articulations.default)
             if articulations is not None
@@ -599,16 +616,15 @@ def prepare(
                 for index in plan.logical_indices:
                     release_logically(index, event)
         elif isinstance(event, Trigger):
-            switches = instrument.settings.articulations
-            switch = (
-                next((s for s in switches.keys if s.key == event.key), None)
-                if switches is not None
-                else None
-            )
-            if switch is not None:
-                articulations = dict(state.articulations)
-                articulations[event.part] = switch.articulation
-                state = state.model_copy(update={'articulations': articulations})
+            consume = False
+            if (switch := keyswitches.get(event.key)) is not None:
+                articulation, consume = switch
+                state = state.model_copy(
+                    update={
+                        'articulations': state.articulations
+                        | {event.part: articulation}
+                    }
+                )
             previous = next(
                 (
                     t
@@ -654,7 +670,7 @@ def prepare(
                 state = state.model_copy(update={'note_on_counts': counts})
             selected = (
                 []
-                if switch is not None and switch.consume
+                if consume
                 else selected_slots(
                     event.part,
                     enums.TriggerKind.start,

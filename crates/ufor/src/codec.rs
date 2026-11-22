@@ -16,6 +16,7 @@ use crate::modulation::Modulation;
 use crate::oscillator::Oscillator;
 use crate::performance_binding::MidiBindings;
 use crate::playback::SequenceSelection;
+use crate::samples::articulations::Articulations;
 use crate::samples::eligibility::{Context as EligibilityContext, Eligibility, VoiceEligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
@@ -153,6 +154,21 @@ pub fn parse_midi_bindings(
 pub fn parse_sample_slice(text: &str, format: Format) -> Result<Slice, Error> {
     serde_json::from_value(parse_value(text, format)?)
         .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn parse_articulations(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+) -> Result<Articulations, Error> {
+    let value: Articulations = serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))?;
+    value.check_records(limits)?;
+    Ok(value)
+}
+
+pub fn articulations_text(value: &Articulations, format: Format) -> Result<String, Error> {
+    write(value, format)
 }
 
 pub fn parse_sample_inventory(

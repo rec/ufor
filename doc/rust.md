@@ -111,6 +111,13 @@ The [shared cases](../conformance/sample-eligibility.json) cover inclusive
 note and control bounds, half-open random ranges, and sustain event keys.
 Python trace preparation supplies these event facts and owns voice lifecycle.
 
+`codec::parse_articulations` reads ordered articulation IDs, keyswitches and
+disjoint control ranges. `Articulations::validate_controls` checks the range
+endpoints against instrument control declarations. Enge prepares the native
+sampler's latched keyswitch lookup through `Articulations::latched_keys`.
+A switch can clear the current articulation or consume the onset. The trace
+stores the resulting latch independently for each part.
+
 `codec::parse_voice_eligibility` prepares mappings for synth-family voices.
 It shares the sampler's inclusive note and velocity predicates and matches
 the declared event key for sustain triggers. The

@@ -1,0 +1,33 @@
+{
+  "latched": {
+    "ids": ["soft", "hard"],
+    "default": "soft",
+    "keys": [
+      {"key": 24, "articulation": "hard"},
+      {"key": 25, "consume": false}
+    ]
+  },
+  "controlled": {
+    "ids": ["soft", "hard"],
+    "controls": [
+      {"control": "style", "minimum_value": 0.25, "maximum_value": 1.0, "articulation": "hard"},
+      {"control": "style", "minimum_value": -1.0, "maximum_value": 0.0, "articulation": "soft"}
+    ]
+  },
+  "momentary": {
+    "ids": ["soft"],
+    "keys": [{"key": 24, "articulation": "soft", "behavior": "momentary"}]
+  },
+  "invalid": [
+    {"ids": ["soft", "soft"]},
+    {"ids": ["soft"], "default": "hard"},
+    {"ids": [], "keys": [{"key": 24, "articulation": "soft"}]},
+    {"ids": ["soft"], "keys": [{"key": 24}, {"key": 24}]},
+    {"ids": [], "keys": [{"key": 24, "consume": 1}]},
+    {"ids": ["soft"], "controls": [{"control": "style", "minimum_value": 0.5, "maximum_value": 0, "articulation": "soft"}]},
+    {"ids": ["soft"], "controls": [
+      {"control": "style", "minimum_value": 0.25, "maximum_value": 1, "articulation": "soft"},
+      {"control": "style", "minimum_value": -1, "maximum_value": 0.25, "articulation": "soft"}
+    ]}
+  ]
+}

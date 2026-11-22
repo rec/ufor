@@ -157,6 +157,20 @@ def test_invalid_crossfades_are_rejected(changes: dict[str, object]) -> None:
         TypeAdapter(crossfade.LayerCrossfade).validate_python(raw)
 
 
+def test_shared_articulations_validate_and_round_trip() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/articulations.json').read_text()
+    )
+    for kind in ['latched', 'controlled', 'momentary']:
+        body = selection.Articulations.model_validate(vectors[kind])
+        assert (
+            selection.Articulations.model_validate_json(body.model_dump_json()) == body
+        )
+    for case in vectors['invalid']:
+        with pytest.raises(ValidationError):
+            selection.Articulations.model_validate(case)
+
+
 def test_articulation_bindings_have_unique_keys_and_disjoint_ranges() -> None:
     key = {'key': 24, 'articulation': 'a'}
     control = {
