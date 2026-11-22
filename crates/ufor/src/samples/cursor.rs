@@ -170,7 +170,7 @@ impl Cursor {
             || (state.looping && loop_.is_none())
             || (state.overlap && !valid_overlap)
             || ![-1, 1].contains(&state.direction)
-            || !(start - 1..=end).contains(&state.index)
+            || (state.exhausted.is_none() && !(start - 1..=end).contains(&state.index))
             || !(0.0..self.rate).contains(&state.position)
             || !state.error.is_finite()
             || (state.plays_remaining > 0 && loop_.is_some())

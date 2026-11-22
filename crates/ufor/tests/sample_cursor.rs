@@ -31,6 +31,8 @@ fn onset_offsets_follow_direction_and_exhaust_outside_the_slice() {
     assert!(cursor.offset_start(i64::MAX, 0).is_err());
     assert!(!cursor.offset_start(12, 0).unwrap());
     assert_eq!(cursor.state().exhausted, Some(0));
+    let restored = cursor.resume(*cursor.state(), 0).unwrap();
+    assert!(restored.read_plan(0).is_none());
 }
 
 #[test]
