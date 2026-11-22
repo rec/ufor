@@ -133,7 +133,13 @@ envelope, timebase and output when parsing a score.
 
 [conformance/control-clips.json](../conformance/control-clips.json) gives an
 exact source/timeline interval conversion vector for a 1 kHz control score in a
-48 kHz arrangement.
+48 kHz arrangement. Rust reads a control clip with `codec::parse_control_clip`.
+Pass the resolved automation score and arrangement timebase to
+`ControlClip::prepare`, then use `Placement::source_request` to obtain the source
+window. The caller resolves the part and destination target. The placement
+checks the selected output and requires exact integer clip durations and source
+request endpoints. A window that starts inside the clip still requests the
+curve from the source start.
 
 The score participates in the common codec and generated
 [schema/scores.json](../schema/scores.json). Arrangements resolve it without

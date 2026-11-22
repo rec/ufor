@@ -1,5 +1,7 @@
 //! Scalar timeline curves on a score's native clock.
 
+pub mod placement;
+
 use crate::control::Scope;
 use crate::envelfo::PreparationLimits;
 use crate::error::Error;

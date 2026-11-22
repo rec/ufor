@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
 use crate::automation::Automation;
+use crate::automation::placement::ControlClip;
 use crate::control::tempo::TempoMap;
 use crate::effects::Processor;
 use crate::effects::actions::{Action, ActionBatch};
@@ -163,6 +164,11 @@ pub fn parse_automation(
 
 pub fn automation_text(value: &Automation, format: Format) -> Result<String, Error> {
     write(value, format)
+}
+
+pub fn parse_control_clip(text: &str, format: Format) -> Result<ControlClip, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
 }
 
 pub fn parse_timebase(text: &str, format: Format) -> Result<Timebase, Error> {

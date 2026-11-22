@@ -42,6 +42,9 @@ supports Tuning, Scale, Oscillator, Envelfo, Sequence, and Automation.
 64-bit ticks in the declared timebase. Use `codec::parse_automation` for a standalone
 body or `codec::parse_score` to validate its control output and timebase together.
 The [automation format](automation-format.md) defines the scalar and timing rules.
+`automation::placement::ControlClip` places a resolved part-scoped numeric
+automation output on another clock. It validates exact placement and returns
+the source interval needed to reconstruct the curve for a render window.
 
 `oscillator::phase_at_frame` computes transport-synchronized starting phase in
 sample-rate units. It reduces the exact frame-frequency product modulo the

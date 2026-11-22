@@ -125,6 +125,24 @@ pub fn convert_tick(tick: i64, source: &Timebase, destination: &Timebase) -> Res
     i64::try_from(if tick < 0 { -magnitude } else { magnitude }).map_err(|_| Error::ArithmeticRange)
 }
 
+/// Convert an unsigned distance between native ticks, requiring an exact result.
+pub(crate) fn convert_exact_distance(
+    ticks: u64,
+    source: Rate,
+    destination: Rate,
+) -> Result<u64, Error> {
+    let left = u128::from(ticks) * source.denominator as u128;
+    let right = destination.numerator as u128;
+    let divisor = source.numerator as u128 * destination.denominator as u128;
+    let (quotient, remainder) = divide_product(left, right, divisor)?;
+    if remainder != 0 {
+        return Err(Error::Invalid(
+            "converted distance is not an exact integer tick".into(),
+        ));
+    }
+    u64::try_from(quotient).map_err(|_| Error::ArithmeticRange)
+}
+
 /// Exact frame clock for an ordered sequence of PPQN MIDI file events.
 #[derive(Clone, Debug)]
 pub struct PpqnClock {
