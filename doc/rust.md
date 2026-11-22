@@ -165,6 +165,10 @@ renderer operation.
 `codec::parse_sample_crossfade` reads key, velocity, and control layer fades.
 The shared gain curve supports linear and equal-power fades with exact endpoint
 weights. Hosts retain control smoothing, event routing, and layer selection.
+`Crossfade::prepare_control` resolves a live fade against the instrument's
+control declarations, validates both endpoints, and converts smoothing to
+signed 64-bit rational frames from the decimal seconds magnitude. Enge uses the
+result to prepare its live sampler control tables.
 
 `codec::parse_sample_eligibility` prepares ordered sampler slot predicates.
 `samples::eligibility::Eligibility::matching_slots` filters them using the

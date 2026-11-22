@@ -1,5 +1,11 @@
 use serde_json::{Value, json};
+use std::collections::BTreeMap;
 use ufor::codec::{self, Format};
+use ufor::control::Polarity;
+use ufor::identifier::Identifier;
+use ufor::number::Rational;
+use ufor::samples::controls::ControlDeclaration;
+use ufor::samples::crossfade::ControlScope;
 use ufor::samples::playback::{
     Direction, Playback, PlaybackMode, maximum_sample_step, maximum_tuning_cents, onset_gain,
     sample_step, tuned_pitch_ratio,
@@ -38,6 +44,46 @@ fn sample_crossfades_preserve_clipping_and_exact_endpoints() {
     for rejected in data["rejected"].as_array().unwrap() {
         assert!(codec::parse_sample_crossfade(&rejected.to_string(), Format::Json).is_err());
     }
+}
+
+#[test]
+fn live_sample_crossfade_resolves_control_domain_and_exact_frame_smoothing() {
+    let data: Value =
+        serde_json::from_str(include_str!("../../../conformance/sample-crossfade.json")).unwrap();
+    let name = Identifier::new("expression".into()).unwrap();
+    let controls = |polarity| {
+        BTreeMap::from([(
+            name.clone(),
+            ControlDeclaration::new(polarity, 0.25).unwrap(),
+        )])
+    };
+    let mut definition = data["control"].clone();
+    definition["smoothing_seconds"] = json!(0.00003125);
+    let fade = codec::parse_sample_crossfade(&definition.to_string(), Format::Json).unwrap();
+    let route = fade
+        .prepare_control(&controls(Polarity::Bipolar), 48_000)
+        .unwrap()
+        .unwrap();
+    assert_eq!(route.control, &name);
+    assert_eq!(route.scope, ControlScope::Trigger);
+    assert_eq!((route.default, route.minimum), (0.25, -1.0));
+    assert_eq!(route.smoothing_frames, Rational::new(3, 2).unwrap());
+    assert_eq!(route.interval, (-0.5, 0.5));
+    assert_eq!(route.shape, (true, true));
+
+    assert!(fade.prepare_control(&BTreeMap::new(), 48_000).is_err());
+    assert!(
+        fade.prepare_control(&controls(Polarity::Unipolar), 48_000)
+            .is_err()
+    );
+    definition["smoothing_seconds"] = json!(1e-20);
+    let out_of_range =
+        codec::parse_sample_crossfade(&definition.to_string(), Format::Json).unwrap();
+    assert!(
+        out_of_range
+            .prepare_control(&controls(Polarity::Bipolar), 48_000)
+            .is_err()
+    );
 }
 
 #[test]

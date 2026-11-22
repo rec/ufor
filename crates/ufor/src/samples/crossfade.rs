@@ -1,6 +1,11 @@
 //! Sample layer fades for keys, velocity, and resolved controls.
+use super::controls::ControlDeclaration;
+use crate::control::Polarity;
+use crate::number::Rational;
+use crate::time::duration_frames;
 use crate::{error::Error, identifier::Identifier, quantity};
 use serde::{Deserialize, Deserializer, Serialize};
+use std::collections::BTreeMap;
 use std::f64::consts::PI;
 
 #[derive(Clone, Debug, PartialEq, Deserialize, Serialize)]
@@ -35,6 +40,46 @@ impl Crossfade {
         }
     }
 
+    /// Resolve a live control fade using the instrument's control declarations.
+    /// Latched key and velocity fades have no live control route.
+    pub fn prepare_control<'a>(
+        &'a self,
+        controls: &BTreeMap<Identifier, ControlDeclaration>,
+        sample_rate: i64,
+    ) -> Result<Option<PreparedControlFade<'a>>, Error> {
+        let Definition::Control {
+            start,
+            end,
+            shape,
+            control,
+            scope,
+            smoothing_seconds,
+        } = &self.0
+        else {
+            return Ok(None);
+        };
+        let declaration = controls
+            .get(control)
+            .ok_or_else(|| invalid(format!("Unknown crossfade control: {}", control.as_str())))?;
+        declaration.validate_value(*start)?;
+        declaration.validate_value(*end)?;
+        let seconds = quantity::exact(&smoothing_seconds.to_string(), "seconds")?;
+        let smoothing_frames = duration_frames(seconds, sample_rate)?;
+        Ok(Some(PreparedControlFade {
+            control,
+            scope: *scope,
+            default: declaration.default_value(),
+            minimum: if declaration.polarity() == Polarity::Bipolar {
+                -1.0
+            } else {
+                0.0
+            },
+            smoothing_frames,
+            interval: (*start, *end),
+            shape: (shape.inward(), shape.equal_power()),
+        }))
+    }
+
     pub fn control_weight(&self, value: f64) -> Result<f64, Error> {
         let (start, end, inward, equal_power) = self
             .control_route()
@@ -45,6 +90,17 @@ impl Crossfade {
             equal_power,
         ))
     }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct PreparedControlFade<'a> {
+    pub control: &'a Identifier,
+    pub scope: ControlScope,
+    pub default: f64,
+    pub minimum: f64,
+    pub smoothing_frames: Rational,
+    pub interval: (f64, f64),
+    pub shape: (bool, bool),
 }
 
 /// Evaluate a normalized crossfade position with exact endpoint gains.
@@ -161,7 +217,7 @@ enum Curve {
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "snake_case")]
-enum ControlScope {
+pub enum ControlScope {
     Instrument,
     #[default]
     Part,
