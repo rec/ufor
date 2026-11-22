@@ -119,6 +119,9 @@ traversal declarations. `samples::playback::Slice` validates native frame
 intervals, loop crossfades, and resolved playback against decoded asset length.
 `samples::playback::onset_gain` combines key and velocity crossfade weights with
 instrument, slot and variation decibels. Control fades remain time-varying.
+Sampler batching uses `samples::playback::maximum_tuning_cents` to select each
+layer's declared tuning maximum or its static tuning. If the combined bound
+overflows, `maximum_sample_step` selects one-frame batches for finite traversal.
 Loop repeat limits and the number of additional plays use unsigned 64-bit
 counts. The renderer owns the audio, traversal state, and interpolation.
 `codec::parse_sample_mapping` validates authored note and velocity ranges and

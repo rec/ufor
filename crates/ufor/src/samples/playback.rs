@@ -1,5 +1,6 @@
 //! Portable sample traversal declarations in native asset frames.
 use super::crossfade::Crossfade;
+use crate::modulation::Parameter;
 use crate::{error::Error, identifier::Identifier, number::Rational, quantity};
 use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
@@ -40,6 +41,27 @@ pub fn sample_step(pitch_ratio: f64, native_rate: f64) -> Result<f64, Error> {
         return Err(Error::NonpositiveResult);
     }
     Ok(step)
+}
+
+/// Return the declared upper bound for a layer's playback tuning in cents.
+pub fn maximum_tuning_cents(static_cents: f64, parameters: &[Parameter]) -> f64 {
+    parameters
+        .iter()
+        .find(|parameter| {
+            let target = parameter.target();
+            target.name().as_str() == "processing" && target.parameter().as_str() == "tuning_cents"
+        })
+        .map_or(static_cents, Parameter::maximum)
+}
+
+/// Bound the cursor advance for a control batch.
+///
+/// Infinity requests one-frame batches for finite traversal when the bound
+/// cannot be represented. The renderer still validates the actual pitch.
+pub fn maximum_sample_step(base: f64, native_rate: f64, common_cents: f64, slot_cents: f64) -> f64 {
+    tuned_pitch_ratio(base, common_cents, slot_cents)
+        .and_then(|ratio| sample_step(ratio, native_rate))
+        .unwrap_or(f64::INFINITY)
 }
 
 /// Authored note and velocity ranges with an optional sample pitch reference.

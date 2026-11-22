@@ -1,7 +1,8 @@
 use serde_json::{Value, json};
 use ufor::codec::{self, Format};
 use ufor::samples::playback::{
-    Direction, Playback, PlaybackMode, onset_gain, sample_step, tuned_pitch_ratio,
+    Direction, Playback, PlaybackMode, maximum_sample_step, maximum_tuning_cents, onset_gain,
+    sample_step, tuned_pitch_ratio,
 };
 
 #[test]
@@ -57,6 +58,28 @@ fn rendered_sample_steps_match_shared_vectors() {
                 .is_err()
         );
     }
+}
+
+#[test]
+fn sampler_batch_bound_uses_declared_tuning_limits_in_each_layer() {
+    let modulation = codec::parse_modulation(
+        r#"{"parameters":[
+          {"target":{"name":"operator-main","parameter":"tuning_cents"},"unit":"cents",
+           "scope":"voice","minimum":-2400,"default":0,"maximum":2400},
+          {"target":{"name":"processing","parameter":"tuning_cents"},"unit":"cents",
+           "scope":"voice","minimum":0,"default":0,"maximum":900}
+        ]}"#,
+        Format::Json,
+    )
+    .unwrap();
+    let common = maximum_tuning_cents(300.0, &[]);
+    let slot = maximum_tuning_cents(0.0, modulation.parameters());
+    assert_eq!((common, slot), (300.0, 900.0));
+    assert_eq!(maximum_sample_step(0.5, 48_000.0, common, slot), 48_000.0);
+    assert_eq!(
+        maximum_sample_step(1.0, 48_000.0, 1e10, slot),
+        f64::INFINITY
+    );
 }
 
 #[test]
