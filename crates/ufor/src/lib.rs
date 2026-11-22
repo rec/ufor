@@ -9,6 +9,7 @@ pub mod codec;
 pub mod control;
 pub mod effects;
 pub mod envelfo;
+pub mod envelope;
 pub mod error;
 pub mod events;
 pub mod expression;

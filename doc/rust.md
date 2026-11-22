@@ -46,6 +46,11 @@ The [automation format](automation-format.md) defines the scalar and timing rule
 automation output on another clock. It validates exact placement and returns
 the source interval needed to reconstruct the curve for a render window.
 
+`envelope::curve_progress` evaluates the normalized exponential interpolation
+used by authored envelope segments. Positive and negative coefficients use
+stable exponential forms, with exact endpoints and linear interpolation when
+the coefficient is zero.
+
 `oscillator::phase_at_frame` computes transport-synchronized starting phase in
 sample-rate units. It reduces the exact frame-frequency product modulo the
 sample rate before rounding to binary64. Whole frames retain signed 64-bit
