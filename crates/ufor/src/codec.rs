@@ -312,6 +312,10 @@ pub fn parse_synth_instrument(
     }
 }
 
+pub fn synth_instrument_text(value: &SynthInstrument, format: Format) -> Result<String, Error> {
+    write(value, format)
+}
+
 pub fn parse_sample_eligibility_context(
     text: &str,
     format: Format,

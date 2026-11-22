@@ -5,7 +5,7 @@ use crate::envelfo::{self, Body, PreparationLimits};
 use crate::error::Error;
 use crate::fm::Fm;
 use crate::identifier::Identifier;
-use crate::modulation::Target;
+use crate::modulation::{Target, Unit};
 use crate::number::Rational;
 use crate::oscillator::Oscillator;
 use crate::quantity;
@@ -14,14 +14,18 @@ use crate::samples::controls::ControlDeclaration;
 use crate::samples::eligibility::{Trigger, VoiceMapping};
 use crate::samples::playback::Mapping;
 use crate::samples::processing::{
-    Binding, EventKind, ResolvedTarget, SoundSettings, SoundWire, TargetResolution,
+    Binding, EventKind, ResolvedTarget, SoundSettings, SoundWire, TargetMinimum, TargetResolution,
 };
 use crate::samples::routing::ChannelRoute;
 use crate::voice_admission::{Choke, VoicePolicy};
 use crate::voice_release::Sustain;
+use crate::yamaha::Patch;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde_json::{Value, json};
 use std::collections::{BTreeMap, BTreeSet};
+
+pub mod yamaha;
+use yamaha::{Dx7Performance, Tx81zLfoGroup, Tx81zOutput, YamahaWire};
 
 #[derive(Debug, Deserialize, Serialize)]
 #[serde(try_from = "VoiceDefinition")]
@@ -86,6 +90,7 @@ struct VoiceDefinition {
     mapping: Mapping,
     #[serde(default)]
     trigger: Trigger,
+    #[serde(default)]
     channels: Vec<ChannelRoute>,
     #[serde(default, deserialize_with = "hertz")]
     frequency_offset_hz: f64,
@@ -102,24 +107,23 @@ impl TryFrom<VoiceDefinition> for VoiceTemplate {
     type Error = Error;
 
     fn try_from(value: VoiceDefinition) -> Result<Self, Error> {
+        value.prepare(false)
+    }
+}
+
+impl VoiceDefinition {
+    fn prepare(self, allow_unrouted: bool) -> Result<VoiceTemplate, Error> {
+        let value = self;
         let voice = VoiceMapping {
             name: value.name,
             mapping: value.mapping,
             trigger: value.trigger,
         };
         voice.validate()?;
-        if value.channels.is_empty() {
+        if !allow_unrouted && value.channels.is_empty() {
             return Err(invalid("synth voice requires channel routes"));
         }
-        let mut routes = BTreeSet::new();
-        for route in &value.channels {
-            if route.input.is_empty() || route.output.is_empty() || !route.gain.is_finite() {
-                return Err(invalid("invalid synth voice channel route"));
-            }
-            if !routes.insert((&route.input, &route.output)) {
-                return Err(invalid("duplicate channel route"));
-            }
-        }
+        validate_channel_routes(&value.channels)?;
         let articulations: BTreeSet<_> = value.articulations.iter().collect();
         if articulations.len() != value.articulations.len() {
             return Err(invalid("duplicate articulation reference"));
@@ -128,7 +132,7 @@ impl TryFrom<VoiceDefinition> for VoiceTemplate {
         if chokes.len() != value.chokes.len() {
             return Err(invalid("duplicate choke target"));
         }
-        Ok(Self {
+        Ok(VoiceTemplate {
             voice,
             channels: value.channels,
             frequency_offset_hz: value.frequency_offset_hz,
@@ -244,12 +248,41 @@ pub enum VoiceSource {
     Fm {
         fm: Fm,
     },
+    Yamaha {
+        #[serde(flatten)]
+        patch: Patch,
+        #[serde(skip_serializing_if = "Option::is_none")]
+        performance: Option<Dx7Performance>,
+    },
 }
 
 impl VoiceSource {
     fn resolve_target(&self, target: &Target) -> Option<ResolvedTarget> {
         match self {
             Self::Fm { fm } => fm.resolve_target(target),
+            Self::Yamaha { patch, .. } => {
+                if target.name().as_str() != "yamaha" {
+                    return None;
+                }
+                let (default_value, minimum) = match target.parameter().as_str() {
+                    "pitch_bend" => (0.0, TargetMinimum::Unrestricted),
+                    "modulation_wheel" | "breath" | "foot" => (0.0, TargetMinimum::Nonnegative),
+                    "portamento" if !matches!(patch, Patch::Dx7(_)) => {
+                        (1.0, TargetMinimum::Nonnegative)
+                    }
+                    "aftertouch" if matches!(patch, Patch::Wt11(_)) => {
+                        (0.0, TargetMinimum::Nonnegative)
+                    }
+                    _ => return None,
+                };
+                Some(ResolvedTarget {
+                    unit: Unit::Ratio,
+                    default_value,
+                    duration: None,
+                    scope: None,
+                    minimum,
+                })
+            }
             _ => None,
         }
     }
@@ -293,16 +326,18 @@ impl SynthVoices {
                 noise,
                 fm,
                 envelope,
+                yamaha,
                 mut settings,
             } = voice;
-            let template = VoiceTemplate::try_from(template)?;
+            let yamaha = yamaha.prepare()?;
+            let template = template.prepare(matches!(&yamaha, Some((Patch::Tx81z(_), _))))?;
             records += template.records();
             if records > limits.max_records() {
                 return Err(Error::Limit("synth voice template records"));
             }
             let remaining = PreparationLimits::new(limits.max_records() - records)?;
-            let (source, source_records) = match (oscillator, noise, fm) {
-                (Some(oscillator), None, None) => {
+            let (source, source_records) = match (oscillator, noise, fm, yamaha) {
+                (Some(oscillator), None, None, None) => {
                     let oscillator = serde_json::from_value(oscillator)
                         .map_err(|error| invalid(error.to_string()))?;
                     let synchronize_oscillator = sync
@@ -317,7 +352,7 @@ impl SynthVoices {
                         1,
                     )
                 }
-                (None, Some(noise), None) if sync.is_none() => {
+                (None, Some(noise), None, None) if sync.is_none() => {
                     let noise = serde_json::from_value(noise)
                         .map_err(|error| invalid(error.to_string()))?;
                     if template.mapping().pitch_tracking() || template.frequency_offset_hz() != 0.0
@@ -327,7 +362,7 @@ impl SynthVoices {
                     settings.envelope = Some(amplitude_envelope(envelope));
                     (VoiceSource::Noise { noise }, 1)
                 }
-                (None, None, Some(fm)) if sync.is_none() => {
+                (None, None, Some(fm), None) if sync.is_none() => {
                     if envelope.is_some_and(|envelope| !envelope.is_null()) {
                         return Err(invalid(
                             "FM uses operator envelopes, not a second amplitude envelope",
@@ -338,9 +373,21 @@ impl SynthVoices {
                         Fm::decode(fm, remaining).map_err(|error| invalid(error.to_string()))?;
                     (VoiceSource::Fm { fm }, count)
                 }
+                (None, None, None, Some((patch, performance))) if sync.is_none() => {
+                    if envelope.is_some_and(|envelope| !envelope.is_null()) {
+                        return Err(invalid("Yamaha voices use patch operator envelopes"));
+                    }
+                    // Count the patch plus each additional buffer or DX7 controller declaration.
+                    let count = match &patch {
+                        Patch::Dx7(_) => 5,
+                        Patch::Tx81z(_) => 2,
+                        Patch::Wt11(_) => 3,
+                    };
+                    (VoiceSource::Yamaha { patch, performance }, count)
+                }
                 _ => {
                     return Err(invalid(
-                        "synth voice requires exactly one oscillator, noise or FM source",
+                        "synth voice requires exactly one oscillator, noise, FM or Yamaha source",
                     ));
                 }
             };
@@ -350,6 +397,22 @@ impl SynthVoices {
             let remaining = PreparationLimits::new(limits.max_records() - records + 1)?;
             let settings =
                 settings.prepare(remaining, controls, |target| source.resolve_target(target))?;
+            if matches!(source, VoiceSource::Yamaha { .. })
+                && settings.modulation().parameters().iter().any(|parameter| {
+                    let target = parameter.target();
+                    let minimum = if target.parameter().as_str() == "pitch_bend" {
+                        -1.0
+                    } else {
+                        0.0
+                    };
+                    target.name().as_str() == "yamaha"
+                        && (parameter.minimum() < minimum || parameter.maximum() > 1.0)
+                })
+            {
+                return Err(invalid(
+                    "Yamaha controller domain exceeds its normalized range",
+                ));
+            }
             if matches!(source, VoiceSource::Noise { .. })
                 && (settings.processing().tuning_cents() != 0.0
                     || settings.modulation().parameters().iter().any(|parameter| {
@@ -403,6 +466,10 @@ pub struct SynthInstrument {
     articulations: Option<Articulations>,
     #[serde(flatten)]
     voices: SynthVoices,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tx81z_outputs: Vec<Tx81zOutput>,
+    #[serde(skip_serializing_if = "Vec::is_empty")]
+    tx81z_lfos: Vec<Tx81zLfoGroup>,
     #[serde(skip)]
     sustain_pressed: bool,
 }
@@ -421,13 +488,30 @@ impl SynthInstrument {
             sustain: Option<Sustain>,
             articulations: Option<Articulations>,
             voices: Vec<SynthVoiceDefinition>,
+            #[serde(default)]
+            tx81z_outputs: Vec<Tx81zOutput>,
+            #[serde(default)]
+            tx81z_lfos: Vec<Tx81zLfoGroup>,
         }
         let definition =
             Definition::deserialize(decoder).map_err(|error| invalid(error.to_string()))?;
+        if definition.voices.is_empty() {
+            return Err(invalid("synth instrument requires at least one voice"));
+        }
         let mut records = 1
             + definition.controls.len()
             + usize::from(definition.voice_policy.is_some())
             + usize::from(definition.sustain.is_some());
+        records += definition
+            .tx81z_outputs
+            .iter()
+            .map(Tx81zOutput::records)
+            .sum::<usize>();
+        records += definition
+            .tx81z_lfos
+            .iter()
+            .map(Tx81zLfoGroup::records)
+            .sum::<usize>();
         if let Some(articulations) = &definition.articulations {
             records += 1
                 + articulations.ids().len()
@@ -452,6 +536,7 @@ impl SynthInstrument {
             records,
             Some(&definition.controls),
         )?;
+        yamaha::validate_routing(&voices, &definition.tx81z_outputs, &definition.tx81z_lfos)?;
         let choke_groups: BTreeSet<_> = voices
             .voices()
             .iter()
@@ -476,6 +561,8 @@ impl SynthInstrument {
             sustain: definition.sustain,
             articulations: definition.articulations,
             voices,
+            tx81z_outputs: definition.tx81z_outputs,
+            tx81z_lfos: definition.tx81z_lfos,
             sustain_pressed,
         })
     }
@@ -498,6 +585,14 @@ impl SynthInstrument {
 
     pub fn voices(&self) -> &SynthVoices {
         &self.voices
+    }
+
+    pub fn tx81z_outputs(&self) -> &[Tx81zOutput] {
+        &self.tx81z_outputs
+    }
+
+    pub fn tx81z_lfos(&self) -> &[Tx81zLfoGroup] {
+        &self.tx81z_lfos
     }
 
     pub fn sustain_pressed(&self) -> bool {
@@ -587,6 +682,8 @@ struct SynthVoiceDefinition {
     template: VoiceDefinition,
     #[serde(flatten)]
     settings: SoundWire,
+    #[serde(flatten)]
+    yamaha: YamahaWire,
     #[serde(default, deserialize_with = "present_value")]
     oscillator: Option<Value>,
     #[serde(default, deserialize_with = "present_value")]
@@ -601,6 +698,19 @@ struct SynthVoiceDefinition {
 
 fn present_value<'de, D: Deserializer<'de>>(decoder: D) -> Result<Option<Value>, D::Error> {
     Value::deserialize(decoder).map(Some)
+}
+
+fn validate_channel_routes(channels: &[ChannelRoute]) -> Result<(), Error> {
+    let mut routes = BTreeSet::new();
+    for route in channels {
+        if route.input.is_empty() || route.output.is_empty() || !route.gain.is_finite() {
+            return Err(invalid("invalid synth voice channel route"));
+        }
+        if !routes.insert((&route.input, &route.output)) {
+            return Err(invalid("duplicate channel route"));
+        }
+    }
+    Ok(())
 }
 
 fn amplitude_envelope(envelope: Option<Value>) -> Value {

@@ -19,7 +19,7 @@ declarations.
 | `envelfo` | JSON/TOML score, generator definitions, parameter materialization, and binding checks |
 | `sequence` | JSON/TOML score, ordered event body, and sequence playback planning |
 | `automation` | JSON/TOML score, control curves, and scalar evaluation |
-| `synth_instrument` | `parse_synth_instrument` validates the prepared body, including voices, settings, controls, articulation, and voice policy |
+| `synth_instrument` | JSON/TOML body, including oscillator, FM, noise and Yamaha voices, voice policy, and shared TX81Z output and LFO routing |
 | `instrument` | Sampler preparation APIs for asset inventory, slot settings, eligibility, selection, and traversal |
 | `performance_binding` | JSON/TOML score, MIDI channel assignments, and contextual preparation against supplied controls and resolved tunings |
 | `arrangement` | `parse_control_clip` prepares automation placement and exact source requests |
@@ -36,6 +36,12 @@ bytes. `yamaha::Patch::parameter_diagnostic` reports invalid decoded parameters
 in front-panel operator order. Structurally valid buffers retain their raw
 bytes even when they have a diagnostic. The patch codec covers the Yamaha
 discriminator and edit buffers within an authored voice.
+
+`codec::parse_synth_instrument` and `codec::synth_instrument_text` handle
+complete synth instrument bodies. For Yamaha voices this includes DX7
+performance controls, per-voice modulation targets, and TX81Z shared outputs
+and LFO owners. The shared preparation record budget covers the voice
+definitions and group declarations together.
 
 `scala::parse_scala` and `scala::scala_text` interchange repeating ratio
 tables. Imports use an ASCII integer pitch count, implicit unison and the

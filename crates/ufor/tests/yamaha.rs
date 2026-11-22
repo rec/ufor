@@ -1,5 +1,9 @@
 use serde_json::{Value, json};
-use ufor::codec::{Format, parse_yamaha_patch, yamaha_patch_text};
+use ufor::codec::{
+    Format, parse_synth_instrument, parse_yamaha_patch, synth_instrument_text, yamaha_patch_text,
+};
+use ufor::envelfo::PreparationLimits;
+use ufor::synth::VoiceSource;
 use ufor::yamaha::Patch;
 
 #[test]
@@ -100,5 +104,109 @@ fn malformed_wire_bytes_fail_and_hex_normalizes_like_python() {
     assert_eq!(
         parse_yamaha_patch(&separated.to_string(), Format::Json).unwrap(),
         Patch::dx7(&[10; 128]).unwrap()
+    );
+}
+
+#[test]
+fn shared_yamaha_instruments_preserve_patches_and_routing() {
+    for (text, outputs, lfos) in [
+        (include_str!("../../../conformance/tx81z-output.json"), 1, 0),
+        (include_str!("../../../conformance/tx81z-lfo.json"), 1, 1),
+        (
+            include_str!("../../../conformance/wt11-instrument.json"),
+            0,
+            0,
+        ),
+    ] {
+        let score: Value = serde_json::from_str(text).unwrap();
+        let limits = PreparationLimits::default();
+        let body =
+            parse_synth_instrument(&score["body"].to_string(), Format::Json, limits).unwrap();
+        let VoiceSource::Yamaha { patch, .. } = body.voices().voices()[0].source() else {
+            panic!("expected Yamaha source");
+        };
+        assert_eq!(patch.parameter_diagnostic(), None);
+        assert_eq!(body.tx81z_outputs().len(), outputs);
+        assert_eq!(body.tx81z_lfos().len(), lfos);
+        for format in [Format::Json, Format::Toml] {
+            let text = synth_instrument_text(&body, format).unwrap();
+            let restored = parse_synth_instrument(&text, format, limits).unwrap();
+            assert_eq!(
+                serde_json::to_value(restored).unwrap(),
+                serde_json::to_value(&body).unwrap()
+            );
+        }
+    }
+}
+
+#[test]
+fn tx81z_instruments_require_valid_output_membership_and_lfo_owners() {
+    let score: Value =
+        serde_json::from_str(include_str!("../../../conformance/tx81z-lfo.json")).unwrap();
+    for (field, invalid, expected) in [
+        ("/tx81z_outputs", json!([]), "Unrouted TX81Z voices"),
+        (
+            "/tx81z_outputs/0/voices/0",
+            json!("missing"),
+            "existing TX81Z templates",
+        ),
+        (
+            "/tx81z_lfos/0/first",
+            json!("missing"),
+            "owners must be group members",
+        ),
+        (
+            "/tx81z_lfos/0/routes/patch",
+            json!("second"),
+            "routing requires an owner",
+        ),
+    ] {
+        let mut body = score["body"].clone();
+        *body.pointer_mut(field).unwrap() = invalid;
+        let error = parse_synth_instrument(
+            &body.to_string(),
+            Format::Json,
+            PreparationLimits::default(),
+        )
+        .unwrap_err();
+        assert!(error.to_string().contains(expected), "{error}");
+    }
+}
+
+#[test]
+fn dx7_instrument_keeps_performance_settings_and_rejects_a_second_envelope() {
+    let mut body = json!({"voices":[{
+        "name":"dx7", "yamaha":"dx7", "patch":"00".repeat(155),
+        "mapping":{"lowest_key":0,"highest_key":127,"reference_pitch_hz":440},
+        "channels":[{"input":"mono","output":"left","gain":1}],
+        "performance":{"pitch_bend_range":12,"breath":{"range":35,"pitch":true}}
+    }]});
+    let parse = |value: &Value| {
+        parse_synth_instrument(
+            &value.to_string(),
+            Format::Json,
+            PreparationLimits::default(),
+        )
+    };
+    let instrument = parse(&body).unwrap();
+    let VoiceSource::Yamaha {
+        performance: Some(performance),
+        ..
+    } = instrument.voices().voices()[0].source()
+    else {
+        panic!("expected DX7 performance settings");
+    };
+    assert_eq!(performance.pitch_bend_range, 12);
+    assert!(performance.breath.pitch);
+    assert_eq!(performance.breath.range, 35);
+    body["voices"][0]["performance"]["pitch_bend_range"] = json!(13);
+    assert!(parse(&body).is_err());
+    body["voices"][0]["performance"]["pitch_bend_range"] = json!(2);
+    body["voices"][0]["envelope"] = json!({"segments":[{"duration":"0 s","to":1}]});
+    assert!(
+        parse(&body)
+            .unwrap_err()
+            .to_string()
+            .contains("patch operator envelopes")
     );
 }
