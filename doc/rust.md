@@ -3,8 +3,16 @@
 The Cargo workspace implements checked pitch numbers, expression evaluation,
 `Computed`, `RatioTable`, `IntervalPattern`, `FrequencyTable`, `Tuning`, and the
 `TuningScore` envelope in `crates/ufor`. JSON/TOML interchange supports those
-definitions. Scale, Scala, Python bindings and WebAssembly remain
+definitions. Scale, Python bindings and WebAssembly remain
 outside this implementation.
+
+`scala::parse_scala` and `scala::scala_text` interchange repeating ratio
+tables. Imports use an ASCII integer pitch count, implicit unison and the
+last pitch as the repeat ratio. A decimal pitch is read in cents. Exports keep
+exact ratios as fractions and write approximate pitches to twelve decimal
+places in cents. Import uses the tuning table entry and document text
+limits. The [shared Scala cases](../conformance/scala.json) verify both
+languages against the same examples.
 
 The crate also implements [modulation routes, control declarations and binding
 value types](rust-modulation.md), including scalar reference evaluation and

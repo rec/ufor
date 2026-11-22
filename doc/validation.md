@@ -60,11 +60,11 @@ embedding as well as serialization. Current table values are checked during
 evaluation, with a 10,000-entry preparation cap. `Computed.as_ratios()` has the
 same materialization cap; a computed note count can otherwise span positive i64.
 
-The checked pitch parser is also used by Scala import/export. Out-of-range exact
-Scala ratios now fail with `ValueError`. Scale naming, interval calculations,
+Python and Rust Scala import/export use the checked pitch parser. Out-of-range
+exact Scala ratios fail during preparation. Scale naming, interval calculations,
 oscillator phase/duty/gain and general synth cents helpers retain their separate
 Python arithmetic. `Scale.frequency()` propagates the supplied tuning's range
-and arithmetic errors. These domains have not been ported to Rust.
+and arithmetic errors.
 
 Recursive composition models support direct construction, validation, and schema
 generation from their defining modules. Their model rebuild loads the supported

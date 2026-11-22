@@ -126,7 +126,7 @@ fn kind() -> String {
     "tuning".into()
 }
 
-fn whitespace(value: char) -> bool {
+pub(crate) fn whitespace(value: char) -> bool {
     // Python's selector validators also treat these C0 separators as whitespace.
     value.is_whitespace() || matches!(value, '\u{1c}'..='\u{1f}')
 }

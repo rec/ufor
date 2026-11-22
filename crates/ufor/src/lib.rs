@@ -21,6 +21,7 @@ pub mod performance_binding;
 pub mod playback;
 pub mod quantity;
 pub mod samples;
+pub mod scala;
 pub mod score;
 pub mod sequence;
 pub mod synth_pitch;

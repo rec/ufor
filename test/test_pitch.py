@@ -151,6 +151,35 @@ def test_scala_preserves_fractions_and_converts_decimal_cents() -> None:
         scala_text(RatioTable(ratios=['1']))
 
 
+def test_shared_scala_interchange() -> None:
+    vectors = json.loads(
+        (Path(__file__).parents[1] / 'conformance/scala.json').read_text()
+    )
+    for case in vectors['valid']:
+        table = parse_scala(case['source'], name=case['name'])
+        assert table.name == case['name']
+        assert table.description == case['description']
+        assert table.ratios == case['ratios']
+        assert table.repeat_ratio == case['repeat_ratio']
+        text = scala_text(table)
+        assert text == case['exported']
+        restored = parse_scala(text, name=case['name'])
+        for lookup in case['lookups']:
+            for candidate in (table, restored):
+                pitch = candidate(lookup['degree'])
+                if 'exact' in lookup:
+                    assert pitch == Fraction(lookup['exact'])
+                else:
+                    assert float(pitch) == pytest.approx(lookup['approx'], abs=1e-14)
+    for text in vectors['invalid_text']:
+        with pytest.raises(ValueError):
+            parse_scala(text)
+    for definition in vectors['invalid_export']:
+        table = RatioTable.model_validate(definition)
+        with pytest.raises(ValueError):
+            scala_text(table)
+
+
 @pytest.mark.parametrize(
     'document',
     [

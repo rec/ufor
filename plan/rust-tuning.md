@@ -275,9 +275,9 @@ features as ported on the strength of this milestone.
 
 Keep shared numeric and document-header behavior in reusable domain modules;
 future ports add modules to the same crate before considering crate splits.
-Scale/accidentals and Scala conversion are natural next milestones, followed by
-other domains according to consumer needs. Grow serialization coverage alongside
-each domain rather than adding opaque placeholders for every unported score.
+Scala conversion now has a native implementation and shared conformance cases
+in `conformance/scala.json`. Scale and accidental naming remain a follow-on
+milestone. Grow serialization coverage alongside each domain.
 
 Each later feature needs one documented portable contract and conformance cases
 exercised by both implementations. A wire-format change affects both languages;
