@@ -181,6 +181,13 @@ event tick in microseconds per quarter note. It applies to subsequent
 intervals. The clock accepts synchronous PPQN timing and leaves file decoding
 and MIDI dispatch to the host.
 
+`codec::parse_midi_bindings` reads the projected `midi` entries of a
+performance binding. Each entry supplies its channels, part, repeated-key
+release policy and optional controller and bend declarations. The prepared bindings
+retain part order and map primitive MIDI values to configured control
+ranges, including both asymmetric bend endpoints. The host resolves the
+instrument and tuning references and checks the mapped control ranges.
+
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a

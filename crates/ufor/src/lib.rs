@@ -16,6 +16,7 @@ pub mod modulation;
 pub mod musical;
 pub mod number;
 pub mod oscillator;
+pub mod performance_binding;
 pub mod quantity;
 pub mod samples;
 pub mod score;
