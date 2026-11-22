@@ -3,6 +3,7 @@ use ufor::codec::{self, Format};
 use ufor::envelfo::{PreparationLimits, Waveform};
 use ufor::identifier::Identifier;
 use ufor::modulation::Target;
+use ufor::samples::processing::TargetResolution;
 
 #[test]
 fn fm_graph_targets_and_order_follow_the_authored_definitions() {
@@ -46,6 +47,28 @@ fn fm_voice_settings_resolve_graph_and_processing_parameters_together() {
     let limits = PreparationLimits::default();
     let graph = codec::parse_fm(&corpus["graph"].to_string(), Format::Json, limits).unwrap();
     let source = &corpus["voice_settings"];
+    let voice_document = |settings: &Value| {
+        let mut voice = json!({
+            "name": "bell",
+            "mapping": {"lowest_key": 0, "highest_key": 127, "reference_pitch_hz": 440},
+            "channels": [{"input": "mono", "output": "mono", "gain": 1}],
+            "fm": corpus["graph"],
+        });
+        voice
+            .as_object_mut()
+            .unwrap()
+            .extend(settings.as_object().unwrap().clone());
+        json!({"voices": [voice]}).to_string()
+    };
+    let voices = codec::parse_synth_voices(&voice_document(source), Format::Json, limits).unwrap();
+    let voice = &voices.voices()[0];
+    for parameter in voice.settings().modulation().parameters() {
+        let TargetResolution::Resolved(target) = voice.resolve_target(parameter.target()).unwrap()
+        else {
+            panic!("expected resolved FM voice target");
+        };
+        assert_eq!(target.default_value, parameter.default_value());
+    }
     let resolve = |target: &Target| graph.resolve_target(target);
     let settings = codec::parse_sound_settings_with_targets(
         &source.to_string(),
@@ -75,6 +98,10 @@ fn fm_voice_settings_resolve_graph_and_processing_parameters_together() {
             .as_object_mut()
             .unwrap()
             .extend(spec["override"].as_object().unwrap().clone());
+        assert!(
+            codec::parse_synth_voices(&voice_document(&edited), Format::Json, limits).is_err(),
+            "{spec}"
+        );
         assert!(
             codec::parse_sound_settings_with_targets(
                 &edited.to_string(),

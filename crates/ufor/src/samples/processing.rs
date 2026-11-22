@@ -8,6 +8,7 @@ use crate::modulation::{Modulation, SourceScope};
 use crate::number::Rational;
 use crate::quantity::exact_seconds;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
+pub(crate) use settings::SoundWire;
 pub use settings::{
     BiquadCoefficients, EqualizerBand, FilterBoundary, FilterOrder, FilterResponse,
     FilterTolerance, Processing, ResolvedTarget, ResonantFilter, SoundSettings, SoundValidation,

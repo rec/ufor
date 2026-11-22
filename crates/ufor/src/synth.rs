@@ -1,16 +1,16 @@
 //! Shared synth-family voice metadata and mapped event selection.
 
-use crate::control::{Polarity, Scope};
-use crate::envelfo::wire::RootWire;
-use crate::envelfo::{self, Body, Generator, PreparationLimits};
+use crate::envelfo::{self, PreparationLimits};
 use crate::error::Error;
 use crate::fm::Fm;
 use crate::identifier::Identifier;
+use crate::modulation::Target;
 use crate::number::Rational;
 use crate::oscillator::Oscillator;
 use crate::quantity;
 use crate::samples::eligibility::{Trigger, VoiceMapping};
 use crate::samples::playback::Mapping;
+use crate::samples::processing::{ResolvedTarget, SoundSettings, SoundWire, TargetResolution};
 use crate::samples::routing::ChannelRoute;
 use crate::voice_admission::Choke;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
@@ -195,13 +195,15 @@ impl TryFrom<VoiceTemplatesDefinition> for VoiceTemplates {
     }
 }
 
-/// One mapped voice with its source and main amplitude definition.
+/// One mapped voice with its source and sound settings.
 #[derive(Debug, Serialize)]
 pub struct SynthVoice {
     #[serde(flatten)]
     template: VoiceTemplate,
     #[serde(flatten)]
     source: VoiceSource,
+    #[serde(flatten)]
+    settings: SoundSettings,
 }
 
 impl SynthVoice {
@@ -212,6 +214,15 @@ impl SynthVoice {
     pub fn source(&self) -> &VoiceSource {
         &self.source
     }
+
+    pub fn settings(&self) -> &SoundSettings {
+        &self.settings
+    }
+
+    pub fn resolve_target(&self, target: &Target) -> Result<TargetResolution, Error> {
+        self.settings
+            .resolve_target_with(target, |address| self.source.resolve_target(address))
+    }
 }
 
 #[derive(Debug, Serialize)]
@@ -220,15 +231,22 @@ pub enum VoiceSource {
     Oscillator {
         oscillator: Oscillator,
         synchronize_oscillator: bool,
-        envelope: Generator,
     },
     Noise {
         noise: NoiseKind,
-        envelope: Generator,
     },
     Fm {
         fm: Fm,
     },
+}
+
+impl VoiceSource {
+    fn resolve_target(&self, target: &Target) -> Option<ResolvedTarget> {
+        match self {
+            Self::Fm { fm } => fm.resolve_target(target),
+            _ => None,
+        }
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
@@ -237,36 +255,33 @@ pub enum NoiseKind {
     White,
 }
 
-/// Synth-family source projections in instrument declaration order.
+/// Mapped synth voices in instrument declaration order.
 #[derive(Debug, Serialize)]
 pub struct SynthVoices {
     voices: Vec<SynthVoice>,
 }
 
 impl SynthVoices {
-    pub(crate) fn decode(value: Value, limits: PreparationLimits) -> Result<Self, Error> {
-        #[derive(Deserialize)]
-        #[serde(deny_unknown_fields)]
-        struct Definition {
-            voices: Vec<Value>,
-        }
-
-        let definition: Definition =
-            serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
+    pub(crate) fn decode<'de, D: Deserializer<'de>>(
+        decoder: D,
+        limits: PreparationLimits,
+    ) -> Result<Self, Error> {
+        let definition = SynthVoicesDefinition::deserialize(decoder)
+            .map_err(|error| invalid(error.to_string()))?;
         let mut records = 1;
         limits.check_records(records)?;
         let mut voices = Vec::new();
-        for value in definition.voices {
-            let Value::Object(mut fields) = value else {
-                return Err(invalid("expected a synth voice object"));
-            };
-            let oscillator = fields.remove("oscillator");
-            let sync = fields.remove("synchronize_oscillator");
-            let noise = fields.remove("noise");
-            let fm = fields.remove("fm");
-            let envelope = fields.remove("envelope");
-            let template: VoiceTemplate = serde_json::from_value(Value::Object(fields))
-                .map_err(|error| invalid(error.to_string()))?;
+        for voice in definition.voices {
+            let SynthVoiceDefinition {
+                template,
+                oscillator,
+                synchronize_oscillator: sync,
+                noise,
+                fm,
+                envelope,
+                mut settings,
+            } = voice;
+            let template = VoiceTemplate::try_from(template)?;
             records += template.records();
             if records > limits.max_records() {
                 return Err(Error::Limit("synth voice template records"));
@@ -279,14 +294,13 @@ impl SynthVoices {
                     let synchronize_oscillator = sync
                         .map_or(Ok(false), serde_json::from_value)
                         .map_err(|error| invalid(error.to_string()))?;
-                    let (envelope, count) = amplitude_envelope(envelope, remaining)?;
+                    settings.envelope = Some(amplitude_envelope(envelope));
                     (
                         VoiceSource::Oscillator {
                             oscillator,
                             synchronize_oscillator,
-                            envelope,
                         },
-                        count + 1,
+                        1,
                     )
                 }
                 (None, Some(noise), None) if sync.is_none() => {
@@ -296,8 +310,8 @@ impl SynthVoices {
                     {
                         return Err(invalid("noise does not support pitch tracking or offsets"));
                     }
-                    let (envelope, count) = amplitude_envelope(envelope, remaining)?;
-                    (VoiceSource::Noise { noise, envelope }, count + 1)
+                    settings.envelope = Some(amplitude_envelope(envelope));
+                    (VoiceSource::Noise { noise }, 1)
                 }
                 (None, None, Some(fm)) if sync.is_none() => {
                     if envelope.is_some_and(|envelope| !envelope.is_null()) {
@@ -318,7 +332,25 @@ impl SynthVoices {
             };
             records += source_records;
             limits.check_records(records)?;
-            voices.push(SynthVoice { template, source });
+            // The voice template already accounts for the flat settings root.
+            let remaining = PreparationLimits::new(limits.max_records() - records + 1)?;
+            let settings = settings.prepare(remaining, |target| source.resolve_target(target))?;
+            if matches!(source, VoiceSource::Noise { .. })
+                && (settings.processing().tuning_cents() != 0.0
+                    || settings.modulation().parameters().iter().any(|parameter| {
+                        let target = parameter.target();
+                        target.name().as_str() == "processing"
+                            && target.parameter().as_str() == "tuning_cents"
+                    }))
+            {
+                return Err(invalid("noise does not support tuning"));
+            }
+            records += settings.records() - 1;
+            voices.push(SynthVoice {
+                template,
+                source,
+                settings,
+            });
         }
         validate_names(voices.iter().map(|voice| voice.template.name()))?;
         Ok(Self { voices })
@@ -344,26 +376,42 @@ impl SynthVoices {
     }
 }
 
-fn amplitude_envelope(
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SynthVoicesDefinition {
+    voices: Vec<SynthVoiceDefinition>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SynthVoiceDefinition {
+    #[serde(flatten)]
+    template: VoiceDefinition,
+    #[serde(flatten)]
+    settings: SoundWire,
+    #[serde(default, deserialize_with = "present_value")]
+    oscillator: Option<Value>,
+    #[serde(default, deserialize_with = "present_value")]
+    synchronize_oscillator: Option<Value>,
+    #[serde(default, deserialize_with = "present_value")]
+    noise: Option<Value>,
+    #[serde(default, deserialize_with = "present_value")]
+    fm: Option<Value>,
+    #[serde(default, deserialize_with = "present_value")]
     envelope: Option<Value>,
-    limits: PreparationLimits,
-) -> Result<(Generator, usize), Error> {
-    let envelope = envelope.unwrap_or_else(|| {
+}
+
+fn present_value<'de, D: Deserializer<'de>>(decoder: D) -> Result<Option<Value>, D::Error> {
+    Value::deserialize(decoder).map(Some)
+}
+
+fn amplitude_envelope(envelope: Option<Value>) -> Value {
+    envelope.unwrap_or_else(|| {
         json!({
             "segments": [{"duration": "0 s", "to": 1}],
             "release": [{"duration": "0 s", "to": 0}],
         })
-    });
-    let count = envelfo::preparation_records(&envelope, limits)?;
-    let generator = RootWire::envelope(envelope)?;
-    if generator.settings().scope() != Scope::Voice
-        || !matches!(generator.body(), Body::Envelope(body) if body.polarity() == Polarity::Unipolar)
-    {
-        return Err(invalid(
-            "amplitude envelope requires voice scope and unipolar levels",
-        ));
-    }
-    Ok((generator, count))
+    })
 }
 
 fn validate_names<'a>(names: impl Iterator<Item = &'a Identifier>) -> Result<(), Error> {

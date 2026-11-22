@@ -16,6 +16,8 @@
     {"voice": 0, "data": {"oscillator": {"duty_cycle": "5/4"}}},
     {"voice": 1, "data": {"noise": "pink"}},
     {"voice": 1, "data": {"frequency_offset_hz": "1 Hz"}},
+    {"voice": 1, "data": {"processing": {"tuning_cents": 10}}},
+    {"voice": 1, "data": {"modulation": {"parameters": [{"target": {"name": "processing", "parameter": "tuning_cents"}, "unit": "cents", "scope": "voice", "minimum": -100, "maximum": 100, "default": 0}]}}},
     {"voice": 1, "data": {"mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440}}},
     {"voice": 1, "data": {"synchronize_oscillator": false}},
     {"voice": 2, "data": {"envelope": {"segments": [{"duration": "0 s", "to": 1}]}}},

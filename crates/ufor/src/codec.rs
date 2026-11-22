@@ -229,7 +229,17 @@ pub fn parse_synth_voices(
     format: Format,
     limits: PreparationLimits,
 ) -> Result<SynthVoices, Error> {
-    SynthVoices::decode(parse_value(text, format)?, limits)
+    parse_value(text, format)?;
+    match format {
+        Format::Json => {
+            let mut decoder = serde_json::Deserializer::from_str(text);
+            SynthVoices::decode(&mut decoder, limits)
+        }
+        Format::Toml => SynthVoices::decode(
+            toml::de::Deserializer::parse(text).map_err(|e| Error::Invalid(e.to_string()))?,
+            limits,
+        ),
+    }
 }
 
 pub fn parse_sample_eligibility_context(

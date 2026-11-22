@@ -150,11 +150,13 @@ and unique route, choke and articulation entries. Enge passes this
 projection to its native trace matcher. The preparation budget counts the
 root, voices, routes, chokes and articulation references.
 
-`codec::parse_synth_voices` adds oscillator, white-noise or FM source
-definitions to the template projection. Oscillator and noise sources own a
-voice-scoped unipolar amplitude envelope. FM uses its operator envelopes.
-The same preparation budget also counts the source and envelope declarations.
-Enge uses this projection for native trace eligibility.
+`codec::parse_synth_voices` reads mapped oscillator, white-noise and FM voices
+with their flat SoundSettings fields. Oscillator and noise voices use the
+voice-scoped unipolar envelope in `SynthVoice::settings()`. FM uses its
+operator envelopes. `SynthVoice::resolve_target` resolves FM graph targets
+against the voice's own graph and delegates the rest to SoundSettings.
+The preparation budget covers the template, source and settings together.
+Enge decodes these voices before matching native trace eligibility.
 
 `samples::selection::Sequence::advance` returns the next take and partition
 state for cycle, seeded random, and shuffle. It preserves the portable

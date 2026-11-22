@@ -364,6 +364,10 @@ impl SoundValidation {
 }
 
 impl SoundSettings {
+    pub(crate) fn records(&self) -> usize {
+        self.records
+    }
+
     pub fn processing(&self) -> &Processing {
         static DEFAULT: std::sync::LazyLock<Processing> =
             std::sync::LazyLock::new(Processing::default);
@@ -601,17 +605,9 @@ impl SoundSettings {
         limits: PreparationLimits,
         engine: impl Fn(&Target) -> Option<ResolvedTarget>,
     ) -> Result<Self, D::Error> {
-        let wire = SoundWire::deserialize(d)?;
-        let data = serde_json::to_value(&wire).map_err(serde::de::Error::custom)?;
-        let records =
-            envelfo::preparation_records(&data, limits).map_err(serde::de::Error::custom)?;
-        let value = wire
-            .prepare(limits, records)
-            .map_err(serde::de::Error::custom)?;
-        value
-            .validate_context_with_targets(None, limits, engine)
-            .map_err(serde::de::Error::custom)?;
-        Ok(value)
+        SoundWire::deserialize(d)?
+            .prepare(limits, engine)
+            .map_err(serde::de::Error::custom)
     }
 }
 
@@ -623,10 +619,10 @@ impl<'de> Deserialize<'de> for SoundSettings {
 
 #[derive(Default, Serialize, Deserialize)]
 #[serde(default, deny_unknown_fields)]
-struct SoundWire {
+pub(crate) struct SoundWire {
     #[serde(deserialize_with = "processing")]
     processing: Option<Processing>,
-    envelope: Option<serde_json::Value>,
+    pub(crate) envelope: Option<serde_json::Value>,
     envelfos: Ordered<RootWire>,
     #[serde(deserialize_with = "modulation")]
     modulation: Option<ModulationDefinition>,
@@ -635,7 +631,13 @@ struct SoundWire {
 }
 
 impl SoundWire {
-    fn prepare(self, limits: PreparationLimits, records: usize) -> Result<SoundSettings, Error> {
+    pub(crate) fn prepare(
+        self,
+        limits: PreparationLimits,
+        engine: impl Fn(&Target) -> Option<ResolvedTarget>,
+    ) -> Result<SoundSettings, Error> {
+        let data = serde_json::to_value(&self).map_err(|error| invalid(&error.to_string()))?;
+        let records = envelfo::preparation_records(&data, limits)?;
         let envelope = self.envelope.map(|value| {
             let generator = RootWire::envelope(value)?;
             if !matches!(generator.body(), Body::Envelope(body) if body.polarity() == Polarity::Unipolar)
@@ -662,6 +664,7 @@ impl SoundWire {
             event_connections: self.event_connections,
             records,
         };
+        value.validate_context_with_targets(None, limits, engine)?;
         Ok(value)
     }
 }
