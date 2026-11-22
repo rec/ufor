@@ -226,6 +226,21 @@ budget counts the root and events, plus timebases and output declarations
 for a score. Python and Rust exercise the
 [shared sequence cases](../conformance/event-sequence.json).
 
+`codec::parse_sequence_selection` reads a nonempty half-open source interval,
+a destination start tick, a positive repetition count, and the active-note
+policy. `playback::state_at` reconstructs triggers and controls strictly before
+the requested tick. `playback::plan_playback` validates ownership through the
+selected end and checks that every destination boundary fits in signed 64-bit
+ticks. Its iterator builds one repetition at a time.
+
+Each repetition carries initial instrument and part controls, retimed
+performance events, captured records, and explicit boundary releases.
+Trigger identities are scoped by the selection name and iteration.
+The host applies controls, events, and cleanup in that order. Captured
+records retain their source ordinals and are available for inspection.
+The [shared playback cases](../conformance/sequence-playback.json) cover
+both active-note policies, control ordering, and cleanup across parts.
+
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a

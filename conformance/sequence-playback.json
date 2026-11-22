@@ -7,5 +7,45 @@
   "expected": [
     {"start": 0, "end": 3, "trigger_id": "clip-6-phrase-0-a", "trigger_tick": 0, "release_tick": 3},
     {"start": 3, "end": 6, "trigger_id": "clip-6-phrase-1-a", "trigger_tick": 3, "release_tick": 6}
-  ]
+  ],
+  "mixed": {
+    "sequence": {
+      "timebase": "clock", "start": -4, "end": 7,
+      "events": [
+        {"kind":"control_change","tick":-4,"ordinal":40,"scope":"part","part":"z","control":"gain","value":0.25},
+        {"kind":"trigger","tick":-3,"ordinal":30,"part":"z","trigger_id":"note","key":60,"velocity":0},
+        {"kind":"control_change","tick":-2,"ordinal":20,"scope":"trigger","part":"z","trigger_id":"note","control":"bend","value":0.5},
+        {"kind":"control_change","tick":-1,"ordinal":10,"scope":"instrument","control":"expression","value":0.75},
+        {"kind":"control_change","tick":0,"ordinal":0,"scope":"part","part":"z","control":"gain","value":0.5},
+        {"kind":"release","tick":1,"ordinal":50,"part":"z","trigger_id":"note"},
+        {"kind":"trigger","tick":1,"ordinal":51,"part":"z","trigger_id":"note","key":61},
+        {"kind":"trigger","tick":2,"ordinal":60,"part":"a","trigger_id":"note","key":62},
+        {"kind":"midi","tick":2,"ordinal":61,"data":[144,60,127]},
+        {"kind":"envelfo_change","tick":2,"ordinal":62,"part":"a","trigger_id":"note","name":"swell","action":"pause"},
+        {"kind":"release","tick":4,"ordinal":70,"part":"z","trigger_id":"note"}
+      ]
+    },
+    "selection": {"name":"écho","interval":{"start":1,"end":4},"start":-10},
+    "retrigger_active": {
+      "controls": [[0,"gain",0.5],[2,"expression",0.75]],
+      "events": [
+        ["trigger",-10,0,"z","clip-4-écho-0-note"],
+        ["control_change",-10,1,"z","clip-4-écho-0-note"],
+        ["release",-10,2,"z","clip-4-écho-0-note"],
+        ["trigger",-10,3,"z","clip-4-écho-0-note"],
+        ["trigger",-9,4,"a","clip-4-écho-0-note"]
+      ],
+      "captured": [["midi",-9,61],["envelfo_change",-9,62]],
+      "cleanup": [["z","clip-4-écho-0-note",5],["a","clip-4-écho-0-note",6]]
+    },
+    "omit_active": {
+      "controls": [[0,"gain",0.5],[2,"expression",0.75]],
+      "events": [
+        ["trigger",-10,0,"z","clip-4-écho-0-note"],
+        ["trigger",-9,1,"a","clip-4-écho-0-note"]
+      ],
+      "captured": [["midi",-9,61],["envelfo_change",-9,62]],
+      "cleanup": [["z","clip-4-écho-0-note",2],["a","clip-4-écho-0-note",3]]
+    }
+  }
 }

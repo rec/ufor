@@ -15,6 +15,7 @@ use crate::fm::Fm;
 use crate::modulation::Modulation;
 use crate::oscillator::Oscillator;
 use crate::performance_binding::MidiBindings;
+use crate::playback::SequenceSelection;
 use crate::samples::eligibility::{Context as EligibilityContext, Eligibility, VoiceEligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
 use crate::samples::processing::SoundSettings;
@@ -107,6 +108,15 @@ pub fn event_sequence_text(value: &EventSequence, format: Format) -> Result<Stri
     if matches!(format, Format::Toml) {
         value.check_toml()?;
     }
+    write(value, format)
+}
+
+pub fn parse_sequence_selection(text: &str, format: Format) -> Result<SequenceSelection, Error> {
+    serde_json::from_value(parse_value(text, format)?)
+        .map_err(|error| Error::Invalid(error.to_string()))
+}
+
+pub fn sequence_selection_text(value: &SequenceSelection, format: Format) -> Result<String, Error> {
     write(value, format)
 }
 

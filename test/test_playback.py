@@ -1,5 +1,8 @@
 """Transport boundaries, ownership, and inert raw capture."""
 
+from json import loads
+from pathlib import Path
+
 import pytest
 
 from ufor.events import ControlChange, MidiEvent, Release, Trigger
@@ -144,10 +147,7 @@ def test_empty_sequence_and_invalid_selection() -> None:
 
 
 def test_portable_loop_example() -> None:
-    import json
-    from pathlib import Path
-
-    case = json.loads(Path('conformance/sequence-playback.json').read_text())
+    case = loads(Path('conformance/sequence-playback.json').read_text())
     loops = plan_playback(
         EventSequence.model_validate(case['sequence']),
         SequenceSelection.model_validate(case['selection']),
@@ -162,6 +162,25 @@ def test_portable_loop_example() -> None:
         )
         for x in loops
     ] == case['expected']
+
+
+@pytest.mark.parametrize('mode', ['retrigger_active', 'omit_active'])
+def test_shared_playback_preserves_control_order_and_capture(mode: str) -> None:
+    case = loads(Path('conformance/sequence-playback.json').read_text())['mixed']
+    selection = SequenceSelection.model_validate(
+        case['selection'] | {'active_notes': mode}
+    )
+    source = EventSequence.model_validate(case['sequence'])
+    plan = next(plan_playback(source, selection)).model_dump(mode='json')
+    fields = {
+        'controls': ('ordinal', 'control', 'value'),
+        'events': ('kind', 'tick', 'ordinal', 'part', 'trigger_id'),
+        'captured': ('kind', 'tick', 'ordinal'),
+        'cleanup': ('part', 'trigger_id', 'ordinal'),
+    }
+    assert {k: [[e[f] for f in v] for e in plan[k]] for k, v in fields.items()} == case[
+        mode
+    ]
 
 
 def test_reused_ids_and_independent_parts_keep_distinct_ownership() -> None:

@@ -3,6 +3,46 @@
 use crate::{error::Error, identifier::Identifier};
 use serde::{Deserialize, Serialize};
 
+/// Nonempty half-open interval in native ticks.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(try_from = "TickRangeDefinition")]
+pub struct TickRange {
+    start: i64,
+    end: i64,
+}
+
+impl TickRange {
+    pub fn new(start: i64, end: i64) -> Result<Self, Error> {
+        if end <= start {
+            return Err(Error::Invalid("end must be greater than start".into()));
+        }
+        Ok(Self { start, end })
+    }
+
+    pub fn start(self) -> i64 {
+        self.start
+    }
+
+    pub fn end(self) -> i64 {
+        self.end
+    }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct TickRangeDefinition {
+    start: i64,
+    end: i64,
+}
+
+impl TryFrom<TickRangeDefinition> for TickRange {
+    type Error = Error;
+
+    fn try_from(value: TickRangeDefinition) -> Result<Self, Error> {
+        Self::new(value.start, value.end)
+    }
+}
+
 /// A positive declared rate. The denominator is kept as authored.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize, Serialize)]
 #[serde(try_from = "RateDefinition")]
