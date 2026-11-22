@@ -12,14 +12,14 @@ use crate::error::Error;
 use crate::events::captured::JsonCapture;
 use crate::events::{EventKind, PerformanceEvent, PerformancePayload, StoredEvent};
 use crate::fm::Fm;
-use crate::modulation::Modulation;
+use crate::modulation::{Modulation, Target};
 use crate::oscillator::Oscillator;
 use crate::performance_binding::MidiBindings;
 use crate::playback::SequenceSelection;
 use crate::samples::articulations::Articulations;
 use crate::samples::eligibility::{Context as EligibilityContext, Eligibility, VoiceEligibility};
 use crate::samples::playback::{Mapping, Playback, Slice, SlotPlayback};
-use crate::samples::processing::SoundSettings;
+use crate::samples::processing::{ResolvedTarget, SoundSettings};
 use crate::samples::selection::{Sequence, TakeSelector};
 use crate::samples::variation::Variation;
 use crate::samples::{assets::Inventory, crossfade::Crossfade};
@@ -371,19 +371,29 @@ pub fn parse_sound_settings(
     format: Format,
     limits: PreparationLimits,
 ) -> Result<SoundSettings, Error> {
+    parse_sound_settings_with_targets(text, format, limits, |_| None)
+}
+
+pub fn parse_sound_settings_with_targets(
+    text: &str,
+    format: Format,
+    limits: PreparationLimits,
+    engine: impl Fn(&Target) -> Option<ResolvedTarget>,
+) -> Result<SoundSettings, Error> {
     let data = parse_value(text, format)?;
     crate::envelfo::preparation_records(&data, limits)?;
     match format {
         Format::Json => {
             let mut decoder = serde_json::Deserializer::from_str(text);
-            let value = SoundSettings::decode(&mut decoder, limits)
+            let value = SoundSettings::decode_with_targets(&mut decoder, limits, engine)
                 .map_err(|e| Error::Invalid(e.to_string()))?;
             decoder.end().map_err(|e| Error::Invalid(e.to_string()))?;
             Ok(value)
         }
-        Format::Toml => SoundSettings::decode(
+        Format::Toml => SoundSettings::decode_with_targets(
             toml::de::Deserializer::parse(text).map_err(|e| Error::Invalid(e.to_string()))?,
             limits,
+            engine,
         )
         .map_err(|e| Error::Invalid(e.to_string())),
     }

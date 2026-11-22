@@ -15,6 +15,24 @@
     "carrier_level":0.75
   },
   "execution_order":[3,1,0,2],
+  "voice_settings": {
+    "processing": {"tuning_cents": 15},
+    "modulation": {
+      "parameters": [
+        {"target":{"name":"operator-a","parameter":"ratio"},"unit":"ratio","scope":"voice","minimum":0.5,"maximum":3,"default":1.5},
+        {"target":{"name":"edge-mod","parameter":"index"},"unit":"radians","scope":"voice","minimum":0,"maximum":8,"default":2},
+        {"target":{"name":"fm","parameter":"carrier_level"},"unit":"ratio","scope":"voice","minimum":0,"maximum":2,"default":0.75},
+        {"target":{"name":"processing","parameter":"tuning_cents"},"unit":"cents","scope":"voice","minimum":-100,"maximum":100,"default":15}
+      ]
+    }
+  },
+  "invalid_settings_parameters": [
+    {"index":0,"override":{"minimum":0}},
+    {"index":0,"override":{"default":2}},
+    {"index":1,"override":{"minimum":-1}},
+    {"index":2,"override":{"minimum":-1}},
+    {"index":3,"override":{"default":0}}
+  ],
   "targets":[
     ["fm","carrier_level","ratio",0.75,"nonnegative"],
     ["operator-a","ratio","ratio",1.5,"positive"],

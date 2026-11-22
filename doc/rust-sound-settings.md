@@ -102,6 +102,14 @@ depth limits. See the [shared cases](../conformance/sound-settings.json).
 
 The shared body resolves the base families above. FM, sample inheritance,
 channel routing, and effect processor targets use their own Rust modules.
+Use `codec::parse_sound_settings_with_targets` with `Fm::resolve_target`
+to validate an FM voice's settings against its graph and shared processing
+addresses together. A resolved target checks its unit, authored default,
+scope when specified, and minimum domain through
+`ResolvedTarget::validate_parameter`. Enge uses the same checks when it
+prepares native modulation slots. The
+[shared FM cases](../conformance/fm-graph.json) cover mixed target families.
+
 Use `samples::routing::spatial_bounds` to compute each pan or balance range
 from an instrument or effective slot settings layer. Delayed or fading inline
 LFOs include the neutral route contribution during activation. Materialize

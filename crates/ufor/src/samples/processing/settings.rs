@@ -6,7 +6,7 @@ use crate::envelfo::wire::{Ordered, RootWire};
 use crate::envelfo::{self, Body, Clock, EnvelopeSegment, Generator, PreparationLimits};
 use crate::error::Error;
 use crate::identifier::Identifier;
-use crate::modulation::{Modulation, ModulationDefinition, Operation, Target, Unit};
+use crate::modulation::{Modulation, ModulationDefinition, Operation, Parameter, Target, Unit};
 use crate::number::Rational;
 use crate::quantity;
 use crate::samples::bindings::{BindingValidation, validate_available_bindings};
@@ -288,6 +288,22 @@ pub struct ResolvedTarget {
     pub minimum: TargetMinimum,
 }
 
+impl ResolvedTarget {
+    pub fn validate_parameter(&self, parameter: &Parameter) -> Result<(), Error> {
+        if parameter.unit() != self.unit || parameter.default_value() != self.default_value {
+            return Err(invalid(
+                "parameter unit and default must match the bound setting",
+            ));
+        }
+        if self.scope.is_some_and(|scope| scope != parameter.scope()) {
+            return Err(invalid(
+                "Envelope parameter scope must match its definition",
+            ));
+        }
+        self.minimum.validate(parameter.minimum())
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum TargetMinimum {
@@ -307,12 +323,12 @@ impl TargetMinimum {
 
     fn validate(self, minimum: f64) -> Result<(), Error> {
         match self {
-            Self::Nonnegative if minimum < 0.0 => {
-                Err(invalid("amplitude requires a nonnegative domain"))
-            }
-            Self::Positive if minimum <= 0.0 => {
-                Err(invalid("resonance requires a positive domain"))
-            }
+            Self::Nonnegative if minimum < 0.0 => Err(invalid(
+                "Modulation domain conflicts with the authored setting: requires a nonnegative domain",
+            )),
+            Self::Positive if minimum <= 0.0 => Err(invalid(
+                "Modulation domain conflicts with the authored setting: requires a positive domain",
+            )),
             _ => Ok(()),
         }
     }
@@ -469,11 +485,33 @@ impl SoundSettings {
         }))
     }
 
+    /// Resolve engine-owned addresses before falling back to shared settings.
+    pub fn resolve_target_with(
+        &self,
+        target: &Target,
+        engine: impl FnOnce(&Target) -> Option<ResolvedTarget>,
+    ) -> Result<TargetResolution, Error> {
+        match engine(target) {
+            Some(facts) => Ok(TargetResolution::Resolved(facts)),
+            None => self.resolve_target(target),
+        }
+    }
+
     /// Validate supplied instrument controls and report obligations in declaration order.
     pub fn validate_context(
         &self,
         controls: Option<&BTreeMap<Identifier, ControlDeclaration>>,
         limits: PreparationLimits,
+    ) -> Result<SoundValidation, Error> {
+        self.validate_context_with_targets(controls, limits, |_| None)
+    }
+
+    /// Validate a settings layer with the owning engine's authored target facts.
+    pub fn validate_context_with_targets(
+        &self,
+        controls: Option<&BTreeMap<Identifier, ControlDeclaration>>,
+        limits: PreparationLimits,
+        engine: impl Fn(&Target) -> Option<ResolvedTarget>,
     ) -> Result<SoundValidation, Error> {
         limits.check_records(
             self.records
@@ -498,29 +536,17 @@ impl SoundSettings {
         let mut outstanding = Vec::new();
         for parameter in self.modulation().parameters() {
             let target = parameter.target();
-            match self.resolve_target(target)? {
-                TargetResolution::Resolved(value) => {
-                    if parameter.unit() != value.unit
-                        || parameter.default_value() != value.default_value
-                    {
-                        return Err(invalid(
-                            "parameter unit and default must match the bound setting",
-                        ));
-                    }
-                    if value.scope.is_some_and(|scope| scope != parameter.scope()) {
-                        return Err(invalid(
-                            "Envelope parameter scope must match its definition",
-                        ));
-                    }
-                }
+            match self.resolve_target_with(target, &engine)? {
+                TargetResolution::Resolved(value) => value.validate_parameter(parameter)?,
                 TargetResolution::UnresolvedGenerator { scope } => {
                     if scope != parameter.scope() {
                         return Err(invalid("Envelfo parameter scope must match its use"));
                     }
+                    TargetMinimum::for_field(target.parameter().as_str())
+                        .validate(parameter.minimum())?;
                     outstanding.push(target.clone());
                 }
             }
-            TargetMinimum::for_field(target.parameter().as_str()).validate(parameter.minimum())?;
         }
         let event_sources: BTreeSet<_> = self
             .bindings
@@ -567,12 +593,25 @@ impl SoundSettings {
         d: D,
         limits: PreparationLimits,
     ) -> Result<Self, D::Error> {
+        Self::decode_with_targets(d, limits, |_| None)
+    }
+
+    pub(crate) fn decode_with_targets<'de, D: Deserializer<'de>>(
+        d: D,
+        limits: PreparationLimits,
+        engine: impl Fn(&Target) -> Option<ResolvedTarget>,
+    ) -> Result<Self, D::Error> {
         let wire = SoundWire::deserialize(d)?;
         let data = serde_json::to_value(&wire).map_err(serde::de::Error::custom)?;
         let records =
             envelfo::preparation_records(&data, limits).map_err(serde::de::Error::custom)?;
-        wire.prepare(limits, records)
-            .map_err(serde::de::Error::custom)
+        let value = wire
+            .prepare(limits, records)
+            .map_err(serde::de::Error::custom)?;
+        value
+            .validate_context_with_targets(None, limits, engine)
+            .map_err(serde::de::Error::custom)?;
+        Ok(value)
     }
 }
 
@@ -623,7 +662,6 @@ impl SoundWire {
             event_connections: self.event_connections,
             records,
         };
-        value.validate_context(None, limits)?;
         Ok(value)
     }
 }

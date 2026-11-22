@@ -38,3 +38,52 @@ fn fm_graph_targets_and_order_follow_the_authored_definitions() {
     assert!(codec::parse_fm(&text, Format::Json, PreparationLimits::new(11).unwrap()).is_ok());
     assert!(codec::parse_fm(&text, Format::Json, PreparationLimits::new(10).unwrap()).is_err());
 }
+
+#[test]
+fn fm_voice_settings_resolve_graph_and_processing_parameters_together() {
+    let corpus: Value =
+        serde_json::from_str(include_str!("../../../conformance/fm-graph.json")).unwrap();
+    let limits = PreparationLimits::default();
+    let graph = codec::parse_fm(&corpus["graph"].to_string(), Format::Json, limits).unwrap();
+    let source = &corpus["voice_settings"];
+    let resolve = |target: &Target| graph.resolve_target(target);
+    let settings = codec::parse_sound_settings_with_targets(
+        &source.to_string(),
+        Format::Json,
+        limits,
+        resolve,
+    )
+    .unwrap();
+    assert!(
+        settings
+            .validate_context_with_targets(None, limits, resolve)
+            .unwrap()
+            .is_complete()
+    );
+    assert!(codec::parse_sound_settings(&source.to_string(), Format::Json, limits).is_err());
+    let text = codec::sound_settings_text(&settings, Format::Toml).unwrap();
+    let restored =
+        codec::parse_sound_settings_with_targets(&text, Format::Toml, limits, resolve).unwrap();
+    assert_eq!(
+        serde_json::to_value(restored).unwrap(),
+        serde_json::to_value(settings).unwrap(),
+    );
+    for spec in corpus["invalid_settings_parameters"].as_array().unwrap() {
+        let mut edited = source.clone();
+        let index = spec["index"].as_u64().unwrap() as usize;
+        edited["modulation"]["parameters"][index]
+            .as_object_mut()
+            .unwrap()
+            .extend(spec["override"].as_object().unwrap().clone());
+        assert!(
+            codec::parse_sound_settings_with_targets(
+                &edited.to_string(),
+                Format::Json,
+                limits,
+                resolve,
+            )
+            .is_err(),
+            "{spec}"
+        );
+    }
+}

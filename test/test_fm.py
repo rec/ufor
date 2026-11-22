@@ -1,3 +1,4 @@
+from copy import deepcopy
 from json import loads
 from pathlib import Path
 
@@ -62,6 +63,26 @@ def test_fm_declarations_and_targets_match_the_shared_corpus() -> None:
     for raw in corpus['rejected']:
         with pytest.raises(ValueError):
             FM.model_validate(raw)
+
+
+def test_fm_voice_settings_resolve_graph_and_processing_parameters_together() -> None:
+    corpus = loads(
+        (Path(__file__).parents[1] / 'conformance' / 'fm-graph.json').read_text()
+    )
+    template = {
+        'name': 'bell',
+        'mapping': {'lowest_key': 0, 'highest_key': 127, 'reference_pitch_hz': 440},
+        'channels': [{'input': 'mono', 'output': 'mono', 'gain': 1}],
+        'fm': corpus['graph'],
+    }
+    authored = corpus['voice_settings']
+    definition = FMVoice.model_validate(template | authored)
+    assert len(definition.modulation.parameters) == 4
+    for spec in corpus['invalid_settings_parameters']:
+        settings = deepcopy(authored)
+        settings['modulation']['parameters'][spec['index']].update(spec['override'])
+        with pytest.raises(ValueError):
+            FMVoice.model_validate(template | settings)
 
 
 def test_fm_uses_shared_trigger_and_release_preparation() -> None:
