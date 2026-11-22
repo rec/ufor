@@ -12,4 +12,5 @@ pub mod processing;
 mod random;
 pub mod routing;
 pub mod selection;
+pub mod slots;
 pub mod variation;

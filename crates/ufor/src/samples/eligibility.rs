@@ -104,8 +104,8 @@ pub struct Context {
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields)]
-struct Slot {
-    name: Identifier,
+pub(super) struct Slot {
+    pub(super) name: Identifier,
     mapping: Mapping,
     #[serde(default)]
     trigger: Trigger,
@@ -190,8 +190,12 @@ impl Eligibility {
     pub(crate) fn decode(value: serde_json::Value, maximum: usize) -> Result<Self, Error> {
         let slots: Vec<Slot> =
             serde_json::from_value(value).map_err(|error| invalid(error.to_string()))?;
-        let mut names = BTreeSet::new();
         quantity::record_budget(slots.len(), maximum)?;
+        Self::prepare(slots)
+    }
+
+    pub(super) fn prepare(slots: Vec<Slot>) -> Result<Self, Error> {
+        let mut names = BTreeSet::new();
         for slot in &slots {
             if !names.insert(&slot.name) {
                 return Err(invalid("duplicate sample slot"));

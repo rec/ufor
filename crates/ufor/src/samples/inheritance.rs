@@ -13,8 +13,8 @@ enum Selection {
 }
 
 #[derive(Debug, Default, Deserialize)]
-#[serde(default, deny_unknown_fields)]
-struct Layer {
+#[serde(default)]
+pub(super) struct Layer {
     #[serde(deserialize_with = "present_value")]
     processing: Option<Box<RawValue>>,
     #[serde(deserialize_with = "present_value")]
@@ -47,9 +47,18 @@ pub fn resolve_slot_settings(
     group: Option<&str>,
 ) -> Result<ResolvedSlotSettings, Error> {
     let slot = decode_layer(slot)?;
-    let group = group.map(decode_layer).transpose()?.unwrap_or_default();
-    let inherited_selection = match group.selection {
-        Some(Selection::Named(value)) => Some(value),
+    let group = group.map(decode_layer).transpose()?;
+    resolve_layers(slot, group.as_ref())
+}
+
+pub(super) fn resolve_layers(
+    slot: Layer,
+    group: Option<&Layer>,
+) -> Result<ResolvedSlotSettings, Error> {
+    let default_group = Layer::default();
+    let group = group.unwrap_or(&default_group);
+    let inherited_selection = match &group.selection {
+        Some(Selection::Named(value)) => Some(value.clone()),
         None => None,
         Some(Selection::Switch(_)) => {
             return Err(invalid("group selection must be a name or null"));
@@ -61,22 +70,29 @@ pub fn resolve_slot_settings(
         Some(Selection::Switch(true)) => return Err(invalid("slot selection cannot be true")),
         None => inherited_selection,
     };
-    let envelope = slot.envelope.or(group.envelope);
+    let envelope = slot.envelope.or_else(|| group.envelope.clone());
     if envelope.as_ref().is_some_and(|value| value.get() == "true") {
         return Err(invalid("envelope cannot be true"));
     }
     let settings = [
-        ("processing", slot.processing.or(group.processing)),
+        (
+            "processing",
+            slot.processing.or_else(|| group.processing.clone()),
+        ),
         (
             "envelope",
             envelope.filter(|value| !matches!(value.get(), "false" | "null")),
         ),
-        ("envelfos", slot.envelfos.or(group.envelfos)),
-        ("modulation", slot.modulation.or(group.modulation)),
-        ("bindings", slot.bindings.or(group.bindings)),
+        ("envelfos", slot.envelfos.or_else(|| group.envelfos.clone())),
+        (
+            "modulation",
+            slot.modulation.or_else(|| group.modulation.clone()),
+        ),
+        ("bindings", slot.bindings.or_else(|| group.bindings.clone())),
         (
             "event_connections",
-            slot.event_connections.or(group.event_connections),
+            slot.event_connections
+                .or_else(|| group.event_connections.clone()),
         ),
     ]
     .into_iter()
@@ -89,7 +105,23 @@ pub fn resolve_slot_settings(
 }
 
 fn decode_layer(text: &str) -> Result<Layer, Error> {
-    codec::parse_value(text, codec::Format::Json)?;
+    let value = codec::parse_value(text, codec::Format::Json)?;
+    if let Some(fields) = value.as_object() {
+        for field in fields.keys() {
+            if !matches!(
+                field.as_str(),
+                "processing"
+                    | "envelope"
+                    | "envelfos"
+                    | "modulation"
+                    | "bindings"
+                    | "event_connections"
+                    | "selection"
+            ) {
+                return Err(invalid(format!("unknown slot settings field {field}")));
+            }
+        }
+    }
     serde_json::from_str(text).map_err(|error| invalid(error.to_string()))
 }
 

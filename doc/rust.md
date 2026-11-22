@@ -20,7 +20,7 @@ declarations.
 | `sequence` | JSON/TOML score, ordered event body, and sequence playback planning |
 | `automation` | JSON/TOML score, control curves, and scalar evaluation |
 | `synth_instrument` | JSON/TOML score and standalone body, including public ports, timebases, and oscillator, FM, noise and Yamaha voices |
-| `instrument` | Sampler preparation APIs for asset inventory, slot settings, eligibility, selection, and traversal |
+| `instrument` | Sampler preparation APIs for asset inventory, authored slot predicates and settings, selection, and traversal |
 | `performance_binding` | JSON/TOML score, MIDI channel assignments, and contextual preparation against supplied controls and resolved tunings |
 | `arrangement` | `parse_control_clip` prepares automation placement and exact source requests |
 | `animation` | Standalone envelope curves and LFO definitions |
@@ -113,9 +113,12 @@ phase wraps and block boundaries. Both values are in sample-rate units.
 [Portable SoundSettings](rust-sound-settings.md) adds processing declarations,
 base target resolution and contextual validation for the settings body.
 
-`samples::inheritance::resolve_slot_settings` combines the projected JSON
-categories and selection of a sample slot and its optional group.
+`samples::slots::PreparedSlots::from_json` reads the slots and groups
+directly from an authored sampler body. It prepares the eligibility
+predicates and resolves each slot's settings and selection with its group.
 It preserves nested declaration order for decoding with SoundSettings.
+`samples::inheritance::resolve_slot_settings` applies the same inheritance
+rules to individual setting fragments.
 The [shared cases](../conformance/slot-settings.json) cover inherited
 categories, explicit resets, and selection opt-out.
 
