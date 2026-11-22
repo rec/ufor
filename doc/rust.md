@@ -187,6 +187,12 @@ release policy and optional controller and bend declarations. The prepared bindi
 retain part order and map primitive MIDI values to configured control
 ranges, including both asymmetric bend endpoints. The host resolves the
 instrument and tuning references and checks the mapped control ranges.
+`performance_binding::HeldNotes` owns one source's held-note queues,
+admission limit, and trigger IDs. It resolves a note against the supplied
+tuning or 12-tone equal temperament with A4 at 440 Hz. It pairs releases
+using the supplied channel policy and requires explicit restart after loss.
+Restart retains the trigger ID counter. The host supplies event coordinates
+and order.
 
 `samples::cursor::Cursor` advances a validated slice in native frames. It
 handles pending loop boundaries, release, overlap taps, whole plays, and end

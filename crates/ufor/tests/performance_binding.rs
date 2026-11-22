@@ -1,7 +1,8 @@
 use serde_json::{Value, json};
 use ufor::codec::{Format, parse_midi_bindings};
 use ufor::envelfo::PreparationLimits;
-use ufor::performance_binding::RepeatedKeyRelease;
+use ufor::identifier::Identifier;
+use ufor::performance_binding::{HeldNotes, RepeatedKeyRelease};
 
 const BINDINGS: &str = r#"{"midi":[
     {"channels":[16,1],"part":"lead","repeated_key_release":"newest",
@@ -83,4 +84,34 @@ fn portable_bindings_reject_ambiguous_routes_and_invalid_ranges() {
             .is_err()
         );
     }
+}
+
+#[test]
+fn held_notes_preserve_channel_pairing_and_ids_across_restart() {
+    let mut notes = HeldNotes::new(Identifier::new("keys".into()).unwrap(), 3).unwrap();
+    let first = notes.note_on(1, 69, 127, None).unwrap();
+    let second = notes.note_on(1, 69, 64, None).unwrap();
+    let other = notes.note_on(2, 69, 127, None).unwrap();
+    assert_eq!((first.velocity, first.pitch_hz), (1.0, 440.0));
+    assert_eq!(
+        notes.note_off(1, 69, RepeatedKeyRelease::Newest).unwrap(),
+        second.trigger_id
+    );
+    assert_eq!(
+        notes.note_off(2, 69, RepeatedKeyRelease::Oldest).unwrap(),
+        other.trigger_id
+    );
+    assert_eq!(
+        notes.note_off(1, 69, RepeatedKeyRelease::Oldest).unwrap(),
+        first.trigger_id
+    );
+    assert!(notes.note_off(1, 69, RepeatedKeyRelease::Oldest).is_err());
+    assert!(notes.stopped());
+    notes.restart();
+    assert_eq!(
+        notes.note_on(1, 69, 127, None).unwrap().trigger_id,
+        "keys-note-3"
+    );
+    assert!(notes.finish().is_err());
+    assert!(notes.stopped());
 }

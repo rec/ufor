@@ -1,14 +1,152 @@
 //! Prepared MIDI 1 channel assignments and control mappings.
 
+use crate::tuning::Tuning;
 use crate::{envelfo::PreparationLimits, error::Error, identifier::Identifier};
 use serde::Deserialize;
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum RepeatedKeyRelease {
     Oldest,
     Newest,
+}
+
+/// Resolved facts for a note onset, before host coordinates are attached.
+#[derive(Debug, PartialEq)]
+pub struct NoteStart {
+    pub trigger_id: String,
+    pub velocity: f64,
+    pub pitch_hz: f64,
+}
+
+/// Held-note state for one MIDI source, independent of host timing.
+pub struct HeldNotes {
+    source: Identifier,
+    limit: usize,
+    held: BTreeMap<(u8, u8), VecDeque<u64>>,
+    count: usize,
+    next_id: u64,
+    stopped: bool,
+}
+
+impl HeldNotes {
+    pub fn new(source: Identifier, limit: usize) -> Result<Self, Error> {
+        if limit == 0 {
+            return Err(invalid("max_held_notes must be a positive integer"));
+        }
+        Ok(Self {
+            source,
+            limit,
+            held: BTreeMap::new(),
+            count: 0,
+            next_id: 0,
+            stopped: false,
+        })
+    }
+
+    pub fn source(&self) -> &Identifier {
+        &self.source
+    }
+
+    pub fn stopped(&self) -> bool {
+        self.stopped
+    }
+
+    pub fn note_on(
+        &mut self,
+        channel: u8,
+        key: u8,
+        velocity: u8,
+        tuning: Option<&Tuning>,
+    ) -> Result<NoteStart, Error> {
+        self.require_running()?;
+        if channel_index(channel).is_none() || key > 127 || !(1..=127).contains(&velocity) {
+            return self.fail("Invalid MIDI note-on");
+        }
+        if self.count >= self.limit {
+            return self.fail("MIDI held-note limit exceeded");
+        }
+        let pitch_hz = match tuning {
+            Some(tuning) => match tuning.evaluate(i64::from(key)) {
+                Ok(pitch) => pitch.as_f64(),
+                Err(error) => return self.fail(format!("Cannot convert MIDI note {key}: {error}")),
+            },
+            None => 440.0 * 2.0_f64.powf((f64::from(key) - 69.0) / 12.0),
+        };
+        let id = self.next_id;
+        let Some(next) = id.checked_add(1) else {
+            return self.fail("MIDI trigger ID limit exceeded");
+        };
+        self.held.entry((channel, key)).or_default().push_back(id);
+        self.count += 1;
+        self.next_id = next;
+        Ok(NoteStart {
+            trigger_id: self.trigger_id(id),
+            velocity: f64::from(velocity) / 127.0,
+            pitch_hz,
+        })
+    }
+
+    pub fn note_off(
+        &mut self,
+        channel: u8,
+        key: u8,
+        policy: RepeatedKeyRelease,
+    ) -> Result<String, Error> {
+        self.require_running()?;
+        let address = (channel, key);
+        let Some(queue) = self.held.get_mut(&address) else {
+            return self.fail("Unmatched MIDI note-off");
+        };
+        let id = match policy {
+            RepeatedKeyRelease::Oldest => queue.pop_front(),
+            RepeatedKeyRelease::Newest => queue.pop_back(),
+        }
+        .expect("held queues are nonempty");
+        if queue.is_empty() {
+            self.held.remove(&address);
+        }
+        self.count -= 1;
+        Ok(self.trigger_id(id))
+    }
+
+    pub fn report_loss(&mut self) {
+        self.held.clear();
+        self.count = 0;
+        self.stopped = true;
+    }
+
+    /// Begin a fresh observation sequence without reusing trigger IDs.
+    pub fn restart(&mut self) {
+        self.report_loss();
+        self.stopped = false;
+    }
+
+    pub fn finish(&mut self) -> Result<(), Error> {
+        self.require_running()?;
+        if !self.held.is_empty() {
+            return self.fail("MIDI source ends with unreleased notes");
+        }
+        self.stopped = true;
+        Ok(())
+    }
+
+    fn require_running(&self) -> Result<(), Error> {
+        if self.stopped {
+            return Err(invalid("MIDI converter requires explicit restart"));
+        }
+        Ok(())
+    }
+
+    fn trigger_id(&self, id: u64) -> String {
+        format!("{}-note-{id}", self.source.as_str())
+    }
+
+    fn fail<T>(&mut self, message: impl Into<String>) -> Result<T, Error> {
+        self.report_loss();
+        Err(invalid(message))
+    }
 }
 
 /// Bound destination for one decoded control value.
