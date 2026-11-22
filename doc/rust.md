@@ -161,7 +161,8 @@ count. TOML integers use their signed 64-bit format domain.
 handles pending loop boundaries, release, overlap taps, whole plays, and end
 fades. The host can copy the cursor for interpolation lookahead and restore a
 `CursorState` for continuation. It supplies audio and applies the returned
-taps and gains.
+taps and gains. `Cursor::active_prefix` bounds control batches with the
+maximum cursor step, the remaining traversal, and any latched end fade.
 
 Generator execution belongs to the separate `engelfo` crate. Enge uses Rust uFor
 for supported generator, Patch, binding and modulation preparation, and resolves

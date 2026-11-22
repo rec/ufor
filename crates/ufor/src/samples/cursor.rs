@@ -156,6 +156,50 @@ impl Cursor {
         self
     }
 
+    /// Bound a control batch before a predicted exhaustion or end fade.
+    ///
+    /// The caller limits the request to the next release and supplies an upper
+    /// bound on the cursor step. A zero result means the current frame is
+    /// already silent. An uncertain final frame is processed by itself.
+    pub fn active_prefix(
+        mut self,
+        frame: i64,
+        release_now: bool,
+        maximum_step: f64,
+        requested: usize,
+    ) -> usize {
+        if release_now {
+            self.release();
+        }
+        self.settle(frame);
+        if self.state.exhausted.is_some() {
+            return 0;
+        }
+        let mut frames = requested;
+        if self.end_fade_frames > 0.0 {
+            if let Some(at) = self.state.end_fade_at {
+                let elapsed = (frame - at) as f64;
+                let remaining = (self.end_fade_frames.ceil() - elapsed).max(0.0);
+                frames = frames.min(remaining as usize);
+            }
+        }
+        if let Some(distance) = self.remaining() {
+            if !maximum_step.is_finite() || maximum_step <= 0.0 {
+                return frames.min(1);
+            }
+            let remaining = distance * self.rate + self.state.error.min(0.0);
+            let horizon = remaining / maximum_step;
+            // A whole-frame endpoint belongs to the next batch.
+            let known = if horizon > 0.0 {
+                f64::from_bits(horizon.to_bits() - 1) as usize
+            } else {
+                0
+            };
+            frames = frames.min(known.max(1));
+        }
+        frames
+    }
+
     fn remaining(&self) -> Option<f64> {
         let (start, end, mirror, loop_) = self.selection;
         let mut distance = if self.state.direction == 1 {

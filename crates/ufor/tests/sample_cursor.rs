@@ -54,7 +54,33 @@ fn a_started_end_fade_keeps_its_coordinate_when_pitch_changes() {
     assert_eq!(cursor.end_gain(frame, RATE), 1.0);
     assert_eq!(cursor.state().end_fade_at, Some(frame));
     let mut resumed = start.resume(*cursor.state(), frame).unwrap();
+    assert_eq!(resumed.active_prefix(frame + 1, false, RATE / 2.0, 100), 3);
+    assert_eq!(resumed.active_prefix(frame + 4, false, RATE / 2.0, 100), 0);
     assert_eq!(resumed.end_gain(frame + 1, RATE / 2.0), 0.75);
     assert_eq!(resumed.end_gain(frame + 4, RATE / 2.0), 0.0);
     assert_eq!(resumed.state().exhausted, Some(frame + 4));
+}
+
+#[test]
+fn finite_loops_bound_a_batch_and_release_shortens_infinite_loops() {
+    let slice = parse_sample_slice(
+        r#"{"asset":"clip","name":"section","end_frame":12,
+        "loop":{"start_frame":3,"end_frame":9,"repeat_count":2}}"#,
+        Format::Json,
+    )
+    .unwrap();
+    let finite = Cursor::new(&slice, Playback::default(), 12, RATE, 0, 0.0).unwrap();
+    assert_eq!(finite.active_prefix(0, false, RATE, 100), 23);
+    assert_eq!(finite.active_prefix(0, true, RATE, 100), 11);
+
+    let slice = parse_sample_slice(
+        r#"{"asset":"clip","name":"section","end_frame":12,
+        "loop":{"start_frame":3,"end_frame":9}}"#,
+        Format::Json,
+    )
+    .unwrap();
+    let mut unbounded = Cursor::new(&slice, Playback::default(), 12, RATE, 0, 0.0).unwrap();
+    assert_eq!(unbounded.active_prefix(0, false, RATE, 100), 100);
+    unbounded.advance(9.0 * RATE, 9).unwrap();
+    assert_eq!(unbounded.active_prefix(9, true, RATE, 100), 2);
 }
