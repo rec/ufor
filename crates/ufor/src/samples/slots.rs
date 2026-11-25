@@ -15,6 +15,7 @@ use serde_json::value::RawValue;
 use std::collections::{BTreeMap, BTreeSet};
 
 mod references;
+mod sound;
 use references::TakeReferences;
 
 /// Slot data used by sampler traces and render preparation.
@@ -49,24 +50,39 @@ impl PreparedSlots {
                 return Err(invalid("duplicate sample slice name"));
             }
         }
+        let authored_settings: InstrumentSettings = instrument
+            .settings
+            .map(|raw| decode(raw.get()))
+            .transpose()?
+            .unwrap_or_default();
         let selections = unique_names(
-            instrument.settings.selections.iter().map(|item| &item.name),
+            authored_settings.selections.iter().map(|item| &item.name),
             "selection",
         )?;
         let pools = unique_names(
             instrument.voice_pools.iter().map(|item| &item.name),
             "voice pool",
         )?;
-        let controls = &instrument.settings.controls;
-        let articulations = instrument
+        let controls = &authored_settings.controls;
+        let common_layer: Layer = instrument
             .settings
+            .map(|raw| decode(raw.get()))
+            .transpose()?
+            .unwrap_or_default();
+        let common = sound::decode(
+            &resolve_layers(common_layer.with_instrument_envelope()?, None)?,
+            controls,
+            limits,
+        )?;
+        sound::validate_common(&common)?;
+        let articulations = authored_settings
             .articulations
             .as_ref()
             .map_or(&[][..], Articulations::ids);
-        if let Some(declarations) = &instrument.settings.articulations {
+        if let Some(declarations) = &authored_settings.articulations {
             declarations.validate_controls(controls)?;
         }
-        let sustain_pressed = if let Some(sustain) = &instrument.settings.sustain {
+        let sustain_pressed = if let Some(sustain) = &authored_settings.sustain {
             let declaration = controls.get(sustain.control()).ok_or_else(|| {
                 invalid(format!(
                     "Unknown sustain control: {}",
@@ -81,6 +97,7 @@ impl PreparedSlots {
         for raw in instrument.groups {
             let identity: GroupIdentity = decode(raw.get())?;
             let layer: Layer = decode(raw.get())?;
+            sound::decode(&resolve_layers(layer.clone(), None)?, controls, limits)?;
             if layer
                 .group_selection()?
                 .is_some_and(|name| !selections.contains(name))
@@ -134,7 +151,7 @@ impl PreparedSlots {
             let slice = slices
                 .get(&slot.slice)
                 .ok_or_else(|| invalid(format!("Unknown slice: {}", slot.slice.as_str())))?;
-            let traversal = slot.playback.resolve(instrument.settings.playback)?;
+            let traversal = slot.playback.resolve(authored_settings.playback)?;
             if slot.predicate.trigger != Trigger::Start
                 && traversal.playback.mode != PlaybackMode::OneShot
             {
@@ -162,6 +179,8 @@ impl PreparedSlots {
                 })
                 .transpose()?;
             let resolved = resolve_layers(decode(raw.get())?, group)?;
+            let effective = sound::decode(&resolved, controls, limits)?;
+            sound::validate_layers(&common, &effective, &slot.predicate)?;
             if resolved
                 .selection
                 .as_ref()
@@ -172,7 +191,7 @@ impl PreparedSlots {
                     slot.predicate.name.as_str()
                 )));
             }
-            if slot.predicate.trigger.is_sustain() && instrument.settings.sustain.is_none() {
+            if slot.predicate.trigger.is_sustain() && authored_settings.sustain.is_none() {
                 return Err(invalid("sustain triggers require a sustain control"));
             }
             takes.add(&slot, resolved.selection.as_ref())?;
@@ -185,8 +204,8 @@ impl PreparedSlots {
             eligibility: Eligibility::prepare(slots)?,
             settings,
             playback,
-            controls: instrument.settings.controls,
-            articulations: instrument.settings.articulations,
+            controls: authored_settings.controls,
+            articulations: authored_settings.articulations,
             sustain_pressed,
             limits,
         })
@@ -227,8 +246,8 @@ struct Declaration<'a> {
     #[serde(default, rename = "kind")]
     _kind: Kind,
     slices: Vec<Slice>,
-    #[serde(default)]
-    settings: InstrumentSettings,
+    #[serde(default, borrow)]
+    settings: Option<&'a RawValue>,
     #[serde(default)]
     voice_pools: Vec<VoicePool>,
     #[serde(default, borrow)]

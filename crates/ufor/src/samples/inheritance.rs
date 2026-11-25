@@ -5,14 +5,14 @@ use serde::{Deserialize, Serialize};
 use serde_json::value::RawValue;
 use std::collections::BTreeMap;
 
-#[derive(Debug, Deserialize)]
+#[derive(Clone, Debug, Deserialize)]
 #[serde(untagged)]
 enum Selection {
     Named(Identifier),
     Switch(bool),
 }
 
-#[derive(Debug, Default, Deserialize)]
+#[derive(Clone, Debug, Default, Deserialize)]
 #[serde(default)]
 pub(super) struct Layer {
     #[serde(deserialize_with = "present_value")]
@@ -31,6 +31,22 @@ pub(super) struct Layer {
 }
 
 impl Layer {
+    pub(super) fn with_instrument_envelope(mut self) -> Result<Self, Error> {
+        match self.envelope.as_ref().map(|value| value.get()) {
+            None => {
+                self.envelope = Some(
+                    serde_json::from_str(
+                        r#"{"segments":[{"duration":0,"to":1}],"release":[{"duration":0,"to":0}]}"#,
+                    )
+                    .expect("valid default sample instrument envelope"),
+                );
+            }
+            Some("false" | "null") => return Err(invalid("instrument requires an envelope")),
+            _ => {}
+        }
+        Ok(self)
+    }
+
     pub(super) fn group_selection(&self) -> Result<Option<&Identifier>, Error> {
         match &self.selection {
             Some(Selection::Named(value)) => Ok(Some(value)),

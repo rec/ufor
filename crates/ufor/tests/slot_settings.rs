@@ -34,7 +34,7 @@ fn slot_categories_and_selection_match_shared_vectors() {
         let body = format!(
             r#"{{"kind":"sample_instrument","slices":[{{"name":"audio","asset":"clip","end_frame":16}}],"slots":[{slot}],"groups":{groups},"settings":{{"selections":[{{"name":"takes","mode":"cycle"}},{{"name":"alternate","mode":"random"}}]}}}}"#,
         );
-        let prepared = PreparedSlots::from_json(&body, PreparationLimits::new(1).unwrap()).unwrap();
+        let prepared = PreparedSlots::from_json(&body, PreparationLimits::default()).unwrap();
         let resolved = prepared.settings().values().next().unwrap();
         assert_eq!(
             serde_json::to_string(resolved).unwrap(),
@@ -225,6 +225,72 @@ fn authored_sampler_slots_check_references_and_prepare_controls() {
             .unwrap_err();
         assert!(error.to_string().contains(expected), "{error}");
     }
+}
+
+#[test]
+fn sampler_layers_match_shared_spatial_bounds() {
+    let vectors: Value =
+        serde_json::from_str(include_str!("../../../conformance/sampler-spatial.json")).unwrap();
+    for (index, case) in vectors["slots"].as_array().unwrap().iter().enumerate() {
+        let body = json!({
+            "slices": [{"name": "audio", "asset": "clip", "end_frame": 16}],
+            "settings": vectors["instrument"],
+            "groups": [{"name": "kit", "processing": case["processing"]}],
+            "slots": [{
+                "name": "voice", "slice": "audio", "group": "kit",
+                "mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440}
+            }]
+        });
+        let prepared = PreparedSlots::from_json(&body.to_string(), PreparationLimits::default());
+        if case["valid"] == true {
+            prepared.unwrap();
+        } else {
+            let target = if index < 3 { "pan" } else { "stereo_balance" };
+            let error = prepared.unwrap_err();
+            assert!(
+                error
+                    .to_string()
+                    .contains(&format!("combined {target} range")),
+                "{error}"
+            );
+        }
+    }
+}
+
+#[test]
+fn sampler_layers_reject_conflicting_filters_and_uncovered_keys() {
+    let filter = json!({"name": "tone", "response": "lowpass", "cutoff_hz": 1000});
+    let body = json!({
+        "slices": [{"name": "audio", "asset": "clip", "end_frame": 16}],
+        "settings": {"processing": {"filters": [filter]}},
+        "slots": [{
+            "name": "voice", "slice": "audio",
+            "mapping": {"lowest_key": 60, "highest_key": 72, "reference_pitch_hz": 440},
+            "processing": {"filters": [filter], "filter_order": "after_amplitude"}
+        }]
+    });
+    let error =
+        PreparedSlots::from_json(&body.to_string(), PreparationLimits::default()).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("active filter chains require the same order"),
+        "{error}"
+    );
+    let mut keys = body;
+    keys["slots"][0]["processing"] = json!({});
+    keys["slots"][0]["bindings"] = json!([{"name":"key","kind":"key"}]);
+    keys["slots"][0]["modulation"] = json!({
+        "sources":[{"name":"key","scope":"voice","minimum":61,"maximum":72}]
+    });
+    let error =
+        PreparedSlots::from_json(&keys.to_string(), PreparationLimits::default()).unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("NoteKey source domain must cover the slot mapping"),
+        "{error}"
+    );
 }
 
 fn target(settings: &SoundSettings, field: &str) -> f64 {

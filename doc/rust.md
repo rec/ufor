@@ -120,6 +120,9 @@ It resolves each slot's playback against the instrument defaults and checks
 trigger and loop compatibility against the referenced slice.
 It validates slot references to controls, articulations, selections, voice
 pools, and choke groups, including the microphone sets of linked takes.
+It checks instrument, group, and effective slot sound settings against
+declared controls, including filter order, voice scope, key source coverage,
+and combined pan and stereo-balance bounds.
 Prepared slots expose the control domains, initial sustain state, and
 latched keyswitches for the consumer's event preparation.
 It preserves nested declaration order for decoding with SoundSettings.
